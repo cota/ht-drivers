@@ -1,4 +1,4 @@
-/* $Id: cdcmDrvr.c,v 1.1 2007/03/15 07:40:54 ygeorgie Exp $ */
+/* $Id: cdcmDrvr.c,v 1.2 2007/04/30 09:35:07 ygeorgie Exp $ */
 /*
 ; Module Name:	 cdcmDrvr.c
 ; Module Descr:	 CDCM Linux driver that encapsulates user-written LynxOS
@@ -22,7 +22,7 @@
 #include "cdcmLynxAPI.h"
 #include "cdcmMem.h"
 
-MODULE_DESCRIPTION("Common Driver Code Manager (CDCM) Abstraction Driver");
+MODULE_DESCRIPTION("Common Driver Code Manager (CDCM) Driver");
 MODULE_AUTHOR("Yury Georgievskiy, CERN AB/CO");
 MODULE_LICENSE("GPL");
 
@@ -166,7 +166,7 @@ cdcm_fop_read(
 	      size_t size,	 /* how many bytes to read */
 	      loff_t *off)	 /* offset */
 {
-  char *memp;
+  cdcmm_t *iobuf = NULL;
   struct cdcm_file lynx_file = {
     .dev = filp->f_dentry->d_inode->i_rdev, /* set Device Number */ 
     .access_mode = (filp->f_flags & O_ACCMODE),
@@ -181,21 +181,20 @@ cdcm_fop_read(
     return(-EFAULT);
   }
 
-  if (!(memp = sysbrk(size))) {
-    PRNT_ABS_ERR("Memory allocation error.");
+  if ( (iobuf = cdcm_mem_alloc(size, _IOC_READ|CDCM_M_FLG_READ)) == ERR_PTR(-ENOMEM))
     return(-ENOMEM);
-  }
   
-  cdcm_err = entry_points.dldd_read(LynxOsWorkingArea, &lynx_file, memp, size);
-  if (cdcm_err < 0)
+  
+  cdcm_err = entry_points.dldd_read(LynxOsWorkingArea, &lynx_file, iobuf->cmPtr, size);
+  if (cdcm_err == SYSERR)
     cdcm_err = -EAGAIN;
   else {
-    __copy_to_user(buf, memp, size);
+    __copy_to_user(buf,  iobuf->cmPtr, size);
     *off = lynx_file.position;
   }
 
-  sysfree(memp, size);
-  
+  cdcm_mem_free(iobuf);
+
   return(cdcm_err);
 }
 
@@ -214,14 +213,14 @@ cdcm_fop_write(
 	       size_t size,	       /* how many bytes to write */
 	       loff_t *off)	       /* offset */
 {
-  char *memp;
+  cdcmm_t *iobuf = NULL;
   struct cdcm_file lynx_file = {
     .dev = filp->f_dentry->d_inode->i_rdev, /* set Device Number */  
     .access_mode = (filp->f_flags & O_ACCMODE),
     .position = *off
   };
   
-  PRNT_INFO("Write device with minor = %d", MINOR(lynx_file.dev));
+  //PRNT_INFO("Write device with minor = %d", MINOR(lynx_file.dev));
   cdcm_err = 0; /* reset */
   
   if (!access_ok(VERIFY_READ, buf, size)) {
@@ -229,19 +228,18 @@ cdcm_fop_write(
     return(-EFAULT);
   }
 
-  if (!(memp = sysbrk(size))) {
-    PRNT_ABS_ERR("Memory allocation error.");
+  if ( (iobuf = cdcm_mem_alloc(size, _IOC_WRITE|CDCM_M_FLG_WRITE)) == ERR_PTR(-ENOMEM))
     return(-ENOMEM);
-  }
+  
+  __copy_from_user(iobuf->cmPtr, buf, size);
 
-  __copy_from_user(memp, buf, size);
-  cdcm_err = entry_points.dldd_write(LynxOsWorkingArea, &lynx_file, memp, size);
-  if (cdcm_err < 0)
+  cdcm_err = entry_points.dldd_write(LynxOsWorkingArea, &lynx_file, iobuf->cmPtr, size);
+  if (cdcm_err SYSERR)
     cdcm_err = -EAGAIN;
   else
     *off = lynx_file.position;
 
-  sysfree(memp, size);
+  cdcm_mem_free(iobuf);
 
   return(cdcm_err);
 }
@@ -339,7 +337,7 @@ cdcm_fop_ioctl(
   }
 
   if (iodir != _IOC_NONE) { /* we should move user <-> driver data */
-    if ( (iobuf = cdcm_mem_alloc(iosz, iodir|CDCM_M_IOCTL)) == ERR_PTR(-ENOMEM))
+    if ( (iobuf = cdcm_mem_alloc(iosz, iodir|CDCM_M_FLG_IOCTL)) == ERR_PTR(-ENOMEM))
       return(-ENOMEM);
   }
   
@@ -373,7 +371,7 @@ cdcm_fop_ioctl(
   }
   
   cdcm_mem_free(iobuf);
-  return(0);	/* we cool */
+  return(rc);	/* we cool */
 }
 
 
