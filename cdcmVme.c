@@ -1,4 +1,4 @@
-/* $Id: cdcmVme.c,v 1.1 2007/03/15 07:40:54 ygeorgie Exp $ */
+/* $Id: cdcmVme.c,v 1.2 2007/04/30 09:15:02 ygeorgie Exp $ */
 /*
 ; Module Name:	 cdcmVme.c
 ; Module Descr:	 CDCM VME Linux driver that encapsulates user-written LynxOS
@@ -14,18 +14,29 @@
 ;
 ; #.#   Name       Date       Description
 ; ---   --------   --------   -------------------------------------------------
+; 3.0   ygeorgie   24/04/07   Possibility to change IRQ scheduling priority.
 ; 2.0   ygeorgie   14/03/07   Production release, CVS controlled.
 ; 1.0	ygeorgie   16/01/07   Initial version.
 */
 
 #include "cdcmDrvr.h"
 #include "cdcmLynxAPI.h"
+#include "generalDrvrHdr.h" /* for WITHIN_RANGE */
+#include <asm/unistd.h>     /* for _syscall */
+#include <linux/irq.h>
+#include <platforms/rio.h>  /* for RIO_ACT_VMEIRQ1 */
 #include <ces/xpc_vme.h>
-
 
 /* page qualifier */
 #define VME_PG_SHARED  0x00
 #define VME_PG_PRIVATE 0x02
+
+/* for _syscall's. Othervise we've got undefined symbol */
+static int errno;
+
+/* we'll need this system calls to get some info */
+static __inline__ _syscall1(int,sched_get_priority_min,int,policy)
+static __inline__ _syscall1(int,sched_get_priority_max,int,policy)
 
 /* external functions */
 extern int cdcm_user_part_device_recodnizer(struct pci_dev*, char*);
@@ -157,7 +168,8 @@ find_controller(
   unsigned int am,       /* VME address modifier */
   unsigned int offset,   /* offset from vmeaddr (bytes) at which a read test
 			    should be made */
-  unsigned int size,     /* size of read-test zone (0 to disable read test) */
+  unsigned int size,     /* size in bytes of read-test zone
+			    (0 to disable read test) */
   struct pdparam_master *param) /* structure holding AM-code and mode flags
 				   NOT implemented for now!!! */
 {
@@ -409,4 +421,60 @@ cdcm_vme_cleanup(void)
   
   list_for_each_entry_safe(infoT, tmpT, &cdcmStatT.cdcm_dev_list_head, di_list)
     cdcm_exclude_vme_dev(infoT);
+}
+
+
+/*-----------------------------------------------------------------------------
+ * FUNCTION:    cdcm_vme_irq_sched_prio
+ * DESCRIPTION: Change IRQ scheduling priority for the given interrupt level.
+ *		VME Interrupt leves are [1-7]
+ * RETURNS:	negative val                            - if fails.
+ *		previous priority (some positive value) - if all OK.
+ *-----------------------------------------------------------------------------
+ */
+int
+cdcm_vme_irq_sched_prio(
+			short irq_line, /* [1-7] interrupt request line
+					   (interrupt level) */
+			int sched_prio) /* New RT priority
+					   Must be within allowable range
+					   if 0 - just give back current 
+					   prio value */
+{
+  struct task_struct *irq_thr = NULL;
+  int prio_max = 0, prio_min = 0;
+  struct sched_param param = {0};
+  int last_prio;
+  int rc;
+
+  /* check if IRQ level is in range */
+  if (!WITHIN_RANGE(1, irq_line, 7))
+    return(-ERANGE);
+
+  /* get pid of irq kernel thread, registered for the given interrupt level */
+  irq_thr = irq_descp(irq_line + RIO_ACT_VMEIRQ1 - 1)->thread;
+
+  last_prio = irq_thr->rt_priority;
+
+  if (!sched_prio) /* just give back current value */
+    return(last_prio);
+
+  /* check if new RT priority is exactly as the old one */
+  if (last_prio == sched_prio)
+    return(-EINVAL);  /* nothing to do */
+
+  /* get max/min priorityes */
+  prio_min = sched_get_priority_min(irq_thr->policy);
+  prio_max = sched_get_priority_max(irq_thr->policy);
+  
+  /* check new IRQ priority level is in range */
+  if (!WITHIN_RANGE(prio_min, sched_prio, prio_max))
+    return(-ERANGE);
+
+  param.sched_priority = sched_prio; /* set new priority */
+
+  if ( (rc = sched_setscheduler(irq_thr, irq_thr->policy, &param)) )
+    return(rc);	/* error */
+  
+  return(last_prio);
 }
