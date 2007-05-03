@@ -1,4 +1,4 @@
-/* $Id: cdcmPci.c,v 1.1 2007/03/15 07:40:54 ygeorgie Exp $ */
+/* $Id: cdcmPci.c,v 1.2 2007/05/03 20:17:19 ygeorgie Exp $ */
 /*
 ; Module Name:	 cdcmPci.c
 ; Module Descr:	 LynxOS system wrapper routines are located here as long as
@@ -294,8 +294,9 @@ drm_free_handle(
   return(DRM_OK);		/* 0 */
 }
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    drm_device_read
+/* TODO!
+ *-----------------------------------------------------------------------------
+ * FUNCTION:    drm_device_read 
  * DESCRIPTION: Wrapper. LynxOs DRM Services for PCI.
  * RETURNS:	DRM_OK       - (i.e. 0) if success 
  *		DRM_EINVALID - The node_h is not a valid drm handle.
@@ -383,7 +384,8 @@ drm_device_read(
 }
 
 
-/*-----------------------------------------------------------------------------
+/* TODO!
+ *-----------------------------------------------------------------------------
  * FUNCTION:    drm_device_write
  * DESCRIPTION: Wrapper. LynxOs DRM Services for PCI.
  * RETURNS:	DRM_OK      - (i.e. 0) if success 
@@ -463,4 +465,83 @@ drm_device_write(
   }
 
   return(retcode);
+}
+
+
+/* TODO!
+ *-----------------------------------------------------------------------------
+ * FUNCTION:    drm_locate
+ * DESCRIPTION: Wrapper. LynxOs DRM Services for PCI.
+ * RETURNS:	
+ *-----------------------------------------------------------------------------
+ */
+int drm_locate(
+	       struct drm_node_s *node)	/*  */
+{
+  return(DRM_EINVALID);
+}
+
+
+/* TODO!
+ *-----------------------------------------------------------------------------
+ * FUNCTION:    drm_register_isr
+ * DESCRIPTION: Wrapper. LynxOs DRM Services for PCI.
+ * RETURNS:	
+ *-----------------------------------------------------------------------------
+ */
+int
+drm_register_isr(
+		 struct drm_node_s *node_h,  /*  */
+		 void              (*isr)(), /*  */
+		 void              *arg)     /*  */
+{
+  return(DRM_EINVALID);
+}
+
+
+/* TODO!
+ *-----------------------------------------------------------------------------
+ * FUNCTION:    drm_unregister_isr
+ * DESCRIPTION: Wrapper. LynxOs DRM Services for PCI.
+ * RETURNS:	
+ *-----------------------------------------------------------------------------
+ */
+int
+drm_unregister_isr(
+		   struct drm_node_s *node_h) /*  */
+{
+  return(DRM_EINVALID);
+}
+
+
+/* TODO!
+ *-----------------------------------------------------------------------------
+ * FUNCTION:    drm_map_resource
+ * DESCRIPTION: Wrapper. LynxOs DRM Services for PCI.
+ * RETURNS:	
+ *-----------------------------------------------------------------------------
+ */
+int
+drm_map_resource(
+		 struct drm_node_s *node_h,
+		 int               resource_id,
+		 unsigned int      *vadrp)
+{
+  return(DRM_EINVALID);
+}
+
+
+/* TODO!
+ *-----------------------------------------------------------------------------
+ * FUNCTION:    drm_unmap_resource
+ * DESCRIPTION: Wrapper. LynxOs DRM Services for PCI.
+ * RETURNS:	
+ *-----------------------------------------------------------------------------
+ */
+int
+drm_unmap_resource(
+		   struct drm_node_s *node_h,      /*  */
+		   int                resource_id) /*  */
+{
+  return(DRM_EINVALID);
 }
