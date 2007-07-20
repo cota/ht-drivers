@@ -1,4 +1,4 @@
-/* $Id: cdcmInst.c,v 1.1 2007/07/09 09:26:29 ygeorgie Exp $ */
+/* $Id: cdcmInstUninst.c,v 1.1 2007/07/20 06:01:07 ygeorgie Exp $ */
 /*
 ; Module Name:	cdcmInst.c
 ; Module Descr:	Intended for Linux/Lynx driver installation. Helps to unify
@@ -9,6 +9,8 @@
 ; Date:         June, 2007.
 ; Author:       Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
 ;
+;
+; Inspired by module-init-tools-3.2/insmod.c, written by Rusty Russell.
 ;
 ; -----------------------------------------------------------------------------
 ; Revisions of cdcmInst.c: (latest revision on top)
@@ -36,7 +38,7 @@
 #include <common/include/list.h>
 #include <cdcm/cdcmInfoT.h>
 #include <cdcm/cdcmInst.h>
-#include <cdcm/cdcmNamingConv.h>
+#include <cdcm/cdcmUsrKern.h>
 
 #ifdef __linux__
 
@@ -63,7 +65,7 @@ static void assert_compulsory_vectors(void);
 
 
 /* module description */
-cdcm_md_t g_mdesc[MAX_VME_SLOT] = {
+static cdcm_md_t mod_desc[MAX_VME_SLOT] = {
   [0 ... MAX_VME_SLOT-1] {
     .md_gid      = -1,
     .md_lun      = -1,
@@ -77,11 +79,11 @@ cdcm_md_t g_mdesc[MAX_VME_SLOT] = {
   }
 };
 
-/* Claimed groups list */
+/* Claimed groups list. It's incremently ordered by module index [0-20] */
 LIST_HEAD(glob_grp_list);
 
 /* group description */
-cdcm_grp_t g_gdesc[MAX_VME_SLOT] = {
+static cdcm_grp_t grp_desc[MAX_VME_SLOT] = {
   [0 ... MAX_VME_SLOT-1] {
     .mod_am =  0
   }
@@ -101,11 +103,14 @@ init_lists()
 
   for (i = 0; i < MAX_VME_SLOT; i++) {
     /* module list */
-    INIT_LIST_HEAD(&g_mdesc[i].md_list);
+    INIT_LIST_HEAD(&mod_desc[i].md_list);
 
     /* group lists */
-    INIT_LIST_HEAD(&g_gdesc[i].grp_list);
-    INIT_LIST_HEAD(&g_gdesc[i].mod_list);
+    INIT_LIST_HEAD(&grp_desc[i].grp_list);
+    INIT_LIST_HEAD(&grp_desc[i].mod_list);
+
+    /* group number */
+    grp_desc[i].grp_num = i+1;
   }
 }
 
@@ -185,7 +190,7 @@ __module_am()
 {
   int mc = 0;
 
-  while (g_mdesc[mc].md_lun != -1)
+  while (mod_desc[mc].md_lun != -1)
     mc++;
 
   return(mc);
@@ -204,24 +209,28 @@ assert_all_mod_descr()
 {
   int mc = 0, cntr1, cntr2;
 
-  mc = __module_am();		/* module amount */
+  mc = __module_am();	/* claimed module amount */
 
+  /* pass through all module list */
   for (cntr1 = 0; cntr1 < mc; cntr1++) {
     for (cntr2 = cntr1+1; cntr2 < mc; cntr2++) {
 
       /* LUN checking */
-      if (g_mdesc[cntr1].md_lun == g_mdesc[cntr2].md_lun) {
-	printf("Identical LUNs (%d) detected!\nAborting...\n", g_mdesc[cntr1].md_lun);
+      if (mod_desc[cntr1].md_lun == mod_desc[cntr2].md_lun) {
+	printf("Identical LUNs (%d) detected!\nAborting...\n", mod_desc[cntr1].md_lun);
 	exit(EXIT_FAILURE);
       }
 
       /* first base address checking */
-      if (g_mdesc[cntr1].md_vme1addr == g_mdesc[cntr2].md_vme1addr) {
-	printf("Identical Base VME addresses (0x%x) detected!\nAborting...\n", g_mdesc[cntr1].md_vme1addr);
+      if (mod_desc[cntr1].md_vme1addr == mod_desc[cntr2].md_vme1addr) {
+	printf("Identical Base VME addresses (0x%x) detected!\nAborting...\n", mod_desc[cntr1].md_vme1addr);
 	exit(EXIT_FAILURE);
       }
     }
   }
+
+  /* init ordered group list */
+  
 }
 
 
@@ -261,16 +270,14 @@ cdcm_vme_arg_parser(
 		    char *argv[],
 		    char *envp[])
 {
-  int cur_lun, cur_grp, cmdOpt;
+  int cur_lun, cur_grp, cmdOpt, cntr;
   int grp_cntr = 0, comma_cntr = 0;  /* for grouping management */
 
   /* default + module-specific command line options */
   const char *optstring = get_optstring();
 
-  assert_compulsory_vectors();	/* will barf if something wrong */
+  assert_compulsory_vectors();	/* will barf if something missing */
   init_lists();			/* init crap */
-
- 
 
   /* Scan params of the command line */
   while ( (cmdOpt = getopt(argc, argv, optstring)) != EOF ) {
@@ -287,12 +294,12 @@ cdcm_vme_arg_parser(
 	printf("Wrong LUN (U param). Allowed absolute range is [0, 20]\nAborting...\n");
 	exit(EXIT_FAILURE);
       }
-      g_mdesc[comma_cntr].md_lun = cur_lun;
+      mod_desc[comma_cntr].md_lun = cur_lun;
       break;
     case P_T_GRP:	/* logical group coupling */
       if (comma_cntr && !grp_cntr) {
-	/* should exist from the very beginning i.e. before any separator */
-	printf("Group numbering error (G param). Should be set starting from the very beginning\nAborting...\n");
+	/* should exist from the very beginning i.e. before _any_ separator */
+	printf("Group numbering error (G param). Should be used from the very beginning, or not used at all!\nAborting...\n");
 	exit(EXIT_FAILURE);
       }
 
@@ -303,49 +310,47 @@ cdcm_vme_arg_parser(
 	exit(EXIT_FAILURE);	/* 1 */
       }
       
-      g_mdesc[comma_cntr].md_gid = cur_grp;
-      if (!g_gdesc[cur_grp-1].mod_am)
-	/* still not in the list of claimed groups */
-	list_add(&g_gdesc[cur_grp-1].grp_list, &glob_grp_list);
+      mod_desc[comma_cntr].md_gid = cur_grp;
 
-      /* handle group module */
-      list_add(&g_mdesc[comma_cntr].md_list, &g_gdesc[cur_grp-1].mod_list);
-      g_gdesc[cur_grp-1].mod_am++;
+      /* add new module to the group */
+      list_add(&mod_desc[comma_cntr].md_list/*new*/, &grp_desc[cur_grp-1].mod_list/*head*/);
+      grp_desc[cur_grp-1].mod_am++;
       grp_cntr++;
       break;
     case P_T_ADDR:	/* First base address */
-      g_mdesc[comma_cntr].md_vme1addr = strtol(optarg, NULL, 16);
+      mod_desc[comma_cntr].md_vme1addr = strtol(optarg, NULL, 16);
       break;
     case P_T_N_ADDR:	/* Second base address */
-      g_mdesc[comma_cntr].md_vme2addr = strtol(optarg, NULL, 16);
+      mod_desc[comma_cntr].md_vme2addr = strtol(optarg, NULL, 16);
       break;
     case P_T_IVECT:	/* Interrupt vector */
-      g_mdesc[comma_cntr].md_ivec = atoi(optarg);
+      mod_desc[comma_cntr].md_ivec = atoi(optarg);
       break;
     case P_T_ILEV:	/* Interrupt level */
-      g_mdesc[comma_cntr].md_ilev = atoi(optarg);
+      mod_desc[comma_cntr].md_ilev = atoi(optarg);
       break;
     case P_T_TRANSP:	/* Transparent driver parameter */
       break;
     case P_T_FLG:	/* Debug information printing */
       break;
     case P_T_CHAN: /* Channel amount (amount of minor devices to create) */
-      g_mdesc[comma_cntr].md_mpd = atoi(optarg);
+      mod_desc[comma_cntr].md_mpd = atoi(optarg);
       break;
     case P_T_SEPAR:	/* End of module device definition */
       if (comma_cntr == MAX_VME_SLOT) {
 	printf("Too many modules declared (max is %d)\nAborting...\n", MAX_VME_SLOT);
 	exit(EXIT_FAILURE);
       }
-      check_mod_compulsory_params(&g_mdesc[comma_cntr]); /* will barf if error */
+      check_mod_compulsory_params(&mod_desc[comma_cntr]); /* will barf if error */
 
       /* set groups and their module lists if no explicit grouping (G param) */
-      if (g_mdesc[comma_cntr].md_gid == -1) {
-	list_add(&g_gdesc[comma_cntr].grp_list, &glob_grp_list);
-	list_add(&g_mdesc[comma_cntr].md_list, &g_gdesc[comma_cntr].mod_list);
+      if (mod_desc[comma_cntr].md_gid == -1) {
+	/* if here, then one group <-> one device */
+	/* add new module to the group */
+	list_add(&mod_desc[comma_cntr].md_list/*new*/, &grp_desc[comma_cntr].mod_list/*head*/);
 
-	g_gdesc[comma_cntr].mod_am++; /* increase module amount in the group */
-	g_mdesc[comma_cntr].md_gid = comma_cntr+1; /* set module group id */
+	grp_desc[comma_cntr].mod_am++; /* increase module amount in the group */
+	mod_desc[comma_cntr].md_gid = comma_cntr+1; /* set module group id */
       }
 
       comma_cntr++;
@@ -363,7 +368,7 @@ cdcm_vme_arg_parser(
     case 0:
 #endif
     default:
-      if (cdcm_inst_ops.mso_parse_opt)
+      if (cdcm_inst_ops.mso_parse_opt)<
 	(*cdcm_inst_ops.mso_parse_opt)(cmdOpt, optarg);
       else {
 	printf("Wrong/Unknown option %c!\nAborting...\n", cmdOpt);
@@ -373,35 +378,19 @@ cdcm_vme_arg_parser(
     }
   }
 
+  /* check if no conflicts in module declaration */
   assert_all_mod_descr();
+
+  /* set sorted group list */
+  for (cntr = 0; cntr < MAX_VME_SLOT; cntr++)
+    if (grp_desc[cntr].mod_am)	/* group is claimed, add it to the list */
+      list_add(&grp_desc[cntr].grp_list, &glob_grp_list);
+
   return(glob_grp_list);
 }
 
 
 #ifdef __linux__
-
-/*-----------------------------------------------------------------------------
- * FUNCTION:    __linux_dev_name
- * DESCRIPTION: CDCM device name container. It looks like 'cdcm_<mod_name>'
- *		where <mod_name> is the name, provided by the module-specific
- *		installation part.
- * RETURNS:	device name
- *-----------------------------------------------------------------------------
- */
-static inline char*
-__linux_dev_name()
-{
-  static char cdcm_dev_nm[32] = { 0 };
-
-  if (cdcm_dev_nm[0])	/* already defined */
-    return(cdcm_dev_nm);
-  
-  snprintf(cdcm_dev_nm, sizeof(cdcm_dev_nm), CDCM_DEV_NM_FMT, (*cdcm_inst_ops.mso_get_mod_name)());
-  
-  return(cdcm_dev_nm);
-}
-
-
 /*-----------------------------------------------------------------------------
  * FUNCTION:    __linux_srv_node
  * DESCRIPTION: CDCM service node name container.
@@ -417,39 +406,53 @@ __linux_srv_node()
   if (cdcm_s_n_nm[0])		/* already defined */
     return(cdcm_s_n_nm);
   
-  snprintf(cdcm_s_n_nm, sizeof(cdcm_s_n_nm), "/dev/%s", __linux_dev_name());
+  snprintf(cdcm_s_n_nm, sizeof(cdcm_s_n_nm), "/dev/%s", __srv_dev_name(NULL));
   
   return(cdcm_s_n_nm);
 }
 
-
+/* TODO REMOVE */
+#define bitprint(x)						\
+do {								\
+  int __cntr;							\
+  for (__cntr = sizeof(typeof(x))*8-1; __cntr >= 0; __cntr--)	\
+    printf("%d", (x&(1<<__cntr))>>__cntr);			\
+								\
+  printf("\n");							\
+} while(0)
 /*-----------------------------------------------------------------------------
  * FUNCTION:    dr_install
  * DESCRIPTION: Lynx call wrapper. Will install the driver in the system.
- *		Supposed to called _only_ once during installation procedure.
- *		If more - then it will terminate installation.
+ *		Supposed to be called _only_ once during installation
+ *		procedure. If more - then it will terminate installation.
  * RETURNS:	driver id
  *-----------------------------------------------------------------------------
  */
 int
 dr_install(
 	   char *drvr_fn, /* driver path */
-	   int   type)    /* for now _only_ char devices */
+	   int   type)    /* for now _only_  char devices */
 {
   static int c_cntr = 0; /* how many times i was already called */
   void *drvrfile = NULL;
   FILE *procfd   = NULL;
   unsigned long len;
-  char *options;
+  char *options;		/* driver option */
   long int ret;
   char buff[32], *bufPtr; /* for string parsing */
   int major_num = 0;
   int devn; /* major/minor device number */
-  char *itf;	/* info table file */
+  char *itf;	/* info table filepath */
+  int grp_bits = 0, cntr;
 
   if (c_cntr > 1) {	/* oooops... */
     printf("%s() was called more then once. Should NOT happen!\nAborting...\n", __FUNCTION__);
     exit(EXIT_FAILURE);
+  } else {
+    cdcm_grp_t *grpp;
+    list_for_each_entry(grpp, &glob_grp_list, grp_list)
+      grp_bits &= 1<<(grpp->(grp_num-1)); /* set group bit mask */
+    bitprint(grp_bits);		/* TODO REMOVE for testing only! */
   }
 
   /* put .ko in the local buffer */
@@ -459,7 +462,7 @@ dr_install(
   }
 
   /* create info file */
-  if ( (itf = linux_do_cdcm_info_header_file()) == NULL) {
+  if ( (itf = linux_do_cdcm_info_header_file(grp_bits)) == NULL) {
     free(drvrfile);
     exit(EXIT_FAILURE);
   }
@@ -486,17 +489,17 @@ dr_install(
   /* search for the device driver entry */
   bufPtr = buff;
   while (fgets(buff, sizeof(buff), procfd))
-    if (strstr(buff, __linux_dev_name())) { /* bingo! */
+    if (strstr(buff, __srv_dev_name(NULL))) { /* bingo! */
       major_num = atoi(strsep(&bufPtr, " "));
       break;
     }
   
   /* check if we cool */
   if (!major_num) {
-    fprintf(stderr, "'%s' device NOT found in proc fs.\n", __linux_dev_name());
+    fprintf(stderr, "'%s' device NOT found in proc fs.\n", __srv_dev_name(NULL));
     exit(EXIT_FAILURE);
   } else 
-    printf("%s device driver installed. Major number %d.\n", __linux_dev_name(), major_num);
+    printf("%s device driver installed. Major number %d.\n", __srv_dev_name(NULL), major_num);
 
   /* create service entry point */
   unlink(__linux_srv_node()); /* if already exist delete it */
@@ -547,7 +550,12 @@ cdv_install(
   return(1);
 }
 
-      
+/*-----------------------------------------------------------------------------
+ * FUNCTION:    
+ * DESCRIPTION: 
+ * RETURNS:	
+ *-----------------------------------------------------------------------------
+ */      
 /*-----------------------------------------------------------------------------
  * FUNCTION:    linux_do_cdcm_info_header_file
  * DESCRIPTION: Setup CDCM header and create info file that will passed to
@@ -557,26 +565,29 @@ cdv_install(
  *-----------------------------------------------------------------------------
  */
 static char*
-linux_do_cdcm_info_header_file()
+linux_do_cdcm_info_header_file(
+			       int grp_bit_mask) /* claimed groups mask */
 {
-  static char cdcm_if_nm[64] = { 0 };
+  static char cdcm_if_nm[CDCM_IPATH_LEN] = { 0 };
   int ifd; /* info file descriptor */
 
   /* buidup CDCM header */
   cdcm_hdr_t cdcm_hdr = {
-    .cih_signature = CDCM_MAGIC_IDENT,
-    .cih_grp_am    = list_capacity(&glob_grp_list)
-    //strncpy(cdcm_hdr.cih_dnm, (*cdcm_inst_ops.mso_get_mod_name)(), sizeof(cdcm_hdr.cih_dnm))
-    //.cih_dnm       = ((*cdcm_inst_ops.mso_get_mod_name)())
+    .cih_signature = ASSERT_MSB(CDCM_MAGIC_IDENT),
+    .cih_grp_bits  = grp_bit_mask
+    //.cih_grp_bits  = ASSERT_MSB(list_capacity(&glob_grp_list))
   };
-  
+
+  /* write specific module name */
   strncpy(cdcm_hdr.cih_dnm, (*cdcm_inst_ops.mso_get_mod_name)(), sizeof(cdcm_hdr.cih_dnm));
-  snprintf(cdcm_if_nm, sizeof(cdcm_if_nm), "/tmp/%s.info", __linux_dev_name());
+
+  snprintf(cdcm_if_nm, sizeof(cdcm_if_nm), "/tmp/%s.info", __srv_dev_name((*cdcm_inst_ops.mso_get_mod_name)()));
 
   if ( (ifd = open(cdcm_if_nm, O_CREAT | O_RDWR, 0664)) == -1) {
     perror(__FUNCTION__);
     return(NULL);
   }
+
   /* write CDCM header */
   if( write(ifd, &cdcm_hdr, sizeof(cdcm_hdr)) == -1) {
     perror(__FUNCTION__);

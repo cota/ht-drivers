@@ -1,4 +1,4 @@
-/* $Id: cdcmInst.h,v 1.1 2007/07/09 09:26:29 ygeorgie Exp $ */
+/* $Id: cdcmInstUninst.h,v 1.1 2007/07/20 06:01:07 ygeorgie Exp $ */
 /*
 ; Module Name:	cdcmInst.h
 ; Module Descr:	All concerning driver installation is located here.
@@ -16,6 +16,46 @@
 */
 #ifndef _CDCM_INST_H_INCLUDE_
 #define _CDCM_INST_H_INCLUDE_
+
+#include <elf.h> /* for endianity business */
+
+/* swap bytes */
+static inline void __endian(const void *src, void *dest, unsigned int size)
+{
+  unsigned int i;
+  for (i = 0; i < size; i++)
+    ((unsigned char*)dest)[i] = ((unsigned char*)src)[size - i - 1];
+}
+
+/* find out current endianity */
+static inline int __my_endian()
+{
+  static int my_endian = ELFDATANONE;
+  union { short s; char c[2]; } endian_test;
+  
+  if (my_endian != ELFDATANONE)	/* already defined */
+    return(my_endian);
+  
+  endian_test.s = 1;
+  if (endian_test.c[1] == 1) my_endian = ELFDATA2MSB;
+  else if (endian_test.c[0] == 1) my_endian = ELFDATA2LSB;
+  else abort();
+
+  return(my_endian);
+}
+
+/* assert data to Big Endian */
+#define ASSERT_MSB(x)				\
+({						\
+  typeof(x) __x;				\
+  typeof(x) __val = (x);			\
+  if (__my_endian() == ELFDATA2LSB)		\
+    __endian(&(__val), &(__x), sizeof(__x));	\
+  else						\
+    __x = x;					\
+  __x;
+})
+
 
 /* predefined option characters that will be parsed by default. They should
    not be used by the module specific part to avoid collision */
@@ -38,14 +78,14 @@ typedef enum _tagDefaultOptionsChars {
 
 /* vectors that will be called (if not NULL) by the module-specific install
    programm to handle specific part of the module installation procedure */
-struct module_spec_ops {
+struct module_spec_inst_ops {
   void  (*mso_educate)();       /* for user education */
   char* (*mso_get_optstr)();	/* module-spesific options in 'getopt' form */
   int   (*mso_parse_opt)(char, char*); /* parse module-spesific option */
   char* (*mso_get_mod_name)(); /* module-specific name. COMPULSORY vector */
 };
 
-extern struct module_spec_ops cdcm_inst_ops;
+extern struct module_spec_inst_ops cdcm_inst_ops;
 
 #ifdef __linux__
 #define BLOCKDRIVER	1
