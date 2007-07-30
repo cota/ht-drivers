@@ -1,21 +1,22 @@
-/* $Id: cdcmInstUninst.h,v 1.1 2007/07/20 06:01:07 ygeorgie Exp $ */
+/* $Id: cdcmUninstInst.h,v 1.1 2007/07/30 08:53:39 ygeorgie Exp $ */
 /*
-; Module Name:	cdcmInst.h
-; Module Descr:	All concerning driver installation is located here.
+; Module Name:	cdcmInstUninst.h
+; Module Descr:	All concerning driver installation and uninstallation is
+;		located here.
 ; Date:         June, 2007.
 ; Author:       Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
 ;
 ;
 ; -----------------------------------------------------------------------------
-; Revisions of cdcmInst.h: (latest revision on top)
+; Revisions of cdcmInstUninst.h: (latest revision on top)
 ;
 ; #.#   Name       Date       Description
 ; ---   --------   --------   -------------------------------------------------
 ; 2.0   ygeorgie   09/07/07   Production release, CVS controlled.
 ; 1.0	ygeorgie   28/06/07   Initial version.
 */
-#ifndef _CDCM_INST_H_INCLUDE_
-#define _CDCM_INST_H_INCLUDE_
+#ifndef _CDCM_INST_UNINST_H_INCLUDE_
+#define _CDCM_INST_UNINST_H_INCLUDE_
 
 #include <elf.h> /* for endianity business */
 
@@ -53,7 +54,7 @@ static inline int __my_endian()
     __endian(&(__val), &(__x), sizeof(__x));	\
   else						\
     __x = x;					\
-  __x;
+  __x;						\
 })
 
 
@@ -91,7 +92,9 @@ extern struct module_spec_inst_ops cdcm_inst_ops;
 #define BLOCKDRIVER	1
 #define CHARDRIVER	0
 int dr_install(char*, int);
+//int dr_uninstall(int);
 int cdv_install(char*, int, int);
+//ind cdv_uninstall(int);
 #else  /* __Lynx__ */
 static inline int makedev(int major, int minor)
 {
@@ -103,4 +106,4 @@ static inline int makedev(int major, int minor)
 
 struct list_head cdcm_vme_arg_parser(int argc, char *argv[], char *envp[]);
 
-#endif /* _CDCM_INST_H_INCLUDE_ */
+#endif /* _CDCM_INST_UNINST_H_INCLUDE_ */

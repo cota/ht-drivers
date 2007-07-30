@@ -1,8 +1,8 @@
-/* $Id: cdcmInstUninst.c,v 1.1 2007/07/20 06:01:07 ygeorgie Exp $ */
+/* $Id: cdcmUninstInst.c,v 1.1 2007/07/30 08:53:39 ygeorgie Exp $ */
 /*
-; Module Name:	cdcmInst.c
-; Module Descr:	Intended for Linux/Lynx driver installation. Helps to unify
-;		driver install procedure between two systems.
+; Module Name:	cdcmInstUninst.c
+; Module Descr:	Intended for Linux/Lynx driver installation/uninstallation.
+;		Helps to unify driver install procedure between two systems.
 ;		All standart options are parsed here and CDCM group description
 ;		is build-up. Module-specific options are parsed using defined
 ;		module-specific vectors.
@@ -10,10 +10,11 @@
 ; Author:       Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
 ;
 ;
-; Inspired by module-init-tools-3.2/insmod.c, written by Rusty Russell.
+; Inspired by module-init-tools-3.2/insmod.c and rmmod,
+; written by Rusty Russell. Thxs!
 ;
 ; -----------------------------------------------------------------------------
-; Revisions of cdcmInst.c: (latest revision on top)
+; Revisions of cdcmInstUninst.c: (latest revision on top)
 ;
 ; #.#   Name       Date       Description
 ; ---   --------   --------   -------------------------------------------------
@@ -425,7 +426,8 @@ do {								\
  * DESCRIPTION: Lynx call wrapper. Will install the driver in the system.
  *		Supposed to be called _only_ once during installation
  *		procedure. If more - then it will terminate installation.
- * RETURNS:	driver id
+ * RETURNS:	driver id - if successful
+ *		-1        - if not.
  *-----------------------------------------------------------------------------
  */
 int
@@ -510,7 +512,22 @@ dr_install(
   }
 
   c_cntr++;
-  return(c_cntr);  
+  return(major_num); /* 'fake' driver id will be used by the cdv_install */
+}
+
+
+/*-----------------------------------------------------------------------------
+ * FUNCTION:    dr_uninstall
+ * DESCRIPTION: Lynx call wrapper. Will uninstall the driver in the system.
+ *		Supposed to be called _only_ once during uninstallation.
+ * RETURNS:	
+ *-----------------------------------------------------------------------------
+ */
+int
+dr_uninstall(
+	     int id)		/*  */
+{
+
 }
 
 
@@ -527,35 +544,58 @@ dr_install(
  *		programm, driver install vector from 'dldd' structure is
  *		activated. It returns statics table, that in turn is used in
  *		every entry point of 'dldd' vector table.
- * RETURNS:	major device ID
+ * RETURNS:	major device ID - if successful.
+ *		-1              - if not.
  *-----------------------------------------------------------------------------
  */
 int
 cdv_install(
 	    char *path,		/* info file */
-	    int   driver_id,	/*  */
+	    int   driver_id,	/* service entry point major number */
 	    int   extra)	/*  */
 {
   static int c_cntr = 0; /* how many times i was already called */
-  
+  int cdcmfd -1;
+  int maj_num = -1;
+
   c_cntr++;
 
-#if 0
-  if (c_cntr > group_am()) {	/* oooops... */
+  if (c_cntr > list_capacity(&glob_grp_list)) {	/* oooops... */
     printf("%s() was called more times, then groups declared. Should NOT happen!\nAborting...\n", __FUNCTION__);
-    exit(EXIT_FAILURE);
+    return(-1);
   }
-#endif
 
-  return(1);
+  if ((cdcmfd = open(__linux_srv_node(), O_RDWR)) == -1) {
+    perror("open");
+    return(-1);
+  }
+
+  if ( (maj_num = ioctl(cdcmfd, CDCM_CDV_INSTALL, path)) < 0) {
+    perror("CDCM_CDV_INSTALL ioctl fails");
+    close(cdcmfd);
+    return(-1);
+  }
+
+  close(cdcmfd);
+  return(maj_num);
 }
 
+
 /*-----------------------------------------------------------------------------
- * FUNCTION:    
- * DESCRIPTION: 
+ * FUNCTION:    cdv_uninstall
+ * DESCRIPTION: Lynx call wrapper. Can be called several times from the driver
+ *		uninstallation procedure.
  * RETURNS:	
  *-----------------------------------------------------------------------------
- */      
+ */  
+int
+cdv_uninstall(
+	      int cdevice_ID)	/*  */
+{
+
+}
+
+
 /*-----------------------------------------------------------------------------
  * FUNCTION:    linux_do_cdcm_info_header_file
  * DESCRIPTION: Setup CDCM header and create info file that will passed to
