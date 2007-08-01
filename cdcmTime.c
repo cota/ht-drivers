@@ -1,4 +1,4 @@
-/* $Id: cdcmTime.c,v 1.1 2007/03/15 07:40:54 ygeorgie Exp $ */
+/* $Id: cdcmTime.c,v 1.2 2007/08/01 15:07:20 ygeorgie Exp $ */
 /*
 ; Module Name:	 cdcmTime.c
 ; Module Descr:	 All timing-related staff for CDCM is located here, i.e. Lynx
@@ -13,10 +13,13 @@
 ;
 ; #.#   Name       Date       Description
 ; ---   --------   --------   -------------------------------------------------
+; 4.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
 ; 3.0   ygeorgie   14/03/07   Production release, CVS controlled.
 ; 2.0   ygeorgie   27/07/06   First working release.
 ; 1.0	ygeorgie   07/07/06   Initial version.
 */
+
+#include <linux/time.h>
 
 #include "cdcmTime.h"
 #include "cdcmThread.h"
@@ -27,11 +30,6 @@ extern int cdcm_dbg_cntr; /* TODO. REMOVE. For CDCM debugging only.
 			     Defined in cdcm.c module */
 
 extern cdcmthr_t* cdcm_get_thread_handle(int);
-
-extern short *vmetro_track_addr;
-static short vmetro_val;
-#define VMETRO_TRACKING_R (vmetro_val = *vmetro_track_addr)
-#define VMETRO_TRACKING_W(val) (*vmetro_track_addr = val)
 
 /*-----------------------------------------------------------------------------
  * FUNCTION:    cdcm_timer_callback
@@ -46,10 +44,31 @@ cdcm_timer_callback(
 {
   cdcmt_t *my_data = &cdcmStatT.cdcm_timer[arg];
 
-  del_timer_sync(&my_data->ct_timer);
+  del_timer(&my_data->ct_timer);
   my_data->ct_on = 0;
   PRNT_DBG("is called. Index[%d]", (int)arg);
   my_data->ct_uf(my_data->ct_arg); /* call user payload */
+}
+
+
+/*-----------------------------------------------------------------------------
+ * FUNCTION:    nanotime
+ * DESCRIPTION: LynxOs service call wrapper.
+ * RETURNS:	fraction of a second in nanoseconds.
+ *		'sec' will hold current time in seconds.
+ *-----------------------------------------------------------------------------
+ */
+int
+nanotime(
+	 unsigned long *sec) /* current time in seconds is placed here */
+{
+  struct timespec curtime;
+
+  curtime = current_kernel_time();
+
+  *sec = (unsigned long)curtime.tv_sec;
+  
+  return((int)curtime.tv_nsec);
 }
 
 
@@ -62,27 +81,28 @@ cdcm_timer_callback(
  */
 int
 timeout(
-	tpp_t func,/* function to call */
-	char *arg,     /* argument for function handler */
-	int  interval) /* timeout interval (10 millisecond garnularity) */
+	tpp_t  func,     /* function to call */
+	char  *arg,      /* argument for function handler */
+	int    interval) /* timeout interval (10 millisecond garnularity) */
 {
   int cntr;
+  //cdcmt_t *cdcmtptr;		/* timer handle */
 
   for (cntr = 0; cntr < MAX_CDCM_TIMERS; cntr++) {
     if (!cdcmStatT.cdcm_timer[cntr].ct_on) { /* not used */
       /* initialize for usage */
       cdcmStatT.cdcm_timer[cntr] = (cdcmt_t) {
 	.ct_on      = current->pid,
-	.ct_timer   = TIMER_INITIALIZER(cdcm_timer_callback/*payload*/, (jiffies + interval)/*when to call*/, cntr/*my data table index*/),
+	.ct_timer   = TIMER_INITIALIZER(cdcm_timer_callback/*payload*/, (jiffies + interval)/*when to call*/, cntr/*timer payload parameter - my data table index*/),
 	.ct_uf  = func,
 	.ct_arg = arg
       };
 
       init_timer(&cdcmStatT.cdcm_timer[cntr].ct_timer);
       add_timer(&cdcmStatT.cdcm_timer[cntr].ct_timer);
-      
-      PRNT_DBG("<%d> for tid[%d]. Timer interval %d PASSED", cdcm_dbg_cntr++, current->pid, interval);
-      return(cntr + 1);		/* timeout ID */
+
+      //PRNT_DBG("<%d> for tid[%d]. TimerID[%d] with interval %d ADDED", cdcm_dbg_cntr++, current->pid, cntr+1, interval);
+      return(cntr + 1); /* timeout ID */
     }
   }
   
@@ -107,7 +127,7 @@ cancel_timeout(
     if (cdcmStatT.cdcm_timer[idx].ct_on) {
       del_timer_sync(&cdcmStatT.cdcm_timer[idx].ct_timer);
       cdcmStatT.cdcm_timer[idx].ct_on = 0;
-      PRNT_DBG("timeout %d cancelled.", arg);
+      //PRNT_DBG("timeout %d cancelled.", arg);
       return(OK);
     }
     
@@ -189,18 +209,23 @@ cdcm_get_sem(
 
    Acronyms description:
    WC  - Wait Condition
-   SSI - Sem Sig Ignore
-   SSO - Sem Sig Other
+   SSI - Sem Sig Ignore flag (SEM_SIGIGNORE)
+   SSO - Sem Sig all Other flags (SEM_SIGRETRY, SEM_SIGABORT)
+   THR - in case if it was called from the THRead
 */
-#define WC_SSI (semptr->wq_tflag > 0 || semptr->wq_tflag == -1 || ( (stptr) ? (stptr->thr_sem == current->pid) : 1) )
-#define WC_SSO (semptr->wq_tflag > 0 || semptr->wq_tflag == -1 || ( (stptr) ? (stptr->thr_sem == current->pid) : 1) )
+
+#define WC_SSI_THR (semptr->wq_tflag > 0 || semptr->wq_tflag == -1 || (stptr->thr_sem == current->pid))
+#define WC_SSI (semptr->wq_tflag > 0 || semptr->wq_tflag == -1)
+
+#define WC_SSO_THR (semptr->wq_tflag > 0 || semptr->wq_tflag == -1 || (stptr->thr_sem == current->pid))
+#define WC_SSO (semptr->wq_tflag > 0 || semptr->wq_tflag == -1)
 
 static DEFINE_SPINLOCK(swait_sem_lock);
 
 int
 swait(
       int *sem,	/* user driver semaphore */
-      int flag)	/*  */
+      int flag)	/* SEM_SIGIGNORE, SEM_SIGRETRY, SEM_SIGABORT */
 {
   int coco = 0;
   cdcmsem_t *semptr = cdcm_get_sem(sem); /* get new or existing one */
@@ -212,15 +237,13 @@ swait(
     PRNT_ABS_ERR("EFAULT: No more free wait queues!");
     return(SYSERR);
   }
-
-  //VMETRO_TRACKING_W(1977);
-
-  //printk("[CDCMDBG]@%s()=> <%d> tid[%d] %s called on semID[%d] semptr->wq_usr_val is %d\n", __FUNCTION__, cdcm_dbg_cntr++, current->pid, __FUNCTION__, semptr->wq_id, *semptr->wq_usr_val);
   
   /* check who is calling - kernel thread or normal process. If stptr is NULL, 
      then swait is called from the process, but __not__ from the kthread */
   stptr = cdcm_get_thread_handle(current->pid);
-  
+
+  //printk("[CDCMDBG]@%s()=> <%d> tid[%d] %s called on semID[%d] semptr->wq_usr_val is %d     stptr is %p\n", __FUNCTION__, cdcm_dbg_cntr++, current->pid, __FUNCTION__, semptr->wq_id, *semptr->wq_usr_val, stptr);
+
   if (*semptr->wq_usr_val > 0) { /* ------------------------------------ */
     --(*semptr->wq_usr_val); /* decrease sem value */
     //printk("[CDCMDBG]@%s()=> Sem is free. New val is %d. Just continue...\n", __FUNCTION__, *semptr->wq_usr_val);
@@ -229,49 +252,54 @@ swait(
     --(*semptr->wq_usr_val); /* decrease sem value */
     if (flag == SEM_SIGIGNORE) {
 
-      printk("[CDCMDBG]@%s()=> tid[%d] Go to wait_event_exclusive() on semID[%d] with semptr->wq_usr_val is %d   semptr->wq_tflag is %d", __FUNCTION__, current->pid, semptr->wq_id, *semptr->wq_usr_val, semptr->wq_tflag);
-      if (stptr)
-	printk("   stptr->thr_sem is %d\n", stptr->thr_sem);
-      else
-	printk("\n");
+      //printk("[CDCMDBG]@%s()=> tid[%d] Go to wait_event_exclusive() on semID[%d] with semptr->wq_usr_val is %d   semptr->wq_tflag is %d", __FUNCTION__, current->pid, semptr->wq_id, *semptr->wq_usr_val, semptr->wq_tflag);
+      if (stptr) { /* thread */
+	//printk("   stptr->thr_sem is %d\n", stptr->thr_sem);
+	wait_event_exclusive(semptr->wq_head, WC_SSI_THR);
+      } else {	/* process */
+	//printk("\n");
+	wait_event_exclusive(semptr->wq_head, WC_SSI);
+      }
 
-      wait_event_exclusive(semptr->wq_head, WC_SSI);
       wee = 1;
-    } else {
+    } else {	/* all the rest - SEM_SIGRETRY, SEM_SIGABORT */
 
-      printk("[CDCMDBG]@%s=> tid[%d] Go to wait_event_interruptable_exclusive() on semID %d with semptr->wq_usr_val is %d   semptr->wq_tflag is %d", __FUNCTION__, current->pid, semptr->wq_id, *semptr->wq_usr_val, semptr->wq_tflag);
-      if (stptr)
-	printk("   stptr->thr_sem is %d\n", stptr->thr_sem);
-      else
-	printk("\n");
-      
-      if ((coco = wait_event_interruptible_exclusive(semptr->wq_head, WC_SSO))) {
-	printk(KERN_WARNING "[CDCMDBG]@%s()=> Wait interrupted! (ret code %d)\n", __FUNCTION__, coco);
+      //printk("[CDCMDBG]@%s=> tid[%d] Go to wait_event_interruptable_exclusive() on semID %d with semptr->wq_usr_val is %d   semptr->wq_tflag is %d", __FUNCTION__, current->pid, semptr->wq_id, *semptr->wq_usr_val, semptr->wq_tflag);
+      if (stptr) { /* thread */
+	//printk("   stptr->thr_sem is %d\n", stptr->thr_sem);
+	coco = wait_event_interruptible_exclusive(semptr->wq_head, WC_SSO_THR);
+      } else {
+	//printk("\n");
+	coco = wait_event_interruptible_exclusive(semptr->wq_head, WC_SSO);
+      }
+
+      if (coco) {
+	//printk(KERN_WARNING "[CDCMDBG]@%s()=> Wait interrupted! (ret code %d)\n", __FUNCTION__, coco);
 	return(SYSERR);
       }
     }
   }
-  /* if we reach this point, then we were actually sleep waiting... */
+  /* if we reach this point, then we actually _were_ sleep waiting... */
 
   /* enter critical region */
   spin_lock_irqsave(&swait_sem_lock, swait_spin_flags);
   //local_irq_save(swait_spin_flags); /* old logic */
   
-  printk("[CDCMDBG]@%s()=> tid[%d] Out from %s(). wq_tflag is %d", __FUNCTION__, current->pid, (wee)?"wait_event_exclusive":"wait_event_interruptible_exclusive", semptr->wq_tflag);
-  
-  //VMETRO_TRACKING_W(0xdead);
+  //printk("[CDCMDBG]@%s()=> tid[%d] Out from %s(). wq_tflag is %d", __FUNCTION__, current->pid, (wee)?"wait_event_exclusive":"wait_event_interruptible_exclusive", semptr->wq_tflag);
 
+  /*
   if (stptr)
     printk(" thr_sem is %d\n", stptr->thr_sem);
   else
     printk("\n");
+  */
 
   ++(*semptr->wq_usr_val);	/* increasing semaphore val */
   
   /* now check 'wq_tflag' to find out, why we wake up */
   if (semptr->wq_tflag == -1) { /* sreset is playing */
 
-    printk("[CDCMDBG]@%s()=> tid[%d] Wake up by sreset()\n", __FUNCTION__, current->pid);
+    //printk("[CDCMDBG]@%s()=> tid[%d] Wake up by sreset()\n", __FUNCTION__, current->pid);
 
     /* leave critical region */
     spin_unlock_irqrestore(&swait_sem_lock, swait_spin_flags);
@@ -279,7 +307,7 @@ swait(
   } else if (semptr->wq_tflag > 0) { /* ssignal */
     --semptr->wq_tflag; /* acknowledge */
 
-    printk("[CDCMDBG]@%s()=> tid[%d] Wake up by ssignal()\n", __FUNCTION__, current->pid);
+    //printk("[CDCMDBG]@%s()=> tid[%d] Wake up by ssignal()\n", __FUNCTION__, current->pid);
 
     /* leave critical region */
     spin_unlock_irqrestore(&swait_sem_lock, swait_spin_flags);
@@ -288,14 +316,14 @@ swait(
     /* __ONLY__ thread can enter here!
        we are killing you (stremove was called), so wake up */
 
-    printk("[CDCMDBG]@%s()=> tid[%d] Wake up by stremove()\n", __FUNCTION__, current->pid);
+    //printk("[CDCMDBG]@%s()=> tid[%d] Wake up by stremove()\n", __FUNCTION__, current->pid);
 
     /* leave critical region */
     spin_unlock_irqrestore(&swait_sem_lock, swait_spin_flags);
     return(OK);
   } else { /* complete fuckup. shouldn't be! can't determine, why I wake up! */
     
-    printk("[CDCMDBG]@%s => tid[%d] Wake Up by the FUCK UP!!!!! This shit shouldn't happen!!!! wq_tflag is %d", __FUNCTION__, current->pid, semptr->wq_tflag);
+    printk("[CDCMDBG]@%s() => tid[%d] Wake Up by the FUCK UP!!!!! This shit shouldn't happen!!!! wq_tflag is %d", __FUNCTION__, current->pid, semptr->wq_tflag);
     if (stptr)
       printk(" thr_sem is %d\n", stptr->thr_sem);
     else
@@ -321,9 +349,6 @@ ssignal(
 {
   cdcmsem_t *semptr = cdcm_get_sem(sem); /* get semaphore info table */
   ulong ssignal_spin_flags;
-
-  //VMETRO_TRACKING_R;
-  //printk("vmetro val is %d\n", vmetro_val);
 
   if (semptr) {
 

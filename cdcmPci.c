@@ -1,4 +1,4 @@
-/* $Id: cdcmPci.c,v 1.2 2007/05/03 20:17:19 ygeorgie Exp $ */
+/* $Id: cdcmPci.c,v 1.3 2007/08/01 15:07:20 ygeorgie Exp $ */
 /*
 ; Module Name:	 cdcmPci.c
 ; Module Descr:	 LynxOS system wrapper routines are located here as long as
@@ -15,6 +15,10 @@
 ;
 ; #.#   Name       Date       Description
 ; ---   --------   --------   -------------------------------------------------
+; 5.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
+; 4.0   ygeorgie   24/07/07   Heavily modified to use pci_get_device() instead
+;			      of pci_register_driver() during drm_get_handle()
+;			      function call.
 ; 3.0   ygeorgie   14/03/07   Production release, CVS controlled.
 ; 2.0   ygeorgie   27/07/06   First working release.
 ; 1.0	ygeorgie   02/06/06   Initial version.
@@ -22,153 +26,19 @@
 
 #include "cdcmDrvr.h"
 #include "cdcmLynxDefs.h"
-
-/* external functions */
-extern int cdcm_user_part_device_recodnizer(struct pci_dev*, char*);
-extern int cdcm_set_unique_device_name(char devName[CDCM_DNL]);
-extern int cdcm_user_get_dev_name(void*, char devName[CDCM_DNL]);
-extern struct cdev* cdcm_get_cdev(char devName[CDCM_DNL], int, dev_t*);
+#include "cdcmUsrKern.h"
 
 /* CDCM global variables (declared in the cdcmDrvr.c module)  */
 extern struct file_operations cdcm_fops; /* char dev file operations */
 extern cdcmStatics_t cdcmStatT;	/* CDCM statics table */
 extern int cdcm_err;		/* global error */
-
-/* static functions declaration */
-static int  cdcm_init_one(struct pci_dev*, const struct pci_device_id*);
-static void cdcm_remove_one(struct pci_dev*);
-
-
-static struct pci_device_id cdcm_pci_tbl[] = {
-  { PCI_DEVICE(PCI_ANY_ID, PCI_ANY_ID) }, /* vendorId and deviceId will be
-					     specifyed during 'drm_get_handle'
-					     call */
-  { 0, } /* terminate list */
-};
-
-/* CDCM driver description */
-static struct pci_driver cdcm_pci_driver = {
-  .name           = "cdcmPCI",
-  .id_table       = cdcm_pci_tbl,
-  .probe          = cdcm_init_one,
-  .remove         = __devexit_p(cdcm_remove_one)
-};
+extern struct list_head *glob_cur_grp_ptr; /* current working group */
 
 int cdcm_dbg_cntr = 0; /* TODO. REMOVE. for deadlock debugging */
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_init_one.
- * DESCRIPTION: Called by the kernel for each found device, based on the 
- *		VendorID and DeviceID. This function is registered as a 
- *		.probe handler in struct pci_driver.
- * RETURNS:	0        - if success.
- *		negative - otherwise.
- *-----------------------------------------------------------------------------
- */
-static int __devinit
-cdcm_init_one(
-	      struct pci_dev             *pdev, /*  */
-	      const struct pci_device_id *ent)  /*  */
-{
-  struct cdcmDevInfo_t *infoT;
-  char usrDevNm[CDCM_DNL]; /* user-defined device name */
-
-  if (pci_enable_device(pdev)) {
-    PRNT_INFO_MSG("Error enabling %s pci device %p\n", CDCM_DEV_NAME, pdev);
-    return(-EIO);
-  }
-
-  PRNT_INSTALL("%s pci device %p enabled.\n", CDCM_DEV_NAME, pdev);
-
-  /* NEWBE NOTE. just an examples howto access pci device... */
-  //int ssid, airq;
-  //u8 assignedIRQ;
-  //pci_read_config_byte(pdev, PCI_INTERRUPT_LINE, &assignedIRQ);
-  //pci_read_config_word(pdev, PCI_SUBSYSTEM_ID, &ssid);
-  //pci_read_config_byte(pdev, PCI_INTERRUPT_LINE, &airq);
-
-
-  /* get user-designed device name */
-  if (cdcm_user_get_dev_name((void*)pdev, usrDevNm)) {
-    u16 subsysID;
-    pci_read_config_word(pdev, PCI_SUBSYSTEM_ID, &subsysID);
-    PRNT_INFO_MSG("Device %p with SubsystemID %d is NOT supported.\n", pdev, subsysID);
-    return(-ENODEV); /* not supported */
-  }
-  cdcm_set_unique_device_name(usrDevNm);
-
-  /* allocate device info table */
-  if (!(infoT = (struct cdcmDevInfo_t *)kmalloc(sizeof(struct cdcmDevInfo_t), GFP_KERNEL))) {
-    PRNT_ABS_WARN("Can't allocate info table for %s dev.", usrDevNm);
-    cdcm_err = -ENOMEM;
-    return(cdcm_err);
-  }
-
-  /* register char device and get device number */
-  infoT->di_cdev = cdcm_get_cdev(usrDevNm, cdcmStatT.cdcm_chan_per_dev, &infoT->di_dev_num);
-  
-  if (IS_ERR(infoT->di_cdev)) {
-    PRNT_ABS_ERR("Can't register %s as character device... Aborting!", usrDevNm);
-    kfree(infoT);
-    return PTR_ERR(infoT->di_cdev);
-  }
-
-  /* initialize device info table */
-  infoT->di_line  = cdcmStatT.cdcm_dev_am; /* set device index */
-  infoT->di_alive = ALIVE_ALLOC | ALIVE_CDEV;
-  infoT->di_pci   = pdev;
-  infoT->di_vme   = NULL;
-  strcpy(infoT->di_name, usrDevNm); /* set device name */
-  //INIT_LIST_HEAD(&infoT->di_thr_list);
-
-  /* hook MFD (My Fucken Data) */
-  pci_set_drvdata(pdev, infoT);
-
-  /* add device to the device linked list */
-  list_add(&infoT->di_list, &cdcmStatT.cdcm_dev_list_head);
-  ++cdcmStatT.cdcm_dev_am; /* increase found device counter */
-
-  return(0); /* all OK */
-}
-
 
 /*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_remove_one.
- * DESCRIPTION: Called by the kernel for each device been removing.
- * RETURNS:     void
- *-----------------------------------------------------------------------------
- */
-static void __devexit
-cdcm_remove_one(
-		struct pci_dev *dev)
-{
-  struct cdcmDevInfo_t *infoT = pci_get_drvdata(dev); /* MFD */
-  PRNT_INFO("Removing %s [%p] device\n", infoT->di_name, dev);
-
-  /* disable it first */
-  pci_disable_device(dev);
-
-  //CDCM_DBG("==============> [%p] Unregistering cdev...\n", dev);
-  cdev_del(infoT->di_cdev);	/* remove char device from the kernel */
-  //CDCM_DBG("==============> [%p] Unregistering cdev DONE\n", dev);
-
-  /* release device numbers */
-  unregister_chrdev_region(infoT->di_dev_num, cdcmStatT.cdcm_chan_per_dev);
- 
-  //CDCM_DBG("================> [%p] Excluding from list...\n", dev);
-  list_del_init(&infoT->di_list); /* exclude from device linked list */
-  //CDCM_DBG("================> [%p] Excluding from list DONE\n", dev);
-  
-  //CDCM_DBG("================> [%p] Freeng memory...\n", dev);
-  kfree(infoT);	/* chiao bambino! */
-  //CDCM_DBG("================> [%p] Freeng memory DONE\n", dev);
-
-  --cdcmStatT.cdcm_dev_am; /* decrease device amount counter */
-}
-
-
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_pci_cleanup
+ * FUNCTION:    cdcm_pci_cleanup TODO
  * DESCRIPTION: Free system used resources.
  * RETURNS:     void
  *-----------------------------------------------------------------------------
@@ -177,30 +47,22 @@ void
 cdcm_pci_cleanup(void)
 {
 #if 0
-  struct cdcmDevInfo_t *infoT, *tmpT;
+  struct cdcm_dev_info_t *infoT, *tmpT;
   /*
     NEWBIE NOTE
-    Keep it here only for educating driver writers (and myself in case of
-    serious brain damage)
-    'list_for_each_entry' is not working here, because in this case
+    Keep it here only for educating driver writers (and myself as a newbie
+    and in case of serious brain damage)
+    'list_for_each_entry' is not working here, as in this case
     'list_del_init' call fails with message:
     'Unable to handle kernel paging request at virtual address 00100100'
     (which is exactly 'LIST_POISON1' value).
-    IMHO this is because of the 'prefetch' in 'list_for_each' definition.
+    Maybe that's because of the 'prefetch' in 'list_for_each' definition?
     'list_for_each_entry_safe' is not using 'prefetch'
   */
-  list_for_each_entry_safe(infoT, tmpT, &cdcmStatT.cdcm_dev_list_head, di_list) {
-    if (infoT->di_alive & ALIVE_CDEV) {
-        cdev_del(&infoT->di_cdev); /* remove char device from the system */
-      }
-
-    list_del_init(&infoT->di_list);
-    kfree(infoT);
-    cntr++;
+  list_for_each_entry_safe(infoT, tmpT, &cdcmStatT.cdcm_grp_list_head, di_list) {
+    
   }
 #endif
-
-  pci_unregister_driver(&cdcm_pci_driver);
 }
 
 
@@ -220,54 +82,42 @@ drm_get_handle(
 	       int device_id,   /*  */
 	       struct drm_node_s **node_h) /*  */
 {
-  struct cdcmDevInfo_t *devInfo;
-  static int firstOccurrence = 0; /* some code should be done only once */
-  int rc;
+  cdcm_dev_info_t *dit;
+  struct cdcm_grp_info_t *curgrp = container_of(glob_cur_grp_ptr, struct cdcm_grp_info_t, grp_list);
+  struct pci_dev *pprev = (list_empty(&curgrp->grp_dev_list)) ? NULL : (container_of(list_last(&curgrp->grp_dev_list), cdcm_dev_info_t, di_list))->di_pci;
+  struct pci_dev *pcur = pci_get_device(vendor_id, device_id, pprev);
+  
+  cdcm_err = 0;	/* reset */
 
-  if (cdcmStatT.cdcm_drvr_type == 'V') {
-    PRNT_ABS_ERR("%s driver type mismatch!\n", CDCM_USR_DRVR_NAME);
-    return(DRM_EBUSY);
+  if (!pcur)
+    return(DRM_ENODEV);	/* not found */
+
+  if (pci_enable_device(pcur)) {
+    PRNT_INFO_MSG("Error enabling %s pci device %p\n", cdcmStatT.cdcm_mod_name, pcur);
+    return(DRM_EBADSTATE);
   }
 
-  if (!firstOccurrence) { /* will enter here only once */
-    /* If here, then it's the first call to this function.
-       In this case we should call Linux procedure for PCI driver installation.
-       Everything will be setup during the first call to 'drm_get_handle' 
-       Linux wrapper. Subsequent calls will only return data structures which 
-       were previously setup in this chunk of code */
-    ++firstOccurrence;
-    cdcmStatT.cdcm_drvr_type = 'P';
-    
-    
-    /* register PCI driver */
-    cdcm_pci_tbl[0] = (struct pci_device_id) {
-      PCI_DEVICE(vendor_id, device_id)
-    };
-    
-    if ((rc = pci_register_driver(&cdcm_pci_driver)) < 0) {
-      PRNT_INFO_MSG("pci_register_driver() call failed, error=%d", rc);
-      cdcm_err = rc;	  /* set Linux error */
-      return(DRM_ENODEV); /* let's return 'No device mached' */
-    }
+  if (!(dit = (cdcm_dev_info_t*)kzalloc(sizeof(*dit), GFP_KERNEL))) {
+    PRNT_INFO_MSG("Can't alloc info table for %p pci device\n", pcur);
+    pci_disable_device(pcur);
+    pci_dev_put(pcur);
+    cdcm_err = -ENOMEM;
+    return(DRM_ENOMEM);
   }
-  
-  *node_h = NULL;
-  
-  /* claim device */
-  if (cdcmStatT.cdcm_dev_active == cdcmStatT.cdcm_dev_am)
-    /* all are claimed already i.e. busy */
-    return(DRM_EBUSY);
-  
-  list_for_each_entry(devInfo, &cdcmStatT.cdcm_dev_list_head, di_list) {
-    if (!devInfo->di_claimed) {
-      ++devInfo->di_claimed;
-      ++cdcmStatT.cdcm_dev_active;
-      *node_h = devInfo;
-      return(DRM_OK);		/* 0 */
-    }
-  }
-  
-  return(DRM_EFAULT);  /* should not reach this point */
+
+  /* hook MFD (My Fucking Data) */
+  pci_set_drvdata(pcur, dit);
+
+  dit->di_pci    = pcur;
+  dit->di_parent = curgrp->grp_num;
+  dit->di_alive  = ALIVE_ALLOC | ALIVE_CDEV;
+  *node_h = (struct drm_node_s*)dit;
+  cdcmStatT.cdcm_drvr_type = 'P';
+
+  /* add device to the device linked list of the current group */
+  list_add(&dit->di_list, &curgrp->grp_dev_list);
+
+  return(DRM_OK);	/* 0 */
 }
 
 
@@ -277,26 +127,28 @@ drm_get_handle(
  * RETURNS:	DRM_OK      - (i.e. 0) if success 
  *		DRM_EFAULT
  *		DRM_ENODEV
- *		(see drm_errno.h for more info on ret codes)
+ *		(see /usr/include/sys/drm_errno.h for more info on ret codes)
  *-----------------------------------------------------------------------------
  */
 int
 drm_free_handle(
-		struct drm_node_s *dev_n)
+		struct drm_node_s *dev_n) /*  */
 {
-  if (dev_n->di_alive && dev_n->di_claimed) {
-    dev_n->di_claimed = 0;	/* reset */
-    --cdcmStatT.cdcm_dev_active;
-  } else {
-    return(DRM_EFAULT);	/* device is dead or not claimed */
-  }
+  cdcm_dev_info_t *cast;
+  cdcm_dev_info_t *dit;  /* just as an example for the newbies */
 
-  return(DRM_OK);		/* 0 */
+  cast = (cdcm_dev_info_t*) dev_n;
+  dit = pci_get_drvdata(cast->di_pci);
+
+  list_del(&cast->di_list);
+  pci_disable_device(cast->di_pci);
+  pci_dev_put(cast->di_pci);
+  kfree(cast);
+  return(DRM_OK); /* 0 */
 }
 
-/* TODO!
- *-----------------------------------------------------------------------------
- * FUNCTION:    drm_device_read 
+/*-----------------------------------------------------------------------------
+ * FUNCTION:    drm_device_read TODO
  * DESCRIPTION: Wrapper. LynxOs DRM Services for PCI.
  * RETURNS:	DRM_OK       - (i.e. 0) if success 
  *		DRM_EINVALID - The node_h is not a valid drm handle.
@@ -318,6 +170,9 @@ drm_device_read(
 {
   int retcode = DRM_OK;		/* 0 */
   u16 pci_word_val;
+  cdcm_dev_info_t *cast;
+  
+  cast = (cdcm_dev_info_t*) node_h;
 
   switch (resource_id) {
   case PCI_RESID_REGS:	    /* 1 */
@@ -351,7 +206,7 @@ drm_device_read(
     retcode = DRM_EINVALID;
     break;
   case PCI_RESID_SUBSYSID:  /* 17 */
-    pci_read_config_word(node_h->di_pci, PCI_SUBSYSTEM_ID, &pci_word_val);
+    pci_read_config_word(cast->di_pci, PCI_SUBSYSTEM_ID, &pci_word_val);
     *(unsigned int*) buffer = pci_word_val;
     break;
   case PCI_RESID_SUBSYSVID: /* 18 */
@@ -384,9 +239,8 @@ drm_device_read(
 }
 
 
-/* TODO!
- *-----------------------------------------------------------------------------
- * FUNCTION:    drm_device_write
+/*-----------------------------------------------------------------------------
+ * FUNCTION:    drm_device_write TODO
  * DESCRIPTION: Wrapper. LynxOs DRM Services for PCI.
  * RETURNS:	DRM_OK      - (i.e. 0) if success 
  *		DRM_EFAULT
@@ -403,6 +257,9 @@ drm_device_write(
 		 void              *buffer)      /*  */
 {
   int retcode = DRM_OK;		/* 0 */
+  cdcm_dev_info_t *cast;
+  
+  cast = (cdcm_dev_info_t*) node_h;
 
   switch (resource_id) {
   case PCI_RESID_REGS:	    /* 1 */
@@ -468,9 +325,8 @@ drm_device_write(
 }
 
 
-/* TODO!
- *-----------------------------------------------------------------------------
- * FUNCTION:    drm_locate
+/*-----------------------------------------------------------------------------
+ * FUNCTION:    drm_locate TODO
  * DESCRIPTION: Wrapper. LynxOs DRM Services for PCI.
  * RETURNS:	
  *-----------------------------------------------------------------------------
@@ -478,13 +334,15 @@ drm_device_write(
 int drm_locate(
 	       struct drm_node_s *node)	/*  */
 {
+  cdcm_dev_info_t *cast;
+  cast = (cdcm_dev_info_t*) node;
+
   return(DRM_EINVALID);
 }
 
 
-/* TODO!
- *-----------------------------------------------------------------------------
- * FUNCTION:    drm_register_isr
+/*-----------------------------------------------------------------------------
+ * FUNCTION:    drm_register_isr TODO
  * DESCRIPTION: Wrapper. LynxOs DRM Services for PCI.
  * RETURNS:	
  *-----------------------------------------------------------------------------
@@ -495,13 +353,15 @@ drm_register_isr(
 		 void              (*isr)(), /*  */
 		 void              *arg)     /*  */
 {
+  cdcm_dev_info_t *cast;
+  cast = (cdcm_dev_info_t*) node_h;
+
   return(DRM_EINVALID);
 }
 
 
-/* TODO!
- *-----------------------------------------------------------------------------
- * FUNCTION:    drm_unregister_isr
+/*-----------------------------------------------------------------------------
+ * FUNCTION:    drm_unregister_isr TODO
  * DESCRIPTION: Wrapper. LynxOs DRM Services for PCI.
  * RETURNS:	
  *-----------------------------------------------------------------------------
@@ -510,13 +370,15 @@ int
 drm_unregister_isr(
 		   struct drm_node_s *node_h) /*  */
 {
+  cdcm_dev_info_t *cast;
+  cast = (cdcm_dev_info_t*) node_h;
+
   return(DRM_EINVALID);
 }
 
 
-/* TODO!
- *-----------------------------------------------------------------------------
- * FUNCTION:    drm_map_resource
+/*-----------------------------------------------------------------------------
+ * FUNCTION:    drm_map_resource TODO
  * DESCRIPTION: Wrapper. LynxOs DRM Services for PCI.
  * RETURNS:	
  *-----------------------------------------------------------------------------
@@ -527,13 +389,15 @@ drm_map_resource(
 		 int               resource_id,
 		 unsigned int      *vadrp)
 {
+  cdcm_dev_info_t *cast;
+  cast = (cdcm_dev_info_t*) node_h;
+
   return(DRM_EINVALID);
 }
 
 
-/* TODO!
- *-----------------------------------------------------------------------------
- * FUNCTION:    drm_unmap_resource
+/*-----------------------------------------------------------------------------
+ * FUNCTION:    drm_unmap_resource TODO
  * DESCRIPTION: Wrapper. LynxOs DRM Services for PCI.
  * RETURNS:	
  *-----------------------------------------------------------------------------
@@ -543,5 +407,8 @@ drm_unmap_resource(
 		   struct drm_node_s *node_h,      /*  */
 		   int                resource_id) /*  */
 {
+  cdcm_dev_info_t *cast;
+  cast = (cdcm_dev_info_t*) node_h;
+
   return(DRM_EINVALID);
 }

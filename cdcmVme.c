@@ -1,11 +1,11 @@
-/* $Id: cdcmVme.c,v 1.2 2007/04/30 09:15:02 ygeorgie Exp $ */
+/* $Id: cdcmVme.c,v 1.3 2007/08/01 15:07:21 ygeorgie Exp $ */
 /*
 ; Module Name:	 cdcmVme.c
 ; Module Descr:	 CDCM VME Linux driver that encapsulates user-written LynxOS
 ;		 driver. Consider it like a wrapper of the user driver.
 ;		 Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
 ; Creation Date: Jan, 2007
-; Authors:	 Yury Georgievskiy, Alain Gagnaire, Nicolas De Metz-Noblat
+; Authors:	 Yury Ge<orgievskiy, Alain Gagnaire, Nicolas De Metz-Noblat
 ;		 CERN AB/CO.
 ;
 ;
@@ -14,6 +14,7 @@
 ;
 ; #.#   Name       Date       Description
 ; ---   --------   --------   -------------------------------------------------
+; 4.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
 ; 3.0   ygeorgie   24/04/07   Possibility to change IRQ scheduling priority.
 ; 2.0   ygeorgie   14/03/07   Production release, CVS controlled.
 ; 1.0	ygeorgie   16/01/07   Initial version.
@@ -21,6 +22,7 @@
 
 #include "cdcmDrvr.h"
 #include "cdcmLynxAPI.h"
+#include "cdcmUsrKern.h"
 #include "generalDrvrHdr.h" /* for WITHIN_RANGE */
 #include <asm/unistd.h>     /* for _syscall */
 #include <linux/irq.h>
@@ -38,18 +40,11 @@ static int errno;
 static __inline__ _syscall1(int,sched_get_priority_min,int,policy)
 static __inline__ _syscall1(int,sched_get_priority_max,int,policy)
 
-/* external functions */
-extern int cdcm_user_part_device_recodnizer(struct pci_dev*, char*);
-extern int cdcm_set_unique_device_name(char devName[CDCM_DNL]);
-extern int cdcm_user_get_dev_name(void*, char devName[CDCM_DNL]);
-extern struct cdev* cdcm_get_cdev(char devName[CDCM_DNL], int, dev_t*);
-
-
 /* CDCM global variables (declared in the cdcmDrvr.c module)  */
 extern struct file_operations cdcm_fops; /* char dev file operations */
 extern cdcmStatics_t cdcmStatT;	/* CDCM statics table */
 extern int cdcm_err;		/* global error */
-
+extern struct list_head *glob_cur_grp_ptr; /* current working group */
 
 /* saved vme vectors */
 typedef vme_vec_t vme_vec_tab_t[XPC_VME_MAX_IRQ];
@@ -93,7 +88,7 @@ vme_intset(
 	   vme_vec_t *sav)	  /* to save previous entry */
 {
   int coco = OK;		/* 0 */
-  //char irq_name[0x100];
+  char irq_name[0x80];		/* unique irq name */
 
   if (cdcm_irq_vtp[vector])	/* already used */
     return(SYSERR);
@@ -101,11 +96,10 @@ vme_intset(
   cdcm_irq_vtp[vector] = (int(*)(void*))function; /* init pointer */
 
   /* build-up name */
-  //sprintf(irq_name, "%s", CDCM_USR_DRVR_NAME);
-  //printk("irq_name is %s\n", irq_name);
+  sprintf(irq_name, "%s_%d", cdcmStatT.cdcm_mod_name, vector);
 
   /*  */
-  if ( (coco = xpc_vme_request_irq(vector, (void(*)(int,void*))cdcm_irq_handler, arg, CDCM_USR_DRVR_NAME)) ) {
+  if ( (coco = xpc_vme_request_irq(vector, (void(*)(int,void*))cdcm_irq_handler, arg, irq_name)) ) {
     cdcm_irq_vtp[vector] = NULL; /* roll back */
     coco = SYSERR;		/* convert to Lynx-CES-BSP-like */
   }
@@ -153,9 +147,9 @@ vme_intclr(
  * DESCRIPTION: Maps a specified part of the VME address space into PCI address
  *		space. This function should be called to check module presence.
  *		We suppose that user will call it at the very beginning of the
- *		driver installation. Like this all internal CDCM structures
- *		will be initialized. You can consider it as the VME analogue
- *		to the 'drm_get_handle' in the PCI world. 
+ *		driver installation for every device he wants to manage. Like
+ *		this all internal CDCM structures will be initialized. Consider
+ *		it as the VME analogue to the drm_get_handle() for the PCI. 
  * RETURNS:     pointer to be used by the caller to access the specified VME
  *		address range - if SUCCESS.
  *		-1            - if case of FAILURE.
@@ -173,28 +167,15 @@ find_controller(
   struct pdparam_master *param) /* structure holding AM-code and mode flags
 				   NOT implemented for now!!! */
 {
-  struct cdcmDevInfo_t *infoT;
-  //unsigned long flags;
+  cdcm_dev_info_t *dit = NULL;
   xpc_vme_type_e access_type;
   int options = 0;		/* not yet supported */
   int cntr;
   unsigned int cpu_addr;
   unsigned int phys;
+  struct cdcm_grp_info_t *curgrp = container_of(glob_cur_grp_ptr, struct cdcm_grp_info_t, grp_list);
 
-  char usrDevNm[CDCM_DNL]; /* user-defined device name */
-  static int firstOccurrence = 0; /* some init code should be done only once */
-
-  CDCM_DBG("%s %s(%x,%x,%x,%x,%x)\n", CDCM_USR_DRVR_NAME, __FUNCTION__, vmeaddr, len, am, offset, size);
-
-  if (cdcmStatT.cdcm_drvr_type == 'P') { /* already declared as PCI */
-    PRNT_ABS_ERR("%s driver type mismatch!\n", CDCM_USR_DRVR_NAME);
-    return(-1);
-  }
-
-  if (!firstOccurrence) { /* will enter here only once */
-    ++firstOccurrence;
-    cdcmStatT.cdcm_drvr_type = 'V';
-  }
+  CDCM_DBG("%s %s(%x,%x,%x,%x,%x)\n", cdcmStatT.cdcm_mod_name, __FUNCTION__, vmeaddr, len, am, offset, size);
 
   /* Encode AM into access_type */
   switch (am) {
@@ -223,26 +204,26 @@ find_controller(
     access_type = XPC_VME_A32_MBLT_USER;
     break;
   default:
-    PRNT_ABS_ERR("Unknown AM=%X in %s driver\n", am, CDCM_USR_DRVR_NAME);
+    PRNT_ABS_ERR("Unknown AM=%X in %s driver\n", am, cdcmStatT.cdcm_mod_name);
     return(-1);
   }
   
   
 #if 0
-  CES-written code. Does not work. System hangs.
+  // CES-written code. Does not work. System hangs.
   unsigned int data;
   int err;
   if (size != 0) {
-    /* Verify presence of module by a read test of n bytes at specified offset */
+  /* Verify presence of module by a read test of n bytes at specified offset */
     err = xpc_vme_safe_pio(vmeaddr + offset, 0x0, access_type, 0, size, &data);
     if (err == (-EIO))
       return (-1);
     if (err == (-ENOMEM)) {
-      printk("%s find_controller: VME ressource limit exhausted\n", CDCM_USR_DRVR_NAME);
+      printk("%s %s: VME ressource limit exhausted\n", cdcmStatT.cdcm_mod_name, __FUNCTION__);
       return (-1);
     }
     if (err != 0) {
-      printk("%s find_controller: unknown error %d\n", CDCM_USR_DRVR_NAME, -err);
+      printk("%s %s: unknown error %d\n", cdcmStatT.cdcm_mod_name, __FUNCTION__, -err);
       return (-1);
     }
   }
@@ -253,7 +234,7 @@ find_controller(
     return(phys);
   
   if (!(cpu_addr = (unsigned int)ioremap(phys, len))) {
-    PRNT_ABS_ERR("ioremap error in %s driver\n", CDCM_USR_DRVR_NAME);
+    PRNT_ABS_ERR("ioremap error in %s driver\n", cdcmStatT.cdcm_mod_name);
     (void) xpc_vme_master_unmap(phys, len);
     return(-1);
   }
@@ -262,6 +243,7 @@ find_controller(
 #if 1
   /* do actual hardware access */
   if (size != 0) {
+    //unsigned long flags;
     //spin_lock_irqsave(&xxx_lock, flags);
     switch(size) {
     case 1:
@@ -283,70 +265,41 @@ find_controller(
 
   /* device is present - register it */
 
-  if (!(infoT = (struct cdcmDevInfo_t *)kzalloc(sizeof(struct cdcmDevInfo_t), GFP_KERNEL))) {
-    PRNT_INFO_MSG("Can't allocate info table for %s dev.\n", CDCM_USR_DRVR_NAME);
+  if (!(dit = (cdcm_dev_info_t*)kzalloc(sizeof(*dit), GFP_KERNEL))) {
+    PRNT_INFO_MSG("Can't allocate VME device info table in %s group.\n", curgrp->grp_name);
     cdcm_err = -ENOMEM;
     goto cdcm_err;
   }
 
-  if (!(infoT->di_vme = (struct vme_dev*)kmalloc(sizeof(infoT->di_vme), GFP_KERNEL)) ) { /* vme description table allocation */
-    PRNT_INFO_MSG("Can't allocate VME descriptor for %s dev.\n", CDCM_USR_DRVR_NAME);
-    kfree(infoT);
+  if (!(dit->di_vme = (struct vme_dev*)kzalloc(sizeof(*dit->di_vme), GFP_KERNEL)) ) { /* vme description table allocation */
+    PRNT_INFO_MSG("Can't allocate VME device descriptor in %s group.\n", curgrp->grp_name);
+    kfree(dit);
     cdcm_err = -ENOMEM;
     goto cdcm_err;
   }
 
-  if (cdcm_user_get_dev_name((void*)infoT->di_vme, usrDevNm)) {
-    PRNT_INFO_MSG("%s device at %#x is NOT supported.\n", CDCM_USR_DRVR_NAME, vmeaddr);
-    cdcm_err = -ENODEV;
-    kfree(infoT->di_vme);
-    kfree(infoT);
-    goto cdcm_err;
-  }
-  cdcm_set_unique_device_name(usrDevNm);
+  /* save VME device data */
+  dit->di_vme->vd_virt_addr = cpu_addr;
+  dit->di_vme->vd_phys_addr = phys;
+  dit->di_vme->vd_len       = len;
+  dit->di_vme->vd_am        = am;
 
-  /* register char device and get device number */
-  infoT->di_cdev = cdcm_get_cdev(usrDevNm, cdcmStatT.cdcm_chan_per_dev, &infoT->di_dev_num);
-  if (IS_ERR(infoT->di_cdev)) {
-    PRNT_ABS_ERR("Can't register %s as character device... Aborting!", usrDevNm);
-    kfree(infoT->di_vme);
-    kfree(infoT);
-    return PTR_ERR(infoT->di_cdev);
-  }
-
-  /* safe virt <-> phys VME address mapping */
-#if 0
-  *infoT->di_vme = (struct vme_dev) {
-    .vd_virt_addr = cpu_addr,
-    .vd_phys_addr = phys,
-    .vd_len       = len,
-    .vd_am        = am
-  };
-#endif
-
-  infoT->di_vme->vd_virt_addr = cpu_addr;
-  infoT->di_vme->vd_phys_addr = phys;
-  infoT->di_vme->vd_len       = len;
-  infoT->di_vme->vd_am        = am;
+  cdcmStatT.cdcm_drvr_type = 'V';
 
   /* initialize device info table */
-  infoT->di_line  = cdcmStatT.cdcm_dev_am; /* set device index */
-  infoT->di_alive = ALIVE_ALLOC | ALIVE_CDEV;
-  infoT->di_pci   = NULL;
-  strcpy(infoT->di_name, usrDevNm); /* set device name */
+  dit->di_alive = ALIVE_ALLOC | ALIVE_CDEV;
+  dit->di_pci   = NULL;
 
-  /* add device to the device linked list */
-  list_add(&infoT->di_list, &cdcmStatT.cdcm_dev_list_head);
-  ++cdcmStatT.cdcm_dev_am; /* increase found device counter */
-
+  /* add device to the device linked list of the current group */
+  list_add(&dit->di_list/*new*/, &curgrp->grp_dev_list/*head*/);
   
-  PRNT_INFO_MSG("%s %s(%x,%x %x %x %x) return %x virt addr for %x phys addr\n", CDCM_USR_DRVR_NAME, __FUNCTION__, vmeaddr, len, am, offset, size, cpu_addr, phys);
+  PRNT_INFO_MSG("%s %s(%x,%x %x %x %x) return %x virt addr for %x phys addr\n", cdcmStatT.cdcm_mod_name, __FUNCTION__, vmeaddr, len, am, offset, size, cpu_addr, phys);
   
   return(cpu_addr);
   
 #if 1
   berr:
-  PRNT_ABS_ERR("For %s driver %s(%x,%x,%x,%x,%x) bus error!\n", CDCM_USR_DRVR_NAME, __FUNCTION__, vmeaddr, len, am, offset, size);
+  PRNT_ABS_ERR("For %s driver %s(%x,%x,%x,%x,%x) bus error!\n", cdcmStatT.cdcm_mod_name, __FUNCTION__, vmeaddr, len, am, offset, size);
   cdcm_err:
   iounmap((void __iomem *) phys);
   xpc_vme_master_unmap(phys, len);
@@ -365,27 +318,23 @@ find_controller(
  */
 static int
 cdcm_exclude_vme_dev(
-		     struct cdcmDevInfo_t *infoT) /* device to bump off */
+		     cdcm_dev_info_t *infoT) /* device to bump off */
 {
   unsigned int iex;
 
   iounmap((void __iomem *) infoT->di_vme->vd_virt_addr);
   iex = xpc_vme_master_unmap(infoT->di_vme->vd_phys_addr, infoT->di_vme->vd_len);
-  cdev_del(infoT->di_cdev);	/* remove char device from the kernel */
-  /* release device numbers */
-  unregister_chrdev_region(infoT->di_dev_num, cdcmStatT.cdcm_chan_per_dev);
   kfree(infoT->di_vme);
   list_del_init(&infoT->di_list); /* exclude from the list */
   kfree(infoT); /* free memory */
-  --cdcmStatT.cdcm_dev_am; /* decrease device amount counter */
   return(iex);
 }
 
 
 /*-----------------------------------------------------------------------------
  * FUNCTION:    return_controller
- * DESCRIPTION: Returns previously reserved VME/VSB area. We should exclude it
- *		from the CDCM supervision.
+ * DESCRIPTION: Returns previously reserved VME/VSB area. We should exclude the
+ *		device from the CDCM supervision.
  * RETURNS:     0              - if SUCCESS.
  *		negative value - otherwise.
  *-----------------------------------------------------------------------------
@@ -395,12 +344,15 @@ return_controller(
 		  unsigned int cpuaddr, /*  */
 		  unsigned int len)     /*  */
 {
-  struct cdcmDevInfo_t *infoT, *tmpT;
+  struct cdcm_grp_info_t *grp_it, *tmp_grp_it; /* group info tables */
+  cdcm_dev_info_t *dev_it, *tmp_dev_it;	/* device info tables */
 
-  /* exclude it from CDCM */
-  list_for_each_entry_safe(infoT, tmpT, &cdcmStatT.cdcm_dev_list_head, di_list) {
-    if (cpuaddr == infoT->di_vme->vd_virt_addr) /* gotcha! - bump off! */
-      return(cdcm_exclude_vme_dev(infoT));
+  /* find and exclude */
+  list_for_each_entry_safe(grp_it, tmp_grp_it, &cdcmStatT.cdcm_grp_list_head, grp_list) { /* pass through all the groups */
+    list_for_each_entry_safe(dev_it, tmp_dev_it, &grp_it->grp_dev_list, di_list) { /* pass through all the devices in the current group */
+      if (cpuaddr == dev_it->di_vme->vd_virt_addr) /* gotcha! - bump off! */
+	return(cdcm_exclude_vme_dev(dev_it));
+    }
   }
 
   return((unsigned int) -1);
@@ -409,18 +361,22 @@ return_controller(
 
 /*-----------------------------------------------------------------------------
  * FUNCTION:    cdcm_vme_cleanup
- * DESCRIPTION: Free system resources and deallocates 'cdcmDevInfo_t'
- *		structures.
+ * DESCRIPTION: Free all system resources related to VME.
  * RETURNS:     void
  *-----------------------------------------------------------------------------
  */
 void
 cdcm_vme_cleanup(void)
 {
-  struct cdcmDevInfo_t *infoT, *tmpT;
-  
-  list_for_each_entry_safe(infoT, tmpT, &cdcmStatT.cdcm_dev_list_head, di_list)
-    cdcm_exclude_vme_dev(infoT);
+  struct cdcm_grp_info_t *grp_it, *tmp_grp_it; /* group info tables */
+  cdcm_dev_info_t *dev_it, *tmp_dev_it;	/* device info tables */
+
+  /* exclude */
+  list_for_each_entry_safe(grp_it, tmp_grp_it, &cdcmStatT.cdcm_grp_list_head, grp_list) { /* pass through all the groups */
+    list_for_each_entry_safe(dev_it, tmp_dev_it, &grp_it->grp_dev_list, di_list) { /* pass through all the devices in the current group */
+      cdcm_exclude_vme_dev(dev_it);
+    }
+  }
 }
 
 

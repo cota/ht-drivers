@@ -1,4 +1,4 @@
-/* $Id: cdcmMem.h,v 1.1 2007/03/15 07:40:54 ygeorgie Exp $ */
+/* $Id: cdcmMem.h,v 1.2 2007/08/01 15:07:20 ygeorgie Exp $ */
 /*
 ; Module Name:	 cdcmMem.h
 ; Module Descr:	 All CDCM memory handling definitions are located here.
@@ -12,6 +12,7 @@
 ;
 ; #.#   Name       Date       Description
 ; ---   --------   --------   -------------------------------------------------
+; 3.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
 ; 2.0   ygeorgie   14/03/07   Production release, CVS controlled.   
 ; 1.0	ygeorgie   17/02/07   Initial version.
 */
@@ -25,15 +26,17 @@
          If size is less then 128Kb - than kmalloc is used.
 	 If size is bigger - than vmalloc is used.
 */
-#define CDCM_M_SHORT_TERM (1<<3) /* short term memory */
-#define CDCM_M_LONG_TERM  (1<<4) /* long term memory */
-#define CDCM_M_IOCTL      (1<<5) /* claimed by ioctl call */
+#define CDCM_M_FLG_SHORT_TERM (1<<3) /* short term memory */
+#define CDCM_M_FLG_LONG_TERM  (1<<4) /* long term memory */
+#define CDCM_M_FLG_IOCTL      (1<<5) /* claimed by ioctl call */
+#define CDCM_M_FLG_READ       (1<<6) /* claimed by read  call */
+#define CDCM_M_FLG_WRITE      (1<<7) /* claimed by write call */
 
 typedef struct _cdcmMem {
   struct list_head cm_list;     /* linked list */
   char   *cmPtr; /* pointer to allocated memory */
   size_t  cmSz;	 /* allocated size in bytes */
-  int     cmFlg; /* memory flags. See CDCM_M_xxx definitions.
+  int     cmFlg; /* memory flags. See CDCM_M_FLG_xxx definitions.
 		    Also _IOC_NONE (1U),  _IOC_WRITE (2U) and  _IOC_READ (4U)
 		    are set as a flags */
 } cdcmm_t;
@@ -43,6 +46,5 @@ int      cdcm_mem_free(cdcmm_t*);
 int      cdcm_mem_cleanup_all(void);
 cdcmm_t* cdcm_mem_alloc(size_t, int);
 cdcmm_t* cdcm_mem_find_block(char*);
-cdcmm_t* cdcm_mem_get_free_block(void);
 
 #endif /* _CDCM_MEM_H_INCLUDE_ */

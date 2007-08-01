@@ -1,4 +1,4 @@
-$Id: BUG_TRACKING,v 1.1 2007/03/15 07:40:54 ygeorgie Exp $
+$Id: BUG_TRACKING,v 1.2 2007/08/01 15:07:20 ygeorgie Exp $
 +-------------------------------------------------+
 |  Author:          Yury Georgievskiy from AB/CO  |
 |  Creation date:   14.03.2007                    |
@@ -6,6 +6,27 @@ $Id: BUG_TRACKING,v 1.1 2007/03/15 07:40:54 ygeorgie Exp $
 +-------------------------------------------------+
 
 Latest exterminated bug description is on top.
+
+                             +----------+
+-----------------------------| 16.03.07 |--------------------------------------
+                             +----------+
+swait() wait condition correction.
+
+  Two types of wait conditions were split on two more, depending if swait()
+was called from the thread or normal process. Before the conditions look like:
+
+1. #define WC_SSI (semptr->wq_tflag > 0 || semptr->wq_tflag == -1 || ( (stptr) ? (stptr->thr_sem == current->pid) : 1) )
+
+2. #define WC_SSO (semptr->wq_tflag > 0 || semptr->wq_tflag == -1 || ( (stptr) ? (stptr->thr_sem == current->pid) : 1) )
+
+   The problem was in the third condition variables. If it was not a thread,
+i.e. normal process, then it was always 1 and we were never falling into the
+wait loop as the condition was always true.
+   The solution taken - was just to split in two cases: threads and normal
+process.
+
+-------------------------------------------------------------------------------
+
 
                              +----------+
 -----------------------------| 14.03.07 |--------------------------------------

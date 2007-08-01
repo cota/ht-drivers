@@ -1,6 +1,6 @@
-/* $Id: cdcmUninstInst.h,v 1.1 2007/07/30 08:53:39 ygeorgie Exp $ */
+/* $Id: cdcmUninstInst.h,v 1.2 2007/08/01 15:07:21 ygeorgie Exp $ */
 /*
-; Module Name:	cdcmInstUninst.h
+; Module Name:	cdcmUninstInst.h
 ; Module Descr:	All concerning driver installation and uninstallation is
 ;		located here.
 ; Date:         June, 2007.
@@ -8,17 +8,24 @@
 ;
 ;
 ; -----------------------------------------------------------------------------
-; Revisions of cdcmInstUninst.h: (latest revision on top)
+; Revisions of cdcmUninstInst.h: (latest revision on top)
 ;
 ; #.#   Name       Date       Description
 ; ---   --------   --------   -------------------------------------------------
+; 3.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
 ; 2.0   ygeorgie   09/07/07   Production release, CVS controlled.
 ; 1.0	ygeorgie   28/06/07   Initial version.
 */
-#ifndef _CDCM_INST_UNINST_H_INCLUDE_
-#define _CDCM_INST_UNINST_H_INCLUDE_
+#ifndef _CDCM_UNINST_INST_H_INCLUDE_
+#define _CDCM_UNINST_INST_H_INCLUDE_
 
 #include <elf.h> /* for endianity business */
+//#ifdef __linux__
+#include <stdarg.h>
+#include <stdio.h>
+//#else  /* __Lynx__ */
+//#include <print.h>
+//#endif
 
 /* swap bytes */
 static inline void __endian(const void *src, void *dest, unsigned int size)
@@ -57,6 +64,15 @@ static inline int __my_endian()
   __x;						\
 })
 
+static inline void mperr(char *token, ...)
+{
+  char errstr[256];
+  va_list ap;
+  va_start(ap, token);
+  vsnprintf(errstr, sizeof(errstr),  token, ap);
+  va_end(ap);
+  perror(errstr);
+}
 
 /* predefined option characters that will be parsed by default. They should
    not be used by the module specific part to avoid collision */
@@ -104,6 +120,6 @@ static inline int makedev(int major, int minor)
 }
 #endif /* __Lynx__ */
 
-struct list_head cdcm_vme_arg_parser(int argc, char *argv[], char *envp[]);
+struct list_head* cdcm_vme_arg_parser(int, char *[], char *[]);
 
-#endif /* _CDCM_INST_UNINST_H_INCLUDE_ */
+#endif /* _CDCM_UNINST_INST_H_INCLUDE_ */

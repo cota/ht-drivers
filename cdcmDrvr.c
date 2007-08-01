@@ -1,8 +1,8 @@
-/* $Id: cdcmDrvr.c,v 1.2 2007/04/30 09:35:07 ygeorgie Exp $ */
+/* $Id: cdcmDrvr.c,v 1.3 2007/08/01 15:07:20 ygeorgie Exp $ */
 /*
 ; Module Name:	 cdcmDrvr.c
 ; Module Descr:	 CDCM Linux driver that encapsulates user-written LynxOS
-;		 driver. Consider it like a wrapper of the user driver.
+;		 driver. Consider it like a wrapper of the user Lynx driver.
 ;		 Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
 ; Creation Date: Feb, 2006
 ; Author:	 Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
@@ -13,6 +13,7 @@
 ;
 ; #.#   Name       Date       Description
 ; ---   --------   --------   -------------------------------------------------
+; 4.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
 ; 3.0   ygeorgie   14/03/07   Production release, CVS controlled.
 ; 2.0   ygeorgie   27/07/06   First working release.
 ; 1.0	ygeorgie   02/06/06   Initial version.
@@ -21,15 +22,17 @@
 #include "cdcmDrvr.h"
 #include "cdcmLynxAPI.h"
 #include "cdcmMem.h"
+#include "cdcmUsrKern.h"
+#include "generalDrvrHdr.h" /* for WITHIN_RANGE */
 
 MODULE_DESCRIPTION("Common Driver Code Manager (CDCM) Driver");
 MODULE_AUTHOR("Yury Georgievskiy, CERN AB/CO");
 MODULE_LICENSE("GPL");
 
 /* driver parameter. Info file path. */
-static char cdcmInfoF[32];
-module_param_string(ipath, cdcmInfoF, 32, 0);
-MODULE_PARM_DESC(ipath, "Absolute path name of the info file.");
+static char cdcmInfoF[CDCM_IPATH_LEN];
+module_param_string(ipath, cdcmInfoF, sizeof(cdcmInfoF), 0);
+MODULE_PARM_DESC(ipath, "Absolute path name of the CDCM info file.");
 
 /* external crap */
 extern char* cdcm_get_info_table(char*, int*);
@@ -38,117 +41,84 @@ extern void  cdcm_vme_cleanup(void);
 
 extern struct dldd entry_points; /* declared in the user driver part */
 
-/* pointer to the driver working area (statics table). Not interpreted by 
-   CDCM. Passed as a parameter to all 'dldd' entry points */
-static char *LynxOsWorkingArea = NULL;
-
-/* device info table and it's size, obtained from the info file.
-   Not interpreted here. Passed as a parameter to dldd entry points */
-static char *devInfoT = NULL;
-static int   devInfoTSz;
-
-/* general statics data that holds all information about current devices, 
-   threads, allocated mem, etc., managed by CDCM.
-   Note, that during such structure init all the fields, that were not
-   initialized here, will be zero-out!   */
+/* general statics data that holds all information about current groups,
+   devices, threads, allocated mem, etc. managed by CDCM */
 cdcmStatics_t cdcmStatT = {
-  .cdcm_dev_list_head   = LIST_HEAD_INIT(cdcmStatT.cdcm_dev_list_head),
+  .cdcm_grp_list_head   = LIST_HEAD_INIT(cdcmStatT.cdcm_grp_list_head),
   .cdcm_drvr_type       = 0,	/* 'P'(for PCI) or 'V' (for VME) */
-  .cdcm_dev_am          = 0,
-  .cdcm_dev_active      = 0,
-  .cdcm_dev_num         = 0,	/* dynamically assigned device number */
   .cdcm_mem_list_head   = LIST_HEAD_INIT(cdcmStatT.cdcm_mem_list_head),
-  .cdcm_chan_per_dev    = 1,	/* minor per each device */
   .cdcm_ipl             = IPL_ALL,
   .cdcm_thr_list_head   = LIST_HEAD_INIT(cdcmStatT.cdcm_thr_list_head),
   .cdcm_flags           = 0
 };
 
+struct list_head *glob_cur_grp_ptr = NULL; /* current working group pointer */
 
 /* LynxOs system kernel-level errno. is set _ONLY_ by 'pseterr' function */
 int cdcm_err = 0;
 
 struct file_operations cdcm_fops;
 
+/* get group info table from the given major. NULL - if not found */
+#define from_maj_to_grp(_maj)						\
+({									\
+  __label__ done;							\
+  struct cdcm_grp_info_t *_grp;						\
+  struct cdcm_grp_info_t *_res = NULL;					\
+									\
+  list_for_each_entry(_grp, &cdcmStatT.cdcm_grp_list_head, grp_list)	\
+    if (_grp->grp_maj == _maj) { /* bingo */				\
+      _res = _grp;							\
+      goto done;							\
+    }									\
+									\
+  done:									\
+  (_res);								\
+})
+
+
 /*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_get_cdev
- * DESCRIPTION: Register character device in the kernel.
- * RETURNS:	pointer to allocated structure - if success
- *		negative value                 - if fails
+ * FUNCTION:    cdcm_get_grp_stat_tbl
+ * DESCRIPTION: Get statics table that will be passed as a parameter to the
+ *		driver entry points.
+ * RETURNS:	user-defined statics table - if OK
+ *		NULL                       - if FAILS (i.e. no group with
+ *						       such major number)
  *-----------------------------------------------------------------------------
  */
-struct cdev*
-cdcm_get_cdev(
-	      char devName[CDCM_DNL], /* desired name */
-	      int min_am,	      /* minor dev amount */
-	      dev_t *devn)  /* will hold the first number in allocated range */
+static char*
+cdcm_get_grp_stat_tbl(
+		      int cur_maj) /* major number */
 {
-  int rc;
-  struct cdev *dev_cdev = NULL; /* for cdev allocation */
-
-  /* get device numbers */
-  if ( (rc = alloc_chrdev_region(devn, 0, min_am, devName)) < 0 ) {
-    PRNT_ABS_WARN("alloc_chrdev_region() call failed with error=%d", rc);
-    goto errexit;
-  }
-
-  /* allocate cdev struct */
-  if (!(dev_cdev = cdev_alloc())) {
-    PRNT_ABS_WARN("cdev_alloc() call failed with error=%d", rc);
-    unregister_chrdev_region(*devn, min_am);
-    rc = -ENOMEM;
-    goto errexit;
-  }
-    /* init character device */
-  cdev_init(dev_cdev, &cdcm_fops);
-  dev_cdev->owner = THIS_MODULE;
-
-  /* add character device to the kernel */
-  if ( (rc = cdev_add(dev_cdev, *devn, min_am)) ) {
-    PRNT_ABS_WARN("cdev_add() call failed with error=%d", rc);
-    cdev_del(dev_cdev);
-    unregister_chrdev_region(*devn, min_am);
-    goto errexit;
-  }
-
-  return(dev_cdev);
-  
- errexit:
-  cdcm_err = rc;
-  return ERR_PTR(rc);
+  struct cdcm_grp_info_t *grp_it = from_maj_to_grp(cur_maj);
+  return(grp_it ? grp_it->grp_stat_tbl : NULL);
 }
 
 
 /*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_set_unique_device_name
- * DESCRIPTION: Creates uniqe device name.
- *		Device naming convention is the following:
- *		If we'll have similar devices (i.e. with the same names), then
- *		they will be distinguish by the index, i.e. DEVNAME_00,
- *		DEVNAME_01 etc...
- *		If we'll have only one device then it will be named DEVNAME_00.
- * RETURNS:     number of found devices of the similar type.
+ * FUNCTION:    cdcm_cleanup_groups
+ * DESCRIPTION: Cleanup and release claimed groups.
+ * RETURNS:	void
  *-----------------------------------------------------------------------------
  */
-int
-cdcm_set_unique_device_name(
-			    char devName[CDCM_DNL])   /*  */
+static void
+cdcm_cleanup_groups(
+		    struct cdcm_grp_info_t *doomed) /* if to kill only one */
 {
-  struct cdcmDevInfo_t *diptr;
-  int noffdev = 0;	/* number of find devices of our type */
+  struct cdcm_grp_info_t *grpp, *tmpp;
   
-  list_for_each_entry(diptr, &cdcmStatT.cdcm_dev_list_head, di_list)
-    /* pass through all the devices to find the last similar in the list */
-    if (!strncmp(diptr->di_name, devName, strlen(devName)))
-      ++noffdev;
-  
-  /* NEWBE NOTE. Use strsep() to work with the strings. 
-     See 'lib/string.c' file for more details */
-  
-  /* build-up a unique device name */
-  snprintf(devName, CDCM_DNL, "%s_%02d", devName, noffdev);
-  
-  return(noffdev);
+  if (doomed) {		/* only one */
+    unregister_chrdev(doomed->grp_maj, doomed->grp_name);
+    list_del(&doomed->grp_list);
+    
+    kfree(doomed);
+  } else {		/* all that still left */
+    list_for_each_entry_safe(grpp, tmpp, &cdcmStatT.cdcm_grp_list_head, grp_list) {
+      unregister_chrdev(grpp->grp_maj, grpp->grp_name);
+      list_del(&grpp->grp_list);
+      kfree(grpp);
+    }
+  }
 }
 
 
@@ -166,7 +136,8 @@ cdcm_fop_read(
 	      size_t size,	 /* how many bytes to read */
 	      loff_t *off)	 /* offset */
 {
-  cdcmm_t *iobuf = NULL;
+  cdcmm_t *iobuf  = NULL;
+  char *grp_statt = NULL; /* group statics table */
   struct cdcm_file lynx_file = {
     .dev = filp->f_dentry->d_inode->i_rdev, /* set Device Number */ 
     .access_mode = (filp->f_flags & O_ACCMODE),
@@ -175,6 +146,10 @@ cdcm_fop_read(
 
   //PRNT_INFO("Read device with minor = %d", MINOR(lynx_file.dev));
   cdcm_err = 0;	/* reset */
+
+  if ( !(grp_statt = cdcm_get_grp_stat_tbl(imajor(filp->f_dentry->d_inode))) )
+    /* can't find group with given major number */
+    return(-ENXIO);
   
   if (!access_ok(VERIFY_WRITE, buf, size)) {
     PRNT_ABS_ERR("Can't verify user buffer for writing.");
@@ -185,7 +160,7 @@ cdcm_fop_read(
     return(-ENOMEM);
   
   
-  cdcm_err = entry_points.dldd_read(LynxOsWorkingArea, &lynx_file, iobuf->cmPtr, size);
+  cdcm_err = entry_points.dldd_read(grp_statt, &lynx_file, iobuf->cmPtr, size);
   if (cdcm_err == SYSERR)
     cdcm_err = -EAGAIN;
   else {
@@ -214,6 +189,7 @@ cdcm_fop_write(
 	       loff_t *off)	       /* offset */
 {
   cdcmm_t *iobuf = NULL;
+  char *grp_statt = NULL; /* group statics table */
   struct cdcm_file lynx_file = {
     .dev = filp->f_dentry->d_inode->i_rdev, /* set Device Number */  
     .access_mode = (filp->f_flags & O_ACCMODE),
@@ -222,7 +198,11 @@ cdcm_fop_write(
   
   //PRNT_INFO("Write device with minor = %d", MINOR(lynx_file.dev));
   cdcm_err = 0; /* reset */
-  
+
+  if ( !(grp_statt = cdcm_get_grp_stat_tbl(imajor(filp->f_dentry->d_inode))) )
+    /* can't find group with given major number */
+    return(-ENXIO);
+
   if (!access_ok(VERIFY_READ, buf, size)) {
     PRNT_ABS_ERR("Can't verify user buffer for reading.");
     return(-EFAULT);
@@ -233,7 +213,7 @@ cdcm_fop_write(
   
   __copy_from_user(iobuf->cmPtr, buf, size);
 
-  cdcm_err = entry_points.dldd_write(LynxOsWorkingArea, &lynx_file, iobuf->cmPtr, size);
+  cdcm_err = entry_points.dldd_write(grp_statt, &lynx_file, iobuf->cmPtr, size);
   if (cdcm_err SYSERR)
     cdcm_err = -EAGAIN;
   else
@@ -266,75 +246,149 @@ cdcm_fop_poll(
   int mask = POLLERR;
   struct cdcm_sel sel;
   struct cdcm_file lynx_file;
+  char *grp_statt = NULL; /* group statics table */
 
   lynx_file.dev = filp->f_dentry->d_inode->i_rdev; /* set Device Number */
 
-  if (entry_points.dldd_select(LynxOsWorkingArea, &lynx_file, SREAD|SWRITE|SEXCEPT, &sel) == OK)
-    mask = POLLERR;		/* for now - we are NEVER cool*/
+  if ( !(grp_statt = cdcm_get_grp_stat_tbl(imajor(filp->f_dentry->d_inode))) )
+    /* can't find group with given major number */
+    return(-ENXIO);
+  
+  if (entry_points.dldd_select(grp_statt, &lynx_file, SREAD|SWRITE|SEXCEPT, &sel) == OK)
+    mask = POLLERR;		/* for now - we are NEVER cool */
 
   return(mask);
 }
 
 
 /*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_fop_ioctl
- * DESCRIPTION: CDCM ioctl routine. Service ioctl (with CDCM_SRVIO_ prefix) 
- *		are normally called by the installation program to get all
- *		needed information. All the rest considered to be user part
- *		and is passed downstream.
- *		0 or some positve value         - in case of success.
- * RETURNS:	-EINVAL, -ENOMEM, -EIO, etc...  - if fails.
+ * FUNCTION:    process_cdcm_srv_ioctl
+ * DESCRIPTION: 
+ * RETURNS:	
  *-----------------------------------------------------------------------------
  */
-static int 
-cdcm_fop_ioctl(
-	       struct inode  *inode, /* inode struct pointer */
-	       struct file   *file,  /* file struct pointer */
-	       unsigned int  cmd,    /* IOCTL command number */
-	       unsigned long arg)    /* user args */
+static int
+process_cdcm_srv_ioctl(
+		       struct inode  *inode, /* inode struct pointer */
+		       struct file   *file,  /* file struct pointer */
+		       unsigned int  cmd,    /* IOCTL command number */
+		       unsigned long arg)    /* user args */
+{
+  void __user *uptr = (void __user *)arg;
+
+  switch (cmd) {
+  case CDCM_CDV_INSTALL:	/* cdv_install() stub */
+    {
+      struct cdcm_grp_info_t *cur_grp; /* current working group info table */
+      char itp[PATH_MAX];	/* info table path */
+      int len;
+
+      if (glob_cur_grp_ptr == &cdcmStatT.cdcm_grp_list_head)
+	/* cdv_install() was called more times than groups declared */
+	return(-EDQUOT);
+      
+      /* set current group pointer */
+      cur_grp = list_entry(glob_cur_grp_ptr, struct cdcm_grp_info_t, grp_list);
+      
+      /* get string lengths */
+      if ( (len = strnlen_user(uptr, PATH_MAX)) <= 0)
+	return(-EFAULT);
+      
+      /* get the string */
+      if (copy_from_user(itp, uptr, len))
+	return(-EFAULT);
+
+      /* get module info table */
+      if ( !(cur_grp->grp_info_tbl = cdcm_get_info_table(itp, &cur_grp->grp_it_sz)) ) {
+	PRNT_ABS_ERR("Can't read info file."); /* fatal. barf */
+	return(-ENOENT);
+      }
+      
+      /* hook the uza */
+      if ( (cur_grp->grp_stat_tbl = entry_points.dldd_install(cur_grp->grp_info_tbl)) == (char*)SYSERR) {
+	PRNT_ABS_ERR("Install vector failed.");
+	return(-EAGAIN);
+      }
+      
+      /* move current working group pointer */
+      glob_cur_grp_ptr = list_advance(glob_cur_grp_ptr);
+
+      return(cur_grp->grp_maj);	/* return major dev id */
+    }
+  case CDCM_CDV_UNINSTALL:	/* cdv_uninstall() stub */
+    {
+      int majn, rc;
+      char *grp_statt;
+
+      if (list_empty(&cdcmStatT.cdcm_grp_list_head))
+	/* we are fucked! no device installed */
+	return(-ENXIO);
+
+      if (copy_from_user(&majn, (void __user*)arg, sizeof(majn)))
+	return(-EFAULT);
+      
+      if ( !(grp_statt = cdcm_get_grp_stat_tbl(majn)) )
+	/* can't find group with given major number */
+	return(-ENXIO);
+
+      /* hook the uza */
+      if ( (rc = entry_points.dldd_uninstall(grp_statt)) != OK) {
+	PRNT_ABS_ERR("Uninstall vector failed.");
+	return(-EAGAIN);
+      }
+
+      /* exclude given group from the list */
+      cdcm_cleanup_groups(from_maj_to_grp(majn));
+
+      return(rc);
+    }
+  case CDCM_GET_GRP_MOD_AM: /* how many modules in the group */
+    {
+      struct cdcm_grp_info_t *gp;
+      int grpnum;
+
+      if (copy_from_user(&grpnum, (void __user*)arg, sizeof(grpnum)))
+	return(-EFAULT);
+
+      if (!WITHIN_RANGE(1, grpnum, 21))
+	return(-EINVAL);
+      
+      list_for_each_entry(gp, &cdcmStatT.cdcm_grp_list_head, grp_list)
+	if (gp->grp_num == grpnum) /* bingo */
+	  return(list_capacity(&gp->grp_dev_list));
+
+      return(-1);
+    }
+  default:
+    return(-ENOIOCTLCMD);
+  }
+}
+
+
+/*-----------------------------------------------------------------------------
+ * FUNCTION:    process_mod_spec_ioctl
+ * DESCRIPTION: 
+ * RETURNS:	
+ *-----------------------------------------------------------------------------
+ */
+static int
+process_mod_spec_ioctl(
+		       struct inode  *inode, /* inode struct pointer */
+		       struct file   *file,  /* file struct pointer */
+		       unsigned int  cmd,    /* IOCTL command number */
+		       unsigned long arg)    /* user args */
 {
   struct cdcm_file lynx_file;
-  int iodir = 0, iosz = 0;
-  cdcmm_t *iobuf = NULL;
   int rc = 0;	/* ret code */
+  char *grp_statt = NULL; /* group statics table */
+  cdcmm_t *iobuf  = NULL;
+  int iodir = _IOC_DIR(cmd);
+  int iosz  = _IOC_SIZE(cmd);
 
-  int cntr = 0;
-  struct cdcmDevInfo_t *diptr;
-  modinfo_t *dev_i;
 
-  cdcm_err = 0; /* reset */
-
-  /* first, check if it's a service ioctl */
-  switch (cmd) {
-  case CDCM_SRVIO_GET_MOD_AMOUNT:
-    return(cdcmStatT.cdcm_dev_am);
-    break;
-  case CDCM_SRVIO_GET_MOD_INFO:
-    dev_i = kmalloc(cdcmStatT.cdcm_dev_am * sizeof(*dev_i), GFP_KERNEL);
-    
-    if (IS_ERR(dev_i))
-      return(-ENOMEM);
-    
-    /* setup device names list */
-    list_for_each_entry(diptr, &cdcmStatT.cdcm_dev_list_head, di_list) {
-      strncpy(dev_i[cntr].info_dname, diptr->di_name, CDCM_DNL);
-      dev_i[cntr].info_major = MAJOR(diptr->di_dev_num);
-      dev_i[cntr].info_minor = MINOR(diptr->di_dev_num);
-      cntr++;
-    }
-    
-    if (copy_to_user((void __user *)arg, dev_i, cdcmStatT.cdcm_dev_am * sizeof(*dev_i)))
-      rc = -EFAULT;
-    
-    kfree(dev_i);
-    return(rc);
-    break;
-  default:
-    /* user ioctl */
-    iodir = _IOC_DIR(cmd);
-    iosz  = _IOC_SIZE(cmd);
-    break;
-  }
+  if ( !(grp_statt = cdcm_get_grp_stat_tbl(imajor(inode))) )
+    /* can't find group with given major number */
+    return(-ENXIO);
 
   if (iodir != _IOC_NONE) { /* we should move user <-> driver data */
     if ( (iobuf = cdcm_mem_alloc(iosz, iodir|CDCM_M_FLG_IOCTL)) == ERR_PTR(-ENOMEM))
@@ -355,7 +409,7 @@ cdcm_fop_ioctl(
   lynx_file.dev = (int)inode->i_rdev; /* set Device Number */
 
   /* hook the user ioctl */
-  rc = entry_points.dldd_ioctl(LynxOsWorkingArea, &lynx_file, cmd, iobuf->cmPtr);
+  rc = entry_points.dldd_ioctl(grp_statt, &lynx_file, cmd, iobuf->cmPtr);
   if (rc == SYSERR) {
     cdcm_mem_free(iobuf);
     return(-(cdcm_err)); /* error is set by the user */
@@ -371,7 +425,31 @@ cdcm_fop_ioctl(
   }
   
   cdcm_mem_free(iobuf);
-  return(rc);	/* we cool */
+  return(rc);	/* we cool, return user-set return code */
+}
+
+
+/*-----------------------------------------------------------------------------
+ * FUNCTION:    cdcm_fop_ioctl
+ * DESCRIPTION: CDCM ioctl routine. Service ioctl (with CDCM_SRVIO_ prefix) 
+ *		are normally called by the installation program to get all
+ *		needed information. All the rest considered to be user part
+ *		and is passed downstream.
+ *		0 or some positve value         - in case of success.
+ * RETURNS:	-EINVAL, -ENOMEM, -EIO, etc...  - if fails.
+ *-----------------------------------------------------------------------------
+ */
+static int 
+cdcm_fop_ioctl(
+	       struct inode  *inode, /* inode struct pointer */
+	       struct file   *file,  /* file struct pointer */
+	       unsigned int  cmd,    /* IOCTL command number */
+	       unsigned long arg)    /* user args */
+{
+  cdcm_err = 0; /* reset */
+  return( (imajor(inode) == cdcmStatT.cdcm_major) ?
+	  process_cdcm_srv_ioctl(inode, file, cmd, arg) :
+	  process_mod_spec_ioctl(inode, file, cmd, arg) );
 }
 
 
@@ -404,11 +482,16 @@ cdcm_fop_open(
 {
   int dnum;
   struct cdcm_file lynx_file;
-  int minor;
+  char *grp_statt = NULL; /* group statics table */
 
-  minor = iminor(inode);
   cdcm_err = 0;	/* reset */
 
+  if (imajor(inode) == cdcmStatT.cdcm_major) /* service call */
+    return(0);
+
+  if ( !(grp_statt = cdcm_get_grp_stat_tbl(imajor(inode))) )
+    /* can't find group with given major number */
+    return(-ENXIO);
 
   /* enforce read-only access to this chrdev */
   /* 
@@ -418,15 +501,11 @@ cdcm_fop_open(
     return -EINVAL;
   */
 
-  if (inode->i_rdev == cdcmStatT.cdcm_dev_num)
-    /* service inode - no need to fall in user driver part */
-    return(0);
-
   /* fill in Lynxos file */
   dnum = lynx_file.dev = (int)inode->i_rdev;
   lynx_file.access_mode = (filp->f_flags & O_ACCMODE);
   
-  if (entry_points.dldd_open(LynxOsWorkingArea, dnum, &lynx_file) == OK) {
+  if (entry_points.dldd_open(grp_statt, dnum, &lynx_file) == OK) {
     //filp->private_data = (void*)dnum; /* set for us */
     /* you can use private_data for your own purposes */
     return(0);	/* success */
@@ -450,20 +529,19 @@ cdcm_fop_release(
 		 struct file *filp)   /* file pointer */
 {
   struct cdcm_file lynx_file;
-  int minor;
-  
-  minor = iminor(inode);
+  char *grp_statt = NULL; /* group statics table */
+
   cdcm_err = 0;	/* reset */
 
-  if (inode->i_rdev == cdcmStatT.cdcm_dev_num)
-    /* service inode - no need to fall in user driver part */
-    return(0);
+  if ( !(grp_statt = cdcm_get_grp_stat_tbl(imajor(inode))) )
+    /* can't find group with given major number */
+    return(-ENXIO);
 
   /* fill in Lynxos file */
   lynx_file.dev = (int)inode->i_rdev;
   lynx_file.access_mode = (filp->f_flags & O_ACCMODE);
 
-  if (entry_points.dldd_close(LynxOsWorkingArea, &lynx_file) == OK)
+  if (entry_points.dldd_close(grp_statt, &lynx_file) == OK)
     return(0);			/* we cool */
 
   cdcm_err = -ENODEV; /* TODO. What val to return??? */	
@@ -495,40 +573,51 @@ cdcm_driver_cleanup(void)
 {
   int cntr;
 
-  /* first, let user to cleanup */
-  if (!(cdcmStatT.cdcm_flags & CDCMFLG_NOUSREP))
-    entry_points.dldd_uninstall(LynxOsWorkingArea);
-
   /* cleanup all captured memory */ 
   cdcm_mem_cleanup_all();
 
-  /* free info table mem */
-  if (devInfoT)
-    sysfree(devInfoT, devInfoTSz);
-  
   /* stop timers */
   for (cntr = 0; cntr < MAX_CDCM_TIMERS; cntr++)
     if (cdcmStatT.cdcm_timer[cntr].ct_on)
       del_timer_sync(&cdcmStatT.cdcm_timer[cntr].ct_timer);
-
-  /* cleaning-up */
-  if (cdcmStatT.cdcm_dev_am) {
-    PRNT_ABS_WARN("Not all devices unload from the kernel!!!");
-    /* TODO Perform correct cleaning up... */
-  }
 
   if (cdcmStatT.cdcm_drvr_type == 'P')
     cdcm_pci_cleanup();
   else if (cdcmStatT.cdcm_drvr_type == 'V')
     cdcm_vme_cleanup();
 
-  /* remove CDCM char device from the kernel */
-  cdev_del(cdcmStatT.cdcm_cdev);
-  
-  /* release device numbers */
-  unregister_chrdev_region(cdcmStatT.cdcm_dev_num, 1);
+  cdcm_cleanup_groups(NULL);
 }
 
+
+/* next two defines are used to handle claimed groups */
+/* bit counter */
+#define bitcntr(x)				\
+({						\
+  int __cntr = 0;				\
+  while (x) {					\
+    if (x&1)					\
+      __cntr++;					\
+    x >>= 1;					\
+  }						\
+  __cntr;					\
+})
+
+/* which bits are set */
+#define getbitidx(x, m)				\
+do {						\
+  int __cntr = 0, __mcntr = 0;			\
+  typeof(x) __x = (x);				\
+						\
+  while(__x) {					\
+    if (__x&1) {				\
+      m[__mcntr] = __cntr;			\
+      __mcntr++;				\
+    }						\
+    __x >>= 1;					\
+    __cntr++;					\
+  }						\
+} while (0)
 
 /*-----------------------------------------------------------------------------
  * FUNCTION:    cdcm_driver_init.
@@ -540,53 +629,61 @@ cdcm_driver_cleanup(void)
 static int __init
 cdcm_driver_init(void)
 {
+  struct cdcm_grp_info_t *grp_ptr;
+  cdcm_hdr_t *cdcmHdr;
   int cntr = 0;
+  int grp_am = 0, grp_n[21] = { 0 }; /* for group handling */
 
   /* get module info table */
-  if ( !(devInfoT = cdcm_get_info_table(cdcmInfoF, &devInfoTSz)) ) {
+  if ( !(cdcmHdr = (cdcm_hdr_t*)cdcm_get_info_table(cdcmInfoF, NULL)) ) {
     PRNT_ABS_ERR("Can't read info file."); /* fatal. barf */
     return(-ENOENT);
   }
 
+  /* register service character device */
+  if ( (cdcmStatT.cdcm_major = register_chrdev(0, __srv_dev_name(cdcmHdr->cih_dnm), &cdcm_fops)) < 0) {
+    PRNT_ABS_ERR("Can't register CDCM as character device... Aborting!");
+    sysfree((char*)cdcmHdr, sizeof(*cdcmHdr));
+    return(cdcmStatT.cdcm_major); /* error */
+  }
+  
+  grp_am = bitcntr(cdcmHdr->cih_grp_bits); /* how many claimed groups */
+  getbitidx(cdcmHdr->cih_grp_bits, grp_n); /* their indexes */
+
+  for (cntr = 0; cntr < grp_am; cntr++) { /* allocate groups */
+    if (!(grp_ptr = kzalloc(sizeof(*grp_ptr), GFP_KERNEL))) {
+      PRNT_INFO_MSG("Can't allocate group descriptor for %s dev.\n", cdcmStatT.cdcm_mod_name);
+      sysfree((char*)cdcmHdr, sizeof(*cdcmHdr));
+      cdcm_cleanup_groups(NULL);
+      return(-ENOMEM);
+    }
+
+    INIT_LIST_HEAD(&grp_ptr->grp_list);
+    INIT_LIST_HEAD(&grp_ptr->grp_dev_list);
+
+    grp_ptr->grp_num      = grp_n[cntr] + 1;
+    snprintf(grp_ptr->grp_name, sizeof(grp_ptr->grp_name), CDCM_GRP_FMT, cdcmHdr->cih_dnm, grp_ptr->grp_num);
+    
+    if ( (grp_ptr->grp_maj =  register_chrdev(0, grp_ptr->grp_name, &cdcm_fops)) < 0 ) {
+      PRNT_ABS_ERR("Can't register character device for group %d... Aborting!", grp_ptr->grp_num);
+      sysfree((char*)cdcmHdr, sizeof(*cdcmHdr));
+      cdcm_cleanup_groups(NULL);
+      return(grp_ptr->grp_maj);	/* error */
+    }
+    /* group is correctly inited. add it to the claimed groups list */
+    list_add(&grp_ptr->grp_list, &cdcmStatT.cdcm_grp_list_head);
+  }
+
+  /* init current working group pointer with the first group */
+  glob_cur_grp_ptr = list_advance(&cdcmStatT.cdcm_grp_list_head);
+
   /* init semaphore mutexes */
   for (cntr = 0; cntr < MAX_CDCM_SEM; cntr++)
     cdcmStatT.cdcm_s[cntr].wq_usr_val = NULL;
-
-  /*  */
-  cdcmStatT.cdcm_cdev = cdcm_get_cdev(CDCM_DEV_NAME, 1, &cdcmStatT.cdcm_dev_num);
   
-  if (IS_ERR(cdcmStatT.cdcm_cdev)) {
-    PRNT_ABS_ERR("Can't register CDCM as character device... Aborting!");
-    return PTR_ERR(cdcmStatT.cdcm_cdev);
-  }
-
-  cdcm_mem_init(); /* init our memory manager */
-
-  /* hook the user */
-  LynxOsWorkingArea = entry_points.dldd_install(devInfoT);
-  if ((int)LynxOsWorkingArea == SYSERR) {  
-    /* user installation procedure fails. fatal. barf */
-    PRNT_ABS_ERR("Can't get driver working area... Aborting!");
-    LynxOsWorkingArea = NULL;
-    cdcmStatT.cdcm_flags |= CDCMFLG_NOUSREP;
-    cdcm_driver_cleanup();	/* cleanup */
-    return(-ENOEXEC);
-   }
-
-  /* Normally if here, then our driver is already registered in the kernel,
-     CDCM statics table is filled with a proper values. We can continue to
-     work with them. (Registration is done by calling 'drm_get_handle()'
-     of find_controller() stub functions (depends on the driver type)
-     during 'entry_points.dldd_install()' call) */
-
-  if (!cdcmStatT.cdcm_drvr_type) { /* user was not calling 'drm_get_handle()'
-				      or 'find_controller()' We can not proceed
-				      without them! */
-    PRNT_ABS_ERR("Can't proceed without devices... Aborting!!!");
-    return(-EACCES);
-    /* TODO. Perform correct cleaning up */
-  }
-
+  cdcmStatT.cdcm_hdr = cdcmHdr; /* save header */
+  cdcm_mem_init(); /* init memory manager */
+  
   return(OK);
 }
 

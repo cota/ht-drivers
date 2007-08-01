@@ -1,4 +1,4 @@
-/* $Id: cdcmMem.c,v 1.1 2007/03/15 07:40:54 ygeorgie Exp $ */
+/* $Id: cdcmMem.c,v 1.2 2007/08/01 15:07:20 ygeorgie Exp $ */
 /*
 ; Module Name:	 cdcmMem.c
 ; Module Descr:	 All CDCM memory handling is located here
@@ -12,6 +12,7 @@
 ;
 ; #.#   Name       Date       Description
 ; ---   --------   --------   -------------------------------------------------
+; 3.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
 ; 2.0   ygeorgie   14/03/07   Production release, CVS controlled.   
 ; 1.0	ygeorgie   17/02/07   Initial version.
 */
@@ -23,8 +24,10 @@
 extern int cdcm_err;		/* global error */
 extern cdcmStatics_t cdcmStatT; /* CDCM statics table */
 
-static int cdcm_alloc_blocks = 0; /* amount of allocated memory blocks */
+static int cdcm_alloc_blocks   = 0; /* amount of allocated memory blocks */
 static int cdcm_claimed_blocks = 0; /* how many already used */
+
+static cdcmm_t* cdcm_mem_get_free_block(void);
 
 /*-----------------------------------------------------------------------------
  * FUNCTION:    cdcm_mem_init
@@ -40,7 +43,7 @@ cdcm_mem_init(void)
   cdcmm_t *amem; /* allocated memory */
   
   for (cntr = 0; cntr < CDCM_ALLOC_DEF; cntr++) {
-    if ( !(amem = kzalloc(sizeof(cdcmm_t), GFP_KERNEL)) ) {
+    if ( !(amem = kzalloc(sizeof(*amem), GFP_KERNEL)) ) {
       PRNT_ABS_ERR("Can't alloc CDCM memory handle");
       cdcm_mem_cleanup_all();	/* roll back */
       return(-ENOMEM);
@@ -109,7 +112,7 @@ cdcm_mem_cleanup_all(void)
   /* free allocated memory */
   list_for_each_entry_safe(memP, tmpP, &cdcmStatT.cdcm_mem_list_head, cm_list) {
     if (memP->cmPtr) {
-      CDCM_DBG("Releasing allocated memory chunk %p\n", memP);
+      //CDCM_DBG("Releasing allocated memory chunk %p\n", memP);
       cdcm_mem_free(memP);
     }
     
@@ -138,7 +141,8 @@ cdcm_mem_cleanup_all(void)
 cdcmm_t*
 cdcm_mem_alloc(
 	       size_t size, /* size in bytes */
-	       int    flgs) /* memory flags */
+	       int    flgs) /* memory flags (see cdcmm_t definition for more
+			       info on the possible flags) */
 {
   cdcmm_t *amem = cdcm_mem_get_free_block();
 
@@ -191,7 +195,7 @@ cdcm_mem_find_block(
  *		NULL                  - if fails
  *-----------------------------------------------------------------------------
  */
-cdcmm_t*
+static cdcmm_t*
 cdcm_mem_get_free_block(void)
 {
   cdcmm_t *tmp;

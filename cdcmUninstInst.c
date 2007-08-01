@@ -1,6 +1,6 @@
-/* $Id: cdcmUninstInst.c,v 1.1 2007/07/30 08:53:39 ygeorgie Exp $ */
+/* $Id: cdcmUninstInst.c,v 1.2 2007/08/01 15:07:21 ygeorgie Exp $ */
 /*
-; Module Name:	cdcmInstUninst.c
+; Module Name:	cdcmUninstInst.c
 ; Module Descr:	Intended for Linux/Lynx driver installation/uninstallation.
 ;		Helps to unify driver install procedure between two systems.
 ;		All standart options are parsed here and CDCM group description
@@ -14,10 +14,11 @@
 ; written by Rusty Russell. Thxs!
 ;
 ; -----------------------------------------------------------------------------
-; Revisions of cdcmInstUninst.c: (latest revision on top)
+; Revisions of cdcmUninstInst.c: (latest revision on top)
 ;
 ; #.#   Name       Date       Description
 ; ---   --------   --------   -------------------------------------------------
+; 3.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
 ; 2.0   ygeorgie   09/07/07   Production release, CVS controlled.
 ; 1.0	ygeorgie   28/06/07   Initial version.
 */
@@ -31,20 +32,22 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <stropts.h>
 #include <sys/file.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/param.h>
 
 #include <common/include/generalDrvrHdr.h>
 #include <common/include/list.h>
 #include <cdcm/cdcmInfoT.h>
-#include <cdcm/cdcmInst.h>
+#include <cdcm/cdcmUninstInst.h>
 #include <cdcm/cdcmUsrKern.h>
 
 #ifdef __linux__
 
 #define streq(a,b) (strcmp((a),(b)) == 0)
-static char *linux_do_cdcm_info_header_file(void);
+static char *linux_do_cdcm_info_header_file(int);
 static void *linux_grab_file(const char*, unsigned long*);
 static const char *linux_moderror(int);
 /* sys_init_module system call */
@@ -259,13 +262,33 @@ assert_compulsory_vectors()
 
 
 /*-----------------------------------------------------------------------------
+ * FUNCTION:    set_mod_descr
+ * DESCRIPTION: 
+ * RETURNS:	0 - Ok
+ *	       -1 - NOT Ok
+ *-----------------------------------------------------------------------------
+ */
+static void
+set_mod_descr(
+	      cdcm_grp_t *gp,	/* group */
+	      cdcm_md_t  *mp)	/* module */
+{
+  gp->mod_am++;
+  mp->md_gid = gp->grp_num;
+
+  /* add new module to the group */
+  list_add(&mp->md_list/*new*/, &gp->mod_list/*head*/);
+}
+
+
+/*-----------------------------------------------------------------------------
  * FUNCTION:    cdcm_vme_arg_parser
  * DESCRIPTION: This function should be called by the module-specific
  *		installation procedure command line args
  * RETURNS:	group list
  *-----------------------------------------------------------------------------
  */
-struct list_head
+struct list_head*
 cdcm_vme_arg_parser(
 		    int   argc,
 		    char *argv[],
@@ -273,6 +296,7 @@ cdcm_vme_arg_parser(
 {
   int cur_lun, cur_grp, cmdOpt, cntr;
   int grp_cntr = 0, comma_cntr = 0;  /* for grouping management */
+  int isSet; /* module description is saved already */
 
   /* default + module-specific command line options */
   const char *optstring = get_optstring();
@@ -282,6 +306,8 @@ cdcm_vme_arg_parser(
 
   /* Scan params of the command line */
   while ( (cmdOpt = getopt(argc, argv, optstring)) != EOF ) {
+    cur_grp = comma_cntr;
+    isSet = 0;
     switch (cmdOpt) {
     case P_T_HELP:	/* Help information */
       educate_user();
@@ -310,12 +336,6 @@ cdcm_vme_arg_parser(
 	printf("Wrong group number (G param). Allowed range is [1, 21]\nAborting...\n");
 	exit(EXIT_FAILURE);	/* 1 */
       }
-      
-      mod_desc[comma_cntr].md_gid = cur_grp;
-
-      /* add new module to the group */
-      list_add(&mod_desc[comma_cntr].md_list/*new*/, &grp_desc[cur_grp-1].mod_list/*head*/);
-      grp_desc[cur_grp-1].mod_am++;
       grp_cntr++;
       break;
     case P_T_ADDR:	/* First base address */
@@ -342,19 +362,12 @@ cdcm_vme_arg_parser(
 	printf("Too many modules declared (max is %d)\nAborting...\n", MAX_VME_SLOT);
 	exit(EXIT_FAILURE);
       }
+      
       check_mod_compulsory_params(&mod_desc[comma_cntr]); /* will barf if error */
-
-      /* set groups and their module lists if no explicit grouping (G param) */
-      if (mod_desc[comma_cntr].md_gid == -1) {
-	/* if here, then one group <-> one device */
-	/* add new module to the group */
-	list_add(&mod_desc[comma_cntr].md_list/*new*/, &grp_desc[comma_cntr].mod_list/*head*/);
-
-	grp_desc[comma_cntr].mod_am++; /* increase module amount in the group */
-	mod_desc[comma_cntr].md_gid = comma_cntr+1; /* set module group id */
-      }
+      set_mod_descr(&grp_desc[cur_grp], &mod_desc[comma_cntr]);
 
       comma_cntr++;
+      isSet = 1;
       break;
     case '?':	/* error */
       printf("Wrong/unknown argument!\n");
@@ -369,7 +382,7 @@ cdcm_vme_arg_parser(
     case 0:
 #endif
     default:
-      if (cdcm_inst_ops.mso_parse_opt)<
+      if (cdcm_inst_ops.mso_parse_opt)
 	(*cdcm_inst_ops.mso_parse_opt)(cmdOpt, optarg);
       else {
 	printf("Wrong/Unknown option %c!\nAborting...\n", cmdOpt);
@@ -379,15 +392,21 @@ cdcm_vme_arg_parser(
     }
   }
 
+  if (!isSet) { /* we neet to set the last module config */
+    check_mod_compulsory_params(&mod_desc[comma_cntr]); /* will barf if error */
+    set_mod_descr(&grp_desc[cur_grp], &mod_desc[comma_cntr]);
+  }
+    
+
   /* check if no conflicts in module declaration */
   assert_all_mod_descr();
 
   /* set sorted group list */
   for (cntr = 0; cntr < MAX_VME_SLOT; cntr++)
     if (grp_desc[cntr].mod_am)	/* group is claimed, add it to the list */
-      list_add(&grp_desc[cntr].grp_list, &glob_grp_list);
+      list_add(&grp_desc[cntr].grp_list/*new*/, &glob_grp_list/*head*/);
 
-  return(glob_grp_list);
+  return(&glob_grp_list);
 }
 
 
@@ -412,15 +431,7 @@ __linux_srv_node()
   return(cdcm_s_n_nm);
 }
 
-/* TODO REMOVE */
-#define bitprint(x)						\
-do {								\
-  int __cntr;							\
-  for (__cntr = sizeof(typeof(x))*8-1; __cntr >= 0; __cntr--)	\
-    printf("%d", (x&(1<<__cntr))>>__cntr);			\
-								\
-  printf("\n");							\
-} while(0)
+
 /*-----------------------------------------------------------------------------
  * FUNCTION:    dr_install
  * DESCRIPTION: Lynx call wrapper. Will install the driver in the system.
@@ -445,7 +456,7 @@ dr_install(
   int major_num = 0;
   int devn; /* major/minor device number */
   char *itf;	/* info table filepath */
-  int grp_bits = 0, cntr;
+  int grp_bits = 0;
 
   if (c_cntr > 1) {	/* oooops... */
     printf("%s() was called more then once. Should NOT happen!\nAborting...\n", __FUNCTION__);
@@ -453,8 +464,7 @@ dr_install(
   } else {
     cdcm_grp_t *grpp;
     list_for_each_entry(grpp, &glob_grp_list, grp_list)
-      grp_bits &= 1<<(grpp->(grp_num-1)); /* set group bit mask */
-    bitprint(grp_bits);		/* TODO REMOVE for testing only! */
+      grp_bits |= 1<<((grpp->grp_num)-1); /* set group bit mask */
   }
 
   /* put .ko in the local buffer */
@@ -484,7 +494,7 @@ dr_install(
 
   /* check if he made it */
   if ( (procfd = fopen("/proc/devices", "r")) == NULL ) {
-    perror("fopen");
+    mperr("Can't open /proc/devices");
     exit(EXIT_FAILURE);
   }
   
@@ -501,15 +511,16 @@ dr_install(
     fprintf(stderr, "'%s' device NOT found in proc fs.\n", __srv_dev_name(NULL));
     exit(EXIT_FAILURE);
   } else 
-    printf("%s device driver installed. Major number %d.\n", __srv_dev_name(NULL), major_num);
+    printf("\n'%s' device driver installed. Major number %d.\n", __srv_dev_name(NULL), major_num);
 
   /* create service entry point */
   unlink(__linux_srv_node()); /* if already exist delete it */
   devn = makedev(major_num, 0);
   if (mknod(__linux_srv_node(), S_IFCHR | 0666, devn)) {
-    perror("mknod");
+    mperr("Can't create %s service node", __linux_srv_node());
     exit(EXIT_FAILURE);
   }
+  //chmod(__linux_srv_node(), 0666);
 
   c_cntr++;
   return(major_num); /* 'fake' driver id will be used by the cdv_install */
@@ -527,7 +538,7 @@ int
 dr_uninstall(
 	     int id)		/*  */
 {
-
+  return(-1);
 }
 
 
@@ -555,7 +566,7 @@ cdv_install(
 	    int   extra)	/*  */
 {
   static int c_cntr = 0; /* how many times i was already called */
-  int cdcmfd -1;
+  int cdcmfd  = -1;
   int maj_num = -1;
 
   c_cntr++;
@@ -566,12 +577,12 @@ cdv_install(
   }
 
   if ((cdcmfd = open(__linux_srv_node(), O_RDWR)) == -1) {
-    perror("open");
+    mperr("Can't open %s service node", __linux_srv_node());
     return(-1);
   }
 
   if ( (maj_num = ioctl(cdcmfd, CDCM_CDV_INSTALL, path)) < 0) {
-    perror("CDCM_CDV_INSTALL ioctl fails");
+    mperr("CDCM_CDV_INSTALL ioctl fails. Can't get major number");
     close(cdcmfd);
     return(-1);
   }
@@ -592,7 +603,7 @@ int
 cdv_uninstall(
 	      int cdevice_ID)	/*  */
 {
-
+  return(-1);
 }
 
 
@@ -624,13 +635,13 @@ linux_do_cdcm_info_header_file(
   snprintf(cdcm_if_nm, sizeof(cdcm_if_nm), "/tmp/%s.info", __srv_dev_name((*cdcm_inst_ops.mso_get_mod_name)()));
 
   if ( (ifd = open(cdcm_if_nm, O_CREAT | O_RDWR, 0664)) == -1) {
-    perror(__FUNCTION__);
+    mperr("Can't open %s info file", cdcm_if_nm);
     return(NULL);
   }
 
   /* write CDCM header */
   if( write(ifd, &cdcm_hdr, sizeof(cdcm_hdr)) == -1) {
-    perror(__FUNCTION__);
+    mperr("Can't write into %s info file", cdcm_if_nm);
     close(ifd);
     return(NULL);
   }

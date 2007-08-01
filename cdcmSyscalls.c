@@ -1,12 +1,12 @@
-/* $Id: cdcmSyscalls.c,v 1.1 2007/03/15 07:40:54 ygeorgie Exp $ */
+/* $Id: cdcmSyscalls.c,v 1.2 2007/08/01 15:07:20 ygeorgie Exp $ */
 /*
 ; Module Name:	 cdcmSyscalls.c
 ; Module Descr:	 CDCM is doing system calls from the kernel mode.
 ;		 All functions, that are used _syscalls are placed in separate
 ;		 file (namely this one).
-;		 Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
 ; Creation Date: Feb, 2006
 ; Author:	 Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
+;		 Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
 ;
 ;		 Inspired by  <tda1004x.c> on how to do sys_open && co.
 ;
@@ -15,6 +15,7 @@
 ;
 ; #.#   Name       Date       Description
 ; ---   --------   --------   -------------------------------------------------
+; 4.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
 ; 3.0   ygeorgie   14/03/07   Production release, CVS controlled.
 ; 2.0   ygeorgie   27/07/06   First working release.
 ; 1.0	ygeorgie   02/06/06   Initial version.
@@ -43,21 +44,20 @@ static __inline__ _syscall1(int,close,int,fd)
 
 /*-----------------------------------------------------------------------------
  * FUNCTION:    cdcm_get_info_table
- * DESCRIPTION: Get module info table. Open info file and deliver its data into
- *		the driver space.
+ * DESCRIPTION: Get info tables. Open info files and deliver its data into
+ *		the driver space. Returned pointer should be freed afterwards!
  * RETURNS:     NULL               - in case of failure.
  *		info table pointer - in case of success.
  *-----------------------------------------------------------------------------
  */
 char*
 cdcm_get_info_table(
-		    char *ifn,	/* info file to open */
+		    char *ifn,	/* info file path to open */
 		    int *itszp)	/* table size will be placed here */
 		    
 {
   int ifd;
   int filesize;
-  cdcmHeader hdr;
   char *infoTab = NULL;
   mm_segment_t fs = get_fs(); /* save current address limit */
   
@@ -71,33 +71,14 @@ cdcm_get_info_table(
     return(NULL);
   }
   
-  /* check if empty */
+  /* check if empty and set file size */
   if ( (filesize = lseek(ifd, 0L, CDCM_SEEK_END)) <= 0) {
     PRNT_ABS_ERR("Info file is empty.");
     goto cdcm_git_exit;
   }
-
+  
   /* move to the beginning of the file */
   lseek(ifd, 0L, CDCM_SEEK_SET);
-
-  /* first, read standart CDCM info header */
-  if (read(ifd, (void*)&hdr, sizeof(cdcmHeader)) != sizeof(cdcmHeader)) {
-    PRNT_ABS_ERR("Failed to read module info file header");
-    goto cdcm_git_exit;
-  }
-
-  /* check identity */
-  if (hdr.cih_signature != CDCM_MAGIC_IDENT) {
-    PRNT_ABS_ERR("Wrong info file signature (%#x)", hdr.cih_signature);
-    //PRNT_ABS_DBG_MSG("Signature is %#x - %c%c%c%c\n", CDCM_MAGIC_IDENT, CDCM_MAGIC_IDENT >> 24, ((CDCM_MAGIC_IDENT>>16)<<24)>>24, ((CDCM_MAGIC_IDENT>>8)<<24)>>24, (CDCM_MAGIC_IDENT<<24)>>24);
-    goto cdcm_git_exit;
-  }
-
-  /* get some header info */
-  cdcmStatT.cdcm_chan_per_dev = hdr.cih_mpd; /* minor dev amount */
-
-  /* set size of user info table */
-  filesize -= sizeof(cdcmHeader);
 
   /* allocate info table */
   if ( (infoTab = sysbrk(filesize)) == NULL ) {
@@ -113,7 +94,8 @@ cdcm_get_info_table(
     goto cdcm_git_exit;
   }
 
-  *itszp = filesize;
+  if (itszp)
+    *itszp = filesize; /* give back the info file size */
 
   cdcm_git_exit:
   close(ifd);

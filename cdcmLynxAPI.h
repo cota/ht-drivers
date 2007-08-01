@@ -1,4 +1,4 @@
-/* $Id: cdcmLynxAPI.h,v 1.1 2007/03/15 07:40:54 ygeorgie Exp $ */
+/* $Id: cdcmLynxAPI.h,v 1.2 2007/08/01 15:07:20 ygeorgie Exp $ */
 /*
 ; Module Name:	 cdcmLynxAPI.h
 ; Module Descr:	 All LynxOS wrapper function definitions are located here.
@@ -13,6 +13,7 @@
 ;
 ; #.#   Name       Date       Description
 ; ---   --------   --------   -------------------------------------------------
+; 4.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
 ; 3.0   ygeorgie   14/03/07   Production release, CVS controlled.
 ; 2.0   ygeorgie   27/07/06   First working release.
 ; 1.0	ygeorgie   07/07/06   Initial version.
@@ -100,6 +101,7 @@ void  sysfree(char *, unsigned long);
 int   ksprintf(char *, char *, ...);
 long  rbounds(unsigned long);
 long  wbounds(unsigned long);
+int   nanotime(unsigned long*);
 int   timeout(int(*)(void*), char*, int);
 int   cancel_timeout(int);
 int   swait(int*, int);

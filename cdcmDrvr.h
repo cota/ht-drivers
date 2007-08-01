@@ -1,4 +1,4 @@
-/* $Id: cdcmDrvr.h,v 1.1 2007/03/15 07:40:54 ygeorgie Exp $ */
+/* $Id: cdcmDrvr.h,v 1.2 2007/08/01 15:07:20 ygeorgie Exp $ */
 /*
 ; Module Name:	 cdcmDrvr.h
 ; Module Descr:	 Common Driver Code Manager (CDCM).
@@ -14,6 +14,7 @@
 ;
 ; #.#   Name       Date       Description
 ; ---   --------   --------   -------------------------------------------------
+; 5.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
 ; 4.0   ygeorgie   14/03/07   Production release, CVS controlled.
 ; 3.0   ygeorgie   16/01/07   VME support.
 ; 2.0   ygeorgie   27/07/06   First working release.
@@ -77,17 +78,23 @@
 #include <linux/kthread.h>
 
 #include "cdcm.h" /* for CDCM_DNL */
+#include "cdcmInfoT.h"	/* for 'cdcm_hdr_t' type */
 #include <ces/xpc_vme.h>
 
 #define kkprintf printk
 #define cprintf printk
 
-/* tnks to kernel src */
+/* tnks to Linux kernel src */
 #define KB      (1024UL)
 #define MB      (1024UL*KB)
 #define GB      (1024UL*MB)
 #define B2KB(x) ((x) / 1024)
 #define B2MB(x) (B2KB (B2KB (x)))
+
+/* device minor numbers holding information about the devices and their
+   channel numbers */
+#define CDCM_DEV(inode) (iminor(inode) >> 4)
+#define CDCM_CHAN(inode) (iminor(inode) & 0xf)
 
 
 /* DeBuG Information Printout Level (IPL) */
@@ -192,13 +199,6 @@ typedef struct _cdcmIoctl {
   int size;	 /* data size in bytes */
 } cdcmIoctl;
 
-/* Used to describe VME devices */
-struct vme_dev {
-  unsigned int vd_virt_addr; /* virtual address */
-  unsigned int vd_phys_addr; /* physical address */
-  unsigned int vd_len;       /* size of the mapped memory */
-  unsigned int vd_am;	     /* address modifier */
-};
 
 #if 0
 /* process descr, currently using the driver */
@@ -207,18 +207,21 @@ typedef struct _cdcmProc {
 } cdcmproc_t;
 #endif
 
-/* description of each module, currently handled by CDCM */
-struct cdcmDevInfo_t { 
+/* Used to describe VME devices */
+struct vme_dev {
+  unsigned int vd_virt_addr; /* virtual address */
+  unsigned int vd_phys_addr; /* physical address */
+  unsigned int vd_len;       /* size of the mapped memory */
+  unsigned int vd_am;	     /* address modifier */
+};
+
+/* description of each module, handled by CDCM */
+typedef struct _cdcmDevInfo { 
   struct list_head di_list;           /* device linked list */
   struct pci_dev  *di_pci;            /* PCI device pointer */
   struct vme_dev  *di_vme;            /* VME device pointer */
-  int              di_line;           /* module index (starting from zero) */
   devAlive_t       di_alive;          /* alive level */
-  int              di_claimed;	      /* if device is claimed */
-  char             di_name[CDCM_DNL]; /* device name (that will appear in
-					 /proc/devices and sysfs) */
-  struct cdev     *di_cdev;           /* char device structure */
-  dev_t            di_dev_num;	      /* device number */
+  int              di_parent;	      /* parent group number */
 
   /* thread stuff */
   /*
@@ -226,21 +229,38 @@ struct cdcmDevInfo_t {
   int               di_thr_croak; // TODO. batch thread suicide
   struct completion di_thr_c;     // TODO. thread syncronization
   */
+} cdcm_dev_info_t;
+
+/* logical device grouping */
+struct cdcm_grp_info_t {
+  struct list_head grp_list;     /* group linked list */
+  struct list_head grp_dev_list; /* group devices linked list
+				    (all cdcm_dev_info_t) */
+  int   grp_maj;                 /* group major number */
+  int   grp_num;		 /* group number [1-21] */
+  char  grp_name[CDCM_DNL];      /* group name as will
+				    appear in /proc/devices and sysfs */
+
+  char *grp_stat_tbl;		 /* user-defined statics table */
+
+  char *grp_info_tbl;		 /* group info table (passed as a parameter
+				    to install entry point) */
+  int   grp_it_sz;		 /* info table size in bytes */
 };
 
-#define drm_node_s cdcmDevInfo_t
+#define drm_node_s cdcm_grp_info_t
 
 /* general CDCM statics table */
 typedef struct _cdcmStatics {
-  struct list_head cdcm_dev_list_head; /* device list, that are supported.
-					  (i.e. list of all 'cdcmDevInfo_t') */
+  struct list_head cdcm_grp_list_head; /* controlled groups list
+					  (all 'cdcm_grp_info_t') */
   char             cdcm_drvr_type;     /* driver type 'V' - VME, 'P' - PCI */
-  int              cdcm_dev_am;        /* number of detected devices */
-  int              cdcm_dev_active;    /* number of claimed devices */
-  struct cdev     *cdcm_cdev;          /* char device structure */
-  dev_t            cdcm_dev_num;       /* device number */
+  char             cdcm_mod_name[CDCM_DNL];/* module name provided by the 
+					      user space */
+  cdcm_hdr_t      *cdcm_hdr;	       /* header passed from the user space */
+  int              cdcm_major;	       /* service entry point major */
+
   struct list_head cdcm_mem_list_head; /* allocated memory list */
-  int              cdcm_chan_per_dev;  /* how many minor per one device */
   dbgipl_t         cdcm_ipl;	       /* CDCM information printout level */
   struct list_head cdcm_thr_list_head; /* thread list */
   //struct list_head cdcm_proc_list_head;	/* process list */
@@ -248,7 +268,7 @@ typedef struct _cdcmStatics {
   cdcmsem_t        cdcm_s[MAX_CDCM_SEM]; /* Lynx semaphores implementation */
   cdcmflg_t        cdcm_flags;	       /* bitset flags */
 } cdcmStatics_t;
-/* cdcmStatT - global statics table defined in cdcm.c module */
+/* cdcmStatT - global statics table defined in cdcmDrvr.c module */
 
 #ifndef OK
 #define OK 0
