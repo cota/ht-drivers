@@ -1,4 +1,4 @@
-/* $Id: cdcmDrvr.c,v 1.4 2007/10/05 08:42:41 ygeorgie Exp $ */
+/* $Id: cdcmDrvr.c,v 1.5 2007/10/05 08:44:38 ygeorgie Exp $ */
 /**
  * @file cdcmDrvr.c
  *
@@ -375,7 +375,7 @@ process_cdcm_srv_ioctl(
  *
  * @return
  */
-static int process_mod_spec_ioctl(struct inode *inode, file *file, int cmd, long arg)
+static int process_mod_spec_ioctl(struct inode *inode, struct file *file, int cmd, long arg)
 {
   struct cdcm_file lynx_file;
   int rc = 0;	/* ret code */
