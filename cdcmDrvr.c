@@ -1,24 +1,22 @@
-/* $Id: cdcmDrvr.c,v 1.3 2007/08/01 15:07:20 ygeorgie Exp $ */
-/*
-; Module Name:	 cdcmDrvr.c
-; Module Descr:	 CDCM Linux driver that encapsulates user-written LynxOS
-;		 driver. Consider it like a wrapper of the user Lynx driver.
-;		 Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
-; Creation Date: Feb, 2006
-; Author:	 Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
-;
-;
-; -----------------------------------------------------------------------------
-; Revisions of cdcmDrvr.c: (latest revision on top)
-;
-; #.#   Name       Date       Description
-; ---   --------   --------   -------------------------------------------------
-; 4.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
-; 3.0   ygeorgie   14/03/07   Production release, CVS controlled.
-; 2.0   ygeorgie   27/07/06   First working release.
-; 1.0	ygeorgie   02/06/06   Initial version.
-*/
-
+/* $Id: cdcmDrvr.c,v 1.4 2007/10/05 08:42:41 ygeorgie Exp $ */
+/**
+ * @file cdcmDrvr.c
+ *
+ * @brief CDCM Linux driver
+ *
+ * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
+ *         Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
+ *
+ * @date Feb, 2006
+ *
+ * Encapsulates user-written LynxOS driver. Consider it like a wrapper of the
+ * user Lynx driver.
+ *
+ * @version 4.0  ygeorgie   01/08/07   Full Lynx-like installation behaviour.
+ * @version 3.0  ygeorgie   14/03/07   Production release, CVS controlled.
+ * @version 2.0  ygeorgie   27/07/06   First working release.
+ * @version 1.0  ygeorgie   02/06/06   Initial version.
+ */
 #include "cdcmDrvr.h"
 #include "cdcmLynxAPI.h"
 #include "cdcmMem.h"
@@ -30,7 +28,7 @@ MODULE_AUTHOR("Yury Georgievskiy, CERN AB/CO");
 MODULE_LICENSE("GPL");
 
 /* driver parameter. Info file path. */
-static char cdcmInfoF[CDCM_IPATH_LEN];
+static char cdcmInfoF[PATH_MAX];
 module_param_string(ipath, cdcmInfoF, sizeof(cdcmInfoF), 0);
 MODULE_PARM_DESC(ipath, "Absolute path name of the CDCM info file.");
 
@@ -77,33 +75,32 @@ struct file_operations cdcm_fops;
 })
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_get_grp_stat_tbl
- * DESCRIPTION: Get statics table that will be passed as a parameter to the
- *		driver entry points.
- * RETURNS:	user-defined statics table - if OK
- *		NULL                       - if FAILS (i.e. no group with
- *						       such major number)
- *-----------------------------------------------------------------------------
+/**
+ * @brief Get statics table
+ *
+ * @param cur_maj - major number
+ *
+ * Will be passed as a parameter to the driver entry points.
+ *
+ * @return user-defined statics table - if OK
+ * @return NULL                       - if FAILS (i.e. no group with
+ *						  such major number)
  */
-static char*
-cdcm_get_grp_stat_tbl(
-		      int cur_maj) /* major number */
+static char* cdcm_get_grp_stat_tbl(int cur_maj)
 {
   struct cdcm_grp_info_t *grp_it = from_maj_to_grp(cur_maj);
   return(grp_it ? grp_it->grp_stat_tbl : NULL);
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_cleanup_groups
- * DESCRIPTION: Cleanup and release claimed groups.
- * RETURNS:	void
- *-----------------------------------------------------------------------------
+/**
+ * @brief Cleanup and release claimed groups.
+ *
+ * @param doomed - if to kill only one, then not NULL.
+ *
+ * @return void
  */
-static void
-cdcm_cleanup_groups(
-		    struct cdcm_grp_info_t *doomed) /* if to kill only one */
+static void cdcm_cleanup_groups(struct cdcm_grp_info_t *doomed)
 {
   struct cdcm_grp_info_t *grpp, *tmpp;
   
@@ -131,7 +128,7 @@ cdcm_cleanup_groups(
  */
 static ssize_t
 cdcm_fop_read(
-	      struct file *filp, /*  */
+	      struct file *filp, /* file struct pointer */
 	      char __user *buf,	 /* user space */
 	      size_t size,	 /* how many bytes to read */
 	      loff_t *off)	 /* offset */
@@ -183,7 +180,7 @@ cdcm_fop_read(
  */
 static ssize_t
 cdcm_fop_write(
-	       struct file *filp,      /*  */
+	       struct file *filp,      /* file struct pointer */
 	       const char __user *buf, /* user space */
 	       size_t size,	       /* how many bytes to write */
 	       loff_t *off)	       /* offset */
@@ -240,7 +237,7 @@ cdcm_fop_write(
  */
 static unsigned int
 cdcm_fop_poll(
-	      struct file* filp, /*  */
+	      struct file* filp, /* file struct pointer */
 	      poll_table* wait)  /*  */
 {
   int mask = POLLERR;
@@ -365,18 +362,20 @@ process_cdcm_srv_ioctl(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    process_mod_spec_ioctl
- * DESCRIPTION: 
- * RETURNS:	
- *-----------------------------------------------------------------------------
+/**
+ * @brief Module-specific Ioctl routine.
+ *
+ * @param inode - inode struct pointer
+ * @param file  - file struct pointer
+ * @param cmd   - IOCTL command number
+ * @param arg   - user args
+ *
+ * Called in case if major number is not corresponding to the service one.
+ * I.e. this device node was created by the user and not by the CDCM.
+ *
+ * @return
  */
-static int
-process_mod_spec_ioctl(
-		       struct inode  *inode, /* inode struct pointer */
-		       struct file   *file,  /* file struct pointer */
-		       unsigned int  cmd,    /* IOCTL command number */
-		       unsigned long arg)    /* user args */
+static int process_mod_spec_ioctl(struct inode *inode, file *file, int cmd, long arg)
 {
   struct cdcm_file lynx_file;
   int rc = 0;	/* ret code */
@@ -384,7 +383,6 @@ process_mod_spec_ioctl(
   cdcmm_t *iobuf  = NULL;
   int iodir = _IOC_DIR(cmd);
   int iosz  = _IOC_SIZE(cmd);
-
 
   if ( !(grp_statt = cdcm_get_grp_stat_tbl(imajor(inode))) )
     /* can't find group with given major number */
@@ -409,7 +407,7 @@ process_mod_spec_ioctl(
   lynx_file.dev = (int)inode->i_rdev; /* set Device Number */
 
   /* hook the user ioctl */
-  rc = entry_points.dldd_ioctl(grp_statt, &lynx_file, cmd, iobuf->cmPtr);
+  rc = entry_points.dldd_ioctl(grp_statt, &lynx_file, cmd, (iodir == _IOC_NONE)?NULL:iobuf->cmPtr);
   if (rc == SYSERR) {
     cdcm_mem_free(iobuf);
     return(-(cdcm_err)); /* error is set by the user */
@@ -461,24 +459,23 @@ cdcm_fop_ioctl(
  */
 static int 
 cdcm_fop_mmap(
-	      struct file           *file, /*  */
+	      struct file           *file, /* file struct pointer */
 	      struct vm_area_struct *vma)  /*  */
 {
   return(0); /* success */
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_fop_open
- * DESCRIPTION: Lynx open stub.
- * RETURNS:	0               - if success.
- *		negative number - if fails.
- *-----------------------------------------------------------------------------
+/**
+ * @brief Open entry point.
+ *
+ * @param inode - inode pointer
+ * @param filp  - file pointer
+ *
+ * @return 0   - if success.
+ * @return < 0 - if fails.
  */
-static int
-cdcm_fop_open(
-	      struct inode *inode, /* inode pointer */
-	      struct file  *filp)  /* file pointer */
+static int cdcm_fop_open(struct inode *inode, struct file *filp)
 {
   int dnum;
   struct cdcm_file lynx_file;
@@ -516,17 +513,16 @@ cdcm_fop_open(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_fop_release
- * DESCRIPTION: Lynx close stub.
- * RETURNS:	0               - if success.
- *		negative number - if fails.
- *-----------------------------------------------------------------------------
+/**
+ * @brief Close entry point.
+ *
+ * @param inode - inode pointer
+ * @param filp  - file pointer
+ *
+ * @return 0   - if success.
+ * @return < 0 - if fails.
  */
-static int
-cdcm_fop_release(
-		 struct inode *inode, /* inode pointer */
-		 struct file *filp)   /* file pointer */
+static int cdcm_fop_release(struct inode *inode, struct file *filp)
 {
   struct cdcm_file lynx_file;
   char *grp_statt = NULL; /* group statics table */
