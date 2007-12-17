@@ -1,8 +1,8 @@
-$Id: README,v 1.1 2007/03/15 07:40:54 ygeorgie Exp $
+$Id: README,v 1.2 2007/12/17 14:55:58 ygeorgie Exp $
 +-------------------------------------------------+
 |  Author:          Yury Georgievskiy from AB/CO  |
 |  Creation date:   01.06.2006                    |
-|  Current version: 2 (as of 18.07.2006)          |
+|  Current version: 3 (as of 17.12.2007)          |
 |  State:           Techical note                 |
 +-------------------------------------------------+
 
@@ -17,22 +17,11 @@ One should take care following this rules and limitations.
 
 Here comes the 'limitation list' 
 
-
-1. Some functions should be implement by the user, namely those, who prefixed
-   with 'cdcm_user_part'. They all are located in cdcmUsr.[ch] files.
-   CDCM expects them to exist. They should return 'cdcmerr' values (defined in
-   cdcm.h module). cdcmerr_noerr - in case of success or negative values 
-   othervise. These functions are:
-
-   A. cdcm_user_part_device_recodnizer
-   B. cdcm_user_part_get_ioctl_directives
-
-
-2. 'struct file' that is passed into the common part of the LynxOS-like code 
+1. 'struct file' that is passed into the common part of the LynxOS-like code 
     is screwed up in case of Linux!! It's adapted partially.
 
 
-3. Stream task limitatioins.
+2. Stream task limitatioins.
 ----------------------------
    For now there is no way to emulate LynxOS threads completely.
    The 'oblitary code demand' concerns a function that is passed as a payload 
@@ -99,7 +88,7 @@ Here comes the 'limitation list'
    able to run under Linux.
 
 
-4. Copy data to/from user address space.
+3. Copy data to/from user address space.
 ----------------------------------------
    Special CDCM functions can be used when transferring data to/from user
    address space. These functions are:
