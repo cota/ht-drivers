@@ -1,4 +1,4 @@
-$Id: BUG_TRACKING,v 1.2 2007/08/01 15:07:20 ygeorgie Exp $
+$Id: BUG_TRACKING,v 1.3 2007/12/19 09:02:58 ygeorgie Exp $
 +-------------------------------------------------+
 |  Author:          Yury Georgievskiy from AB/CO  |
 |  Creation date:   14.03.2007                    |
@@ -6,6 +6,21 @@ $Id: BUG_TRACKING,v 1.2 2007/08/01 15:07:20 ygeorgie Exp $
 +-------------------------------------------------+
 
 Latest exterminated bug description is on top.
+
+                             +----------+
+-----------------------------| 26.11.07 |--------------------------------------
+                             +----------+
+swait() bug fixing.
+
+  Was not working properly because of wrong wait condition logic on the
+'wq_tflag'. First, it's type changed to 'atomic_t' as it should be 100% atomic.
+Second, 'wq_tflag' is treated differantly. Before - if it was '-1', then
+'sreset()' was call on the semaphore. Now - if it is < 0 (less then zero), then
+we consider it to be waken up by 'sreset()'.
+Another words, now we wait on the semaphore while 'wq_tflag' is zero. As soon
+as 'swait()' or 'sreset()' are called - code execution after wait_event
+condition will be proceeded.
+-------------------------------------------------------------------------------
 
                              +----------+
 -----------------------------| 16.03.07 |--------------------------------------
@@ -24,7 +39,6 @@ i.e. normal process, then it was always 1 and we were never falling into the
 wait loop as the condition was always true.
    The solution taken - was just to split in two cases: threads and normal
 process.
-
 -------------------------------------------------------------------------------
 
 
@@ -86,5 +100,4 @@ value checking in ssignal(). And if it is zero, then just increment it by one
 and not call the wake_up() function. Like this semaphore is kept in a correct
 state and we are not falling into the wrong path during the next calls to
 swait() function on the given semaphore.
-
 -------------------------------------------------------------------------------
