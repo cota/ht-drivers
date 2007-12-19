@@ -1,4 +1,4 @@
-/* $Id: cdcmUninstInst.c,v 1.3 2007/12/19 09:02:05 ygeorgie Exp $ */
+/* $Id: cdcmUninstInst.c,v 1.4 2007/12/19 16:26:05 ygeorgie Exp $ */
 /**
  * @file cdcmUninstInst.c
  *
@@ -390,7 +390,13 @@ static int check_and_set_option_chars(char *usroptstr)
   opt_char_cap_t *lptr;		/* list pointer */
   static opt_char_cap_t usr_opt[MAX_USR_DEF_OPT_CHARS] = { { 0 } };
   char *uoP = usroptstr;
-  
+
+  /* check, if user wants to redefine '-,' option */
+  if (strchr(usroptstr, ',')) {
+    fprintf(stderr, "ERROR! Redefinition of '-,' option character is NOT allowed!\n");
+    return(-1);
+  }
+
   if (usroptstr) {
     while (*uoP) {
       if (!uocnt && *uoP == ':') {
