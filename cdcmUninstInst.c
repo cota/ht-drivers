@@ -1,27 +1,23 @@
-/* $Id: cdcmUninstInst.c,v 1.2 2007/08/01 15:07:21 ygeorgie Exp $ */
-/*
-; Module Name:	cdcmUninstInst.c
-; Module Descr:	Intended for Linux/Lynx driver installation/uninstallation.
-;		Helps to unify driver install procedure between two systems.
-;		All standart options are parsed here and CDCM group description
-;		is build-up. Module-specific options are parsed using defined
-;		module-specific vectors.
-; Date:         June, 2007.
-; Author:       Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
-;
-;
-; Inspired by module-init-tools-3.2/insmod.c and rmmod,
-; written by Rusty Russell. Thxs!
-;
-; -----------------------------------------------------------------------------
-; Revisions of cdcmUninstInst.c: (latest revision on top)
-;
-; #.#   Name       Date       Description
-; ---   --------   --------   -------------------------------------------------
-; 3.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
-; 2.0   ygeorgie   09/07/07   Production release, CVS controlled.
-; 1.0	ygeorgie   28/06/07   Initial version.
-*/
+/* $Id: cdcmUninstInst.c,v 1.3 2007/12/19 09:02:05 ygeorgie Exp $ */
+/**
+ * @file cdcmUninstInst.c
+ *
+ * @brief Linux/Lynx driver installation/uninstallation.
+ *
+ * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
+ *
+ * @date June, 2007
+ *
+ * Helps to unify driver install procedure between two systems. All standart
+ * options are parsed here and CDCM group description is build-up.
+ * Module-specific options are parsed using defined module-specific vectors.
+ * Inspired by module-init-tools-3.2/insmod.c and rmmod,
+ * written by Rusty Russell. Thxs!
+ *
+ * @version 3.0  ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
+ * @version 2.0  ygeorgie  09/07/2007  Production release, CVS controlled.
+ * @version 1.0  ygeorgie  28/06/2007  Initial version.
+ */
 #ifdef __linux__
 #define _GNU_SOURCE /* asprintf rocks */
 #include <sys/sysmacros.h>	/* for major, minor, makedev */
@@ -62,16 +58,16 @@ extern int   getopt _AP((int, char * const *, const char *));
 
 static void init_lists(void);
 static char *get_optstring(void);
+static opt_char_cap_t* get_char_cap(int);
 static void educate_user(void);
-static void check_mod_compulsory_params(cdcm_md_t *chk);
+static void check_mod_compulsory_params(cdcm_md_t*);
 static void assert_all_mod_descr(void);
 static void assert_compulsory_vectors(void);
-
+static int  check_and_set_option_chars(char*);
 
 /* module description */
 static cdcm_md_t mod_desc[MAX_VME_SLOT] = {
   [0 ... MAX_VME_SLOT-1] {
-    .md_gid      = -1,
     .md_lun      = -1,
     .md_mpd      =  1,
     .md_ivec     = -1,
@@ -79,29 +75,104 @@ static cdcm_md_t mod_desc[MAX_VME_SLOT] = {
     .md_vme1addr = -1,
     .md_vme2addr = -1,
     .md_pciVenId = -1,
-    .md_pciDevId = -1
+    .md_pciDevId = -1,
+    .md_owner    =  NULL
   }
 };
+
+/* !WARNING! Keep next variable in concistency with def_opt_t definition! */
+/* default option characters capability */
+static opt_char_cap_t cdcm_def_opt_char_cap[] = {
+  [9] {
+    .opt_val      = P_T_GRP,
+    .opt_redef    = 0, /* not (re)defined by the user */
+    .opt_with_arg = 1, /* requires an arg. */
+    .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[9].opt_list)
+  },
+  [8] {
+    .opt_val      = P_T_LUN,
+    .opt_redef    = 0,
+    .opt_with_arg = 1,
+    .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[8].opt_list)
+  },
+  [7] {
+    .opt_val      = P_T_ADDR,
+    .opt_redef    = 0,
+    .opt_with_arg = 1,
+    .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[7].opt_list)
+  },
+  [6] {
+    .opt_val      = P_T_N_ADDR,
+    .opt_redef    = 0,
+    .opt_with_arg = 1,
+    .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[6].opt_list)
+  },
+  [5] {
+    .opt_val      = P_T_ILEV,
+    .opt_redef    = 0,
+    .opt_with_arg = 1,
+    .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[5].opt_list)
+  },
+  [4] {
+    .opt_val      = P_T_IVECT,
+    .opt_redef    = 0,
+    .opt_with_arg = 1,
+    .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[4].opt_list)
+  },
+  [3] {
+    .opt_val      = P_T_CHAN,
+    .opt_redef    = 0,
+    .opt_with_arg = 1,
+    .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[3].opt_list)
+  },
+  [2] {
+    .opt_val      = P_T_TRANSP,
+    .opt_redef    = 0,
+    .opt_with_arg = 1,
+    .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[2].opt_list)
+  },
+  [1] {
+    .opt_val      = P_T_HELP,
+    .opt_redef    = 0,
+    .opt_with_arg = 0, /* no arg. needed */
+    .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[1].opt_list)
+  },
+  [0] {
+    .opt_val      = P_T_SEPAR,
+    .opt_redef    = 0,
+    .opt_with_arg = 0,
+    .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[0].opt_list)
+  }
+};
+
+/* option characters list */
+LIST_HEAD(glob_opt_list);
 
 /* Claimed groups list. It's incremently ordered by module index [0-20] */
 LIST_HEAD(glob_grp_list);
 
+/* global parameters, common for all the groups */
+static cdcm_glob_t glob_params = {
+  .glob_opaque = NULL
+};
+
 /* group description */
 static cdcm_grp_t grp_desc[MAX_VME_SLOT] = {
   [0 ... MAX_VME_SLOT-1] {
-    .mod_am =  0
+    .mod_amount   = 0,
+    .grp_glob = &glob_params
   }
 };
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    init_lists
- * DESCRIPTION: List initialization.
- * RETURNS:	void
- *-----------------------------------------------------------------------------
+/**
+ * @brief Miscellaneous list initialization.
+ *
+ * @param none
+ *
+ * @return void
  */
-static void
-init_lists()
+static void init_lists(void)
 {
   int i;
 
@@ -116,55 +187,96 @@ init_lists()
     /* group number */
     grp_desc[i].grp_num = i+1;
   }
+
+  /* add pre-defined option characters */
+  for (i = 0; i < sizeof(cdcm_def_opt_char_cap)/sizeof(*cdcm_def_opt_char_cap); i++)
+    list_add(&cdcm_def_opt_char_cap[i].opt_list/*new*/, &glob_opt_list/*head*/);
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    get_optstring
- * DESCRIPTION: 
- * RETURNS:	
- *-----------------------------------------------------------------------------
+/**
+ * @brief 
+ *
+ * @param optch - option character in question.
+ *
+ * @return option character capabilities pointer - if OK.
+ * @return NULL - if FAILS.
  */
-static char*
-get_optstring()
+static inline opt_char_cap_t* get_char_cap(int optch)
 {
-  char usr_optstr[32] = { 0 };
-  static char cdcm_optstr[64] = {"-G:U:O:M:L:V:C:I:T:h,"};
-  char *ptr = cdcm_optstr;
-
-  if (cdcm_inst_ops.mso_get_optstr) {
-    (*cdcm_inst_ops.mso_get_optstr)(usr_optstr);
-    ptr += strlen(cdcm_optstr);
-    strcpy(ptr, usr_optstr);
+  opt_char_cap_t *capP;
+  list_for_each_entry(capP, &glob_opt_list, opt_list) {
+    if (capP->opt_val == optch)
+      return(capP);
   }
+  return(NULL);
+}
+
+
+/**
+ * @brief Build-up command line options string, including module-specific
+ *        options, if any.
+ *
+ * @param none
+ *
+ * @return command line option string pointer - if OK.
+ * @return NULL pointer                       - if FAILS.
+ */
+#define MAX_OPT_STR_LENGTH 128	/* max allowed option string length */
+static char* get_optstring(void)
+{
+  char *usr_optstr = NULL;
+  // option string will look something like this: "-G:U:O:M:L:V:C:T:h,"
+  static char cdcm_optstr[MAX_OPT_STR_LENGTH] = { "-" };
+  char *ptr = cdcm_optstr + strlen(cdcm_optstr);
+  opt_char_cap_t *lptr;
+
+  /* hook module-specific options, if any */
+  if (cdcm_inst_ops.mso_get_optstr)
+    usr_optstr = (*cdcm_inst_ops.mso_get_optstr)();
+  
+  if (check_and_set_option_chars(usr_optstr) < 0)
+    return(NULL);
+  
+  /* now we've got all options in glob_opt_list list.
+     Can build option string now for getopt() */
+  list_for_each_entry(lptr, &glob_opt_list, opt_list) {
+    sprintf(ptr, "%c%s", lptr->opt_val, (lptr->opt_with_arg) ? ":" : "");
+    if (lptr->opt_with_arg)
+      ptr +=2;
+    else
+      ptr++;
+  }
+
   return(cdcm_optstr);
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    educate_user
- * DESCRIPTION: 
- * RETURNS:	void
- *-----------------------------------------------------------------------------
+/**
+ * @brief User education. !TODO!
+ *
+ * @param none
+ *
+ * @return void
  */
-static void  
-educate_user()
+static void educate_user(void)
 {
 
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    check_mod_compulsory_params
- * DESCRIPTION: cheks if all compulsory parameters are provided for the module.
- *		If error detected - programm will terminate. 
- * RETURNS:	void
- *-----------------------------------------------------------------------------
+/**
+ * @brief Cheks if all compulsory parameters are provided for the module.
+ *
+ * @param chk - let's checkit
+ *
+ * If error detected - programm will terminate.
+ *
+ * @return void
  */
-static void
-check_mod_compulsory_params(
-			    cdcm_md_t *chk) /* let's checkit */
+static void check_mod_compulsory_params(cdcm_md_t *chk)
 {
+  
   if (chk->md_lun == -1) { /* LUN not provided */
     printf("LUN is NOT provided!\n");
     goto do_barf;
@@ -175,7 +287,7 @@ check_mod_compulsory_params(
     goto do_barf;
   }
 
-  return;			/* we cool */
+  return; /* we cool */
 
  do_barf:
   printf("Wrong params detected!\nAborting...\n");
@@ -183,14 +295,14 @@ check_mod_compulsory_params(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    __module_am
- * DESCRIPTION: how many declared modules
- * RETURNS:	
- *-----------------------------------------------------------------------------
+/**
+ * @brief How many declared modules
+ *
+ * @param none
+ *
+ * @return declared module amount
  */
-static inline int
-__module_am()
+static inline int __module_am(void)
 {
   int mc = 0;
 
@@ -201,15 +313,15 @@ __module_am()
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    assert_all_mod_descr
- * DESCRIPTION: Check already prepared module descriptions for any errors and
- *		declaration collisions.
- * RETURNS:	void
- *-----------------------------------------------------------------------------
+/**
+ * @brief Check already prepared module descriptions for any errors and
+ *        declaration collisions.
+ *
+ * @param none
+ *
+ * @return void
  */
-static void
-assert_all_mod_descr()
+static void assert_all_mod_descr(void)
 {
   int mc = 0, cntr1, cntr2;
 
@@ -238,21 +350,20 @@ assert_all_mod_descr()
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    assert_compulsory_vectors
- * DESCRIPTION: check if all compulsory vectors are provided in
- *		'cdcm_inst_ops' vector table.
- * RETURNS:	void
- *-----------------------------------------------------------------------------
+/**
+ * @brief Check if all compulsory vectors are provided in @b cdcm_inst_ops
+ *        vector table.
+ *
+ * @param none
+ *
+ * @return void
  */
-static void
-assert_compulsory_vectors()
+static void assert_compulsory_vectors(void)
 {
-  if (!cdcm_inst_ops.mso_get_mod_name) {
-    printf("Compulsory user vector 'get_mod_name' is not provided. Can't get module name!\n");
+  if (!strlen(cdcm_inst_ops.mso_module_name)) {
+    printf("Compulsory member 'mso_module_name' is not provided. Can't get module name!\n");
     goto no_compulsory_vectors;
   }
-  
   return;	/* we cool */
   
  no_compulsory_vectors:
@@ -261,53 +372,140 @@ assert_compulsory_vectors()
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    set_mod_descr
- * DESCRIPTION: 
- * RETURNS:	0 - Ok
- *	       -1 - NOT Ok
- *-----------------------------------------------------------------------------
+/**
+ * @brief Check, if pre-defined option characters were re-defined by the user.
+ *
+ * @param usroptstr - user-defined option string
+ *
+ * If they were, then redefinition flag is set to ON.
+ *
+ * @return how many new option characters added - if SUCCESS.
+ * @return -1 - if FAILS. Printout error message on stderr.
  */
-static void
-set_mod_descr(
-	      cdcm_grp_t *gp,	/* group */
-	      cdcm_md_t  *mp)	/* module */
+/* how many extra option characters user can add */
+#define MAX_USR_DEF_OPT_CHARS 64
+static int check_and_set_option_chars(char *usroptstr)
 {
-  gp->mod_am++;
-  mp->md_gid = gp->grp_num;
+  int uocnt = 0, cntr, new_opt = 0;
+  opt_char_cap_t *lptr;		/* list pointer */
+  static opt_char_cap_t usr_opt[MAX_USR_DEF_OPT_CHARS] = { { 0 } };
+  char *uoP = usroptstr;
+  
+  if (usroptstr) {
+    while (*uoP) {
+      if (!uocnt && *uoP == ':') {
+	fprintf(stderr, "ERROR! Wrong option character string format!\n");
+	return(-1);
+      }
+      if (uocnt == MAX_USR_DEF_OPT_CHARS) {
+	fprintf(stderr, "ERROR! Too many user-defined option characters!\n");
+	return(-1);
+      }
+
+      usr_opt[uocnt].opt_val      = *uoP; /* opt value */
+      usr_opt[uocnt].opt_redef    = 1; /* user (re)defined opt */
+      usr_opt[uocnt].opt_with_arg = 0; /* require arg? */
+      INIT_LIST_HEAD(&usr_opt[uocnt].opt_list);
+
+      /* first one */
+      if (!uocnt) {
+	uoP++;
+	uocnt++;
+	continue;
+      }
+
+      if (*uoP == ':')      
+	usr_opt[uocnt-1].opt_with_arg = 1; /* option requires parameter */
+
+      uoP++;
+      if (usr_opt[uocnt].opt_val != ':')
+	uocnt++;
+    }
+  }
+
+  /* check, if user override pre-defined option characters */
+  list_for_each_entry(lptr, &glob_opt_list, opt_list) {
+    for (cntr = 0; cntr < uocnt; cntr++)
+      if (lptr->opt_val == usr_opt[cntr].opt_val) {
+	/* this is user-redefined option character */
+	lptr->opt_redef = 1;
+	lptr->opt_with_arg = usr_opt[cntr].opt_with_arg;
+	usr_opt[cntr].opt_val = 0; /* no need to add it in the opt char list */
+      }
+  }
+
+  /* add new option characters to the list */
+  for (cntr = 0; cntr < uocnt; cntr++)
+    if (usr_opt[cntr].opt_val) {
+      ++new_opt;
+      list_add(&usr_opt[cntr].opt_list/*new*/, &glob_opt_list/*head*/);
+    }
+  
+  return(new_opt); /* we cool */
+}
+
+
+
+/**
+ * @brief 
+ *
+ * @param gp - group
+ * @param mp - module
+ *
+ * @return  0 - Ok
+ * @return -1 - NOT Ok
+ */
+static void set_mod_descr(cdcm_grp_t *gp, cdcm_md_t *mp)
+{
+  gp->mod_amount++;
 
   /* add new module to the group */
   list_add(&mp->md_list/*new*/, &gp->mod_list/*head*/);
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_vme_arg_parser
- * DESCRIPTION: This function should be called by the module-specific
- *		installation procedure command line args
- * RETURNS:	group list
- *-----------------------------------------------------------------------------
+#define ASSERT_GRP(mlun)									       \
+do {												       \
+  if (cur_grp == -1) {										       \
+    printf("Compulsory Current Group (G param) is not set for module [LUN #%d]!\nAborting...\n", mlun); \
+    exit(EXIT_FAILURE);		/* 1 */								       \
+  }												       \
+} while (0)
+/**
+ * @brief Main function that @b SHOULD be called by the module-specific
+ *        installation procedure command line args.
+ *
+ * @param argc - argument count
+ * @param argv - argument vector
+ * @param envp - environment variables
+ *
+ * @return @e cdcm_grp_t group linked list
  */
-struct list_head*
-cdcm_vme_arg_parser(
-		    int   argc,
-		    char *argv[],
-		    char *envp[])
+struct list_head* cdcm_vme_arg_parser(int argc, char *argv[], char *envp[])
 {
-  int cur_lun, cur_grp, cmdOpt, cntr;
+  int cur_lun, cur_grp = -1, cmdOpt, cntr;
   int grp_cntr = 0, comma_cntr = 0;  /* for grouping management */
   int isSet; /* module description is saved already */
-
-  /* default + module-specific command line options */
-  const char *optstring = get_optstring();
+  int seq_insp = 0;	/* parameter sequence inspector */
+  opt_char_cap_t *cap_ptr;
+  const char *optstring; /* default + module-specific command line options */
 
   assert_compulsory_vectors();	/* will barf if something missing */
   init_lists();			/* init crap */
 
+  if (!(optstring = get_optstring())) {
+    fprintf(stderr, "Can't get command line options.\nAborting...\n");
+    exit(EXIT_FAILURE);
+  }
+
   /* Scan params of the command line */
   while ( (cmdOpt = getopt(argc, argv, optstring)) != EOF ) {
-    cur_grp = comma_cntr;
+    seq_insp++;
     isSet = 0;
+    cap_ptr = get_char_cap(cmdOpt);
+    if (cap_ptr && cap_ptr->opt_redef)
+      goto user_def_option; /* redefined by user! */
+
     switch (cmdOpt) {
     case P_T_HELP:	/* Help information */
       educate_user();
@@ -318,24 +516,32 @@ cdcm_vme_arg_parser(
     case P_T_LUN:	/* Logical Unit Number */
       cur_lun = abs(atoi(optarg));
       if (!WITHIN_RANGE(0, cur_lun, 20)) {
-	printf("Wrong LUN (U param). Allowed absolute range is [0, 20]\nAborting...\n");
+	fprintf(stderr, "Wrong LUN (U param). Allowed absolute range is [0 - 20]\nAborting...\n");
 	exit(EXIT_FAILURE);
       }
       mod_desc[comma_cntr].md_lun = cur_lun;
       break;
     case P_T_GRP:	/* logical group coupling */
+      if (seq_insp != 1 && cur_grp == -1) {
+	/* should come first among module parameters */
+	printf("Group numbering error (G param). Should come FIRST among module parameters!\nAborting...\n");
+	exit(EXIT_FAILURE);
+      }
+
       if (comma_cntr && !grp_cntr) {
 	/* should exist from the very beginning i.e. before _any_ separator */
-	printf("Group numbering error (G param). Should be used from the very beginning, or not used at all!\nAborting...\n");
+	printf("Group numbering error (G param). Should come BEFORE any module description and AFTER any global parameters!\nAborting...\n");
 	exit(EXIT_FAILURE);
       }
 
       cur_grp = atoi(optarg);
 
       if (!WITHIN_RANGE(1, cur_grp, MAX_VME_SLOT)) {
-	printf("Wrong group number (G param). Allowed range is [1, 21]\nAborting...\n");
+	printf("Wrong group number [#%d] (G param). Allowed range is [1 - 21]\nAborting...\n", cur_grp);
 	exit(EXIT_FAILURE);	/* 1 */
       }
+      cur_grp -= 1; /* set correct table index */
+      mod_desc[comma_cntr].md_owner = &grp_desc[cur_grp]; /* set owner */
       grp_cntr++;
       break;
     case P_T_ADDR:	/* First base address */
@@ -350,9 +556,7 @@ cdcm_vme_arg_parser(
     case P_T_ILEV:	/* Interrupt level */
       mod_desc[comma_cntr].md_ilev = atoi(optarg);
       break;
-    case P_T_TRANSP:	/* Transparent driver parameter */
-      break;
-    case P_T_FLG:	/* Debug information printing */
+    case P_T_TRANSP:	/* Transparent String driver parameter */
       break;
     case P_T_CHAN: /* Channel amount (amount of minor devices to create) */
       mod_desc[comma_cntr].md_mpd = atoi(optarg);
@@ -363,11 +567,19 @@ cdcm_vme_arg_parser(
 	exit(EXIT_FAILURE);
       }
       
-      check_mod_compulsory_params(&mod_desc[comma_cntr]); /* will barf if error */
+      /* set default LUN if not provided */
+      if (mod_desc[comma_cntr].md_lun == -1)
+	mod_desc[comma_cntr].md_lun = comma_cntr;
+
+      ASSERT_GRP(mod_desc[comma_cntr].md_lun);
+
+      /* will barf if error */
+      check_mod_compulsory_params(&mod_desc[comma_cntr]);
       set_mod_descr(&grp_desc[cur_grp], &mod_desc[comma_cntr]);
 
       comma_cntr++;
       isSet = 1;
+      seq_insp = 0;	/* reset inspector */
       break;
     case '?':	/* error */
       printf("Wrong/unknown argument!\n");
@@ -382,10 +594,13 @@ cdcm_vme_arg_parser(
     case 0:
 #endif
     default:
+    user_def_option:
+      seq_insp--; /* we know nothing about module-specific options */
+      /* this _is_ module specific argument */
       if (cdcm_inst_ops.mso_parse_opt)
-	(*cdcm_inst_ops.mso_parse_opt)(cmdOpt, optarg);
+	(*cdcm_inst_ops.mso_parse_opt)((cur_grp == -1)?((void*)&glob_params):((void*)&mod_desc[comma_cntr]), cur_grp, cmdOpt, optarg);
       else {
-	printf("Wrong/Unknown option %c!\nAborting...\n", cmdOpt);
+	printf("Wrong/Unknown option '%c'!\nAborting...\n", cmdOpt);
 	exit(EXIT_FAILURE);
       }
       break;
@@ -393,17 +608,23 @@ cdcm_vme_arg_parser(
   }
 
   if (!isSet) { /* we neet to set the last module config */
-    check_mod_compulsory_params(&mod_desc[comma_cntr]); /* will barf if error */
+    /* set default LUN if not provided */
+    if (mod_desc[comma_cntr].md_lun == -1)
+      mod_desc[comma_cntr].md_lun = comma_cntr;
+
+    ASSERT_GRP(mod_desc[comma_cntr].md_lun);
+
+    /* will barf if error */
+    check_mod_compulsory_params(&mod_desc[comma_cntr]); 
     set_mod_descr(&grp_desc[cur_grp], &mod_desc[comma_cntr]);
   }
-    
 
-  /* check if no conflicts in module declaration */
+  /* final check for conflicts in module declaration */
   assert_all_mod_descr();
 
   /* set sorted group list */
   for (cntr = 0; cntr < MAX_VME_SLOT; cntr++)
-    if (grp_desc[cntr].mod_am)	/* group is claimed, add it to the list */
+    if (grp_desc[cntr].mod_amount) /* group is claimed, add it to the list */
       list_add(&grp_desc[cntr].grp_list/*new*/, &glob_grp_list/*head*/);
 
   return(&glob_grp_list);
@@ -411,15 +632,14 @@ cdcm_vme_arg_parser(
 
 
 #ifdef __linux__
-/*-----------------------------------------------------------------------------
- * FUNCTION:    __linux_srv_node
- * DESCRIPTION: CDCM service node name container.
- *		It looks like '/dev/cdcm_<mod_name>
- * RETURNS:	service node name
- *-----------------------------------------------------------------------------
+/**
+ * @brief CDCM service node name container. Looks like @e /dev/cdcm_<mod_name>
+ *
+ * @param none
+ *
+ * @return service node name
  */
-static inline char*
-__linux_srv_node()
+static inline char* __linux_srv_node(void)
 {
   static char cdcm_s_n_nm[64] = { 0 };
 
@@ -432,19 +652,20 @@ __linux_srv_node()
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    dr_install
- * DESCRIPTION: Lynx call wrapper. Will install the driver in the system.
- *		Supposed to be called _only_ once during installation
- *		procedure. If more - then it will terminate installation.
- * RETURNS:	driver id - if successful
- *		-1        - if not.
- *-----------------------------------------------------------------------------
+/**
+ * @brief Driver installation Lynx call wrapper.
+ *
+ * @param drvr_fn - driver path
+ * @param type    - for now @b ONLY char devices
+ *
+ * Will install the driver in the system. Supposed to be called @b ONLY once
+ * during installation procedure. If more - then it will terminate
+ * installation.
+ *
+ * @return driver id - if successful
+ * @return -1        - if not.
  */
-int
-dr_install(
-	   char *drvr_fn, /* driver path */
-	   int   type)    /* for now _only_  char devices */
+int dr_install(char *drvr_fn, int type)
 {
   static int c_cntr = 0; /* how many times i was already called */
   void *drvrfile = NULL;
@@ -527,43 +748,41 @@ dr_install(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    dr_uninstall
- * DESCRIPTION: Lynx call wrapper. Will uninstall the driver in the system.
- *		Supposed to be called _only_ once during uninstallation.
- * RETURNS:	
- *-----------------------------------------------------------------------------
+/**
+ * @brief Lynx call wrapper. Will uninstall the driver in the system. !TODO!
+ *
+ * @param id - driver ID to uninstall
+ *
+ * Supposed to be called @b ONLY once during uninstallation.
+ *
+ * @return 
  */
-int
-dr_uninstall(
-	     int id)		/*  */
+int dr_uninstall(int id)
 {
   return(-1);
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdv_install
- * DESCRIPTION: Lynx call wrapper. Can be called several times from the driver
- *		installation procedure. Depends on how many major devices user
- *		wants to install. If installation programm is written
- *		correctly, then it should be called as many times as groups
- *		declared. i.e. each group represents exactly one character
- *		device.
- *		By Lynx driver strategy - each time cdv_install()
- *		(or bdv_install) is called by the user-space installation
- *		programm, driver install vector from 'dldd' structure is
- *		activated. It returns statics table, that in turn is used in
- *		every entry point of 'dldd' vector table.
- * RETURNS:	major device ID - if successful.
- *		-1              - if not.
- *-----------------------------------------------------------------------------
+/**
+ * @brief Lynx call wrapper for character device installation.
+ *
+ * @param path      - info file
+ * @param driver_id - service entry point major number
+ * @param extra     - 
+ *
+ * Can be called several times from the driver installation procedure.
+ * Depends on how many major devices user wants to install. If installation
+ * programm is written correctly, then it should be called as many times as
+ * groups declared. i.e. each group represents exactly one character device.
+ * By Lynx driver strategy - each time @e cdv_install() (or @e bdv_install)
+ * is called by the user-space installation programm, driver install vector
+ * from @b dldd structure is activated. It returns statics table, that in turn
+ * is used in every entry point of 'dldd' vector table.
+ *
+ * @return major device ID - if successful.
+ * @return -1              - if not.
  */
-int
-cdv_install(
-	    char *path,		/* info file */
-	    int   driver_id,	/* service entry point major number */
-	    int   extra)	/*  */
+int cdv_install(char *path, int driver_id, int extra)
 {
   static int c_cntr = 0; /* how many times i was already called */
   int cdcmfd  = -1;
@@ -592,34 +811,32 @@ cdv_install(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdv_uninstall
- * DESCRIPTION: Lynx call wrapper. Can be called several times from the driver
- *		uninstallation procedure.
- * RETURNS:	
- *-----------------------------------------------------------------------------
- */  
-int
-cdv_uninstall(
-	      int cdevice_ID)	/*  */
+/**
+ * @brief Lynx call wrapper. Can be called several times from the driver
+ *        uninstallation procedure.
+ *
+ * @param cdevice_ID
+ *
+ * @return 
+ */
+int cdv_uninstall(int cdevice_ID)
 {
   return(-1);
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    linux_do_cdcm_info_header_file
- * DESCRIPTION: Setup CDCM header and create info file that will passed to
- *		the driver druring installation.
- * RETURNS:	info file name - if we are cool
- *		NULL           - if we are not
- *-----------------------------------------------------------------------------
+/**
+ * @brief Setup CDCM header and create info file that will passed to
+ *        the driver druring installation.
+ *
+ * @param grp_bit_mask - claimed groups mask
+ *
+ * @return info file name - if we are cool
+ * @return NULL           - if we are not
  */
-static char*
-linux_do_cdcm_info_header_file(
-			       int grp_bit_mask) /* claimed groups mask */
+static char* linux_do_cdcm_info_header_file(int grp_bit_mask)
 {
-  static char cdcm_if_nm[CDCM_IPATH_LEN] = { 0 };
+  static char cdcm_if_nm[PATH_MAX] = { 0 };
   int ifd; /* info file descriptor */
 
   /* buidup CDCM header */
@@ -630,9 +847,9 @@ linux_do_cdcm_info_header_file(
   };
 
   /* write specific module name */
-  strncpy(cdcm_hdr.cih_dnm, (*cdcm_inst_ops.mso_get_mod_name)(), sizeof(cdcm_hdr.cih_dnm));
+  strncpy(cdcm_hdr.cih_dnm, cdcm_inst_ops.mso_module_name, sizeof(cdcm_hdr.cih_dnm));
 
-  snprintf(cdcm_if_nm, sizeof(cdcm_if_nm), "/tmp/%s.info", __srv_dev_name((*cdcm_inst_ops.mso_get_mod_name)()));
+  snprintf(cdcm_if_nm, sizeof(cdcm_if_nm), "/tmp/%s.info", __srv_dev_name(cdcm_inst_ops.mso_module_name));
 
   if ( (ifd = open(cdcm_if_nm, O_CREAT | O_RDWR, 0664)) == -1) {
     mperr("Can't open %s info file", cdcm_if_nm);
@@ -651,16 +868,15 @@ linux_do_cdcm_info_header_file(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    linux_grab_file
- * DESCRIPTION: 
- * RETURNS:	
- *-----------------------------------------------------------------------------
+/**
+ * @brief 
+ *
+ * @param filename -  .ko file name
+ * @param size     - its size will be placed here
+ *
+ * @return void
  */
-static void*
-linux_grab_file(
-		const char *filename, /* .ko file name */
-		unsigned long *size)  /* its size will be placed here */
+static void* linux_grab_file(const char *filename, unsigned long *size)
 {
   unsigned int max = 16384;
   int ret, fd;
@@ -691,15 +907,14 @@ linux_grab_file(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    linux_moderror
- * DESCRIPTION: We use error numbers in a loose translation...
- * RETURNS:	
- *-----------------------------------------------------------------------------
+/**
+ * @brief We use error numbers in a loose translation...
+ *
+ * @param err
+ *
+ * @return 
  */
-static const char*
-linux_moderror(
-	       int err)		/*  */
+static const char* linux_moderror(int err)
 {
   switch (err) {
   case ENOEXEC:

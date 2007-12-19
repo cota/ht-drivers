@@ -1,23 +1,20 @@
-/* $Id: cdcmLynxDefs.h,v 1.1 2007/03/15 07:40:54 ygeorgie Exp $ */
-/*
-; Module Name:	 cdcmLynxDefs.h
-; Module Descr:	 Everything is comming from the LynxOS header files. 
-;		 Taken purely from the LynxOS.
-;		 Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
-; Creation Date: May, 2006
-; Author:	 Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
-;
-;
-; -----------------------------------------------------------------------------
-; Revisions of cdcmLynxDefs.h: (latest revision on top)
-;
-; #.#   Name       Date       Description
-; ---   --------   --------   -------------------------------------------------
-; 3.0   ygeorgie   14/03/07   Production release, CVS controlled.
-; 2.0   ygeorgie   27/07/06   First working release.
-; 1.0	ygeorgie   01/06/06   Initial version.
-*/
-
+/* $Id: cdcmLynxDefs.h,v 1.2 2007/12/19 09:02:05 ygeorgie Exp $ */
+/**
+ * @file cdcmLynxDefs.h
+ *
+ * @brief Everything is comming from the LynxOS header files.
+ *
+ * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
+ *
+ * @date May, 2006
+ *
+ * Taken purely from the LynxOS.
+ * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
+ *
+ * @version 3.0  ygeorgie  14/03/2007  Production release, CVS controlled.
+ * @version 2.0  ygeorgie  27/07/2006  First working release.
+ * @version 1.0  ygeorgie  01/06/2006  Initial version.
+ */
 #ifndef _CDCM_LYNX_DEFINITIONS_H_INCLUDE_
 #define _CDCM_LYNX_DEFINITIONS_H_INCLUDE_
 

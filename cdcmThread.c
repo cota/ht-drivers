@@ -1,24 +1,21 @@
-/* $Id: cdcmThread.c,v 1.1 2007/03/15 07:40:54 ygeorgie Exp $ */
-/*
-; Module Name:	 cdcmThread.c
-; Module Descr:	 LynxOS thread implementation. All, that concerning threads is
-;		 located here, i.e. all stub functions and supplementary
-;		 functions.
-;		 Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
-; Creation Date: May, 2006
-; Author:	 Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
-;
-;
-; -----------------------------------------------------------------------------
-; Revisions of cdcmThread.c: (latest revision on top)
-;
-; #.#   Name       Date       Description
-; ---   --------   --------   -------------------------------------------------
-; 3.0   ygeorgie   14/03/07   Production release, CVS controlled.
-; 2.0   ygeorgie   27/07/06   First working release.
-; 1.0	ygeorgie   02/06/06   Initial version.
-*/
-
+/* $Id: cdcmThread.c,v 1.2 2007/12/19 09:02:05 ygeorgie Exp $ */
+/**
+ * @file cdcmThread.c
+ *
+ * @brief LynxOS thread implementation.
+ *
+ * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
+ *
+ * @date May, 2006
+ *
+ * All, that concerning threads is located here, i.e. all stub functions and
+ * supplementary functions.
+ * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
+ *
+ * @version 3.0  ygeorgie  14/03/2007  Production release, CVS controlled.
+ * @version 2.0  ygeorgie  27/07/2006  First working release.
+ * @version 1.0  ygeorgie  02/06/2006  Initial version.
+ */
 #include "cdcmDrvr.h"
 #include "cdcmThread.h"
 
@@ -26,13 +23,6 @@
 extern cdcmStatics_t cdcmStatT;
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_local_thread
- * DESCRIPTION: 
- * RETURNS:	The return value should be zero or a negative error number: it
- *		will be passed to kthread_stop().
- *-----------------------------------------------------------------------------
- */
 /* if you know the better way to pass arbitrary number of parameters to
    the function - let me know pls... (IMHO __builtin_apply_args() and co. 
    is not fit here) */
@@ -43,10 +33,15 @@ extern cdcmStatics_t cdcmStatT;
 #define ARGS4 tparam.tp_payload(tparam.tp_args[0], tparam.tp_args[1], tparam.tp_args[2], tparam.tp_args[3])
 #define ARGS5 tparam.tp_payload(tparam.tp_args[0], tparam.tp_args[1], tparam.tp_args[2], tparam.tp_args[3], tparam.tp_args[4])
 #define ARGS6 tparam.tp_payload(tparam.tp_args[0], tparam.tp_args[1], tparam.tp_args[2], tparam.tp_args[3], tparam.tp_args[4], tparam.tp_args[5])
-
-static int
-cdcm_local_thread(
-		  void *data) /*  */
+/**
+ * @brief 
+ *
+ * @param data - 
+ *
+ * @return The return value should be zero or a negative error number.
+ *         It will be passed to @e kthread_stop().
+ */
+static int cdcm_local_thread(void *data)
 {
   cdcmtpar_t tparam = *(cdcmtpar_t *)data; /* put param in local space */
 
@@ -97,22 +92,21 @@ cdcm_local_thread(
     //wait_for_completion(&tparam.tp_handle->thr_c);
   }
 
-  CDCM_DBG("[%d] (aka %s) exits...\n", tparam.tp_handle->thr_pd->pid, tparam.tp_handle->thr_nm);
+  PRNT_DBG("[%d] (aka %s) exits...\n", tparam.tp_handle->thr_pd->pid, tparam.tp_handle->thr_nm);
   
   return(0); /* all OK */
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_get_thread_handle
- * DESCRIPTION: Obtains thread handle structure based on the thread id.
- * RETURNS:	thread handle pointer - if SUCCESS.
- *		NULL                  - otherwise.
- *-----------------------------------------------------------------------------
+/**
+ * @brief Obtains thread handle structure based on the thread id.
+ *
+ * @param stid - 
+ *
+ * @return thread handle pointer - if SUCCESS.
+ * @return NULL                  - otherwise.
  */
-cdcmthr_t*
-cdcm_get_thread_handle(
-		       int stid)
+cdcmthr_t* cdcm_get_thread_handle(int stid)
 {
   cdcmthr_t *stptr; /* stream task pointer */
 
@@ -126,21 +120,20 @@ cdcm_get_thread_handle(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    ststart
- * DESCRIPTION: Lynx stub.
- * RETURNS:	stid (stream task ID) - if success.
- *		SYSERR (-1)           - if fails.
- *-----------------------------------------------------------------------------
+/**
+ * @brief Lynx stub.
+ *
+ * @param procaddr  - payload
+ * @param stacksize - thread stack size
+ * @param prio      - priority
+ * @param name      - desired thread name
+ * @param nargs     - number of arguments
+ * @param ...       - args to pass to the stream task
+ *
+ * @return stid (stream task ID) - if success.
+ * @return SYSERR (-1)           - if fails.
  */
-int
-ststart(
-	tpp_t procaddr,	  /* payload */
-	int stacksize, 	  /* thread stack size */
-	int prio, 	  /* priority */
-	char *name, 	  /* desired thread name */
-	int nargs,	  /* number of arguments */
-	...)		  /* args to pass to the stream task */
+int ststart(tpp_t procaddr, int stacksize, int prio, char *name, int nargs, ...)
 {
   int cntr;
   cdcmtpar_t tparp; /* multiple items are bundled as a single data structure */
@@ -203,16 +196,16 @@ ststart(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    stremove
- * DESCRIPTION: Lynx stub. Remove user-defined kernel thread. We should take
- *		care about all pending signals, semaphores etc...
- * RETURNS:	void
- *-----------------------------------------------------------------------------
+/**
+ * @brief Lynx stub. Remove user-defined kernel thread.
+ *
+ * @param stid - stream task ID
+ *
+ * We should take care about all pending signals, semaphores etc...
+ *
+ * @return void
  */
-void 
-stremove(
-	 int stid) /* stream task ID */
+void stremove(int stid)
 {
   struct task_struct *stpd = find_task_by_pid(stid);
   cdcmthr_t *stptr; /* victim data */
@@ -220,14 +213,14 @@ stremove(
   ulong iflags;
 
   if (!stpd) {			/* bugaga! */
-    CDCM_DBG("Can't stop thread! No such tid (%d)", stid);
+    PRNT_DBG("Can't stop thread! No such tid (%d)", stid);
     return;
   }
   
   PRNT_ABS_INFO("%s() Stopping %d tid.", __FUNCTION__, stid);
 
   if ( !(stptr = cdcm_get_thread_handle(stid)) ) {
-    CDCM_DBG("Can't stop thread! No thread handle for tid (%d)", stid);
+    PRNT_DBG("Can't stop thread! No thread handle for tid (%d)", stid);
     return;
   }
 

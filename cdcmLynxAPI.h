@@ -1,24 +1,21 @@
-/* $Id: cdcmLynxAPI.h,v 1.2 2007/08/01 15:07:20 ygeorgie Exp $ */
-/*
-; Module Name:	 cdcmLynxAPI.h
-; Module Descr:	 All LynxOS wrapper function definitions are located here.
-;		 It's included in the driver in case of Linux compilation.
-;		 Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
-; Creation Date: July, 2006
-; Author:	 Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
-;
-;
-; -----------------------------------------------------------------------------
-; Revisions of cdcmLynxAPI.h: (latest revision on top)
-;
-; #.#   Name       Date       Description
-; ---   --------   --------   -------------------------------------------------
-; 4.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
-; 3.0   ygeorgie   14/03/07   Production release, CVS controlled.
-; 2.0   ygeorgie   27/07/06   First working release.
-; 1.0	ygeorgie   07/07/06   Initial version.
-*/
-
+/* $Id: cdcmLynxAPI.h,v 1.3 2007/12/19 09:02:05 ygeorgie Exp $ */
+/**
+ * @file cdcmLynxAPI.h
+ *
+ * @brief All LynxOS wrapper function definitions are located here.
+ *
+ * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
+ *
+ * @date July, 2006
+ *
+ * It's included in the driver in case of Linux compilation.
+ * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
+ *
+ * @version 4.0  ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
+ * @version 3.0  ygeorgie  14/03/2007  Production release, CVS controlled.
+ * @version 2.0  ygeorgie  27/07/2006  First working release.
+ * @version 1.0  ygeorgie  07/07/2006  Initial version.
+ */
 #ifndef _CDCM_LYNX_API_H_INCLUDE_
 #define _CDCM_LYNX_API_H_INCLUDE_
 
@@ -40,11 +37,15 @@
 #define _killpg(pgrp,sig) kill_pg(pgrp,sig,0)
 #define getpid()          current->pid
 
+/* TODO. REMOVE. for swait interrupts debugging only. defined in cdcmTime.c */
+extern int cdcm_dbg_irq;
+
+
 //#define disable(x)        spin_lock_irqsave(&lynxos_cpu_lock,x)
 //#define restore(x)        spin_unlock_irqrestore(&lynxos_cpu_lock,x)
 /* TODO. Should they look like this??? */
-#define disable(x)        local_irq_save(x)
-#define restore(x)        local_irq_restore(x)
+#define disable(x)        { local_irq_save(x); cdcm_dbg_irq++; }
+#define restore(x)        { local_irq_restore(x); cdcm_dbg_irq--; }
 
 
 /* Trying to combine 'struct file' from Linux and Lynx. For now only one 
@@ -106,9 +107,11 @@ int   timeout(int(*)(void*), char*, int);
 int   cancel_timeout(int);
 int   swait(int*, int);
 int   ssignal(int*);
-void  sreset(int*);
+int   ssignaln(int*, int);
 int   ststart(int(*)(void*), int, int, char *, int, ...);
 void  stremove(int);
+void  sreset(int*);
+int   scount(int*);
 
 /* LynxOS drm API */
 int drm_get_handle(int, int, int, struct drm_node_s **);

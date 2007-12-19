@@ -1,26 +1,23 @@
-/* $Id: cdcmDrvr.h,v 1.2 2007/08/01 15:07:20 ygeorgie Exp $ */
-/*
-; Module Name:	 cdcmDrvr.h
-; Module Descr:	 Common Driver Code Manager (CDCM).
-;		 This is a CDCM header file which holds all major definitions
-;		 of the CDCM abstraction layer.
-;		 Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
-; Creation Date: May, 2006
-; Author:	 Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
-;
-;
-; -----------------------------------------------------------------------------
-; Revisions of cdcmDrvr.h: (latest revision on top)
-;
-; #.#   Name       Date       Description
-; ---   --------   --------   -------------------------------------------------
-; 5.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
-; 4.0   ygeorgie   14/03/07   Production release, CVS controlled.
-; 3.0   ygeorgie   16/01/07   VME support.
-; 2.0   ygeorgie   27/07/06   First working release.
-; 1.0	ygeorgie   31/05/06   Initial version.
-*/
-
+/* $Id: cdcmDrvr.h,v 1.3 2007/12/19 09:02:05 ygeorgie Exp $ */
+/**
+ * @file cdcmDrvr.h
+ *
+ * @brief Common Driver Code Manager (CDCM) header file.
+ *
+ * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
+ *
+ * @date May, 2006
+ *
+ * This is a CDCM header file which holds all major definitions of the CDCM
+ * abstraction layer.
+ * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
+ *
+ * @version 5.0  ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
+ * @version 4.0  ygeorgie  14/03/2007  Production release, CVS controlled.
+ * @version 3.0  ygeorgie  16/01/2007  VME support.
+ * @version 2.0  ygeorgie  27/07/2006  First working release.
+ * @version 1.0  ygeorgie  31/05/2006  Initial version.
+ */
 #ifndef _CDCM_DRVR_H_INCLUDE_
 #define _CDCM_DRVR_H_INCLUDE_
 
@@ -108,9 +105,9 @@ typedef enum _dbgipl {
   IPL_IOCTL   = 1 << 5,	 /*  */
   IPL_INSTALL = 1 << 6,	 /*  */
   IPL_UNINST  = 1 << 7,	 /*  */
-  IPL_DBG     = 1 << 8,	 /*  */
-  IPL_ERROR   = 1 << 9,  /*  */
-  IPL_INFO    = 1 << 10, /*  */
+  IPL_DBG     = 1 << 8,	 /* printout debug messages */
+  IPL_ERROR   = 1 << 9,  /* printout error messages */
+  IPL_INFO    = 1 << 10, /* printout information messages */
   IPL_ALL     = (~0)     /* verbose */
 } dbgipl_t;
 
@@ -148,7 +145,6 @@ typedef struct _cdcmTimer {
   char              *ct_arg;	     /* user arg */
 } cdcmt_t;
 
-#define MAX_CDCM_SEM 16
 /* LynxOS kernel semaphores implemented using Linux wait queues.
    We are using wait queues, but not kernel semaphores, because 
    the latter can be acquired only by functions that are allowed to
@@ -156,22 +152,23 @@ typedef struct _cdcmTimer {
    CDCM semaphore is taken only once by the user. It can not be re-used */
 typedef struct _cdcmWaitQueue {
   wait_queue_head_t wq_head; /* wait queue head for this semaphore */
-  int *wq_usr_val;/* address of the user semaphore (NULL - not used).
-		     dereferense it to obtain current sem value */
-  int wq_tflag; /* condition flag for waking up threads, that is waiting on the
-		   current queue:
-		   If it's > 0 - ssignal.
-		   One of the waiting threads awakened, and awaken thread is 
-		   decreasing the flag value by one - i.e. you can consider it
-		   as a sort of semaphore signalling (up).
-		   This is used in swait and ssignal Lynx syscalls emulation.
-		   if it's -1 - sreset.
-		   One of the waiting threads will be awakened, but wq_flag
-		   will not be resetted. This case is used during 'sreset' 
-		   Lynx syscall. */
+  struct list_head  wq_sem_list; /* linked list */
+  int *wq_usr_val; /* address of the user semaphore (NULL - not used).
+		      Dereferense it to obtain current sem value */
+  atomic_t wq_tflag; /* condition flag for waking up threads, that are waiting
+			on the current queue:
+			If it's > 0 - ssignal.
+			One of the waiting threads awakened, and awaken thread
+			is decreasing the flag value by one - i.e. you can
+			consider it as a sort of semaphore signalling (up).
+			This is used in swait and ssignal Lynx syscalls
+			emulation.
+			if it's < 0 - sreset.
+			All waiting threads will be awakened, and wq_flag
+			will be set to negative amount of anticipants */
   struct task_struct *wq_masta; /* my owner */
   int wq_init_val; /* initial user-set semaphore value */
-  int wq_id; /* my id. Just to make debug printout more readable. */
+  int wq_id; /* my id. Just to make debug printout more readable */
 } cdcmsem_t;
 
 #if 0
@@ -261,11 +258,11 @@ typedef struct _cdcmStatics {
   int              cdcm_major;	       /* service entry point major */
 
   struct list_head cdcm_mem_list_head; /* allocated memory list */
-  dbgipl_t         cdcm_ipl;	       /* CDCM information printout level */
+  dbgipl_t         cdcm_ipl;	       /* CDCM Information Printout Level */
   struct list_head cdcm_thr_list_head; /* thread list */
   //struct list_head cdcm_proc_list_head;	/* process list */
   cdcmt_t          cdcm_timer[MAX_CDCM_TIMERS]; /* timers */
-  cdcmsem_t        cdcm_s[MAX_CDCM_SEM]; /* Lynx semaphores implementation */
+  struct list_head cdcm_sem_list_head; /* semaphore list */
   cdcmflg_t        cdcm_flags;	       /* bitset flags */
 } cdcmStatics_t;
 /* cdcmStatT - global statics table defined in cdcmDrvr.c module */
@@ -278,55 +275,46 @@ typedef struct _cdcmStatics {
 #define SYSERR -1
 #endif
 
+#define FALSE	0
+#define TRUE	1
+
+#define SYSCALL	int
+
 /*------------------- definitions for info printout -------------------------*/
 
 /* indisputable info printout */
-#define PRNT_ABS_INFO(format...)			\
-do {							\
-  printk(KERN_INFO" [CDCM] %s(): ", __FUNCTION__ );	\
-  printk(format);					\
-  printk("\n");						\
+#define PRNT_ABS_INFO(format...)				\
+do {								\
+  printk("%s [CDCM_INFO] %s(): ", KERN_INFO, __FUNCTION__ );	\
+  printk(format);						\
+  printk("\n");							\
 } while(0)
 
-/* the same for error */
-#define PRNT_ABS_ERR(format...)				\
-do {							\
-  printk(KERN_ERR" [CDCM] %s(): ", __FUNCTION__ );	\
-  printk(format);					\
-  printk("\n");						\
+/* indisputable error printout */
+#define PRNT_ABS_ERR(format...)					\
+do {								\
+  printk("%s [CDCM_ERR] %s(): ", KERN_ERR, __FUNCTION__ );	\
+  printk(format);						\
+  printk("\n");							\
 } while(0)
 
-/* same for warning */
-#define PRNT_ABS_WARN(format...)			\
-do {							\
-  printk(KERN_WARNING" [CDCM] %s(): ", __FUNCTION__ );	\
-  printk(format);					\
-  printk("\n");						\
+/* indisputable warning printout */
+#define PRNT_ABS_WARN(format...)				\
+do {								\
+  printk("%s [CDCM_WARN] %s(): ", KERN_WARNING, __FUNCTION__ );	\
+  printk(format);						\
+  printk("\n");							\
 } while(0)
 
-#define __DEBUG__
-#ifdef __DEBUG__
-/* for developer */
-#define PRNT_ABS_DBG_MSG(format...)			\
-do {							\
-  printk(" [CDCM] %s()@%d: ", __FUNCTION__ , __LINE__);	\
-  printk(format);					\
-  printk("\n");						\
+/* indisputable debugging printout */
+#define PRNT_ABS_DBG_MSG(format...)					  \
+do {									  \
+  printk("%s [CDCM_DBG] %s()@%d: ", KERN_DEBUG, __FUNCTION__ , __LINE__); \
+  printk(format);							  \
+  printk("\n");								  \
 } while(0)
-
-#define CDCM_DBG(format...) printk(" [CDCMDBG] "format)
-
-#else
-#define PRNT_ABS_DBG_MSG(format...)
-#define CDCM_DBG(format...)
-#endif
-
-
 
 /* for pure printing */
-#define PRNT_INFO_MSG(format...) \
-if (cdcmStatT.cdcm_ipl & IPL_INFO) { printk(KERN_INFO " [CDCM] "format); }
-
 #define PRNT_OPEN(format, arg...) \
 if (cdcmStatT.cdcm_ipl & IPL_OPEN) { PRNT_ABS_INFO(format, arg); }
 
@@ -352,7 +340,7 @@ if (cdcmStatT.cdcm_ipl & IPL_INSTALL) { PRNT_ABS_INFO(format, arg); }
 if (cdcmStatT.cdcm_ipl & IPL_UNINST) { PRNT_ABS_INFO(format, arg); }
 
 #define PRNT_DBG(format, arg...) \
-if (cdcmStatT.cdcm_ipl & IPL_DBG) { PRNT_ABS_INFO(format, arg); }
+if (cdcmStatT.cdcm_ipl & IPL_DBG) { PRNT_ABS_DBG_MSG(format, arg); }
 
 #define PRNT_ERR(format, arg...) \
 if (cdcmStatT.cdcm_ipl & IPL_ERROR) { PRNT_ABS_ERR(format, arg); }

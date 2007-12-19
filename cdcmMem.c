@@ -1,22 +1,19 @@
-/* $Id: cdcmMem.c,v 1.2 2007/08/01 15:07:20 ygeorgie Exp $ */
-/*
-; Module Name:	 cdcmMem.c
-; Module Descr:	 All CDCM memory handling is located here
-;		 Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
-; Creation Date: Feb, 2007
-; Author:	 Georgievskiy Yuryy, Alain Gagnaire. CERN AB/CO.
-;
-;
-; -----------------------------------------------------------------------------
-; Revisions of cdcmMem.c: (latest revision on top)
-;
-; #.#   Name       Date       Description
-; ---   --------   --------   -------------------------------------------------
-; 3.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
-; 2.0   ygeorgie   14/03/07   Production release, CVS controlled.   
-; 1.0	ygeorgie   17/02/07   Initial version.
-*/
-
+/* $Id: cdcmMem.c,v 1.3 2007/12/19 09:02:05 ygeorgie Exp $ */
+/**
+ * @file cdcmMem.c
+ *
+ * @brief All @b CDCM memory handling is located here.
+ *
+ * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
+ *
+ * @date Feb, 2007
+ *
+ * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
+ *
+ * @version 3.0  ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
+ * @version 2.0  ygeorgie  14/03/2007  Production release, CVS controlled.
+ * @version 1.0  ygeorgie  17/02/2007  Initial version.
+ */
 #include "cdcmDrvr.h"
 #include "cdcmMem.h"
 
@@ -29,15 +26,16 @@ static int cdcm_claimed_blocks = 0; /* how many already used */
 
 static cdcmm_t* cdcm_mem_get_free_block(void);
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_mem_init
- * DESCRIPTION: CDCM memory handler initialization.
- * RETURNS:	0       - we cool
- *		-ENOMEM - we are not.
- *-----------------------------------------------------------------------------
+
+/**
+ * @brief CDCM memory handler initialization.
+ *
+ * @param void
+ *
+ * @return 0       - we cool
+ * @return -ENOMEM - we are not.
  */
-int
-cdcm_mem_init(void)
+int cdcm_mem_init(void)
 {
   int cntr;
   cdcmm_t *amem; /* allocated memory */
@@ -45,51 +43,53 @@ cdcm_mem_init(void)
   for (cntr = 0; cntr < CDCM_ALLOC_DEF; cntr++) {
     if ( !(amem = kzalloc(sizeof(*amem), GFP_KERNEL)) ) {
       PRNT_ABS_ERR("Can't alloc CDCM memory handle");
-      cdcm_mem_cleanup_all();	/* roll back */
       return(-ENOMEM);
     }
     list_add(&amem->cm_list, &cdcmStatT.cdcm_mem_list_head);
     ++cdcm_alloc_blocks;
   }
+
   return(0);
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_mem_free
- * DESCRIPTION: Release previously claimed block and free allocated memory.
- * RETURNS:	0 - success.
- *-----------------------------------------------------------------------------
+/**
+ * @brief Release previously claimed block and free allocated memory.
+ *
+ * @param pntr - mem pointer to release, returned by @e cdcm_mem_alloc.
+ *
+ * @return 0 - always success.
  */
-int
-cdcm_mem_free(
-	      cdcmm_t *pntr)	/*  */
+int cdcm_mem_free(char *pntr)
 {
-  if (!pntr)
+  cdcmm_t *mm = NULL;
+
+  if (!pntr || !(mm = cdcm_mem_find_block(pntr)))
     return(0);
 
   //PRNT_DBG("Dealloc mem @0x%x, Size %u bytes, Flgs 0x%x\n", (unsigned int)pntr->cmPtr, (unsigned int)pntr->cmSz, (unsigned int)pntr->cmFlg);
 
-  if (B2KB(pntr->cmSz) > CDCM_MEM_BOUND)
-    vfree(pntr->cmPtr);
+  if (B2KB(mm->cmSz) > CDCM_MEM_BOUND)
+    vfree(mm->cmPtr);
   else
-    kfree(pntr->cmPtr);
+    kfree(mm->cmPtr);
   
   /* reset */
 #if 0
 
-  NOTE - Initialization like this is zeroing out _all_ the rest!
+  NOTE - Initialization like this is zeroing out _all_ the rest in the cdcmm_t
+         to which mm points to!
          I.e. it is _not_ correct!!!
 
-  *pntr = (cdcmm_t) {
+  *mm = (cdcmm_t) {
     .cmPtr = NULL,
     .cmSz  = 0,
     .cmFlg = 0
   };
 #endif
-  pntr->cmPtr = NULL;
-  pntr->cmSz  = 0;
-  pntr->cmFlg = 0;
+  mm->cmPtr = NULL;
+  mm->cmSz  = 0;
+  mm->cmFlg = 0;
 
   --cdcm_claimed_blocks;
 
@@ -97,23 +97,23 @@ cdcm_mem_free(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_mem_cleanup_all
- * DESCRIPTION: Cleanup all memory blocks and their allocated memory.
- * RETURNS:	0  - if success
- *	       -1  - if fails
- *-----------------------------------------------------------------------------
+/**
+ * @brief Cleanup all memory blocks and their allocated memory.
+ *
+ * @param void
+ *
+ * @return  0 - if success
+ * @return -1 - if fails
  */
-int
-cdcm_mem_cleanup_all(void)
+int cdcm_mem_cleanup_all(void)
 {
   cdcmm_t *memP, *tmpP;
 
   /* free allocated memory */
   list_for_each_entry_safe(memP, tmpP, &cdcmStatT.cdcm_mem_list_head, cm_list) {
     if (memP->cmPtr) {
-      //CDCM_DBG("Releasing allocated memory chunk %p\n", memP);
-      cdcm_mem_free(memP);
+      PRNT_DBG("Releasing allocated memory chunk %p\n", memP);
+      cdcm_mem_free(memP->cmPtr);
     }
     
     list_del(&memP->cm_list);
@@ -125,24 +125,24 @@ cdcm_mem_cleanup_all(void)
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_mem_alloc
- * DESCRIPTION: Allocates memory to be used in IOCTL operations. Depending on
- *		the request memory size - different allocation methods are
- *		used. If size is less then 128Kb - kmalloc, vmalloc otherwice.
- *		128kb - for code is to be completely portable (ldd3).
- *		Moreover by default memory is considered to be a short term
- *		usage (i.e. CDCM_M_SHORT_TERM) and will not be included in
- *		the linked list of allocated memory chunks!
- * RETURNS:	-ENOMEM               - if fails.
- *		memory handle pointer - if success.
- *-----------------------------------------------------------------------------
+/**
+ * @brief Allocates memory.
+ *
+ * @param size - size in @b bytes
+ * @param flgs - memory flags (see @e cdcmm_t definition
+ *               for more info on the possible flags)
+ *
+ * Depending on the request memory size - different allocation methods are
+ * used. If size is less then 128Kb - kmalloc, vmalloc otherwise.
+ * 128kb - for code is to be completely portable (ldd3).
+ * Moreover by default memory is considered to be a short term
+ * usage (i.e. CDCM_M_SHORT_TERM) and will not be included in
+ * the linked list of allocated memory chunks!
+ *
+ * @return -ENOMEM                  - if fails.
+ * @return allocated memory pointer - if success.
  */
-cdcmm_t*
-cdcm_mem_alloc(
-	       size_t size, /* size in bytes */
-	       int    flgs) /* memory flags (see cdcmm_t definition for more
-			       info on the possible flags) */
+char* cdcm_mem_alloc(size_t size, int flgs)
 {
   cdcmm_t *amem = cdcm_mem_get_free_block();
 
@@ -162,20 +162,19 @@ cdcm_mem_alloc(
 
   //PRNT_DBG("Alloc mem @0x%x, Size %u bytes, Flgs 0x%x\n", (unsigned int)amem->cmPtr, (unsigned int)size, (unsigned int)flgs);
 
-  return(amem);
+  return(amem->cmPtr);
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_mem_find_block
- * DESCRIPTION: Search CDCM memory descriptor using memory pointer.
- * RETURNS:	pointer to found entry - if success.
- *		NULL                   - if fails
- *-----------------------------------------------------------------------------
+/**
+ * @brief Search CDCM memory descriptor using memory pointer.
+ *
+ * @param mptr - allocated memory pointer
+ *
+ * @return pointer to found entry - if success.
+ * @return NULL                   - if fails.
  */
-cdcmm_t*
-cdcm_mem_find_block(
-		    char *mptr)	/* allocated memory pointer */
+cdcmm_t* cdcm_mem_find_block(char *mptr)
 {
   cdcmm_t *tmp;
   
@@ -188,15 +187,15 @@ cdcm_mem_find_block(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_mem_get_free_block
- * DESCRIPTION: Search for free CDCM memory block.
- * RETURNS:	pointer to free block - if success.
- *		NULL                  - if fails
- *-----------------------------------------------------------------------------
+/**
+ * @brief Search for free CDCM memory block.
+ *
+ * @param none
+ *
+ * @return pointer to free block - if success.
+ * @return NULL                  - if fails.
  */
-static cdcmm_t*
-cdcm_mem_get_free_block(void)
+static cdcmm_t* cdcm_mem_get_free_block(void)
 {
   cdcmm_t *tmp;
 

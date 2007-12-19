@@ -1,25 +1,21 @@
-/* $Id: cdcmBoth.c,v 1.1 2007/03/15 07:40:54 ygeorgie Exp $ */
-/*
-; Module Name:	 cdcmBoth.c
-; Module Descr:	 Contains functions that should be used both, by Linux and 
-;		 LynxOS. This module should be compiled both with Linux and 
-;		 Lynx drivers. Depending on the kernel - different actions will
-;		 be taken.
-;		 Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
-; Date:          Jul, 2006
-; Author:	 Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
-;
-;
-; -----------------------------------------------------------------------------
-; Revisions of cdcmBoth.c: (latest revision on top)
-;
-; #.#   Name       Date       Description
-; ---   --------   --------   -------------------------------------------------
-; 3.0   ygeorgie   14/03/07   Production release, CVS controlled.
-; 2.0   ygeorgie   27/07/06   First working release.
-; 1.0	ygeorgie   21/07/06   Initial version.
-*/
-
+/* $Id: cdcmBoth.c,v 1.2 2007/12/19 09:02:05 ygeorgie Exp $ */
+/**
+ * @file cdcmBoth.c
+ *
+ * @brief Contains functions that should be used both, by Linux and LynxOS.
+ *
+ * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
+ *
+ * @date Jul, 2006
+ *
+ * This module should be compiled both with Linux and Lynx drivers.
+ * Depending on the kernel - different actions will be taken.
+ * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
+ *
+ * @version 3.0  ygeorgie  14/03/2007  Production release, CVS controlled.
+ * @version 2.0  ygeorgie  27/07/2006  First working release.
+ * @version 1.0  ygeorgie  21/07/2006  Initial version.
+ */
 #ifdef __linux__
 #include <asm/uaccess.h>
 #include "cdcmDrvr.h"
@@ -28,20 +24,18 @@
 #endif
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_copy_from_user
- * DESCRIPTION: This function should be used to pass user data into kernel
- *		address space.
- * RETURNS:	Returns number of bytes that could not be copied.
- *		On success, this will be zero.
- *		SYSERR (-1) - in case of any error.
- *-----------------------------------------------------------------------------
+/**
+ * @brief Should be used to pass user data into kernel address space. 
+ *
+ * @param to   - destination address, in kernel space
+ * @param from - source address, in user space
+ * @param size - number of bytes to copy.
+ *
+ * @return Number of bytes that could not be copied. On success,
+ *         this will be zero.
+ * @return SYSERR (-1) - in case of any error.
  */
-int
-cdcm_copy_from_user(
-		    char *to,	/* destination address, in kernel space */
-		    char *from,	/* source address, in user space */
-		    int   size)	/* number of bytes to copy. */
+int cdcm_copy_from_user(char *to, char *from, int size)
 {
 #ifdef __linux__
 
@@ -62,20 +56,18 @@ cdcm_copy_from_user(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_copy_to_user
- * DESCRIPTION: This function should be used to pass data from kernel to user
- *		address space.
- * RETURNS:	Returns number of bytes that could not be copied.
- *		On success, this will be zero.
- *		SYSERR (-1) - in case of any error.
- *-----------------------------------------------------------------------------
+/**
+ * @brief S hould be used to pass data from kernel to user address space.
+ *
+ * @param to   - destination address, in user space
+ * @param from - source address, in kernel space
+ * @param size - number of bytes to copy
+ *
+ * @return Returns number of bytes that could not be copied.
+ *         On success, this will be zero.
+ * @return SYSERR (-1) - in case of any error.
  */
-int
-cdcm_copy_to_user(
-		  char *to,   /* destination address, in user space */
-		  char *from, /* source address, in kernel space */
-		  int   size) /* number of bytes to copy */
+int cdcm_copy_to_user(char *to, char *from, int size)
 {
 #ifdef __linux__
 
@@ -96,19 +88,18 @@ cdcm_copy_to_user(
 
 
 #if 0
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_init_usr_ptr
- * DESCRIPTION: Should help to initialize user-address space pointers, so that
- *		it's possible to perform direct pointer dereferencing 
- *		afterwards.
- * RETURNS:	
- *-----------------------------------------------------------------------------
+/**
+ * @brief Helps to initialize user-address space pointers. 
+ *
+ * @param usr_addr - address from user space
+ * @param size     - size to validate
+ * @param action   - DIR_READ, DIR_WRITE, or both
+ * 
+ * Like that it's possible to perform direct pointer dereferencing afterwards.
+ *
+ * @return 
  */
-char*
-cdcm_init_usr_ptr(
-		  unsigned int usr_addr, /* address from user space */
-		  int size,	/* size to validate */
-		  int action)	/* DIR_READ, DIR_WRITE, or both */
+char* cdcm_init_usr_ptr(unsigned int usr_addr, int size, int action)
 {
 
 #ifdef __linux__

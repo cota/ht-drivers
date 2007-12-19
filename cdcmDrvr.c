@@ -1,25 +1,26 @@
-/* $Id: cdcmDrvr.c,v 1.5 2007/10/05 08:44:38 ygeorgie Exp $ */
+/* $Id: cdcmDrvr.c,v 1.6 2007/12/19 09:02:05 ygeorgie Exp $ */
 /**
  * @file cdcmDrvr.c
  *
  * @brief CDCM Linux driver
  *
  * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
- *         Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
  * @date Feb, 2006
  *
  * Encapsulates user-written LynxOS driver. Consider it like a wrapper of the
  * user Lynx driver.
+ * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @version 4.0  ygeorgie   01/08/07   Full Lynx-like installation behaviour.
- * @version 3.0  ygeorgie   14/03/07   Production release, CVS controlled.
- * @version 2.0  ygeorgie   27/07/06   First working release.
- * @version 1.0  ygeorgie   02/06/06   Initial version.
+ * @version 4.0  ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
+ * @version 3.0  ygeorgie  14/03/2007  Production release, CVS controlled.
+ * @version 2.0  ygeorgie  27/07/2006  First working release.
+ * @version 1.0  ygeorgie  02/06/2006  Initial version.
  */
 #include "cdcmDrvr.h"
 #include "cdcmLynxAPI.h"
 #include "cdcmMem.h"
+#include "cdcmTime.h"
 #include "cdcmUsrKern.h"
 #include "generalDrvrHdr.h" /* for WITHIN_RANGE */
 
@@ -45,8 +46,9 @@ cdcmStatics_t cdcmStatT = {
   .cdcm_grp_list_head   = LIST_HEAD_INIT(cdcmStatT.cdcm_grp_list_head),
   .cdcm_drvr_type       = 0,	/* 'P'(for PCI) or 'V' (for VME) */
   .cdcm_mem_list_head   = LIST_HEAD_INIT(cdcmStatT.cdcm_mem_list_head),
-  .cdcm_ipl             = IPL_ALL,
+  .cdcm_ipl             = (IPL_ERROR | IPL_INFO), /* info printout level */
   .cdcm_thr_list_head   = LIST_HEAD_INIT(cdcmStatT.cdcm_thr_list_head),
+  .cdcm_sem_list_head   = LIST_HEAD_INIT(cdcmStatT.cdcm_sem_list_head),
   .cdcm_flags           = 0
 };
 
@@ -119,21 +121,20 @@ static void cdcm_cleanup_groups(struct cdcm_grp_info_t *doomed)
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_fop_read
- * DESCRIPTION: Lynx read stub.
- * RETURNS:	how many bytes was read - if success.
- *		negative value          - if error.
- *-----------------------------------------------------------------------------
+/**
+ * @brief Lynx read stub.
+ *
+ * @param filp - file struct pointer
+ * @param buf  - user space
+ * @param size - how many bytes to read
+ * @param off  - offset
+ *
+ * @return how many bytes was read - if success.
+ * @return negative value          - if error.
  */
-static ssize_t
-cdcm_fop_read(
-	      struct file *filp, /* file struct pointer */
-	      char __user *buf,	 /* user space */
-	      size_t size,	 /* how many bytes to read */
-	      loff_t *off)	 /* offset */
+static ssize_t cdcm_fop_read(struct file *filp, char __user *buf, size_t size, loff_t *off)
 {
-  cdcmm_t *iobuf  = NULL;
+  char *iobuf  = NULL;
   char *grp_statt = NULL; /* group statics table */
   struct cdcm_file lynx_file = {
     .dev = filp->f_dentry->d_inode->i_rdev, /* set Device Number */ 
@@ -141,7 +142,7 @@ cdcm_fop_read(
     .position = *off
   };
 
-  //PRNT_INFO("Read device with minor = %d", MINOR(lynx_file.dev));
+  PRNT_DBG("Read device with minor = %d", MINOR(lynx_file.dev));
   cdcm_err = 0;	/* reset */
 
   if ( !(grp_statt = cdcm_get_grp_stat_tbl(imajor(filp->f_dentry->d_inode))) )
@@ -157,11 +158,11 @@ cdcm_fop_read(
     return(-ENOMEM);
   
   
-  cdcm_err = entry_points.dldd_read(grp_statt, &lynx_file, iobuf->cmPtr, size);
+  cdcm_err = entry_points.dldd_read(grp_statt, &lynx_file, iobuf, size);
   if (cdcm_err == SYSERR)
     cdcm_err = -EAGAIN;
   else {
-    __copy_to_user(buf,  iobuf->cmPtr, size);
+    __copy_to_user(buf,  iobuf, size);
     *off = lynx_file.position;
   }
 
@@ -171,21 +172,20 @@ cdcm_fop_read(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_fop_write
- * DESCRIPTION: Lynx write stub.
- * RETURNS:	how many bytes was written - if success.
- *		negative value             - if error.
- *-----------------------------------------------------------------------------
+/**
+ * @brief Lynx write stub.
+ *
+ * @param filp - file struct pointer
+ * @param buf  - user space
+ * @param size - how many bytes to write
+ * @param off  - offset
+ *
+ * @return how many bytes was written - if success.
+ * @return negative value             - if error.
  */
-static ssize_t
-cdcm_fop_write(
-	       struct file *filp,      /* file struct pointer */
-	       const char __user *buf, /* user space */
-	       size_t size,	       /* how many bytes to write */
-	       loff_t *off)	       /* offset */
+static ssize_t cdcm_fop_write(struct file *filp, const char __user *buf, size_t size, loff_t *off)
 {
-  cdcmm_t *iobuf = NULL;
+  char *iobuf = NULL;
   char *grp_statt = NULL; /* group statics table */
   struct cdcm_file lynx_file = {
     .dev = filp->f_dentry->d_inode->i_rdev, /* set Device Number */  
@@ -193,7 +193,7 @@ cdcm_fop_write(
     .position = *off
   };
   
-  //PRNT_INFO("Write device with minor = %d", MINOR(lynx_file.dev));
+  PRNT_DBG("Write device with minor = %d", MINOR(lynx_file.dev));
   cdcm_err = 0; /* reset */
 
   if ( !(grp_statt = cdcm_get_grp_stat_tbl(imajor(filp->f_dentry->d_inode))) )
@@ -208,9 +208,9 @@ cdcm_fop_write(
   if ( (iobuf = cdcm_mem_alloc(size, _IOC_WRITE|CDCM_M_FLG_WRITE)) == ERR_PTR(-ENOMEM))
     return(-ENOMEM);
   
-  __copy_from_user(iobuf->cmPtr, buf, size);
+  __copy_from_user(iobuf, buf, size);
 
-  cdcm_err = entry_points.dldd_write(grp_statt, &lynx_file, iobuf->cmPtr, size);
+  cdcm_err = entry_points.dldd_write(grp_statt, &lynx_file, iobuf, size);
   if (cdcm_err SYSERR)
     cdcm_err = -EAGAIN;
   else
@@ -222,23 +222,21 @@ cdcm_fop_write(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_fop_poll
- * DESCRIPTION: Lynx select stub.
- *		---------------- !NOT IMPLEMENTED! ----------------------------
- *		I see no way to get descriptor set (in, out, except) to pass
- *		them as a third parameter (condition to monitor - SREAD,
- *		SWRITE, SEXCEPT) to the LynxOS 'select' driver entry point.
- *		We are entering 'cdcm_fop_poll()' from do_select(), but 
- *		descriptor set stays in 'fd_set_bits *fds' var of do_select.
- *		IMHO there is no way to hook it somehow... Fuck!
- * RETURNS:	
- *-----------------------------------------------------------------------------
+/**
+ * @brief Lynx select stub. ---------> !NOT IMPLEMENTED! <--------------------
+ *
+ * @param filp - file struct pointer
+ * @param wait - 
+ *
+ * I see no way to get descriptor set (in, out, except) to pass them as a third
+ * parameter (condition to monitor - SREAD, SWRITE, SEXCEPT) to the LynxOS
+ * @e select() driver entry point. We are entering @e cdcm_fop_poll() from
+ * @e do_select(), but descriptor set stays in <b>fd_set_bits *fds</b> var of
+ * @e do_select(). IMHO there is no way to hook it somehow... Fuck!
+ *
+ * @return 
  */
-static unsigned int
-cdcm_fop_poll(
-	      struct file* filp, /* file struct pointer */
-	      poll_table* wait)  /*  */
+static unsigned int cdcm_fop_poll(struct file* filp, poll_table* wait)
 {
   int mask = POLLERR;
   struct cdcm_sel sel;
@@ -258,18 +256,18 @@ cdcm_fop_poll(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    process_cdcm_srv_ioctl
- * DESCRIPTION: 
- * RETURNS:	
- *-----------------------------------------------------------------------------
+/**
+ * @brief 
+ *
+ * @param inode - inode struct pointer
+ * @param file  - file struct pointer
+ * @param cmd   - IOCTL command number
+ * @param arg   - user args
+ *
+ * @return 
+ * @return 
  */
-static int
-process_cdcm_srv_ioctl(
-		       struct inode  *inode, /* inode struct pointer */
-		       struct file   *file,  /* file struct pointer */
-		       unsigned int  cmd,    /* IOCTL command number */
-		       unsigned long arg)    /* user args */
+static int process_cdcm_srv_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg)
 {
   void __user *uptr = (void __user *)arg;
 
@@ -380,7 +378,7 @@ static int process_mod_spec_ioctl(struct inode *inode, struct file *file, int cm
   struct cdcm_file lynx_file;
   int rc = 0;	/* ret code */
   char *grp_statt = NULL; /* group statics table */
-  cdcmm_t *iobuf  = NULL;
+  char *iobuf  = NULL;
   int iodir = _IOC_DIR(cmd);
   int iosz  = _IOC_SIZE(cmd);
 
@@ -399,7 +397,7 @@ static int process_mod_spec_ioctl(struct inode *inode, struct file *file, int cm
       cdcm_mem_free(iobuf);
       return(-EFAULT);
     }
-    __copy_from_user(iobuf->cmPtr, (char*)arg, iosz); /* take data from user */
+    __copy_from_user(iobuf, (char*)arg, iosz); /* take data from user */
   }
   
   /* Carefull with the type correspondance.
@@ -407,7 +405,7 @@ static int process_mod_spec_ioctl(struct inode *inode, struct file *file, int cm
   lynx_file.dev = (int)inode->i_rdev; /* set Device Number */
 
   /* hook the user ioctl */
-  rc = entry_points.dldd_ioctl(grp_statt, &lynx_file, cmd, (iodir == _IOC_NONE)?NULL:iobuf->cmPtr);
+  rc = entry_points.dldd_ioctl(grp_statt, &lynx_file, cmd, (iodir == _IOC_NONE)?NULL:iobuf);
   if (rc == SYSERR) {
     cdcm_mem_free(iobuf);
     return(-(cdcm_err)); /* error is set by the user */
@@ -419,7 +417,7 @@ static int process_mod_spec_ioctl(struct inode *inode, struct file *file, int cm
       cdcm_mem_free(iobuf);
       return(-EFAULT);
     }
-    __copy_to_user((char*)arg, iobuf->cmPtr, iosz); /* give data to the user */
+    __copy_to_user((char*)arg, iobuf, iosz); /* give data to the user */
   }
   
   cdcm_mem_free(iobuf);
@@ -427,22 +425,22 @@ static int process_mod_spec_ioctl(struct inode *inode, struct file *file, int cm
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_fop_ioctl
- * DESCRIPTION: CDCM ioctl routine. Service ioctl (with CDCM_SRVIO_ prefix) 
- *		are normally called by the installation program to get all
- *		needed information. All the rest considered to be user part
- *		and is passed downstream.
- *		0 or some positve value         - in case of success.
- * RETURNS:	-EINVAL, -ENOMEM, -EIO, etc...  - if fails.
- *-----------------------------------------------------------------------------
+/**
+ * @brief CDCM ioctl routine.
+ *
+ * @param inode - inode struct pointer
+ * @param file  - file struct pointer
+ * @param cmd   - IOCTL command number
+ * @param arg   - user args
+ *
+ * Service ioctl (with CDCM_SRVIO_ prefix) normally are called by the
+ * installation program to get all needed information. All the rest considered
+ * to be user part and is passed downstream.
+ *
+ * @return 0 or some positve value         - in case of success.
+ * @return -EINVAL, -ENOMEM, -EIO, etc...  - if fails.
  */
-static int 
-cdcm_fop_ioctl(
-	       struct inode  *inode, /* inode struct pointer */
-	       struct file   *file,  /* file struct pointer */
-	       unsigned int  cmd,    /* IOCTL command number */
-	       unsigned long arg)    /* user args */
+static int cdcm_fop_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg)
 {
   cdcm_err = 0; /* reset */
   return( (imajor(inode) == cdcmStatT.cdcm_major) ?
@@ -451,16 +449,15 @@ cdcm_fop_ioctl(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_fop_mmap
- * DESCRIPTION: NOT IMPLEMENTED YET.
- * RETURNS:	
- *-----------------------------------------------------------------------------
+/**
+ * @brief NOT IMPLEMENTED YET.
+ *
+ * @param file - file struct pointer
+ * @param vma  - 
+ *
+ * @return 
  */
-static int 
-cdcm_fop_mmap(
-	      struct file           *file, /* file struct pointer */
-	      struct vm_area_struct *vma)  /*  */
+static int cdcm_fop_mmap(struct file *file, struct vm_area_struct *vma)
 {
   return(0); /* success */
 }
@@ -558,14 +555,14 @@ struct file_operations cdcm_fops = {
 };
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_driver_cleanup.
- * DESCRIPTION: Called when module is unloading from the kernel.
- * RETURNS:     void
- *-----------------------------------------------------------------------------
+/**
+ * @brief Called when module is unloading from the kernel.
+ *
+ * @param none
+ *
+ * @return void
  */
-static void __exit
-cdcm_driver_cleanup(void)
+static void __exit cdcm_driver_cleanup(void)
 {
   int cntr;
 
@@ -582,6 +579,7 @@ cdcm_driver_cleanup(void)
   else if (cdcmStatT.cdcm_drvr_type == 'V')
     cdcm_vme_cleanup();
 
+  cdcm_sema_cleanup_all();	/* cleanup semaphores */
   cdcm_cleanup_groups(NULL);
 }
 
@@ -615,15 +613,18 @@ do {						\
   }						\
 } while (0)
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_driver_init.
- * DESCRIPTION: Main driver initialization.
- * RETURNS:     0        - in case of success.
- *              non zero - otherwise.
- *-----------------------------------------------------------------------------
+
+/**
+ * @brief Main driver initialization.
+ *
+ * @param 
+ * @param 
+ * @param 
+ *
+ * @return 0        - in case of success.
+ * @return non zero - otherwise.
  */
-static int __init
-cdcm_driver_init(void)
+static int __init cdcm_driver_init(void)
 {
   struct cdcm_grp_info_t *grp_ptr;
   cdcm_hdr_t *cdcmHdr;
@@ -648,7 +649,7 @@ cdcm_driver_init(void)
 
   for (cntr = 0; cntr < grp_am; cntr++) { /* allocate groups */
     if (!(grp_ptr = kzalloc(sizeof(*grp_ptr), GFP_KERNEL))) {
-      PRNT_INFO_MSG("Can't allocate group descriptor for %s dev.\n", cdcmStatT.cdcm_mod_name);
+      PRNT_ABS_ERR("Can't allocate group descriptor for %s dev.\n", cdcmStatT.cdcm_mod_name);
       sysfree((char*)cdcmHdr, sizeof(*cdcmHdr));
       cdcm_cleanup_groups(NULL);
       return(-ENOMEM);
@@ -673,10 +674,6 @@ cdcm_driver_init(void)
   /* init current working group pointer with the first group */
   glob_cur_grp_ptr = list_advance(&cdcmStatT.cdcm_grp_list_head);
 
-  /* init semaphore mutexes */
-  for (cntr = 0; cntr < MAX_CDCM_SEM; cntr++)
-    cdcmStatT.cdcm_s[cntr].wq_usr_val = NULL;
-  
   cdcmStatT.cdcm_hdr = cdcmHdr; /* save header */
   cdcm_mem_init(); /* init memory manager */
   

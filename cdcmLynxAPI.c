@@ -1,21 +1,18 @@
-/* $Id: cdcmLynxAPI.c,v 1.1 2007/03/15 07:40:54 ygeorgie Exp $ */
-/*
-; Module Name:	 cdcmLynxAPI.c
-; Module Descr:	 Standart LynxOS API functions are located here.
-;		 Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
-; Creation Date: Feb, 2007
-; Author:	 Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
-;
-;
-; -----------------------------------------------------------------------------
-; Revisions of cdcmLynxAPI.h: (latest revision on top)
-;
-; #.#   Name       Date       Description
-; ---   --------   --------   -------------------------------------------------
-; 2.0   ygeorgie   14/03/07   Production release, CVS controlled.
-; 1.0	ygeorgie   12/02/07   Initial version.
-*/
-
+/* $Id: cdcmLynxAPI.c,v 1.2 2007/12/19 09:02:05 ygeorgie Exp $ */
+/**
+ * @file cdcmLynxAPI.c
+ *
+ * @brief Standart LynxOS API functions are located here.
+ *
+ * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
+ *
+ * @date Feb, 2007
+ *
+ * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
+ *
+ * @version 2.0  ygeorgie  14/03/2007  Production release, CVS controlled.
+ * @version 1.0  ygeorgie  12/02/2007  Initial version.
+ */
 #include "cdcmDrvr.h"
 #include "cdcmMem.h"
 
@@ -24,61 +21,60 @@ extern int cdcm_err;		/* global error */
 extern cdcmStatics_t cdcmStatT; /* CDCM statics table */
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    recoset
- * DESCRIPTION: LynxOs bus error trap mechanism. NOT IMPLEMENTED.
- * RETURNS:     
- *-----------------------------------------------------------------------------
+/**
+ * @brief LynxOs bus error trap mechanism. !TODO!
+ *
+ * @param none
+ *
+ * @return 
  */
-int
-recoset(void)
+int recoset(void)
 {
   return(0); /* Assumes no bus errors */
 }
 
-			
-/*-----------------------------------------------------------------------------
- * FUNCTION:    noreco
- * DESCRIPTION: LynxOs bus error trap mechanism. NOT IMPLEMENTED.
- * RETURNS:     
- *-----------------------------------------------------------------------------
+
+/**
+ * @brief LynxOs bus error trap mechanism. !TODO!
+ *
+ * @param none
+ *
+ * @return void
  */
-void
-noreco(void)
+void noreco(void)
 {
   return;
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    pseterr
- * DESCRIPTION: LynxOs service call wrapper.
- * RETURNS:     
- *-----------------------------------------------------------------------------
+/**
+ * @brief LynxOs service call wrapper.
+ *
+ * @param err - 
+ *
+ * @return 
  */
-int
-pseterr(
-	int err) /*  */
+int pseterr(int err)
 { 
   cdcm_err = err; 
   return(err); 
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    sysbrk
- * DESCRIPTION: LynxOs service call wrapper.
- *		NOTE: Depending on the request memory size - different
- *		allocation methods are used. If size is less then 
- *		128Kb - kmalloc, vmalloc otherwice.
- *		128kb - for code is to be completely portable (ldd3).
- * RETURNS:     memory pointer - if success.
- *		NULL           - if fails.
- *-----------------------------------------------------------------------------
+/**
+ * @brief Allocate memory.
+ *
+ * @param size - memory size to allocate in bytes
+ *
+ * LynxOs service call wrapper.
+ * Depending on the request memory size - different allocation methods
+ * are used. If size is less then 128Kb - kmalloc, vmalloc otherwice.
+ * 128kb - for code is to be completely portable (ldd3).
+ *
+ * @return allocated memory pointer - if success.
+ * @return NULL                     - if fails.
  */
-char*
-sysbrk(
-       unsigned long size) /* size in bytes */
+char* sysbrk(unsigned long size)
 {
   char *mem;
 
@@ -90,17 +86,16 @@ sysbrk(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    sysfree
- * DESCRIPTION: LynxOs service call wrapper. I don't use CDCM memory handler
- *		as it's not our business in this case.
- * RETURNS:     void
- *-----------------------------------------------------------------------------
+/**
+ * @brief Free allocated memory
+ *
+ * @param cp   - memory pointer to free
+ * @param size - memory size
+ *
+ * LynxOs service call wrapper. We don't use CDCM memory handler as it's
+ * not our business in this case.
  */
-void
-sysfree(
-	char *cp,	    /* memory pointer */
-	unsigned long size) /* memory size */
+void sysfree(char *cp, unsigned long size)
 {
   if (B2KB(size) > CDCM_MEM_BOUND)
     vfree(cp);
@@ -109,17 +104,18 @@ sysfree(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    ksprintf
- * DESCRIPTION: LynxOs service call wrapper.
- * RETURNS:     void
- *-----------------------------------------------------------------------------
+/**
+ * @brief LynxOs service call wrapper.
+ *
+ * @param buf    - 
+ * @param format - 
+ * @param ...    - 
+ *
+ * Read ksprintf manpage for more info.
+ *
+ * @return
  */
-int
-ksprintf(
-	 char *buf,		/*  */
-	 char *format,		/*  */
-	 ...)
+int ksprintf(char *buf,char *format, ...)
 {
   int rc;
   va_list kspargs;
@@ -132,15 +128,14 @@ ksprintf(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    rbounds
- * DESCRIPTION: LynxOs service call wrapper.
- * RETURNS:	
- *-----------------------------------------------------------------------------
+/**
+ * @brief LynxOs service call wrapper.
+ *
+ * @param pntr - memory address to check
+ *
+ * @return 
  */
-long
-rbounds(
-	unsigned long pntr)	/* memory address to check */
+long rbounds(unsigned long pntr)
 {
   cdcmm_t *mbptr = cdcm_mem_find_block((char*)pntr); /* mem block pointer */
   
@@ -151,15 +146,15 @@ rbounds(
 }
 
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    wbounds
- * DESCRIPTION: LynxOs service call wrapper.
- * RETURNS:	
- *-----------------------------------------------------------------------------
+/**
+ * @brief LynxOs service call wrapper.
+ *
+ * @param 
+ * @param pntr - memory address to check
+ *
+ * @return 
  */
-long
-wbounds(
-	unsigned long pntr)	/* memory address to check */
+long wbounds(unsigned long pntr)
 {
   cdcmm_t *mbptr = cdcm_mem_find_block((char*)pntr); /* mem block pointer */
 

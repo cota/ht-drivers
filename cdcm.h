@@ -1,25 +1,22 @@
-/* $Id: cdcm.h,v 1.2 2007/08/01 15:07:20 ygeorgie Exp $ */
-/*
-; Module Name:	 cdcm.h
-; Module Descr:	 CDCM driver header file module. Exported for the user.
-;		 Definitions, that should be visible both in user and kernel
-;		 space are located here.
-; Creation Date: Feb, 2006
-; Author:	 Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
-;		 Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
-;
-;
-; -----------------------------------------------------------------------------
-; Revisions of cdcm.h: (latest revision on top)
-;
-; #.#   Name       Date       Description
-; ---   --------   --------   -------------------------------------------------
-; 4.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
-; 3.0   ygeorgie   14/03/07   Production release, CVS controlled.
-; 2.0   ygeorgie   27/07/06   First working release.
-; 1.0	ygeorgie   02/06/06   Initial version.
-*/
-
+/* $Id: cdcm.h,v 1.3 2007/12/19 09:02:05 ygeorgie Exp $ */
+/**
+ * @file cdcm.h
+ *
+ * @brief CDCM driver header file module.
+ *
+ * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
+ *
+ * @date Feb, 2006
+ *
+ * Exported for the user. Definitions, that should be visible both in user and
+ * kernel space are located here.
+ * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
+ *
+ * @version 4.0  ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
+ * @version 3.0  ygeorgie  14/03/2007  Production release, CVS controlled.
+ * @version 2.0  ygeorgie  27/07/2006  First working release.
+ * @version 1.0  ygeorgie  02/06/2006  Initial version.
+ */
 #ifndef _CDCM_H_INCLUDE_
 #define _CDCM_H_INCLUDE_
 

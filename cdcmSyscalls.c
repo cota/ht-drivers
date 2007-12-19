@@ -1,25 +1,22 @@
-/* $Id: cdcmSyscalls.c,v 1.2 2007/08/01 15:07:20 ygeorgie Exp $ */
-/*
-; Module Name:	 cdcmSyscalls.c
-; Module Descr:	 CDCM is doing system calls from the kernel mode.
-;		 All functions, that are used _syscalls are placed in separate
-;		 file (namely this one).
-; Creation Date: Feb, 2006
-; Author:	 Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
-;		 Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
-;
-;		 Inspired by  <tda1004x.c> on how to do sys_open && co.
-;
-; -----------------------------------------------------------------------------
-; Revisions of cdcmSyscalls.c: (latest revision on top)
-;
-; #.#   Name       Date       Description
-; ---   --------   --------   -------------------------------------------------
-; 4.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
-; 3.0   ygeorgie   14/03/07   Production release, CVS controlled.
-; 2.0   ygeorgie   27/07/06   First working release.
-; 1.0	ygeorgie   02/06/06   Initial version.
-*/
+/* $Id: cdcmSyscalls.c,v 1.3 2007/12/19 09:02:05 ygeorgie Exp $ */
+/**
+ * @file cdcmSyscalls.c
+ *
+ * @brief All functions, using _syscalls are placed here.
+ *
+ * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
+ *
+ * @date Feb, 2006
+ *
+ * CDCM is doing system calls from the kernel mode.
+ * Inspired by  <tda1004x.c> on how to do sys_open && co.
+ * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
+ *
+ * @version 4.0   ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
+ * @version 3.0   ygeorgie  14/03/2007  Production release, CVS controlled.
+ * @version 2.0   ygeorgie  27/07/2006  First working release.
+ * @version 1.0   ygeorgie  02/06/2006  Initial version.
+ */
 #include <asm/unistd.h>	/* for _syscall */
 #include "cdcmDrvr.h"
 #include "cdcmInfoT.h"
@@ -42,13 +39,19 @@ static __inline__ _syscall3(off_t,lseek,int,fd,off_t,offset,int,count)
 static __inline__ _syscall3(int,read,int,fd,char *,buf,off_t,count)
 static __inline__ _syscall1(int,close,int,fd)
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    cdcm_get_info_table
- * DESCRIPTION: Get info tables. Open info files and deliver its data into
- *		the driver space. Returned pointer should be freed afterwards!
- * RETURNS:     NULL               - in case of failure.
- *		info table pointer - in case of success.
- *-----------------------------------------------------------------------------
+/**
+ * 
+ * @brief Get info tables.
+ *
+ * @param ifn   - info file path to open
+ * @param itszp - if not NULL, then table size will be placed here
+ *
+ * Open info files and deliver its data into the driver space.
+ *
+ * @note Returned pointer should be freed afterwards!
+ *
+ * @return NULL               - in case of failure.
+ * @return info table pointer - in case of success.
  */
 char*
 cdcm_get_info_table(
