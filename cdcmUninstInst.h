@@ -1,31 +1,30 @@
-/* $Id: cdcmUninstInst.h,v 1.2 2007/08/01 15:07:21 ygeorgie Exp $ */
-/*
-; Module Name:	cdcmUninstInst.h
-; Module Descr:	All concerning driver installation and uninstallation is
-;		located here.
-; Date:         June, 2007.
-; Author:       Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
-;
-;
-; -----------------------------------------------------------------------------
-; Revisions of cdcmUninstInst.h: (latest revision on top)
-;
-; #.#   Name       Date       Description
-; ---   --------   --------   -------------------------------------------------
-; 3.0   ygeorgie   01/08/07   Full Lynx-like installation behaviour.
-; 2.0   ygeorgie   09/07/07   Production release, CVS controlled.
-; 1.0	ygeorgie   28/06/07   Initial version.
-*/
+/* $Id: cdcmUninstInst.h,v 1.3 2007/12/19 08:42:51 ygeorgie Exp $ */
+/**
+ * @file cdcmUninstInst.h
+ *
+ * @brief All concerning driver installation and uninstallation is
+ *        located here.
+ *
+ * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
+ *
+ * @date June, 2007
+ *
+ * @version 3.0  ygeorgie  01/08/07  Full Lynx-like installation behaviour.
+ * @version 2.0  ygeorgie  09/07/07  Production release, CVS controlled.
+ * @version 1.0  ygeorgie  28/06/07  Initial version.
+ */
 #ifndef _CDCM_UNINST_INST_H_INCLUDE_
 #define _CDCM_UNINST_INST_H_INCLUDE_
 
 #include <elf.h> /* for endianity business */
-//#ifdef __linux__
+#include <cdcm/cdcmInfoT.h>
+#include <cdcm/cdcmVars.h>
 #include <stdarg.h>
 #include <stdio.h>
-//#else  /* __Lynx__ */
-//#include <print.h>
-//#endif
+
+#ifdef  __Lynx__
+extern int vsnprintf(char*, size_t,const char*, va_list);
+#endif
 
 /* swap bytes */
 static inline void __endian(const void *src, void *dest, unsigned int size)
@@ -74,8 +73,34 @@ static inline void mperr(char *token, ...)
   perror(errstr);
 }
 
-/* predefined option characters that will be parsed by default. They should
-   not be used by the module specific part to avoid collision */
+/* 
+   Possible format of VME module installation string examples:
+   -----------------------------------------------------------
+
+   1. -> inst_prog.a -A1 -p2 -G9 -U2 -O0x3200 -L2 -V250 -, -U1 -O0x8359 -L2 -V234 -, -U5 -O0x5542 -L1 -V134 -, -G3 -U15 -O0x39837 -L5 -V185 -M0x98375 -, -U10 -O0x1875 -L3 -V180 -, -G5 -U12 -O0x23865 -S"transparent module param as a string"
+
+   Here we declare two global parameters (-A1 and -p2), that are common for ALL
+   groups and modules.
+   We declare three groups (-G9, -G3 and -G5)
+   Group1 (G9) has thee modules with LUN's (-U2, -U1 and -U5)
+   Group2 (G3) has two modules (-U15 and -U10)
+   Group3 (G5) has only one module (-U12)
+
+   2. -> inst_prog.a -A1 -p2 -U2 -O0x3200 -L2 -V250 -, -U1 -O0x8359 -L2 -V234 -, -U5 -O0x5542 -L1 -V134
+
+   Here we declare two global parameters (-A1 and -p2), that are common for ALL
+   groups and modules.
+   We declare no groups, means that user doesn't want any logical group
+   coupling. In this case all modules are belonging to one logical group only,
+   which is of no importanse for the user.
+   We declare three modules (-U2, -U1 and -U5)
+*/
+
+/* Predefined option characters that will be parsed by default. Note, that
+   they COULD be re-defined by the module-specific installation part. In this
+   case they will not be parsed automatically and it's completely up to user
+   to handle this options!
+   If not redefined, then they've got the following meaning: */
 typedef enum _tagDefaultOptionsChars {
   P_T_GRP     = 'G',	/* group designator */
   P_T_LUN     = 'U',	/* Logical Unit Number */
@@ -84,22 +109,34 @@ typedef enum _tagDefaultOptionsChars {
   P_T_ILEV    = 'L',	/* interrupt level */
   P_T_IVECT   = 'V',	/* interrupt vector */
   P_T_CHAN    = 'C',	/* channel amount for the module */
-  P_T_FLG     = 'I',	/* driver flag */
-  P_T_TRANSP  = 'T',	/* driver transparent parameter */
+  P_T_TRANSP  = 'T',	/* driver transparent String parameter */
   P_T_HELP    = 'h',	/* help */
   P_T_SEPAR   = ',',	/* separator between module entries */
 
+  P_T_LAST    = 0xff,	/* indicates last valid option character */
+
+  /* TO_ADD_IF_NECESSARY list */
   P_ST_ADDR   = ' ',	/* slave first base address */
   P_ST_N_ADDR =	' '	/* slave second base address */
 } def_opt_t;
 
-/* vectors that will be called (if not NULL) by the module-specific install
-   programm to handle specific part of the module installation procedure */
+/* option characters and their capabilities */
+typedef struct _tagOptCharCap {
+  int opt_val;               /* wchich character */
+  int opt_redef;             /* if (re)defined by the user? */
+  int opt_with_arg;          /* if option requires an argument? */
+  struct list_head opt_list; /* linked list */
+} opt_char_cap_t;
+
+
+/* vectors and data that will be called (if not NULL) by the module-specific
+   install programm to handle specific part of the module installation
+   procedure */
 struct module_spec_inst_ops {
   void  (*mso_educate)();       /* for user education */
   char* (*mso_get_optstr)();	/* module-spesific options in 'getopt' form */
-  int   (*mso_parse_opt)(char, char*); /* parse module-spesific option */
-  char* (*mso_get_mod_name)(); /* module-specific name. COMPULSORY vector */
+  int   (*mso_parse_opt)(void*, int, char, char*); /* parse module-spesific option */
+  char mso_module_name[64]; /* COMPULSORY module-specific name */
 };
 
 extern struct module_spec_inst_ops cdcm_inst_ops;
@@ -108,9 +145,7 @@ extern struct module_spec_inst_ops cdcm_inst_ops;
 #define BLOCKDRIVER	1
 #define CHARDRIVER	0
 int dr_install(char*, int);
-//int dr_uninstall(int);
 int cdv_install(char*, int, int);
-//ind cdv_uninstall(int);
 #else  /* __Lynx__ */
 static inline int makedev(int major, int minor)
 {
