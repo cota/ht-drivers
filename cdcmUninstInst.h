@@ -1,4 +1,4 @@
-/* $Id: cdcmUninstInst.h,v 1.3 2007/12/19 08:42:51 ygeorgie Exp $ */
+/* $Id: cdcmUninstInst.h,v 1.4 2007/12/19 08:43:55 ygeorgie Exp $ */
 /**
  * @file cdcmUninstInst.h
  *
@@ -139,6 +139,7 @@ struct module_spec_inst_ops {
   char mso_module_name[64]; /* COMPULSORY module-specific name */
 };
 
+/* user-defined installation vector table */
 extern struct module_spec_inst_ops cdcm_inst_ops;
 
 #ifdef __linux__
