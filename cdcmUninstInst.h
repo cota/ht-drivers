@@ -1,4 +1,4 @@
-/* $Id: cdcmUninstInst.h,v 1.4 2007/12/19 08:43:55 ygeorgie Exp $ */
+/* $Id: cdcmUninstInst.h,v 1.5 2007/12/19 08:44:23 ygeorgie Exp $ */
 /**
  * @file cdcmUninstInst.h
  *
@@ -9,9 +9,9 @@
  *
  * @date June, 2007
  *
- * @version 3.0  ygeorgie  01/08/07  Full Lynx-like installation behaviour.
- * @version 2.0  ygeorgie  09/07/07  Production release, CVS controlled.
- * @version 1.0  ygeorgie  28/06/07  Initial version.
+ * @version 3.0  ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
+ * @version 2.0  ygeorgie  09/07/2007  Production release, CVS controlled.
+ * @version 1.0  ygeorgie  28/06/2007  Initial version.
  */
 #ifndef _CDCM_UNINST_INST_H_INCLUDE_
 #define _CDCM_UNINST_INST_H_INCLUDE_
