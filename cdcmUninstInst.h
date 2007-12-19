@@ -1,4 +1,4 @@
-/* $Id: cdcmUninstInst.h,v 1.5 2007/12/19 08:44:23 ygeorgie Exp $ */
+/* $Id: cdcmUninstInst.h,v 1.6 2007/12/19 16:19:20 ygeorgie Exp $ */
 /**
  * @file cdcmUninstInst.h
  *
@@ -97,9 +97,10 @@ static inline void mperr(char *token, ...)
 */
 
 /* Predefined option characters that will be parsed by default. Note, that
-   they COULD be re-defined by the module-specific installation part. In this
-   case they will not be parsed automatically and it's completely up to user
-   to handle this options!
+   they all could be re-defined by the module-specific installation part
+   <b>exept @e -, option</b>, which separates module descriptions from each
+   other. User-redefined options will not be parsed automatically and it's
+   completely up to user to handle this options!
    If not redefined, then they've got the following meaning: */
 typedef enum _tagDefaultOptionsChars {
   P_T_GRP     = 'G',	/* group designator */
@@ -111,7 +112,8 @@ typedef enum _tagDefaultOptionsChars {
   P_T_CHAN    = 'C',	/* channel amount for the module */
   P_T_TRANSP  = 'T',	/* driver transparent String parameter */
   P_T_HELP    = 'h',	/* help */
-  P_T_SEPAR   = ',',	/* separator between module entries */
+  P_T_SEPAR   = ',',	/* separator between module entries
+			   !CAN'T BE REDEFINED! */
 
   P_T_LAST    = 0xff,	/* indicates last valid option character */
 
