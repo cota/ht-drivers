@@ -1,4 +1,4 @@
-/* $Id: cdcmUninstInst.c,v 1.4 2007/12/19 16:26:05 ygeorgie Exp $ */
+/* $Id: cdcmUninstInst.c,v 1.5 2007/12/20 08:43:15 ygeorgie Exp $ */
 /**
  * @file cdcmUninstInst.c
  *
@@ -391,9 +391,9 @@ static int check_and_set_option_chars(char *usroptstr)
   static opt_char_cap_t usr_opt[MAX_USR_DEF_OPT_CHARS] = { { 0 } };
   char *uoP = usroptstr;
 
-  /* check, if user wants to redefine '-,' option */
-  if (strchr(usroptstr, ',')) {
-    fprintf(stderr, "ERROR! Redefinition of '-,' option character is NOT allowed!\n");
+  /* check, if user wants to redefine '-,' or '-G' options */
+  if (strchr(usroptstr, ',') || strchr(usroptstr, 'G')) {
+    fprintf(stderr, "ERROR! Redefinition of '-,' and '-G' option characters is NOT allowed!\n");
     return(-1);
   }
 

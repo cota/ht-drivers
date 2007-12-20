@@ -1,4 +1,4 @@
-/* $Id: cdcmUninstInst.h,v 1.6 2007/12/19 16:19:20 ygeorgie Exp $ */
+/* $Id: cdcmUninstInst.h,v 1.7 2007/12/20 08:43:12 ygeorgie Exp $ */
 /**
  * @file cdcmUninstInst.h
  *
@@ -97,13 +97,13 @@ static inline void mperr(char *token, ...)
 */
 
 /* Predefined option characters that will be parsed by default. Note, that
-   they all could be re-defined by the module-specific installation part
-   <b>exept @e -, option</b>, which separates module descriptions from each
-   other. User-redefined options will not be parsed automatically and it's
-   completely up to user to handle this options!
-   If not redefined, then they've got the following meaning: */
+   almost all of them <b>(exept @e -, and @e -G)</b> could be re-defined by
+   the module-specific installation part, which separates module and group
+   descriptions respectivelly from each other. User-redefined options will
+   not be parsed automatically and it's completely up to user to handle this
+   options! If not redefined, then they've got the following meaning: */
 typedef enum _tagDefaultOptionsChars {
-  P_T_GRP     = 'G',	/* group designator */
+  P_T_GRP     = 'G',	/* group designator !CAN'T BE REDEFINED! */
   P_T_LUN     = 'U',	/* Logical Unit Number */
   P_T_ADDR    = 'O',	/* first base address */
   P_T_N_ADDR  = 'M',	/* second base address */
