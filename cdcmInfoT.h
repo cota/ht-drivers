@@ -1,4 +1,4 @@
-/* $Id: cdcmInfoT.h,v 1.3 2007/12/19 09:02:05 ygeorgie Exp $ */
+/* $Id: cdcmInfoT.h,v 1.4 2007/12/21 11:10:19 ygeorgie Exp $ */
 /**
  * @file cdcmInfoT.h
  *
@@ -28,7 +28,17 @@
 /* signature */
 #define CDCM_MAGIC_IDENT (('C'<<24)|('D'<<16)|('C'<<8)|'M')
 
-#define MAX_VME_SLOT 21 /* how many slots in the VME crate */
+#define MAX_VME_SLOT  21 /* how many slots in the VME crate */
+#define MAX_GROUP_AM  21 /* MAX allowed group amount */
+#define MAX_MODULE_AM 21 /* MAX allowed module amount in one group */
+
+/* min/max group numbers range allowed */
+#define MIN_GRP_NUM 1
+#define MAX_GRP_NUM 21
+
+/* min/max module numbers range allowed */
+#define MIN_MOD_NUM 0
+#define MAX_MOD_NUM 20
 
 /* CDCM info header. Parameter for module_init entry point */
 typedef struct _cdcmInfoHeader {
@@ -45,18 +55,20 @@ typedef struct {
   void *glob_opaque; /* global data, common for all the groups */
 } cdcm_glob_t;
 
-/* Group description. Possible group numbers are [1 - 21] */
+/* Group description.
+   Possible group numbers are [MIN_GRP_NUM - MAX_GRP_NUM] */
 typedef struct {
   struct list_head grp_list; /* claimed group list */
   struct list_head mod_list; /* list of modules of the current group */
 
-  int grp_num;      /* group number [1 - 21] */
+  int grp_num;      /* group number [MIN_GRP_NUM - MAX_GRP_NUM] */
   int mod_amount;   /* module amount in the group */
   void *grp_opaque; /* group-specific data */
   cdcm_glob_t *grp_glob; /* global params pointer */
 } cdcm_grp_t;
 
-/* Module description. Possible LUN (Logical Unit Numbers) are [0 - 20]
+/* Module description.
+   Possible LUN (Logical Unit Numbers) are [MIN_MOD_NUM - MAX_MOD_NUM]
    Each module belongs to the logical group. Even if there is no logical
    grouping in the current design, each device will belong to it's own group.
    So minimum configuration is one group - one device (module)
@@ -64,7 +76,7 @@ typedef struct {
 typedef struct _cdcmModDescr {
   struct list_head md_list; /* group module linked list */
 
-  int   md_lun;    /* Logical Unit Number [0 - 20] */
+  int   md_lun;    /* Logical Unit Number [MIN_MOD_NUM - MAX_MOD_NUM] */
   int   md_mpd;    /* Minor amount Per current Device (channels) */
   int   md_ivec;   /* interrupt vector */
   int   md_ilev;   /* interrupt level */
