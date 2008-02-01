@@ -1,4 +1,4 @@
-/* $Id: cdcmInfoT.h,v 1.4 2007/12/21 11:10:19 ygeorgie Exp $ */
+/* $Id: cdcmInfoT.h,v 1.5 2008/02/01 14:33:51 ygeorgie Exp $ */
 /**
  * @file cdcmInfoT.h
  *
@@ -30,15 +30,17 @@
 
 #define MAX_VME_SLOT  21 /* how many slots in the VME crate */
 #define MAX_GROUP_AM  21 /* MAX allowed group amount */
-#define MAX_MODULE_AM 21 /* MAX allowed module amount in one group */
+#define MAX_MODULE_AM 21 /* MAX allowed module amount */
 
 /* min/max group numbers range allowed */
 #define MIN_GRP_NUM 1
-#define MAX_GRP_NUM 21
+#define MAX_GRP_NUM MAX_GROUP_AM
 
 /* min/max module numbers range allowed */
 #define MIN_MOD_NUM 0
-#define MAX_MOD_NUM 20
+#define MAX_MOD_NUM MAX_MODULE_AM-1
+
+#define _NOT_DEF_ 0xdeadface
 
 /* CDCM info header. Parameter for module_init entry point */
 typedef struct _cdcmInfoHeader {
@@ -52,18 +54,18 @@ typedef struct _cdcmInfoHeader {
 
 /* parameters that are global for all the groups */
 typedef struct {
-  void *glob_opaque; /* global data, common for all the groups */
+  void *glob_opaque; /* user hook. global data, common for all the groups */
 } cdcm_glob_t;
 
 /* Group description.
    Possible group numbers are [MIN_GRP_NUM - MAX_GRP_NUM] */
 typedef struct {
   struct list_head grp_list; /* claimed group list */
-  struct list_head mod_list; /* list of modules of the current group */
+  struct list_head mod_list; /* list of modules in the current group */
 
   int grp_num;      /* group number [MIN_GRP_NUM - MAX_GRP_NUM] */
   int mod_amount;   /* module amount in the group */
-  void *grp_opaque; /* group-specific data */
+  void *grp_opaque; /* user hook for group-specific data */
   cdcm_glob_t *grp_glob; /* global params pointer */
 } cdcm_grp_t;
 
@@ -80,18 +82,18 @@ typedef struct _cdcmModDescr {
   int   md_mpd;    /* Minor amount Per current Device (channels) */
   int   md_ivec;   /* interrupt vector */
   int   md_ilev;   /* interrupt level */
-  int   md_iflags; /* module info flags */
+  long  md_iflags; /* module info flags */
   char *md_transp; /* transparent module parameter (string format only) */
 
   /* VME specific */
-  unsigned int md_vme1addr; /* first base adress */
-  unsigned int md_vme2addr; /* second base adress */
+  unsigned int md_vme1addr; /* first base adress ('O' option char) */
+  unsigned int md_vme2addr; /* second base adress ('M' option char) */
   
   /* PCI specific */
   unsigned int md_pciVenId; /* vendor ID */
   unsigned int md_pciDevId; /* device ID */
 
-  void       *md_opaque; /* module-specific data */
+  void       *md_opaque; /* user hook for module-specific data */
   cdcm_grp_t *md_owner;  /* group to which module belongs */
 } cdcm_md_t;
 
