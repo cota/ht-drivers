@@ -1,4 +1,4 @@
-/* $Id: cdcmDrvr.h,v 1.3 2007/12/19 09:02:05 ygeorgie Exp $ */
+/* $Id: cdcmDrvr.h,v 1.4 2008/04/24 09:09:16 ygeorgie Exp $ */
 /**
  * @file cdcmDrvr.h
  *
@@ -316,36 +316,36 @@ do {									  \
 
 /* for pure printing */
 #define PRNT_OPEN(format, arg...) \
-if (cdcmStatT.cdcm_ipl & IPL_OPEN) { PRNT_ABS_INFO(format, arg); }
+if (cdcmStatT.cdcm_ipl & IPL_OPEN) { PRNT_ABS_INFO(format, ##arg); }
 
 #define PRNT_CLOSE(format, arg...) \
-if (cdcmStatT.cdcm_ipl & IPL_CLOSE) { PRNT_ABS_INFO(format, arg); }
+if (cdcmStatT.cdcm_ipl & IPL_CLOSE) { PRNT_ABS_INFO(format, ##arg); }
 
 #define PRNT_READ(format, arg...) \
-if  (cdcmStatT.cdcm_ipl & IPL_READ) {PRNT_ABS_INFO(format, arg); }
+if  (cdcmStatT.cdcm_ipl & IPL_READ) {PRNT_ABS_INFO(format, ##arg); }
 
 #define PRNT_WRITE(format, arg...) \
-if (cdcmStatT.cdcm_ipl & IPL_WRITE) { PRNT_ABS_INFO(format, arg); }
+if (cdcmStatT.cdcm_ipl & IPL_WRITE) { PRNT_ABS_INFO(format, ##arg); }
 
 #define PRNT_SELECT(format, arg...) \
-if (cdcmStatT.cdcm_ipl & IPL_SELECT) { PRNT_ABS_INFO(format, arg); }
+if (cdcmStatT.cdcm_ipl & IPL_SELECT) { PRNT_ABS_INFO(format, ##arg); }
 
 #define PRNT_IOCTL(format, arg...) \
-if (cdcmStatT.cdcm_ipl & IPL_IOCTL) { PRNT_ABS_INFO(format, arg); }
+if (cdcmStatT.cdcm_ipl & IPL_IOCTL) { PRNT_ABS_INFO(format, ##arg); }
 
 #define PRNT_INSTALL(format, arg...) \
-if (cdcmStatT.cdcm_ipl & IPL_INSTALL) { PRNT_ABS_INFO(format, arg); }
+if (cdcmStatT.cdcm_ipl & IPL_INSTALL) { PRNT_ABS_INFO(format, ##arg); }
 
 #define PRNT_UNINST(format, arg...) \
-if (cdcmStatT.cdcm_ipl & IPL_UNINST) { PRNT_ABS_INFO(format, arg); }
+if (cdcmStatT.cdcm_ipl & IPL_UNINST) { PRNT_ABS_INFO(format, ##arg); }
 
 #define PRNT_DBG(format, arg...) \
-if (cdcmStatT.cdcm_ipl & IPL_DBG) { PRNT_ABS_DBG_MSG(format, arg); }
+if (cdcmStatT.cdcm_ipl & IPL_DBG) { PRNT_ABS_DBG_MSG(format, ##arg); }
 
 #define PRNT_ERR(format, arg...) \
-if (cdcmStatT.cdcm_ipl & IPL_ERROR) { PRNT_ABS_ERR(format, arg); }
+if (cdcmStatT.cdcm_ipl & IPL_ERROR) { PRNT_ABS_ERR(format, ##arg); }
 
 #define PRNT_INFO(format, arg...) \
-if (cdcmStatT.cdcm_ipl & IPL_INFO) { PRNT_ABS_INFO(format, arg); }
+if (cdcmStatT.cdcm_ipl & IPL_INFO) { PRNT_ABS_INFO(format, ##arg); }
 
 #endif /* _CDCM_DRVR_H_INCLUDE_ */
