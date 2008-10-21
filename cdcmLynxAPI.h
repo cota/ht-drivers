@@ -1,8 +1,8 @@
-/* $Id: cdcmLynxAPI.h,v 1.3 2007/12/19 09:02:05 ygeorgie Exp $ */
+/* $Id: cdcmLynxAPI.h,v 1.4 2008/10/21 13:12:16 egarciac Exp $ */
 /**
  * @file cdcmLynxAPI.h
  *
- * @brief All LynxOS wrapper function definitions are located here.
+ * @brief All LynxOS wrapper function decl and definitions are located here.
  *
  * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
  *
@@ -18,6 +18,9 @@
  */
 #ifndef _CDCM_LYNX_API_H_INCLUDE_
 #define _CDCM_LYNX_API_H_INCLUDE_
+
+/* ioctl control codes from Lynx sys/ioctl.h */
+#define FIOPRIO 20  /* priority of a process has changed */
 
 #define tickspersec HZ	/* number of ticks per second */
 
@@ -36,6 +39,7 @@
 #define _kill(pid,sig)    kill_proc(pid,sig,0)
 #define _killpg(pgrp,sig) kill_pg(pgrp,sig,0)
 #define getpid()          current->pid
+#define st_getstid()      current->pid /* TODO */
 
 /* TODO. REMOVE. for swait interrupts debugging only. defined in cdcmTime.c */
 extern int cdcm_dbg_irq;
@@ -118,6 +122,11 @@ int drm_get_handle(int, int, int, struct drm_node_s **);
 int drm_free_handle(struct drm_node_s *);
 int drm_device_read(struct drm_node_s *, int, unsigned int, unsigned int, void *);
 int drm_device_write(struct drm_node_s *, int, unsigned int, unsigned int, void *);
+int drm_register_isr(struct drm_node_s *, void (*)(), void *);
+int drm_unregister_isr(struct drm_node_s *);
+int drm_map_resource(struct drm_node_s *, int, unsigned int *);
+int drm_unmap_resource(struct drm_node_s *, int);
+
 
 /* CES LynxOS API */
 /*-----------------------------------------------------------------------------
