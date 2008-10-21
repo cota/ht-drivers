@@ -1,4 +1,4 @@
-/* $Id: cdcmDrvr.h,v 1.4 2008/04/24 09:09:16 ygeorgie Exp $ */
+/* $Id: cdcmDrvr.h,v 1.5 2008/10/21 13:00:29 ygeorgie Exp $ */
 /**
  * @file cdcmDrvr.h
  *
@@ -29,11 +29,12 @@
 #define MODULE
 #endif
 
-#include <linux/config.h>
 #include <linux/version.h>
 #include <linux/kernel.h>
-
 #include <linux/module.h>
+
+#include <linux/config.h>
+
 
 #ifdef MODVERSIONS
 #include <config/modversions.h>
@@ -244,8 +245,7 @@ struct cdcm_grp_info_t {
 				    to install entry point) */
   int   grp_it_sz;		 /* info table size in bytes */
 };
-
-#define drm_node_s cdcm_grp_info_t
+typedef struct cdcm_grp_info_t drm_node_s;
 
 /* general CDCM statics table */
 typedef struct _cdcmStatics {
