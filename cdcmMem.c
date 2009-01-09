@@ -1,4 +1,3 @@
-/* $Id: cdcmMem.c,v 1.3 2007/12/19 09:02:05 ygeorgie Exp $ */
 /**
  * @file cdcmMem.c
  *
@@ -6,13 +5,11 @@
  *
  * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
  *
- * @date Feb, 2007
+ * @date Created on 17/02/2007
  *
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @version 3.0  ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
- * @version 2.0  ygeorgie  14/03/2007  Production release, CVS controlled.
- * @version 1.0  ygeorgie  17/02/2007  Initial version.
+ * @version $Id: cdcmMem.c,v 1.4 2009/01/09 10:26:03 ygeorgie Exp $
  */
 #include "cdcmDrvr.h"
 #include "cdcmMem.h"
@@ -209,3 +206,73 @@ static cdcmm_t* cdcm_mem_get_free_block(void)
 
   return(NULL);	/* nomally not reached */
 }
+
+
+/**
+ * get_phys - get physical address of a virtual address !TODO!
+ *
+ * @param vaddr: virtual address
+ *
+ * returns the physical address onto which the given virtual address is mapped.
+ * Some hardware devices may require a corresponding physical address
+ * if they, for example, access physical memory directly (DMA) without the 
+ * benefit of the MMU. The value returned by get_phys minus PHYSBASE may be used
+ * for such purposes.
+ *
+ * @return
+ */
+char *get_phys(long vaddr)
+{
+  return 0;
+}
+
+
+/**
+ * mem_lock - guarantees address range is in real memory 
+ *
+ * @param tjob: process ID that wants to lock memory
+ * @param start:virtual start address, in bytes
+ * @param size: size of the region of memory to lock, in bytes
+ *
+ * mem_lock guarantees that a region of virtual memory is locked into physical 
+ * memory. mem_lock returns OK if it can lock all the requested memory 
+ * otherwise it will return SYSERR.
+ *
+ * @return 
+ */
+int mem_lock(int tjob, char *start, unsigned long size)
+{
+  return OK; 
+}
+
+/**
+ * mem_unlock - frees real memory for swapping !TODO!
+ *
+ * @param tjob: process ID that wants to lock memory
+ * @param start: is the virtual start address, in bytes
+ * @param size: is the size of the region of memory to lock, in bytes
+ * @param dirty: if dirty is non 0 then the entire section of memory from
+ * start to size will be marked as dirty. Dirty pages will be written to disk 
+ * by the VM mechanism in the kernel before they are released.
+ *
+ * mem_unlock unlocks the previously locked region of virtual memory which 
+ * allows the memory to be swapped. mem_unlock returns OK if the region 
+ * has been successfully unlocked otherwise it will return SYSERR
+ *
+ * @return 
+ */
+
+
+/**
+ * get1page - get one page of physical memory
+ *
+ * allocates one page of physical memory and returns a virtual address
+ * which can be used to access it. 
+ *
+ * @return 
+ */
+char *get1page()
+{
+  return (char *)get_zeroed_page(GFP_KERNEL);
+}
+

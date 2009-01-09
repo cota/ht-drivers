@@ -1,4 +1,4 @@
-$Id: README,v 1.2 2007/12/17 14:55:58 ygeorgie Exp $
+$Id: README,v 1.3 2009/01/09 10:26:03 ygeorgie Exp $
 +-------------------------------------------------+
 |  Author:          Yury Georgievskiy from AB/CO  |
 |  Creation date:   01.06.2006                    |
@@ -47,9 +47,9 @@ Here comes the 'limitation list'
    Here are some examples that illustrates how stream task should look like
    in CDCM:
 
---------------------------------------------------------------------
+----------------------------------+---------------------------------
 	Normal Lynx thread        |        CDCM adapted Lynx thread
-----------------------------------|---------------------------------
+----------------------------------+---------------------------------
                                   |
    void kthread(void param) {     |   void kthread(void param) {     
 	  for (;;) {              |          for (;;) {  
@@ -59,7 +59,7 @@ Here comes the 'limitation list'
 	  }                       |            CDCM_LOOP_AGAIN;
 	}                         |          } 
                                   |        }
-----------------------------------|---------------------------------
+----------------------------------+---------------------------------
                                   |
    void kthread(void param) {     |   void kthread(void param) {
 	  do {                    |          do {
@@ -69,7 +69,7 @@ Here comes the 'limitation list'
 	  } while (1)             |            CDCM_LOOP_AGAIN;  
 	}                         |          } while (1)
                                   |        }
-----------------------------------|---------------------------------     
+----------------------------------+---------------------------------     
                                   |
    void kthread(void param) {     |    void kthread(void param) {
 	tag:                      |         tag: 
@@ -79,7 +79,7 @@ Here comes the 'limitation list'
 	goto tag;                 |         CDCM_LOOP_AGAIN; 
 	}                         |         goto tag;
                                   |         }
---------------------------------------------------------------------
+----------------------------------+---------------------------------
 
    As you can see - all 'adapted' functions contain CDCM_LOOP_AGAIN macro just
    before the end of the loop cycle. This is the bottleneck of thread stub
@@ -93,5 +93,51 @@ Here comes the 'limitation list'
    Special CDCM functions can be used when transferring data to/from user
    address space. These functions are:
 
-   A. cdcm_copy_from_user
-   B. cdcm_copy_to_user
+   A. cdcm_copy_from_user(void *to, void *from, int size)
+   B. cdcm_copy_to_user(void *to, void *from, int size)
+
+4. DMA API
+----------
+Documentation to be written.
+
+5. Interrupt handler
+--------------------
+Documentation to be written.
+
+6. Return values to user-space
+------------------------------
+Programs that run in user space always see -1 as the error return value.
+They need to access the errno variable to find out what happened; this is
+imposed by the POSIX standard. 
+For CDCM-compliant drivers we follow the LynxOs approach:
+* If an error happens, first set pseterr(code), where code is one of the
+POSIX error codes defined in include/errno.h.
+* Once the error code has been set, return SYSERR.
+
+Note that the procedure below refers _only_ to the communication between 
+the kernel and user-space, which is defined by POSIX (i.e. this standard
+does not make requirements on how the kernel operates internally).
+
+Sources: LynxOS man, ldd3@pp66.
+
+7. Timeouts
+-----------
+Timeouts respect the original LynxOs interface (search for its man page).
+Just as a reminder, note that the interval passed to the timeout is 
+the number of ticks we want to wait. 
+In CDCM, the variable tickspersec contains the number of times that the 
+system timer pops every second (this is the HZ constant on Linux).
+
+Example: number of ticks (say, y ticks) needed for a timeout of x ms.
+y [ticks] = x [ms] * 1/1000 [s/ms] * tickspersec [ticks/s]
+
+A couple of macros have been included in CDCM
+to convert to/from ms to/from ticks (they're in cdcmBoth):
+cdcm_ticks_to_ms(arg)
+cdcm_ms_to_ticks(arg)
+, where the argument is the value to be converted.
+
+Proceeding as above will save you from trouble while working with different
+platforms, since tickspersec will vary from one machine to anoter. Therefore
+it is _wrong_ to assume a value for tickspersec. If you want a timeout for,
+say, 10 ms, call timeout with an expire value of cdcm_ms_to_ticks(10).

@@ -1,4 +1,3 @@
-/* $Id: cdcmInfoT.h,v 1.5 2008/02/01 14:33:51 ygeorgie Exp $ */
 /**
  * @file cdcmInfoT.h
  *
@@ -6,7 +5,7 @@
  *
  * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
  *
- * @date May, 2006
+ * @date Created on 01/06/2006
  *
  * All Linux Info Files that are created, based on the following convention:
  * First comes the standart CDCM header @b cdcm_hdr_t that contains all needed
@@ -15,15 +14,12 @@
  * (i.e. user-style info table). It's not interpreted by @b CDCM.
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @version 4.0  ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
- * @version 3.0  ygeorgie  14/03/2007  Production release, CVS controlled.
- * @version 2.0  ygeorgie  27/07/2006  First working release.
- * @version 1.0  ygeorgie  01/06/2006  Initial version.
+ * @version $Id: cdcmInfoT.h,v 1.6 2009/01/09 10:26:03 ygeorgie Exp $
  */
 #ifndef _CDCM_INFO_TABLE_H_INCLUDE_
 #define _CDCM_INFO_TABLE_H_INCLUDE_
 
-#include "cdcm.h"
+#include "cdcmIoctl.h"
 
 /* signature */
 #define CDCM_MAGIC_IDENT (('C'<<24)|('D'<<16)|('C'<<8)|'M')

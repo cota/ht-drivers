@@ -1,4 +1,3 @@
-/* $Id: cdcmDrvr.h,v 1.5 2008/10/21 13:00:29 ygeorgie Exp $ */
 /**
  * @file cdcmDrvr.h
  *
@@ -6,17 +5,13 @@
  *
  * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
  *
- * @date May, 2006
+ * @date Created on 31/05/2006
  *
  * This is a CDCM header file which holds all major definitions of the CDCM
  * abstraction layer.
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @version 5.0  ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
- * @version 4.0  ygeorgie  14/03/2007  Production release, CVS controlled.
- * @version 3.0  ygeorgie  16/01/2007  VME support.
- * @version 2.0  ygeorgie  27/07/2006  First working release.
- * @version 1.0  ygeorgie  31/05/2006  Initial version.
+ * @version $Id: cdcmDrvr.h,v 1.6 2009/01/09 10:26:03 ygeorgie Exp $
  */
 #ifndef _CDCM_DRVR_H_INCLUDE_
 #define _CDCM_DRVR_H_INCLUDE_
@@ -33,8 +28,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 
-#include <linux/config.h>
-
+//#include <linux/config.h>
 
 #ifdef MODVERSIONS
 #include <config/modversions.h>
@@ -75,9 +69,15 @@
 #include <linux/hdlc.h>
 #include <linux/kthread.h>
 
-#include "cdcm.h" /* for CDCM_DNL */
+//#include "cdcmCpu.h" /* supported CPU types */
+#include "cdcmIoctl.h" /* for CDCM_DNL */
 #include "cdcmInfoT.h"	/* for 'cdcm_hdr_t' type */
+
+#include "cdcm/cdcmCpu.h"
+
+#if (CPU == ppc4)
 #include <ces/xpc_vme.h>
+#endif
 
 #define kkprintf printk
 #define cprintf printk
@@ -245,7 +245,9 @@ struct cdcm_grp_info_t {
 				    to install entry point) */
   int   grp_it_sz;		 /* info table size in bytes */
 };
-typedef struct cdcm_grp_info_t drm_node_s;
+//typedef struct cdcm_grp_info_t drm_node_s;
+#define drm_node_s cdcm_grp_info_t
+//typedef struct cdcm_grp_info_t drm_node_s_t;
 
 /* general CDCM statics table */
 typedef struct _cdcmStatics {

@@ -1,4 +1,3 @@
-/* $Id: cdcmVars.h,v 1.1 2007/12/19 08:59:25 ygeorgie Exp $ */
 /**
  * @file cdcmVars.h
  *
@@ -6,11 +5,11 @@
  *
  * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
  *
- * @date Dec, 2007
+ * @date Created on 18/12/2007
  *
  * Inspired by http://www.keil.com/support/docs/1868.htm. Thxs!
  *
- * @version 1.0  ygeorgie  18/12/2007  Initial version.
+ * @version $Id: cdcmVars.h,v 1.2 2009/01/09 10:26:03 ygeorgie Exp $
  */
 #ifndef _CDCM_VARS_H_INCLUDE_
 #define _CDCM_VARS_H_INCLUDE_

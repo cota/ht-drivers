@@ -1,4 +1,3 @@
-/* $Id: cdcmLynxAPI.c,v 1.2 2007/12/19 09:02:05 ygeorgie Exp $ */
 /**
  * @file cdcmLynxAPI.c
  *
@@ -6,12 +5,11 @@
  *
  * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
  *
- * @date Feb, 2007
+ * @date Created on 12/02/2007
  *
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @version 2.0  ygeorgie  14/03/2007  Production release, CVS controlled.
- * @version 1.0  ygeorgie  12/02/2007  Initial version.
+ * @version $Id: cdcmLynxAPI.c,v 1.3 2009/01/09 10:26:03 ygeorgie Exp $
  */
 #include "cdcmDrvr.h"
 #include "cdcmMem.h"

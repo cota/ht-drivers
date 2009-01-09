@@ -1,4 +1,3 @@
-/* $Id: cdcmVme.c,v 1.4 2007/12/19 09:02:05 ygeorgie Exp $ */
 /**
  * @file cdcmVme.c
  *
@@ -7,36 +6,34 @@
  * @author Yury Georgievskiy, Alain Gagnaire, Nicolas De Metz-Noblat
  *         CERN AB/CO.
  *
- * @date Jan, 2007
+ * @date Created on 16/01/2007
  *
  * Consider it like a wrapper of the user driver.
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @version 4.0  ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
- * @version 3.0  ygeorgie  24/04/2007  Possibility to change IRQ scheduling
- *                                     priority.
- * @version 2.0  ygeorgie  14/03/2007  Production release, CVS controlled.
- * @version 1.0  ygeorgie  16/01/2007  Initial version.
+ * @version $Id: cdcmVme.c,v 1.5 2009/01/09 10:26:03 ygeorgie Exp $
  */
 #include "cdcmDrvr.h"
 #include "cdcmLynxAPI.h"
 #include "cdcmUsrKern.h"
 #include "generalDrvrHdr.h" /* for WITHIN_RANGE */
-#include <asm/unistd.h>     /* for _syscall */
 #include <linux/irq.h>
+
+#if (CPU == ppc4)
 #include <platforms/rio.h>  /* for RIO_ACT_VMEIRQ1 */
 #include <ces/xpc_vme.h>
+#endif
 
-/* page qualifier */
-#define VME_PG_SHARED  0x00
-#define VME_PG_PRIVATE 0x02
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20)
+#include <asm/unistd.h>     /* for _syscall */
 
-/* for _syscall's. Othervise we've got undefined symbol */
+/* for _syscall's. Otherwise we've got undefined symbol */
 static int errno;
 
 /* we'll need this system calls to get some info */
 static __inline__ _syscall1(int,sched_get_priority_min,int,policy)
 static __inline__ _syscall1(int,sched_get_priority_max,int,policy)
+#endif /* 2.6.20 */
 
 /* CDCM global variables (declared in the cdcmDrvr.c module)  */
 extern struct file_operations cdcm_fops; /* char dev file operations */

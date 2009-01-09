@@ -1,21 +1,17 @@
-/* $Id: cdcmTime.c,v 1.3 2007/12/19 09:02:05 ygeorgie Exp $ */
 /**
  * @file cdcmTime.c
  *
  * @brief All timing-related staff
  *
  * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
- *         Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @date June, 2006
+ * @date Created on 07/07/2006
  *
+ * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  * All timing-related staff for CDCM is located here, i.e. Lynx stub functions
  * and supplementary functions.
  *
- * @version 4.0  ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
- * @version 3.0  ygeorgie  14/03/2007  Production release, CVS controlled.
- * @version 2.0  ygeorgie  27/07/2006  First working release.
- * @version 1.0  ygeorgie  07/07/2006  Initial version.
+ * @version $Id: cdcmTime.c,v 1.4 2009/01/09 10:26:03 ygeorgie Exp $
  */
 #include <linux/time.h>
 
@@ -75,12 +71,12 @@ int nanotime(unsigned long *sec)
  *
  * @param func     - function to call
  * @param arg      - argument for function handler
- * @param interval - timeout interval (10 millisecond garnularity)
+ * @param interval - timeout interval (10 millisecond granularity)
  *
  * @return non-negative timeout id - if there is a timer available.
  * @return SYSERR (i.e. -1)        - otherwise.
  */
-int timeout(tpp_t func, char *arg, int interval)
+int timeout(tpp_t func, void *arg, int interval)
 {
   int cntr;
   //cdcmt_t *cdcmtptr; /* timer handle */
@@ -90,7 +86,8 @@ int timeout(tpp_t func, char *arg, int interval)
       /* initialize for usage */
       cdcmStatT.cdcm_timer[cntr] = (cdcmt_t) {
 	.ct_on      = current->pid,
-	.ct_timer   = TIMER_INITIALIZER(cdcm_timer_callback/*payload*/, (jiffies + interval)/*when to call*/, cntr/*timer payload parameter - my data table index*/),
+	/* TIMER_INITIALIZER(payload, when to trigger, payload parameter) */
+	.ct_timer = TIMER_INITIALIZER(cdcm_timer_callback, jiffies + msecs_to_jiffies(10*interval), cntr),
 	.ct_uf  = func,
 	.ct_arg = arg
       };

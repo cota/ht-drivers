@@ -1,4 +1,3 @@
-/* $Id: cdcmThread.h,v 1.2 2007/12/19 09:02:05 ygeorgie Exp $ */
 /**
  * @file cdcmThread.h
  *
@@ -6,13 +5,11 @@
  *
  * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
  *
- * @date May, 2006
+ * @date Created on 02/06/2006
  *
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @version 3.0  ygeorgie  14/03/2007  Production release, CVS controlled.
- * @version 2.0  ygeorgie  27/07/2006  First working release.
- * @version 1.0  ygeorgie  02/06/2006  Initial version.
+ * @version $Id: cdcmThread.h,v 1.3 2009/01/09 10:26:03 ygeorgie Exp $
  */
 #ifndef _CDCM_THREAD_H_INCLUDE_
 #define _CDCM_THREAD_H_INCLUDE_

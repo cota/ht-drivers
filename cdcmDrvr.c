@@ -1,4 +1,3 @@
-/* $Id: cdcmDrvr.c,v 1.6 2007/12/19 09:02:05 ygeorgie Exp $ */
 /**
  * @file cdcmDrvr.c
  *
@@ -6,23 +5,20 @@
  *
  * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
  *
- * @date Feb, 2006
+ * @date Created on 02/06/2006
  *
  * Encapsulates user-written LynxOS driver. Consider it like a wrapper of the
  * user Lynx driver.
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @version 4.0  ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
- * @version 3.0  ygeorgie  14/03/2007  Production release, CVS controlled.
- * @version 2.0  ygeorgie  27/07/2006  First working release.
- * @version 1.0  ygeorgie  02/06/2006  Initial version.
+ * @version $Id: cdcmDrvr.c,v 1.7 2009/01/09 10:26:03 ygeorgie Exp $
  */
 #include "cdcmDrvr.h"
 #include "cdcmLynxAPI.h"
 #include "cdcmMem.h"
 #include "cdcmTime.h"
 #include "cdcmUsrKern.h"
-#include "generalDrvrHdr.h" /* for WITHIN_RANGE */
+#include "general_both.h" /* for WITHIN_RANGE */
 
 MODULE_DESCRIPTION("Common Driver Code Manager (CDCM) Driver");
 MODULE_AUTHOR("Yury Georgievskiy, CERN AB/CO");
@@ -36,7 +32,9 @@ MODULE_PARM_DESC(ipath, "Absolute path name of the CDCM info file.");
 /* external crap */
 extern char* cdcm_get_info_table(char*, int*);
 extern void  cdcm_pci_cleanup(void);
-extern void  cdcm_vme_cleanup(void);
+#if (CPU != L864 && CPU != L865)		/* TODO Quick fixup for xmem driver */
+extern void cdcm_vme_cleanup(void);
+#endif
 
 extern struct dldd entry_points; /* declared in the user driver part */
 
@@ -56,6 +54,8 @@ struct list_head *glob_cur_grp_ptr = NULL; /* current working group pointer */
 
 /* LynxOs system kernel-level errno. is set _ONLY_ by 'pseterr' function */
 int cdcm_err = 0;
+
+spinlock_t lynxos_cpu_lock = SPIN_LOCK_UNLOCKED;
 
 struct file_operations cdcm_fops;
 
@@ -275,7 +275,7 @@ static int process_cdcm_srv_ioctl(struct inode *inode, struct file *file, unsign
   case CDCM_CDV_INSTALL:	/* cdv_install() stub */
     {
       struct cdcm_grp_info_t *cur_grp; /* current working group info table */
-      char itp[PATH_MAX];	/* info table path */
+      char *itp = NULL; /* info table path */
       int len;
 
       if (glob_cur_grp_ptr == &cdcmStatT.cdcm_grp_list_head)
@@ -289,6 +289,10 @@ static int process_cdcm_srv_ioctl(struct inode *inode, struct file *file, unsign
       if ( (len = strnlen_user(uptr, PATH_MAX)) <= 0)
 	return(-EFAULT);
       
+      /* alloc space */
+      if (!(itp = sysbrk(len)))
+	return(-ENOMEM);
+
       /* get the string */
       if (copy_from_user(itp, uptr, len))
 	return(-EFAULT);
@@ -296,9 +300,12 @@ static int process_cdcm_srv_ioctl(struct inode *inode, struct file *file, unsign
       /* get module info table */
       if ( !(cur_grp->grp_info_tbl = cdcm_get_info_table(itp, &cur_grp->grp_it_sz)) ) {
 	PRNT_ABS_ERR("Can't read info file."); /* fatal. barf */
+	sysfree(itp, len);
 	return(-ENOENT);
       }
       
+      sysfree(itp, len); /* we don't need it anymore */
+
       /* hook the uza */
       if ( (cur_grp->grp_stat_tbl = entry_points.dldd_install(cur_grp->grp_info_tbl)) == (char*)SYSERR) {
 	PRNT_ABS_ERR("Install vector failed.");
@@ -577,7 +584,11 @@ static void __exit cdcm_driver_cleanup(void)
   if (cdcmStatT.cdcm_drvr_type == 'P')
     cdcm_pci_cleanup();
   else if (cdcmStatT.cdcm_drvr_type == 'V')
+#if (CPU != L864  && CPU != L865)
     cdcm_vme_cleanup();
+#else
+  ;
+#endif
 
   cdcm_sema_cleanup_all();	/* cleanup semaphores */
   cdcm_cleanup_groups(NULL);
@@ -617,9 +628,7 @@ do {						\
 /**
  * @brief Main driver initialization.
  *
- * @param 
- * @param 
- * @param 
+ * @param none
  *
  * @return 0        - in case of success.
  * @return non zero - otherwise.

@@ -1,4 +1,3 @@
-/* $Id: cdcmDbgTools.h,v 1.1 2007/12/19 08:59:25 ygeorgie Exp $ */
 /**
  * @file cdcmDbgTools.h
  *
@@ -6,7 +5,7 @@
  *
  * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
  *
- * @date March, 2007
+ * @date Created on 27/03/2007
  *
  * Developer can use for timing measurements, hardware access tracking, using
  * VMETRO tracking utilities and definitions. Intended for debugging, device
@@ -15,9 +14,7 @@
  * for debug purposes. Base module address should be correctly set before
  * using the modules. 
  *
- * @version 2.0  ygeorgie  27/05/2007  Add support for VMOD-DOR module that
- *                                     can be used as a debugging tool.
- * @version 1.0  ygeorgie  27/03/2007  Initial version.
+ * @version $Id: cdcmDbgTools.h,v 1.2 2009/01/09 10:26:03 ygeorgie Exp $
  */
 #ifndef _CDCM_DBG_TOOLS_H_INCLUDE_
 #define _CDCM_DBG_TOOLS_H_INCLUDE_

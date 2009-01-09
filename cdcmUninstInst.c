@@ -1,4 +1,3 @@
-/* $Id: cdcmUninstInst.c,v 1.5 2007/12/20 08:43:15 ygeorgie Exp $ */
 /**
  * @file cdcmUninstInst.c
  *
@@ -6,7 +5,7 @@
  *
  * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
  *
- * @date June, 2007
+ * @date Created on 28/06/2007
  *
  * Helps to unify driver install procedure between two systems. All standart
  * options are parsed here and CDCM group description is build-up.
@@ -14,9 +13,7 @@
  * Inspired by module-init-tools-3.2/insmod.c and rmmod,
  * written by Rusty Russell. Thxs!
  *
- * @version 3.0  ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
- * @version 2.0  ygeorgie  09/07/2007  Production release, CVS controlled.
- * @version 1.0  ygeorgie  28/06/2007  Initial version.
+ * @version $Id: cdcmUninstInst.c,v 1.6 2009/01/09 10:26:03 ygeorgie Exp $
  */
 #ifdef __linux__
 #define _GNU_SOURCE /* asprintf rocks */
@@ -34,7 +31,7 @@
 #include <sys/stat.h>
 #include <sys/param.h>
 
-#include <common/include/generalDrvrHdr.h>
+#include <common/include/general_both.h>
 #include <common/include/list.h>
 #include <cdcm/cdcmInfoT.h>
 #include <cdcm/cdcmUninstInst.h>
@@ -66,16 +63,17 @@ static void assert_compulsory_vectors(void);
 static int  check_and_set_option_chars(char*);
 
 /* module description */
-static cdcm_md_t mod_desc[MAX_VME_SLOT] = {
-  [0 ... MAX_VME_SLOT-1] {
-    .md_lun      = -1,
+static cdcm_md_t mod_desc[MAX_MODULE_AM] = {
+  [0 ... MAX_MODULE_AM-1] {
+    .md_lun      = _NOT_DEF_,
     .md_mpd      =  1,
     .md_ivec     = -1,
     .md_ilev     = -1,
-    .md_vme1addr = -1,
-    .md_vme2addr = -1,
+    .md_vme1addr = _NOT_DEF_,
+    .md_vme2addr = _NOT_DEF_,
     .md_pciVenId = -1,
     .md_pciDevId = -1,
+    .md_opaque   =  NULL,
     .md_owner    =  NULL
   }
 };
@@ -83,64 +81,64 @@ static cdcm_md_t mod_desc[MAX_VME_SLOT] = {
 /* !WARNING! Keep next variable in concistency with def_opt_t definition! */
 /* default option characters capability */
 static opt_char_cap_t cdcm_def_opt_char_cap[] = {
-  [9] {
+  [9] {             /* G */
     .opt_val      = P_T_GRP,
     .opt_redef    = 0, /* not (re)defined by the user */
     .opt_with_arg = 1, /* requires an arg. */
     .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[9].opt_list)
   },
-  [8] {
+  [8] {             /* U */
     .opt_val      = P_T_LUN,
     .opt_redef    = 0,
     .opt_with_arg = 1,
     .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[8].opt_list)
   },
-  [7] {
+  [7] {             /* O */
     .opt_val      = P_T_ADDR,
     .opt_redef    = 0,
     .opt_with_arg = 1,
     .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[7].opt_list)
   },
-  [6] {
+  [6] {             /* M */
     .opt_val      = P_T_N_ADDR,
     .opt_redef    = 0,
     .opt_with_arg = 1,
     .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[6].opt_list)
   },
-  [5] {
+  [5] {             /* L */
     .opt_val      = P_T_ILEV,
     .opt_redef    = 0,
     .opt_with_arg = 1,
     .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[5].opt_list)
   },
-  [4] {
+  [4] {             /* V */
     .opt_val      = P_T_IVECT,
     .opt_redef    = 0,
     .opt_with_arg = 1,
     .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[4].opt_list)
   },
-  [3] {
+  [3] {             /* C */
     .opt_val      = P_T_CHAN,
     .opt_redef    = 0,
     .opt_with_arg = 1,
     .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[3].opt_list)
   },
-  [2] {
+  [2] {             /* T */
     .opt_val      = P_T_TRANSP,
     .opt_redef    = 0,
     .opt_with_arg = 1,
     .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[2].opt_list)
   },
-  [1] {
+  [1] {             /* h */
     .opt_val      = P_T_HELP,
     .opt_redef    = 0,
     .opt_with_arg = 0, /* no arg. needed */
     .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[1].opt_list)
   },
-  [0] {
+  [0] {             /* , */
     .opt_val      = P_T_SEPAR,
     .opt_redef    = 0,
-    .opt_with_arg = 0,
+    .opt_with_arg = 0, /* argument is compulsory */
     .opt_list     = LIST_HEAD_INIT(cdcm_def_opt_char_cap[0].opt_list)
   }
 };
@@ -157,10 +155,11 @@ static cdcm_glob_t glob_params = {
 };
 
 /* group description */
-static cdcm_grp_t grp_desc[MAX_VME_SLOT] = {
-  [0 ... MAX_VME_SLOT-1] {
+static cdcm_grp_t grp_desc[MAX_GROUP_AM] = {
+  [0 ... MAX_GROUP_AM-1] {
     .mod_amount   = 0,
-    .grp_glob = &glob_params
+    .grp_opaque   = NULL,
+    .grp_glob     = &glob_params
   }
 };
 
@@ -176,15 +175,17 @@ static void init_lists(void)
 {
   int i;
 
-  for (i = 0; i < MAX_VME_SLOT; i++) {
-    /* module list */
-    INIT_LIST_HEAD(&mod_desc[i].md_list);
+  /* for modules */
+  for (i = 0; i < MAX_MODULE_AM; i++)
+    INIT_LIST_HEAD(&mod_desc[i].md_list); /* init module list */
 
-    /* group lists */
-    INIT_LIST_HEAD(&grp_desc[i].grp_list);
+  /* for groups */
+  for (i = 0; i < MAX_GROUP_AM; i++) {
+    /* init group lists */
+    INIT_LIST_HEAD(&grp_desc[i].grp_list); 
     INIT_LIST_HEAD(&grp_desc[i].mod_list);
 
-    /* group number */
+    /* set group number */
     grp_desc[i].grp_num = i+1;
   }
 
@@ -270,6 +271,7 @@ static void educate_user(void)
  *
  * @param chk - let's checkit
  *
+ * Compulsory parameters are First Base Address and LUN.
  * If error detected - programm will terminate.
  *
  * @return void
@@ -277,20 +279,22 @@ static void educate_user(void)
 static void check_mod_compulsory_params(cdcm_md_t *chk)
 {
   
-  if (chk->md_lun == -1) { /* LUN not provided */
-    printf("LUN is NOT provided!\n");
+  if (chk->md_lun == _NOT_DEF_) { /* LUN not provided */
+    fprintf(stderr, "LUN is NOT provided!\n");
     goto do_barf;
   }
 
-  if (chk->md_vme1addr == -1) { /* base address is not here. too baaad... */
-    printf("Base address is not provided!\n");
+  if (chk->md_vme1addr == _NOT_DEF_) { /* base address is not here. too bad! */
+    fprintf(stderr, "Base address is not provided!\n");
     goto do_barf;
   }
 
   return; /* we cool */
 
  do_barf:
-  printf("Wrong params detected!\nAborting...\n");
+  fprintf(stderr, "Wrong params detected!\nAborting...\n");
+  if (cdcm_inst_ops.mso_cleanup)
+    (*cdcm_inst_ops.mso_cleanup)();
   exit(EXIT_FAILURE);		/* 1 */
 }
 
@@ -306,7 +310,7 @@ static inline int __module_am(void)
 {
   int mc = 0;
 
-  while (mod_desc[mc].md_lun != -1)
+  while (mod_desc[mc].md_lun != _NOT_DEF_)
     mc++;
 
   return(mc);
@@ -333,19 +337,32 @@ static void assert_all_mod_descr(void)
 
       /* LUN checking */
       if (mod_desc[cntr1].md_lun == mod_desc[cntr2].md_lun) {
-	printf("Identical LUNs (%d) detected!\nAborting...\n", mod_desc[cntr1].md_lun);
+	fprintf(stderr, "Identical LUNs (%d) detected!\nAborting...\n", mod_desc[cntr1].md_lun);
+	if (cdcm_inst_ops.mso_cleanup)
+	  (*cdcm_inst_ops.mso_cleanup)();
 	exit(EXIT_FAILURE);
       }
 
       /* first base address checking */
       if (mod_desc[cntr1].md_vme1addr == mod_desc[cntr2].md_vme1addr) {
-	printf("Identical Base VME addresses (0x%x) detected!\nAborting...\n", mod_desc[cntr1].md_vme1addr);
+	fprintf(stderr, "Identical Base VME addresses (0x%x) detected!\nAborting...\n", mod_desc[cntr1].md_vme1addr);
+	if (cdcm_inst_ops.mso_cleanup)
+	  (*cdcm_inst_ops.mso_cleanup)();
 	exit(EXIT_FAILURE);
       }
+
+      /* second base address checking (if defined) */
+      if (mod_desc[cntr1].md_vme2addr != _NOT_DEF_) {
+	if (mod_desc[cntr1].md_vme2addr == mod_desc[cntr2].md_vme2addr) {
+	  fprintf(stderr, "Identical Second VME addresses (0x%x) detected!\nAborting...\n", mod_desc[cntr1].md_vme2addr);
+	  if (cdcm_inst_ops.mso_cleanup)
+	    (*cdcm_inst_ops.mso_cleanup)();
+	  exit(EXIT_FAILURE);
+	}
+      }
+      
     }
   }
-
-  /* init ordered group list */
   
 }
 
@@ -361,13 +378,15 @@ static void assert_all_mod_descr(void)
 static void assert_compulsory_vectors(void)
 {
   if (!strlen(cdcm_inst_ops.mso_module_name)) {
-    printf("Compulsory member 'mso_module_name' is not provided. Can't get module name!\n");
+    fprintf(stderr, "Compulsory member 'mso_module_name' is not provided. Can't get module name!\n");
     goto no_compulsory_vectors;
   }
   return;	/* we cool */
   
  no_compulsory_vectors:
-  printf("Aborting...\n");
+  fprintf(stderr, "Aborting...\n");
+  if (cdcm_inst_ops.mso_cleanup)
+    (*cdcm_inst_ops.mso_cleanup)();
   exit(EXIT_FAILURE);
 }
 
@@ -380,24 +399,25 @@ static void assert_compulsory_vectors(void)
  * If they were, then redefinition flag is set to ON.
  *
  * @return how many new option characters added - if SUCCESS.
- * @return -1 - if FAILS. Printout error message on stderr.
+ * @return -1  - if FAILS. Printout error message on stderr.
  */
 /* how many extra option characters user can add */
 #define MAX_USR_DEF_OPT_CHARS 64
 static int check_and_set_option_chars(char *usroptstr)
 {
-  int uocnt = 0, cntr, new_opt = 0;
+  int uocnt = 0, cntr; /* counters */
+  int new_opt = 0;
   opt_char_cap_t *lptr;		/* list pointer */
   static opt_char_cap_t usr_opt[MAX_USR_DEF_OPT_CHARS] = { { 0 } };
   char *uoP = usroptstr;
 
-  /* check, if user wants to redefine '-,' or '-G' options */
-  if (strchr(usroptstr, ',') || strchr(usroptstr, 'G')) {
-    fprintf(stderr, "ERROR! Redefinition of '-,' and '-G' option characters is NOT allowed!\n");
-    return(-1);
-  }
-
   if (usroptstr) {
+    /* check, if user is trying to redefine '-,' or '-G' options */
+    if (strchr(usroptstr, ',') || strchr(usroptstr, 'G')) {
+      fprintf(stderr, "ERROR! Redefinition of '-,' and '-G' option characters is NOT allowed!\n");
+      return(-1);
+    }
+    
     while (*uoP) {
       if (!uocnt && *uoP == ':') {
 	fprintf(stderr, "ERROR! Wrong option character string format!\n");
@@ -470,12 +490,14 @@ static void set_mod_descr(cdcm_grp_t *gp, cdcm_md_t *mp)
 }
 
 
-#define ASSERT_GRP(mlun)									       \
-do {												       \
-  if (cur_grp == -1) {										       \
-    printf("Compulsory Current Group (G param) is not set for module [LUN #%d]!\nAborting...\n", mlun); \
-    exit(EXIT_FAILURE);		/* 1 */								       \
-  }												       \
+#define ASSERT_GRP(mlun)												\
+do {															\
+  if (cur_grp == -1) {													\
+    fprintf(stderr, "Compulsory Current Group (G param) is not set for module [LUN #%d]!\nAborting...\n", mlun);	\
+    if (cdcm_inst_ops.mso_cleanup)											\
+      (*cdcm_inst_ops.mso_cleanup)();											\
+    exit(EXIT_FAILURE);		/* 1 */											\
+  }															\
 } while (0)
 /**
  * @brief Main function that @b SHOULD be called by the module-specific
@@ -487,13 +509,14 @@ do {												       \
  *
  * @return @e cdcm_grp_t group linked list
  */
-struct list_head* cdcm_vme_arg_parser(int argc, char *argv[], char *envp[])
+struct list_head* cdcm_inst_vme_arg_parser(int argc, char *argv[], char *envp[])
 {
   int cur_lun, cur_grp = -1, cmdOpt, cntr;
-  int grp_cntr = 0, comma_cntr = 0;  /* for grouping management */
+  int grp_cntr = 0, comma_cntr = 0;  /* for grouping and module management */
   int isSet; /* module description is saved already */
   int seq_insp = 0;	/* parameter sequence inspector */
   opt_char_cap_t *cap_ptr;
+  int coco = 0; /* completion code */
   const char *optstring; /* default + module-specific command line options */
 
   assert_compulsory_vectors();	/* will barf if something missing */
@@ -501,11 +524,13 @@ struct list_head* cdcm_vme_arg_parser(int argc, char *argv[], char *envp[])
 
   if (!(optstring = get_optstring())) {
     fprintf(stderr, "Can't get command line options.\nAborting...\n");
+    if (cdcm_inst_ops.mso_cleanup)
+      (*cdcm_inst_ops.mso_cleanup)();
     exit(EXIT_FAILURE);
   }
 
   /* Scan params of the command line */
-  while ( (cmdOpt = getopt(argc, argv, optstring)) != EOF ) {
+  while ( (coco != 2) && ((cmdOpt = getopt(argc, argv, optstring)) != EOF) ) {
     seq_insp++;
     isSet = 0;
     cap_ptr = get_char_cap(cmdOpt);
@@ -513,68 +538,78 @@ struct list_head* cdcm_vme_arg_parser(int argc, char *argv[], char *envp[])
       goto user_def_option; /* redefined by user! */
 
     switch (cmdOpt) {
-    case P_T_HELP:	/* Help information */
+    case P_T_HELP:	/* 'h' Help information */
       educate_user();
       if (cdcm_inst_ops.mso_educate)
 	(*cdcm_inst_ops.mso_educate)();
       exit(EXIT_SUCCESS);	/* 0 */
       break;
-    case P_T_LUN:	/* Logical Unit Number */
+    case P_T_LUN:	/* 'U' Logical Unit Number */
       cur_lun = abs(atoi(optarg));
-      if (!WITHIN_RANGE(0, cur_lun, 20)) {
-	fprintf(stderr, "Wrong LUN (U param). Allowed absolute range is [0 - 20]\nAborting...\n");
+      if (!WITHIN_RANGE(MIN_MOD_NUM, cur_lun, MAX_MOD_NUM)) {
+	fprintf(stderr, "Wrong LUN (U param). Allowed absolute range is [%d - %d]\nAborting...\n", MIN_MOD_NUM, MAX_MOD_NUM);
+	if (cdcm_inst_ops.mso_cleanup)
+	  (*cdcm_inst_ops.mso_cleanup)();
 	exit(EXIT_FAILURE);
       }
       mod_desc[comma_cntr].md_lun = cur_lun;
       break;
-    case P_T_GRP:	/* logical group coupling */
+    case P_T_GRP:	/* 'G' Logical Group Coupling */
       if (seq_insp != 1 && cur_grp == -1) {
 	/* should come first among module parameters */
-	printf("Group numbering error (G param). Should come FIRST among module parameters!\nAborting...\n");
+	fprintf(stderr, "Group numbering error (G param). Should come FIRST among module parameters!\nAborting...\n");
+	if (cdcm_inst_ops.mso_cleanup)
+	  (*cdcm_inst_ops.mso_cleanup)();
 	exit(EXIT_FAILURE);
       }
 
       if (comma_cntr && !grp_cntr) {
 	/* should exist from the very beginning i.e. before _any_ separator */
-	printf("Group numbering error (G param). Should come BEFORE any module description and AFTER any global parameters!\nAborting...\n");
+	fprintf(stderr, "Group numbering error (G param). Should come BEFORE any module description and AFTER any global parameters!\nAborting...\n");
+	if (cdcm_inst_ops.mso_cleanup)
+	  (*cdcm_inst_ops.mso_cleanup)();
 	exit(EXIT_FAILURE);
       }
 
       cur_grp = atoi(optarg);
 
-      if (!WITHIN_RANGE(1, cur_grp, MAX_VME_SLOT)) {
-	printf("Wrong group number [#%d] (G param). Allowed range is [1 - 21]\nAborting...\n", cur_grp);
+      if (!WITHIN_RANGE(MIN_GRP_NUM, cur_grp, MAX_GRP_NUM)) {
+	fprintf(stderr, "Wrong group number [#%d] (G param). Allowed range is [%d - %d]\nAborting...\n", cur_grp, MIN_GRP_NUM, MAX_GRP_NUM);
+	if (cdcm_inst_ops.mso_cleanup)
+	  (*cdcm_inst_ops.mso_cleanup)();
 	exit(EXIT_FAILURE);	/* 1 */
       }
       cur_grp -= 1; /* set correct table index */
       mod_desc[comma_cntr].md_owner = &grp_desc[cur_grp]; /* set owner */
       grp_cntr++;
       break;
-    case P_T_ADDR:	/* First base address */
+    case P_T_ADDR:	/* 'O' First base address */
       mod_desc[comma_cntr].md_vme1addr = strtol(optarg, NULL, 16);
       break;
-    case P_T_N_ADDR:	/* Second base address */
+    case P_T_N_ADDR:	/* 'M' Second base address */
       mod_desc[comma_cntr].md_vme2addr = strtol(optarg, NULL, 16);
       break;
-    case P_T_IVECT:	/* Interrupt vector */
+    case P_T_IVECT:	/* 'V' Interrupt vector */
       mod_desc[comma_cntr].md_ivec = atoi(optarg);
       break;
-    case P_T_ILEV:	/* Interrupt level */
+    case P_T_ILEV:	/* 'L' Interrupt level */
       mod_desc[comma_cntr].md_ilev = atoi(optarg);
       break;
-    case P_T_TRANSP:	/* Transparent String driver parameter */
+    case P_T_TRANSP:	/* 'T' Transparent String driver parameter */
       break;
-    case P_T_CHAN: /* Channel amount (amount of minor devices to create) */
+    case P_T_CHAN: /* 'C' Channel amount (amount of minor devices to create) */
       mod_desc[comma_cntr].md_mpd = atoi(optarg);
       break;
-    case P_T_SEPAR:	/* End of module device definition */
-      if (comma_cntr == MAX_VME_SLOT) {
-	printf("Too many modules declared (max is %d)\nAborting...\n", MAX_VME_SLOT);
+    case P_T_SEPAR:	/* ',' - End of module device definition */
+      if (comma_cntr == MAX_MODULE_AM) {
+	fprintf(stderr, "Too many modules declared (max is %d)\nAborting...\n", MAX_MODULE_AM);
+	if (cdcm_inst_ops.mso_cleanup)
+	  (*cdcm_inst_ops.mso_cleanup)();
 	exit(EXIT_FAILURE);
       }
       
       /* set default LUN if not provided */
-      if (mod_desc[comma_cntr].md_lun == -1)
+      if (mod_desc[comma_cntr].md_lun == _NOT_DEF_)
 	mod_desc[comma_cntr].md_lun = comma_cntr;
 
       ASSERT_GRP(mod_desc[comma_cntr].md_lun);
@@ -588,9 +623,11 @@ struct list_head* cdcm_vme_arg_parser(int argc, char *argv[], char *envp[])
       seq_insp = 0;	/* reset inspector */
       break;
     case '?':	/* error */
-      printf("Wrong/unknown argument!\n");
+      fprintf(stderr, "Wrong/unknown argument!\n");
       if (cdcm_inst_ops.mso_educate)
 	(*cdcm_inst_ops.mso_educate)();
+      if (cdcm_inst_ops.mso_cleanup)
+	(*cdcm_inst_ops.mso_cleanup)();
       exit(EXIT_FAILURE);	/* 1 */
       break;
       /* all the rest is not interpreted by the CDCM arg parser */
@@ -603,19 +640,35 @@ struct list_head* cdcm_vme_arg_parser(int argc, char *argv[], char *envp[])
     user_def_option:
       seq_insp--; /* we know nothing about module-specific options */
       /* this _is_ module specific argument */
-      if (cdcm_inst_ops.mso_parse_opt)
-	(*cdcm_inst_ops.mso_parse_opt)((cur_grp == -1)?((void*)&glob_params):((void*)&mod_desc[comma_cntr]), cur_grp, cmdOpt, optarg);
-      else {
-	printf("Wrong/Unknown option '%c'!\nAborting...\n", cmdOpt);
+      if (cdcm_inst_ops.mso_parse_opt) {
+	/* and user provide us with parsing vector */
+	coco = (*cdcm_inst_ops.mso_parse_opt)((cur_grp == -1)?((void*)&glob_params):((void*)&mod_desc[comma_cntr]), cur_grp, cmdOpt, optarg);
+	if (coco) {
+	  switch (coco) {
+	  case 1:
+	    fprintf(stderr, "Wrong params detected!\nAborting...\n");
+	    if (cdcm_inst_ops.mso_cleanup)
+	      (*cdcm_inst_ops.mso_cleanup)();
+	    exit(EXIT_FAILURE); /* 1 */
+	    break;
+	  case 2:
+	    fprintf(stderr, "Param scanning finished due to user request\n");
+	    break;
+	  }
+	}
+      }	else {
+	fprintf(stderr, "Wrong/Unknown option '%c'!\nAborting...\n", cmdOpt);
+	if (cdcm_inst_ops.mso_cleanup)
+	  (*cdcm_inst_ops.mso_cleanup)();
 	exit(EXIT_FAILURE);
       }
       break;
-    }
-  }
+    } /* end of switch */
+  } /* end of while */
 
   if (!isSet) { /* we neet to set the last module config */
     /* set default LUN if not provided */
-    if (mod_desc[comma_cntr].md_lun == -1)
+    if (mod_desc[comma_cntr].md_lun == _NOT_DEF_)
       mod_desc[comma_cntr].md_lun = comma_cntr;
 
     ASSERT_GRP(mod_desc[comma_cntr].md_lun);
@@ -629,10 +682,23 @@ struct list_head* cdcm_vme_arg_parser(int argc, char *argv[], char *envp[])
   assert_all_mod_descr();
 
   /* set sorted group list */
-  for (cntr = 0; cntr < MAX_VME_SLOT; cntr++)
+  for (cntr = 0; cntr < MAX_GROUP_AM; cntr++)
     if (grp_desc[cntr].mod_amount) /* group is claimed, add it to the list */
       list_add(&grp_desc[cntr].grp_list/*new*/, &glob_grp_list/*head*/);
 
+  return(&glob_grp_list);
+}
+
+
+/**
+ * @brief Get all currently defined groups.
+ *
+ * @param none
+ *
+ * @return @e cdcm_grp_t group linked list
+ */
+struct list_head* cdcm_inst_get_groups(void)
+{
   return(&glob_grp_list);
 }
 
@@ -686,7 +752,9 @@ int dr_install(char *drvr_fn, int type)
   int grp_bits = 0;
 
   if (c_cntr > 1) {	/* oooops... */
-    printf("%s() was called more then once. Should NOT happen!\nAborting...\n", __FUNCTION__);
+    fprintf(stderr, "%s() was called more then once. Should NOT happen!\nAborting...\n", __FUNCTION__);
+    if (cdcm_inst_ops.mso_cleanup)
+      (*cdcm_inst_ops.mso_cleanup)();
     exit(EXIT_FAILURE);
   } else {
     cdcm_grp_t *grpp;
@@ -697,12 +765,16 @@ int dr_install(char *drvr_fn, int type)
   /* put .ko in the local buffer */
   if (!(drvrfile = linux_grab_file(drvr_fn, &len))) {
     fprintf(stderr, "insmod: can't read '%s': %s\n", drvr_fn, strerror(errno));
+    if (cdcm_inst_ops.mso_cleanup)
+      (*cdcm_inst_ops.mso_cleanup)();
     exit(EXIT_FAILURE);
   }
 
   /* create info file */
   if ( (itf = linux_do_cdcm_info_header_file(grp_bits)) == NULL) {
     free(drvrfile);
+    if (cdcm_inst_ops.mso_cleanup)
+      (*cdcm_inst_ops.mso_cleanup)();
     exit(EXIT_FAILURE);
   }
     
@@ -713,6 +785,8 @@ int dr_install(char *drvr_fn, int type)
     fprintf(stderr, "insmod: error inserting '%s': %li %s\n", drvr_fn, ret, linux_moderror(errno));
     free(drvrfile);
     free(options);
+    if (cdcm_inst_ops.mso_cleanup)
+      (*cdcm_inst_ops.mso_cleanup)();
     exit(EXIT_FAILURE);
   }
 
@@ -722,6 +796,8 @@ int dr_install(char *drvr_fn, int type)
   /* check if he made it */
   if ( (procfd = fopen("/proc/devices", "r")) == NULL ) {
     mperr("Can't open /proc/devices");
+    if (cdcm_inst_ops.mso_cleanup)
+      (*cdcm_inst_ops.mso_cleanup)();
     exit(EXIT_FAILURE);
   }
   
@@ -736,6 +812,8 @@ int dr_install(char *drvr_fn, int type)
   /* check if we cool */
   if (!major_num) {
     fprintf(stderr, "'%s' device NOT found in proc fs.\n", __srv_dev_name(NULL));
+    if (cdcm_inst_ops.mso_cleanup)
+      (*cdcm_inst_ops.mso_cleanup)();
     exit(EXIT_FAILURE);
   } else 
     printf("\n'%s' device driver installed. Major number %d.\n", __srv_dev_name(NULL), major_num);
@@ -745,9 +823,11 @@ int dr_install(char *drvr_fn, int type)
   devn = makedev(major_num, 0);
   if (mknod(__linux_srv_node(), S_IFCHR | 0666, devn)) {
     mperr("Can't create %s service node", __linux_srv_node());
+    if (cdcm_inst_ops.mso_cleanup)
+      (*cdcm_inst_ops.mso_cleanup)();
     exit(EXIT_FAILURE);
   }
-  //chmod(__linux_srv_node(), 0666);
+  chmod(__linux_srv_node(), 0666);
 
   c_cntr++;
   return(major_num); /* 'fake' driver id will be used by the cdv_install */
@@ -797,7 +877,7 @@ int cdv_install(char *path, int driver_id, int extra)
   c_cntr++;
 
   if (c_cntr > list_capacity(&glob_grp_list)) {	/* oooops... */
-    printf("%s() was called more times, then groups declared. Should NOT happen!\nAborting...\n", __FUNCTION__);
+    fprintf(stderr, "%s() was called more times, then groups declared. Should NOT happen!\nAborting...\n", __FUNCTION__);
     return(-1);
   }
 

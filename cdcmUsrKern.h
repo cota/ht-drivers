@@ -1,4 +1,3 @@
-/* $Id: cdcmUsrKern.h,v 1.3 2007/12/19 09:02:05 ygeorgie Exp $ */
 /**
  * @file cdcmUsrKern.h
  *
@@ -7,11 +6,9 @@
  *
  * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
  *
- * @date July, 2007
+ * @date Created on 04/07/2007
  *
- * @version 3.0  ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
- * @version 2.0  ygeorgie  10/07/2007  Production release, CVS controlled
- * @version 1.0  ygeorgie  04/07/2007  Initial version.
+ * @version $Id: cdcmUsrKern.h,v 1.4 2009/01/09 10:26:03 ygeorgie Exp $
  */
 #ifndef _CDCM_USER_KERNEL_H_INCLUDE_
 #define _CDCM_USER_KERNEL_H_INCLUDE_

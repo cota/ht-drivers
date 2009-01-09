@@ -1,4 +1,3 @@
-/* $Id: cdcmUninstInst.h,v 1.7 2007/12/20 08:43:12 ygeorgie Exp $ */
 /**
  * @file cdcmUninstInst.h
  *
@@ -7,11 +6,9 @@
  *
  * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
  *
- * @date June, 2007
+ * @date Created on 28/06/2007
  *
- * @version 3.0  ygeorgie  01/08/2007  Full Lynx-like installation behaviour.
- * @version 2.0  ygeorgie  09/07/2007  Production release, CVS controlled.
- * @version 1.0  ygeorgie  28/06/2007  Initial version.
+ * @version $Id: cdcmUninstInst.h,v 1.8 2009/01/09 10:26:03 ygeorgie Exp $
  */
 #ifndef _CDCM_UNINST_INST_H_INCLUDE_
 #define _CDCM_UNINST_INST_H_INCLUDE_
@@ -74,10 +71,10 @@ static inline void mperr(char *token, ...)
 }
 
 /* 
-   Possible format of VME module installation string examples:
+   Possible format of VME module installation command examples:
    -----------------------------------------------------------
 
-   1. -> inst_prog.a -A1 -p2 -G9 -U2 -O0x3200 -L2 -V250 -, -U1 -O0x8359 -L2 -V234 -, -U5 -O0x5542 -L1 -V134 -, -G3 -U15 -O0x39837 -L5 -V185 -M0x98375 -, -U10 -O0x1875 -L3 -V180 -, -G5 -U12 -O0x23865 -S"transparent module param as a string"
+   1. -> inst_prog.a -A1 -p2 -G9 -U2 -O0x3200 -L2 -V250 -, -U1 -O0x8359 -L2 -V234 -, -U5 -O0x5542 -L1 -V134 -, -G3 -U15 -O0x39837 -L5 -V185 -M0x98375 -, -U10 -O0x1875 -L3 -V180 -, -G5 -U12 -O0x23865 -T"transparent module param as a string"
 
    Here we declare two global parameters (-A1 and -p2), that are common for ALL
    groups and modules.
@@ -98,28 +95,27 @@ static inline void mperr(char *token, ...)
 
 /* Predefined option characters that will be parsed by default. Note, that
    almost all of them <b>(exept @e -, and @e -G)</b> could be re-defined by
-   the module-specific installation part, which separates module and group
-   descriptions respectivelly from each other. User-redefined options will
-   not be parsed automatically and it's completely up to user to handle this
-   options! If not redefined, then they've got the following meaning: */
+   the module-specific installation part @b -, option separates module
+   descriptions from each other and @b -G option separates group descriptions
+   from each other. User-redefined options will not be parsed automatically
+   and it's completely up to user to handle this options! If option is not
+   redefined, then the meaning is the following: */
 typedef enum _tagDefaultOptionsChars {
-  P_T_GRP     = 'G',	/* group designator !CAN'T BE REDEFINED! */
-  P_T_LUN     = 'U',	/* Logical Unit Number */
-  P_T_ADDR    = 'O',	/* first base address */
-  P_T_N_ADDR  = 'M',	/* second base address */
-  P_T_ILEV    = 'L',	/* interrupt level */
-  P_T_IVECT   = 'V',	/* interrupt vector */
-  P_T_CHAN    = 'C',	/* channel amount for the module */
-  P_T_TRANSP  = 'T',	/* driver transparent String parameter */
-  P_T_HELP    = 'h',	/* help */
-  P_T_SEPAR   = ',',	/* separator between module entries
-			   !CAN'T BE REDEFINED! */
-
-  P_T_LAST    = 0xff,	/* indicates last valid option character */
+  P_T_GRP     = 'G',  /* group designator !CAN'T BE REDEFINED! */
+  P_T_LUN     = 'U',  /* Logical Unit Number - compulsory parameter */
+  P_T_ADDR    = 'O',  /* first base address - compulsory parameter */
+  P_T_N_ADDR  = 'M',  /* second base address */
+  P_T_ILEV    = 'L',  /* interrupt level */
+  P_T_IVECT   = 'V',  /* interrupt vector */
+  P_T_CHAN    = 'C',  /* channel amount for the module */
+  P_T_TRANSP  = 'T',  /* driver transparent String parameter */
+  P_T_HELP    = 'h',  /* help */
+  P_T_SEPAR   = ',',  /* module description delimiter !CAN'T BE REDEFINED! */
+  P_T_LAST    = 0xff, /* last valid option character */
 
   /* TO_ADD_IF_NECESSARY list */
-  P_ST_ADDR   = ' ',	/* slave first base address */
-  P_ST_N_ADDR =	' '	/* slave second base address */
+  P_ST_ADDR   = ' ', /* slave first base address */
+  P_ST_N_ADDR =	' '  /* slave second base address */
 } def_opt_t;
 
 /* option characters and their capabilities */
@@ -131,13 +127,14 @@ typedef struct _tagOptCharCap {
 } opt_char_cap_t;
 
 
-/* vectors and data that will be called (if not NULL) by the module-specific
+/* vectors and data that will be called (if not NULL) by general
    install programm to handle specific part of the module installation
    procedure */
 struct module_spec_inst_ops {
   void  (*mso_educate)();       /* for user education */
   char* (*mso_get_optstr)();	/* module-spesific options in 'getopt' form */
   int   (*mso_parse_opt)(void*, int, char, char*); /* parse module-spesific option */
+  void  (*mso_cleanup)(); /* if user wants to register some trash container */
   char mso_module_name[64]; /* COMPULSORY module-specific name */
 };
 
@@ -158,6 +155,7 @@ static inline int makedev(int major, int minor)
 }
 #endif /* __Lynx__ */
 
-struct list_head* cdcm_vme_arg_parser(int, char *[], char *[]);
+struct list_head* cdcm_inst_vme_arg_parser(int, char *[], char *[]);
+struct list_head* cdcm_inst_get_groups(void);
 
 #endif /* _CDCM_UNINST_INST_H_INCLUDE_ */
