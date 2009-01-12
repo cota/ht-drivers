@@ -122,22 +122,32 @@ Sources: LynxOS man, ldd3@pp66.
 
 7. Timeouts
 -----------
-Timeouts respect the original LynxOs interface (search for its man page).
-Just as a reminder, note that the interval passed to the timeout is 
-the number of ticks we want to wait. 
-In CDCM, the variable tickspersec contains the number of times that the 
-system timer pops every second (this is the HZ constant on Linux).
+Timeouts respect the original LynxOs interface (man timeout).
+The interval passed to the timeout is the number of ticks we want to wait.
+Since all the LynxOS boxes we run have 100 ticks per second (i.e. 1 tick
+every 10ms), we have decided that timeout assumes that value when getting the
+ticks interval from the user. This does _not_ mean that all our machines
+are configured with tickspersec=100 (NB. tickspersec is HZ in Linux); it 
+means that irrespective of the machine you're running on, if you want 
+to wait, say 40ms, then you give to timeout() an interval of 4 ticks.
 
-Example: number of ticks (say, y ticks) needed for a timeout of x ms.
-y [ticks] = x [ms] * 1/1000 [s/ms] * tickspersec [ticks/s]
+8. I/O operations
+-----------------
+I/O operations to/from hardware must be done using the provided helpers 
+cdcm_io{read,write}{8,16,32}(). The address fed to these helpers is a void
+pointer, *not* volatile. The reason is well explained in the Linux kernel
+documentation ('Documentation/volatile-considered-harmful.txt'). Basically
+proceeding this way has two benefits:
+- Code portability
+- No memory barriers needed (since they are included in the helpers)
 
-A couple of macros have been included in CDCM
-to convert to/from ms to/from ticks (they're in cdcmBoth):
-cdcm_ticks_to_ms(arg)
-cdcm_ms_to_ticks(arg)
-, where the argument is the value to be converted.
+Bear in mind endianness issues when dealing with hardware: use the 
+provided helpers to swap according to the host machine endianness and that
+of the hardware (cdcm_cpu_to_le{16,32,64},etc.).
 
-Proceeding as above will save you from trouble while working with different
-platforms, since tickspersec will vary from one machine to anoter. Therefore
-it is _wrong_ to assume a value for tickspersec. If you want a timeout for,
-say, 10 ms, call timeout with an expire value of cdcm_ms_to_ticks(10).
+Use fixed-width types to describe hardware (ideally use standard C99 types).
+
+In the (rare) case you need a memory barrier, use the helpers provided
+(cdcm_{mb,rmb,wmb}) and insert a comment to explain why you need the barrier.
+
+For further info check the file cdcmIo.h.
