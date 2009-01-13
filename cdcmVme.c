@@ -31,8 +31,8 @@
 static int errno;
 
 /* we'll need this system calls to get some info */
-static __inline__ _syscall1(int,sched_get_priority_min,int,policy)
-static __inline__ _syscall1(int,sched_get_priority_max,int,policy)
+static inline _syscall1(int,sched_get_priority_min,int,policy)
+static inline _syscall1(int,sched_get_priority_max,int,policy)
 #endif /* 2.6.20 */
 
 /* CDCM global variables (declared in the cdcmDrvr.c module)  */

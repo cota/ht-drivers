@@ -61,7 +61,9 @@
 
 
 
-/* swapping functions, for little/big endian conversion */
+/*
+ * Little/Big endian conversion
+ */
 #ifdef __linux__
 
 #define cdcm_le16_to_cpu(x) (le16_to_cpu(x))
@@ -80,10 +82,67 @@
 
 #else /* LynxOS */
 
-/* Swapping functions to be used by the macros below */
-static __inline__ u_int16_t __cdcm_swab16(u_int16_t value);
-static __inline__ u_int32_t __cdcm_swab32(u_int32_t value);
-static __inline__ u_int64_t __cdcm_swab64(u_int64_t x);
+/* Swapping functions, first for PowerPC, then in general */
+#ifdef __powerpc__
+
+
+static inline u_int16_t __cdcm_swab16(u_int16_t value)
+{
+  u_int16_t result;
+
+  __asm__("rlwimi %0,%1,8,16,23"
+	  : "=r" (result)
+	  : "r" (value), "0" (value >> 8));
+  return result;
+}
+
+static inline  u_int32_t __cdcm_swab32(u_int32_t value)
+{
+  u_int32_t result;
+
+  __asm__("rlwimi %0,%1,24,16,23\n\t"
+	  "rlwimi %0,%1,8,8,15\n\t"
+	  "rlwimi %0,%1,24,0,7"
+	  : "=r" (result)
+	  : "r" (value), "0" (value >> 24));
+  return result;
+}
+
+static inline u_int64_t __cdcm_swab64(u_int64_t x)
+{
+  u_int32_t h = x >> 32;
+  u_int32_t l = x & ((1ULL<<32)-1);
+  return (((u_int64_t)__cdcm_swab32(l)) << 32) | ((u_int64_t)(__cdcm_swab32(h)));
+}
+
+
+#else /* not __powerpc__, then we use pure C functions */
+
+
+static inline u_int16_t __cdcm_swab16(u_int16_t x)
+{
+  return x<<8 | x>>8;
+}
+
+static inline u_int32_t __cdcm_swab32(u_int32_t x)
+{
+  return x<<24 | x>>24 |
+    (x & (u_int32_t)0x0000ff00UL)<<8 |
+    (x & (u_int32_t)0x00ff0000UL)>>8;
+}
+
+static inline u_int64_t __cdcm_swab64(u_int64_t x)
+{
+  return x<<56 | x>>56 |
+    (x & (u_int64_t)0x000000000000ff00ULL)<<40 |
+    (x & (u_int64_t)0x0000000000ff0000ULL)<<24 |
+    (x & (u_int64_t)0x00000000ff000000ULL)<< 8 |
+    (x & (u_int64_t)0x000000ff00000000ULL)>> 8 |
+    (x & (u_int64_t)0x0000ff0000000000ULL)>>24 |
+    (x & (u_int64_t)0x00ff000000000000ULL)>>40;
+}
+
+#endif /* !__powerpc__ */
 
 #define cdcm_be16_to_cpu(x) ((u_int16_t)(x))
 #define cdcm_be32_to_cpu(x) ((u_int32_t)(x))
