@@ -162,7 +162,8 @@ static ssize_t cdcm_fop_read(struct file *filp, char __user *buf, size_t size, l
   if (cdcm_err == SYSERR)
     cdcm_err = -EAGAIN;
   else {
-    __copy_to_user(buf,  iobuf, size);
+    if (__copy_to_user(buf,  iobuf, size))
+      return(-EFAULT);
     *off = lynx_file.position;
   }
 
@@ -424,7 +425,8 @@ static int process_mod_spec_ioctl(struct inode *inode, struct file *file, int cm
       cdcm_mem_free(iobuf);
       return(-EFAULT);
     }
-    __copy_to_user((char*)arg, iobuf, iosz); /* give data to the user */
+    if (__copy_to_user((char*)arg, iobuf, iosz)) /* give data to the user */
+      return(-EFAULT);
   }
   
   cdcm_mem_free(iobuf);
