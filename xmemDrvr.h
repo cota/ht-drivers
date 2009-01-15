@@ -136,6 +136,8 @@ typedef struct {
 #define XmemDrvrIntrSOURCES 17
 
 typedef enum {
+   XmemDrvrIntrDAEMON         = 0x10000, /* software sync int. from daemon */
+
    XmemDrvrIntrAC_FLAG        = 0x8000, /* Auto clear Interrupt: This bit 
 					   must always be On */
    XmemDrvrIntrBIT14          = 0x4000, /* Reserved */
@@ -323,6 +325,7 @@ typedef enum {
    XmemDrvrIntIdxINT_2          = 1, /* General purpose Interrupt 2 */
    XmemDrvrIntIdxSEGMENT_UPDATE = 2, /* Memory segment updated interrupt */
    XmemDrvrIntIdxPENDING_INIT   = 3, /* Pending init request */
+   XmemDrvrIntIdxDAEMON         = 4, /* DAEMON interrupt to clients */
    XmemDrvrIntIdxFIFOS               /* Number of FIFOs */
  } XmemDrvrIntIdx;
 
@@ -333,8 +336,27 @@ typedef struct {
    XmemDrvrIntr  Mask;                        /* Interrupt source mask */
  } XmemDrvrReadBuf;
 
-
-
+/*! @name write() entry point structure
+ *
+ * This structure is the one passed from user space to the driver via write().
+ * It allows more flexibility from the client's point of view: let's say
+ * we have clients of type A and B. For certain events (e.g. SEGMENT_UPDATE)
+ * clients A need to perform some operations before B are notified of the
+ * event. Therefore B connect to a 'software interrupt from A', called
+ * IntrDAEMON, while A are connected to the hardware interrupt for that event.
+ * Then when it happens, A issues IntrDAEMON through a write(), waking up
+ * every B client waiting on IntrDAEMON, which will obtain a proper
+ * XmemDrvrReadBuf.
+ * Note that this doesn't impose any policy; it is up to the clients (A and B)
+ * to decide what to connect to and when to issue a write().
+ */
+//@{
+typedef struct {
+  unsigned long Module;
+  unsigned long NdData;
+  unsigned long NodeId;
+} XmemDrvrWriteBuf;
+//@}
 
 
 #if 0

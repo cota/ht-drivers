@@ -674,7 +674,7 @@ static int EnableInterrupts(XmemDrvrModuleContext *mcon, VmicLier msk)
 
   FUNCT_TRACK;
   vmap = mcon->Map;
-  msk &= VmicLierMASK; /* Clear out any crap bits */
+  msk &= VmicLierMASK; /* Clear out any crap bits (e.g. IntDAEMON) */
   if (msk & VmicLierINT1) {
     if ((mcon->InterruptEnable & VmicLierINT1) == 0) {
       SetRfmReg(mcon, VmicRfmSID1, 1, 0);
@@ -2255,12 +2255,114 @@ int XmemDrvrRead(void *s, struct file *flp, char *u_buf, int cnt)
  * @param u_buf: user's buffer
  * @param cnt: byte count in buffer
  *
- * @return 0 (not implemented yet)
+ * This entry point is used to wake up clients connected to a 'software
+ * interrupt' called IntrDAEMON.
+ * For some event it is advisable that certain clients (say clients A) subscribe
+ * to its correspondent hardware interrupt, and then when they're called
+ * they do some pre-processing before issuing a write() which will wake-up
+ * the rest of the clients (say, clients B).
+ * Therefore for a certain event we can set a hierarchy.
+ *
+ * An example of this would be SEGMENT_UPDATE: a daemon (client A) would
+ * subscribe to IntrSEGMENT_UPDATE, and then when it's triggered, he would
+ * copy the segment to RAM memory and issue a write() announcing it.
+ * Then the clients connected to IntrDAEMON (clients B) (NB: they're not
+ * subscribed to IntrSEGMENT_UPDATE) would be woken up -- then they could
+ * read safely the updated segment from RAM memory.
+ *
+ * @return number of bytes written on success.
  */
 int XmemDrvrWrite(void *s, struct file *flp, char *u_buf, int cnt)
 {
-  XmemDrvrWorkingArea *wa __attribute__((__unused__)) = (XmemDrvrWorkingArea*)s;
-  return 0;
+  XmemDrvrModuleContext *mcon;
+  XmemDrvrClientContext *ccon;
+  XmemDrvrQueue         *queue;
+  XmemDrvrReadBuf        rbf; /* read buffer (for the clients) */
+  XmemDrvrWriteBuf      *wbf; /* write buffer */
+  XmemDrvrWorkingArea *wa = (XmemDrvrWorkingArea*)s;
+  int           cnum;
+  int           pid;
+  int           midx;
+  unsigned int  i;
+  unsigned long ps;
+  unsigned long msk;
+
+  /*
+   * Note: The user buffer does not have to be checked with {r,w}bounds
+   * because the read() and write() system calls have already done this.
+   * {r,w}bounds are only meant to be used inside the ioctl() entry point.
+   * Source: LynxOs man pages.
+   */
+
+  wbf = (XmemDrvrWriteBuf *)u_buf;
+
+  /* Get client context of the writer */
+  cnum = minor(flp->dev) - 1;
+  ccon = &wa->ClientContexts[cnum];
+
+  if (ccon->InUse != 1) {
+    cprintf("xmemDrvr:Write: Bad FileDescriptor: Context:%d Not Open\n", cnum);
+    pseterr(EBADF); /* Bad file number */
+    return SYSERR;
+  }
+
+  /* Get the module's context */
+  midx = wbf->Module - 1;
+  if (midx < 0 || midx >= Wa->Modules) {
+    pseterr(ENXIO); /* No such device or address */
+    return SYSERR;
+  }
+  mcon = &wa->ModuleContexts[midx];
+
+  /*
+   * Block any calls coming from unknown PIDs.
+   * Only the PID that opened the driver is allowed to read.
+   */
+  pid = getpid();
+  if (pid != ccon->Pid) {
+    cprintf("xmemDrvr:Write: Spurious read PID:%d for PID:%d on FD:%d\n",
+	    (unsigned int)pid, (unsigned int)ccon->Pid, (unsigned int)cnum);
+    pseterr(EBADF); /* Bad file number */
+    return SYSERR;
+  }
+
+  /* Prepare the read buffer for suscribed clients */
+  bzero((void *)&rbf, sizeof(XmemDrvrWriteBuf));
+  rbf.Module = wbf->Module;
+  rbf.NdData[XmemDrvrIntIdxDAEMON] = wbf->NdData;
+  rbf.NodeId[XmemDrvrIntIdxDAEMON] = wbf->NodeId;
+  rbf.Mask = XmemDrvrIntrDAEMON;
+
+  /* then put it in the client's queue */
+  for (i = 0; i < XmemDrvrCLIENT_CONTEXTS; i++) {
+
+    ccon = &Wa->ClientContexts[i];
+    queue = &ccon->Queue;
+
+    msk = mcon->Clients[i];
+
+    if (! (msk & XmemDrvrIntrDAEMON))
+      break; /* this client is not connected to IntrDAEMON */
+
+
+    /* the client's connected to IntrDAEMON --> fill in his queue */
+
+    disable(ps); /* acquire spinlock */
+
+    if (queue->Size < XmemDrvrQUEUE_SIZE) {
+      queue->Entries[queue->Size++] = rbf;
+      ssignal(&ccon->Semaphore); /* Wake-up client */
+    }
+    else {
+      queue->Size = XmemDrvrQUEUE_SIZE;
+      queue->Missed++;
+    }
+
+    restore(ps); /* release spinlock */
+
+  }
+
+  return sizeof(XmemDrvrWriteBuf);
 }
 
 /**
