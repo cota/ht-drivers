@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Linux L865
+make drvr inst CPU=L865 OSREL=2.6.24.7-rt21
+
+# Linux L864
+#make drvr inst CPU=L864 OSREL=2.6.24.4-rt4
+
+# Lynx
+#make drvr inst CPU=ppc4
