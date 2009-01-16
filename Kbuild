@@ -9,7 +9,7 @@
 #
 # <long description>
 #
-# @version 
+# @version
 ###############################################################################
 
 # Extra files for the xmem driver.

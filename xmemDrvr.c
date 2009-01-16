@@ -10,7 +10,7 @@
  *
  * The driver can handle multiple VMIC modules.
  * This is useful for making "bridges" between distributed memory networks.
- * Bridged networks are connected together by the PCI DMA engines 
+ * Bridged networks are connected together by the PCI DMA engines
  * on the Plx9656 chips.
  *
  * The driver can handle multiple clients on one platform accessing
@@ -41,25 +41,25 @@
  *
  * The general purpose interrupt 3 is used by the driver to know when segments
  * have been updated.
- * General purpose interrupt number 3 is not available for client use, 
+ * General purpose interrupt number 3 is not available for client use,
  * they can use 1 and 2.
  * The 32-bit data word of Int-3 indicates which of the 32 segments
  * have been written.
  * Connecting to the SEGMENT_UPDATE interrupt (INT-3) and reading
  * the 32-Bit value permits a task to synchronise on segment updates.
  *
- * Each time a segment is updated, the fact is latched for each client 
+ * Each time a segment is updated, the fact is latched for each client
  * in a bit for each segment.
  * The CHECK_SEGMENT IOCTL returns the value of the updated Id's
  * in a 32-Bit long. This is for polling.
  * Each READ_SEGMENT IOCTL Clears the segments Id bit in the updated bits mask.
  *
- * Direct access to the VMIC SDRAM is permitted, the layout of the 
+ * Direct access to the VMIC SDRAM is permitted, the layout of the
  * segment table is available by calling the GET_SEGMENT_TABLE IOCTL.
  * This is the only interface allowed for node Id > 32
  *
  * The driver is transparent to the host machine's endianness; this is achieved
- * by using the CDCM functions to convert data from/to the host computer 
+ * by using the CDCM functions to convert data from/to the host computer
  * to/from the device.
  * Note that the PLX does not swap any data (i.e. BIGEND set to little endian),
  * except for the case of a DMA transfer (where the CPU is not involved).
@@ -109,7 +109,7 @@
 extern int nanotime(unsigned long *);
 
 /* we include the contents of cdcmBoth and cdcmIo here, because the
- * makefiles are not ready yet :( 
+ * makefiles are not ready yet :(
  */
 #include <cdcm/cdcmBoth.c>
 #endif /* !__linux__ */
@@ -141,7 +141,7 @@ do {									    \
   cprintf("XmemDrvr:[FUNCTION]--------------------> '%s()' called\n", __FUNCTION__); \
 } while (0)
 #else
-#define IOCTL_TRACK(name) 
+#define IOCTL_TRACK(name)
 #define FUNCT_TRACK
 #endif /* !__DEBUG_TRACK_ALL__ */
 
@@ -159,7 +159,7 @@ unsigned long tt_diff, tt_diff01, tt_diff12, tt_diff23, tt_diff34;
 
 XmemDrvrWorkingArea *Wa = NULL;
 
-static unsigned long GetRfmReg(XmemDrvrModuleContext *mcon, VmicRfm reg, 
+static unsigned long GetRfmReg(XmemDrvrModuleContext *mcon, VmicRfm reg,
 			       int size);
 static void SetRfmReg(XmemDrvrModuleContext *mcon, VmicRfm reg, int size,
 		      unsigned long data);
@@ -174,7 +174,7 @@ static int SendInterrupt(XmemDrvrSendBuf *sbuf);
  *
  * Note that if the size to be copied is smaller than sizeof(long),
  * no copy will be performed.
- * 
+ *
  */
 static void LongCopy(unsigned long *dst, unsigned long *src, unsigned long size)
 {
@@ -240,7 +240,7 @@ static void LongCopyFromXmem(void *vmic_from, void *v_to, unsigned long size)
 }
 
 /**
- * CancelTimeout - cancels a given timeout 
+ * CancelTimeout - cancels a given timeout
  *
  * @param t: pointer to the ID of the timeout to be cancelled
  *
@@ -413,7 +413,7 @@ char *ioctl_names[XmemDrvrLAST_IOCTL] = {
  *
  */
 static void TraceIoctl(int cm, char *arg, XmemDrvrClientContext *ccon)
-{ 
+{
   int lav;
   char *iocname;
 
@@ -439,7 +439,7 @@ static void TraceIoctl(int cm, char *arg, XmemDrvrClientContext *ccon)
  * are platform-independent.
  *
  */
-static void SetEndian() 
+static void SetEndian()
 {
 #ifdef CDCM_LITTLE_ENDIAN
   Wa->Endian = XmemDrvrEndianLITTLE;
@@ -512,7 +512,7 @@ static int DrmLocalReadWrite(XmemDrvrModuleContext *mcon, unsigned long addr,
     return SYSERR;
   }
   noreco();
-  return OK;  
+  return OK;
 }
 
 /**
@@ -532,7 +532,7 @@ static int DrmLocalReadWrite(XmemDrvrModuleContext *mcon, unsigned long addr,
  */
 static int DrmConfigReadWrite(XmemDrvrModuleContext *mcon, unsigned long addr,
 			      unsigned long *value, unsigned long size,
-			      XmemDrvrIoDir flag) 
+			      XmemDrvrIoDir flag)
 {
   int cc;
   unsigned long regval;
@@ -554,8 +554,8 @@ static int DrmConfigReadWrite(XmemDrvrModuleContext *mcon, unsigned long addr,
    switch (size) {
    case 1: /* byte: i = {0,1,2,3} */
 #if defined(CDCM_BIG_ENDIAN)
-     i = (~addr) & 0x3; 
-#else 
+     i = (~addr) & 0x3;
+#else
      i = addr & 0x3;
 #endif
      break;
@@ -716,7 +716,7 @@ static int EnableInterrupts(XmemDrvrModuleContext *mcon, VmicLier msk)
     lisr_temp = cdcm_le32_to_cpu(cdcm_ioread32(vmap + VmicRfmLISR));
 
     DrmLocalReadWrite(mcon, PlxLocalINTCSR, &intcsr, 4, XmemDrvrREAD);
-    intcsr |= PlxIntcsrENABLE_PCI 
+    intcsr |= PlxIntcsrENABLE_PCI
       | PlxIntcsrENABLE_LOCAL
       | PlxIntcsrENABLE_DMA_CHAN_0
       | PlxIntcsrENABLE_DMA_CHAN_1;
@@ -802,7 +802,7 @@ static int Reset(XmemDrvrModuleContext *mcon)
     GetSetStatus(mcon, mcon->Command | XmemDrvrScrDARK_ON, XmemDrvrWRITE);
     mcon->NodeId = GetRfmReg(mcon, VmicRfmNID, 1);
     Wa->Nodes = 1 << (mcon->NodeId - 1);
-    /* Tell the network that I need to be initialised in case I'm connected 
+    /* Tell the network that I need to be initialised in case I'm connected
        to PENDING_INIT. */
     if (mcon->InterruptEnable & XmemDrvrIntrPENDING_INIT) {
       sbuf.Module        = mcon->ModuleIndex + 1;
@@ -875,8 +875,8 @@ static void InterruptSelf(XmemDrvrSendBuf *sbuf, XmemDrvrModuleContext *mcon) {
 
   for (i = 0; i < XmemDrvrCLIENT_CONTEXTS; i++) {
     ccon = &Wa->ClientContexts[i];
-    if (usegs) 
-      ccon->UpdatedSegments |= usegs; 
+    if (usegs)
+      ccon->UpdatedSegments |= usegs;
     msk = mcon->Clients[i];
 
     if (msk & rbf.Mask) {
@@ -922,7 +922,7 @@ static int SendInterrupt(XmemDrvrSendBuf *sbuf)
 
   cdcm_iowrite32(cdcm_cpu_to_le32(sbuf->Data), vmap + VmicRfmNTD);
 
-  switch (ncast) {  
+  switch (ncast) {
 
   case XmemDrvrNicBROADCAST:
 
@@ -933,7 +933,7 @@ static int SendInterrupt(XmemDrvrSendBuf *sbuf)
   case XmemDrvrNicMULTICAST:
 
     for (i = 0; i < XmemDrvrNODES; i++) {
-      if (i == mcon->NodeId - 1) 
+      if (i == mcon->NodeId - 1)
 	InterruptSelf(sbuf, mcon);
       else {
 	msk = 1 << i;
@@ -950,7 +950,7 @@ static int SendInterrupt(XmemDrvrSendBuf *sbuf)
     if (sbuf->UnicastNodeId == mcon->NodeId)
       InterruptSelf(sbuf, mcon);
     else {
-      /* cast needed: UnicastNodeId is a LONG, although its values range 
+      /* cast needed: UnicastNodeId is a LONG, although its values range
        * from 0 to 255.
        */
       cdcm_iowrite8((unsigned char)sbuf->UnicastNodeId, vmap + VmicRfmNTN);
@@ -1026,13 +1026,13 @@ static int WrPermSeg(unsigned long segid, unsigned long node, int *nodeid)
  * @param iod: direction of the transfer (XmemDrvr{READ,WRITE})
  * @param mapped: 1 if the buffer has already been DMA-mapped. 0 otherwise.
  *
- * This function has to be called from a region protected by 
+ * This function has to be called from a region protected by
  * mcon->BusySemaphore, since it accesses the struct mcon->DmaOp. Therefore
  * BusySemaphore will be held at least by those regions willing to perform
  * DMA to/from the VMIC.
  * if(!mapped), the host machine will set up a DMA mapping that will return
  * the physical address of the page given in siod.
- * if(mapped), that means DmaOp has been set by the caller and therefore 
+ * if(mapped), that means DmaOp has been set by the caller and therefore
  * mcon->DmaOp contains all the necessary information to perform the DMA.
  *
  * @return OK on success
@@ -1056,7 +1056,7 @@ static int PageCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
 
   mcon = &Wa->ModuleContexts[midx];
   DrmLocalReadWrite(mcon, PlxLocalINTCSR, &intcsr, 4, XmemDrvrREAD);
-  intcsr |= PlxIntcsrENABLE_PCI 
+  intcsr |= PlxIntcsrENABLE_PCI
     | PlxIntcsrENABLE_LOCAL
     | PlxIntcsrENABLE_DMA_CHAN_0
     | PlxIntcsrENABLE_DMA_CHAN_1;
@@ -1068,7 +1068,7 @@ static int PageCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
     mcon->DmaOp.Flag = iod == XmemDrvrWRITE;
     mcon->DmaOp.Len = siod->Size;
     mcon->DmaOp.Buffer = siod->UserArray;
-    mcon->DmaOp.Dma = cdcm_pci_map(mcon, siod->UserArray, 
+    mcon->DmaOp.Dma = cdcm_pci_map(mcon, siod->UserArray,
 				   mcon->DmaOp.Len, mcon->DmaOp.Flag);
   }
 
@@ -1082,7 +1082,7 @@ static int PageCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
 
       /* FIXME: code is repeated below. Do it properly! */
   switch (iod) {
-  case XmemDrvrWRITE:  
+  case XmemDrvrWRITE:
     /* Write to the VMIC's SDRAM from host machine
      * We use the PLX' DMACHANNEL1 for writing
      */
@@ -1097,12 +1097,12 @@ static int PageCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
     DrmLocalReadWrite(mcon, PlxLocalDMAMODE1, &dmamode, 4, XmemDrvrWRITE);
     DrmLocalReadWrite(mcon, PlxLocalDMAPADR1, (unsigned long *)&mcon->DmaOp.Dma,
 		      4, XmemDrvrWRITE);
-    DrmLocalReadWrite(mcon, PlxLocalDMALADR1, (unsigned long *)&sram, 4, 
+    DrmLocalReadWrite(mcon, PlxLocalDMALADR1, (unsigned long *)&sram, 4,
 		      XmemDrvrWRITE);
     DrmLocalReadWrite(mcon, PlxLocalDMASIZ1, (unsigned long *)&mcon->DmaOp.Len,
 		      4, XmemDrvrWRITE);
     /* Set transfer direction and termination interrupt */
-    dptr = PlxDmaDprTERM_INT_ENB & ~PlxDmaDprDIR_LOC_PCI; 
+    dptr = PlxDmaDprTERM_INT_ENB & ~PlxDmaDprDIR_LOC_PCI;
     DrmLocalReadWrite(mcon, PlxLocalDMADPR1, &dptr, 4, XmemDrvrWRITE);
 
 #ifdef __TEST_TT__
@@ -1143,7 +1143,7 @@ static int PageCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
     }
     if (! mapped)  /* mapping has to be cleared */
       cdcm_pci_unmap(mcon, mcon->DmaOp.Dma, mcon->DmaOp.Len, mcon->DmaOp.Flag);
-    
+
     return OK;
     break;
 
@@ -1167,7 +1167,7 @@ static int PageCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
     DrmLocalReadWrite(mcon, PlxLocalDMASIZ0, (unsigned long *)&mcon->DmaOp.Len,
 		      4, XmemDrvrWRITE);
     /* Set transfer direction and termination interrupt */
-    dptr = PlxDmaDprTERM_INT_ENB | PlxDmaDprDIR_LOC_PCI; 
+    dptr = PlxDmaDprTERM_INT_ENB | PlxDmaDprDIR_LOC_PCI;
     DrmLocalReadWrite(mcon,PlxLocalDMADPR0 ,&dptr, 4, XmemDrvrWRITE);
 
     mcon->RdTimer = timeout(RdDmaTimeout, (char *)mcon, XmemDrvrDMA_TIMEOUT);
@@ -1204,7 +1204,7 @@ static int PageCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
 
   default:
     goto arg_err;
-  }      
+  }
  access_err:
   cprintf("xmemDrvr:PageCopy: Write permission denied for segment ID=0x%X.\n",
 	  (unsigned int)siod->Id);
@@ -1229,7 +1229,7 @@ static int PageCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
 }
 
 /* we set a global variable for this, so that the stack is not filled up.
- * since the region that operates on dmachain is protected by 
+ * since the region that operates on dmachain is protected by
  * mcon->BusySemaphore, we're safe.
  */
 #define MAX_DMA_CHAIN XmemDrvrMAX_SEGMENT_SIZE/PAGESIZE+1
@@ -1244,7 +1244,7 @@ struct dmachain dmac[MAX_DMA_CHAIN];
  * @param mcon: module context
  *
  * If the size of the transfer is >= the DMA threshold, the physical pages
- * of the user's buffer are found and passed to PageCopy(). 
+ * of the user's buffer are found and passed to PageCopy().
  * If the size is smaller than the threshold, I/O is CPU-based.
  *
  * @return OK on success
@@ -1292,7 +1292,7 @@ static int SegmentCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
 
       if (ccon->Debug) {
 	cprintf("xmemDrvr:SegmentCopy:%d Addr:0x%X Size:%d Offset:0x%x\n",
-		pg + 1, (int)mcon->DmaOp.Dma, (int)mcon->DmaOp.Len, 
+		pg + 1, (int)mcon->DmaOp.Dma, (int)mcon->DmaOp.Len,
 		(int)sio.Offset);
       }
 #ifdef __TEST_TT__
@@ -1320,7 +1320,7 @@ static int SegmentCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
       if (! WrPermSeg(siod->Id, mcon->NodeId, &myid)) goto access_err;
       LongCopyToXmem(mcon->SDRam + sram, siod->UserArray, siod->Size);
     }
-    else 
+    else
       LongCopyFromXmem(mcon->SDRam + sram, siod->UserArray, siod->Size);
   }
 
@@ -1372,8 +1372,8 @@ static int SegmentCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
  * @param mcon: module context
  * @param mask: bitmask which contains which segments need to be flushed
  *
- * two mutexes are acquired in this functions: mcon->TempbufSemaphore and 
- * mcon->BusySemaphore. The former provides  mutually exclusive access to 
+ * two mutexes are acquired in this functions: mcon->TempbufSemaphore and
+ * mcon->BusySemaphore. The former provides  mutually exclusive access to
  * mcon->Tempbuf (which is used as a cache to send the segments in pieces)
  * and the latter has to be acquired before any call to PageCopy().
  *
@@ -1408,7 +1408,7 @@ static int FlushSegments(XmemDrvrModuleContext *mcon, unsigned long mask)
       sio.Id = msk;
       sio.UserArray = mcon->Tempbuf;
       sio.Offset = 0;
-   
+
       /* chop up the segment in pagesized chunks and send them out */
       for (pg = 0; pg < sgds->Size; pg += PAGESIZE) {
 	if (sgds->Size > pg) rsze = sgds->Size - pg;
@@ -1456,10 +1456,10 @@ static int FlushSegments(XmemDrvrModuleContext *mcon, unsigned long mask)
  * @param flag: read/write flag
  *
  * This function uses the CDCM functions to access the I/O mapped memory.
- * Note that the memory barriers are not necessary since cdcm_{read,write}X 
- * already include them. 
- * Pay attention as well to the endianness: cdcm_cpu_to_{le,be}X ensure 
- * portable code. This is _address invariance_, which requires the 
+ * Note that the memory barriers are not necessary since cdcm_{read,write}X
+ * already include them.
+ * Pay attention as well to the endianness: cdcm_cpu_to_{le,be}X ensure
+ * portable code. This is _address invariance_, which requires the
  * PLX to be set to little endian (i.e. the PLX doesn't swap anything).
  *
  * @return OK on success
@@ -1496,7 +1496,7 @@ static int RfmIo(XmemDrvrModuleContext *mcon, XmemDrvrRawIoBlock *riob,
 
   if (!recoset()) {         /* Catch bus errors */
 
-    for (i = 0; i < itms; i++) { 
+    for (i = 0; i < itms; i++) {
 
       if (flag == XmemDrvrWRITE) {
 	switch (size) {
@@ -1530,7 +1530,7 @@ static int RfmIo(XmemDrvrModuleContext *mcon, XmemDrvrRawIoBlock *riob,
 
     if (flag == XmemDrvrWRITE)
       iod = "Write";
-    else 
+    else
       iod = "Read";
     kkprintf("xmemDrvr: BUS-ERROR: Module:%d Addr:%x Dir:%s Data:%d\n",
 	     (int)mcon->ModuleIndex + 1,(int)ioaddr + offs, iod, (int)uary[i]);
@@ -1547,7 +1547,7 @@ static int RfmIo(XmemDrvrModuleContext *mcon, XmemDrvrRawIoBlock *riob,
 /**
  * GetRfmReg - reads a register from the VMIC's RFM
  *
- * @param mcon: module context 
+ * @param mcon: module context
  * @param reg: register offset, from the VmicRfm enum
  * @param size: bytes to be read
  *
@@ -1602,7 +1602,7 @@ void SetRfmReg(XmemDrvrModuleContext *mcon, VmicRfm reg, int size,
  * @param flag: write to module if flag==XmemDrvrWRITE; read otherwise.
  *
  * Note that since this function is not meant to be called by a client,
- * access rights to the segment are not checked -- in other words, this 
+ * access rights to the segment are not checked -- in other words, this
  * function is only meant to be used by the driver's test program.
  *
  * @return OK on success
@@ -1612,7 +1612,7 @@ static int RawIo(XmemDrvrModuleContext *mcon, XmemDrvrRawIoBlock *riob,
 {
   unsigned long *vmap; /* Module Memory map */
   unsigned long *uary;
-  
+
   int rval; /* Return value */
   int i = 0;
   int itms, offs, lidx = 0;
@@ -1629,7 +1629,7 @@ static int RawIo(XmemDrvrModuleContext *mcon, XmemDrvrRawIoBlock *riob,
   itms = riob->Items;
 
   if (itms == 0) itms = 1;
-  if (flag == XmemDrvrWRITE) 
+  if (flag == XmemDrvrWRITE)
     iod = "Write";
   else
     iod = "Read";
@@ -1638,7 +1638,7 @@ static int RawIo(XmemDrvrModuleContext *mcon, XmemDrvrRawIoBlock *riob,
 
     if (flag == XmemDrvrWRITE)
       LongCopyToXmem(  vmap + offs, riob->UserArray, itms*sizeof(u_int32_t));
-    else 
+    else
       LongCopyFromXmem(vmap + offs, riob->UserArray, itms*sizeof(u_int32_t));
 
   } else {
@@ -1713,7 +1713,7 @@ static int DisConnect(XmemDrvrConnection *conx, XmemDrvrClientContext *ccon)
 
   /* Check to see if others are connected */
   for (i = 0; i < XmemDrvrCLIENT_CONTEXTS; i++) {
-    if (conx->Mask & mcon->Clients[i]) 
+    if (conx->Mask & mcon->Clients[i])
       return OK;
   }
 
@@ -1789,7 +1789,7 @@ cdcm_irqret_t IntrHandler(void *m)
 
     /* read the interrupt status register (LISR) */
     isrc = cdcm_le32_to_cpu(cdcm_ioread32(vmap + VmicRfmLISR));
-    /* 
+    /*
      * Clear LISR.
      * This is not done atomically --> it's dangerous.
      */
@@ -1813,14 +1813,14 @@ cdcm_irqret_t IntrHandler(void *m)
 
 	switch (msk) {
 	  /*
-	   * VmicLisrPARITY_ERROR: Parity error 
-	   * VmicLisrWRITE_ERROR: Cant write a short or byte if parity on 
-	   * VmicLisrLOST_SYNC: PLL unlocked, data was lost, or signal lost 
-	   * VmicLisrRX_OVERFLOW: Receiver buffer overflow 
-	   * VmicLisrRX_ALMOST_FULL: Receive buffer almost full 
-	   * VmicLisrDATA_ERROR: Bad data received, error 
+	   * VmicLisrPARITY_ERROR: Parity error
+	   * VmicLisrWRITE_ERROR: Cant write a short or byte if parity on
+	   * VmicLisrLOST_SYNC: PLL unlocked, data was lost, or signal lost
+	   * VmicLisrRX_OVERFLOW: Receiver buffer overflow
+	   * VmicLisrRX_ALMOST_FULL: Receive buffer almost full
+	   * VmicLisrDATA_ERROR: Bad data received, error
 	   * VmicLisrROGUE_CLOBBER: This rogue master has clobbered a rogue packet 
-	   * VmicLisrRESET_RQ: Reset me request from some other node 
+	   * VmicLisrRESET_RQ: Reset me request from some other node
 	   */
 	case VmicLisrPARITY_ERROR:
 	case VmicLisrWRITE_ERROR:
@@ -1850,18 +1850,18 @@ cdcm_irqret_t IntrHandler(void *m)
 
 	  data = cdcm_le32_to_cpu(cdcm_ioread32(vmap + VmicRfmINITD));
 	  rbf.NdData[XmemDrvrIntIdxPENDING_INIT] = data;
-	  
+
 	  node = GetRfmReg(mcon, VmicRfmINITN, 1);
 	  rbf.NodeId[XmemDrvrIntIdxPENDING_INIT] = node;
 
 	  Wa->Nodes |= (1 << (node - 1)); /* update known nodes */
-	    
+
 	  /*
 	   * If someone needs initializing, I broadcast back a pending init
 	   * with zero data. Proceeding this way all nodes will know who is
 	   * on-line. Everyone else will do the same, so eventually all the
-	   * nodes will have introduced themselves. 
-	   * Note that 'data' is tested to be not zero -- otherwise the 
+	   * nodes will have introduced themselves.
+	   * Note that 'data' is tested to be not zero -- otherwise the
 	   * protocol would never end.
 	   */
 
@@ -1870,7 +1870,7 @@ cdcm_irqret_t IntrHandler(void *m)
 	  /* reset known nodes to the only two I know for the time being */
 	  Wa->Nodes = (1 << (mcon->NodeId - 1)) | (1 << (node - 1));
 
-#if 0     /* 
+#if 0     /*
 	   * commented out:
 	   * it corresponds to the daemons to apply a particular policy.
 	   */
@@ -1887,7 +1887,7 @@ cdcm_irqret_t IntrHandler(void *m)
 	  /* INT3 is SEGMENT_UPDATE, it's not for general use. */
 	case VmicLisrINT3:
 
-	  rbf.NdData[XmemDrvrIntIdxSEGMENT_UPDATE] = 
+	  rbf.NdData[XmemDrvrIntIdxSEGMENT_UPDATE] =
 	    cdcm_le32_to_cpu(cdcm_ioread32(vmap + VmicRfmISD3));
 
 	  node = GetRfmReg(mcon, VmicRfmSID3, 1);
@@ -1914,7 +1914,7 @@ cdcm_irqret_t IntrHandler(void *m)
 
 	case VmicLisrINT1:
 
-	  rbf.NdData[XmemDrvrIntIdxINT_1] = 
+	  rbf.NdData[XmemDrvrIntIdxINT_1] =
 	    cdcm_le32_to_cpu(cdcm_ioread32(vmap + VmicRfmISD1));
 
 	  node = GetRfmReg(mcon, VmicRfmSID1, 1);
@@ -1934,7 +1934,7 @@ cdcm_irqret_t IntrHandler(void *m)
 	ccon = &Wa->ClientContexts[i];
 
 	if (usegs) { /* Or in updated segments in clients */
-	  ccon->UpdatedSegments |= usegs; 
+	  ccon->UpdatedSegments |= usegs;
 	}
 
 	msk = mcon->Clients[i];
@@ -1943,7 +1943,7 @@ cdcm_irqret_t IntrHandler(void *m)
 
 	queue = &ccon->Queue;
 	if (queue->Size < XmemDrvrQUEUE_SIZE) {
-	  queue->Entries[queue->Size++] = rbf; 
+	  queue->Entries[queue->Size++] = rbf;
 	  ssignal(&ccon->Semaphore); /* Wakeup client */
 	} else {
 	  queue->Size = XmemDrvrQUEUE_SIZE;
@@ -1952,7 +1952,7 @@ cdcm_irqret_t IntrHandler(void *m)
 
       } /* gone through all the interrupt sources */
 
-      /* 
+      /*
        * Read the interrupt status register (LISR).
        * As said before, this is non-atomic --> dangerous!
        */
@@ -1961,7 +1961,7 @@ cdcm_irqret_t IntrHandler(void *m)
       isrc &= VmicLisrSOURCE_MASK; /* re-evaluated in the while() */
     }
 
-    /* 
+    /*
      * Update enabled interrupts -- this is done using Connect(), I think this
      * is unnecessary here.
      */
@@ -2007,7 +2007,7 @@ cdcm_irqret_t IntrHandler(void *m)
   iointunmask(mcon->IVector);
 #endif
 
-  /* 
+  /*
    * FIXME: this is part of the hack related to the function definition.
    * It should simply be as it is under LynxOs (i.e. void return)
    */
@@ -2031,7 +2031,7 @@ int XmemDrvrOpen(void *s, int dnm, struct file *flp)
   XmemDrvrQueue         *queue;   /* Client queue */
   XmemDrvrWorkingArea *wa = (XmemDrvrWorkingArea *)s;
 
-  /* 
+  /*
    * We allow one client per minor device, we use the minor device
    * number as an index into the client contexts array.
    */
@@ -2085,7 +2085,7 @@ int XmemDrvrClose(void *s, struct file *flp)
   XmemDrvrClientContext *ccon; /* Client context */
   XmemDrvrWorkingArea *wa __attribute__((__unused__)) = (XmemDrvrWorkingArea*)s;
 
-  /* 
+  /*
    * We allow one client per minor device, we use the minor device
    * number as an index into the client contexts array.
    */
@@ -2134,7 +2134,7 @@ int XmemDrvrClose(void *s, struct file *flp)
  * @return number of bytes read
  */
 int XmemDrvrRead(void *s, struct file *flp, char *u_buf, int cnt)
-{   
+{
   XmemDrvrClientContext *ccon;    /* Client context */
   XmemDrvrQueue         *queue;
   XmemDrvrReadBuf       *rb;
@@ -2165,7 +2165,7 @@ int XmemDrvrRead(void *s, struct file *flp, char *u_buf, int cnt)
     return SYSERR;
   }
 
-  /* 
+  /*
    * Block any calls coming from unknown PIDs.
    * Only the PID that opened the driver is allowed to read.
    */
@@ -2400,7 +2400,7 @@ int XmemDrvrSelect(void *s, struct file *flp, int wch, struct sel *ffs)
 
 
 /**
- * XmemDrvrInstall - This routine is called at driver install with a 
+ * XmemDrvrInstall - This routine is called at driver install with a
  * parameter pointer, addressing a table initialised with the info table
  *
  * @param info: device info table
@@ -2480,7 +2480,7 @@ char* XmemDrvrInstall(void *info)
       if (cc == SYSERR) {
 	cprintf("xmemDrvr: Can't register ISR for timing module: %d\n",midx+1);
 	return((char *)SYSERR);
-      } 
+      }
       else {
 
 	ivec = 0;
@@ -2587,7 +2587,7 @@ int XmemDrvrUninstall(void *s)
 
 /*
  * FIXME: it would be _much_ cleaner to have the IOCTL entry point like a switch
- * that instead of having everything inside, calls for each case a different 
+ * that instead of having everything inside, calls for each case a different
  * function. It's just a huge waste the way it's done now.
  */
 
@@ -2636,8 +2636,8 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
 
   /*
    * Check argument contains a valid address for reading or writing.
-   * We can not allow bus errors to occur inside the driver due to  
-   * the caller providing a garbage address in "arg". So if arg is  
+   * We can not allow bus errors to occur inside the driver due to
+   * the caller providing a garbage address in "arg". So if arg is
    * not null set "rcnt" and "wcnt" to contain the byte counts which
    * can be read or written to without error.
    */
@@ -2647,7 +2647,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
     wcnt = wbounds((int)arg); /* Number of writable bytes without error */
 
     if (rcnt == EFAULT || wcnt == EFAULT) {
-      cprintf("xmemDrvrIoctl: ILLEGAL NON NULL ARG, RCNT=%d/%d\n", rcnt, 
+      cprintf("xmemDrvrIoctl: ILLEGAL NON NULL ARG, RCNT=%d/%d\n", rcnt,
 	      sizeof(long));
       pseterr(EINVAL);
       return(SYSERR);
@@ -2669,7 +2669,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
   sav = lav; /* Short argument value */
 
   /*
-   * We allow one client per minor device, we use the minor device 
+   * We allow one client per minor device, we use the minor device
    * number as an index into the client contexts array.
    */
 
@@ -2689,7 +2689,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
     return SYSERR;
   }
 
-  /* 
+  /*
    * Block any calls coming from unknown PIDs.
    * Only the PID that opened the driver is allowed to call IOCTLs
    */
@@ -2751,7 +2751,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
       ccon->Timeout = lav; /* Note that if (!lav), this is properly handled */
       if (ccon->Debug) {
 	if (lav)
-	  cprintf("xmemDrvr: TicksPerSec:%d Timeout:%d\n", (int)tickspersec, 
+	  cprintf("xmemDrvr: TicksPerSec:%d Timeout:%d\n", (int)tickspersec,
 		  (int)lav);
 	else
 	  cprintf("xmemDrvr: Disabled Client's Timeout.\n");
@@ -2946,7 +2946,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
   case XmemDrvrCONNECT: /* Connect to an object interrupt */
     IOCTL_TRACK("XmemDrvrCONNECT");
     conx = (XmemDrvrConnection *)arg;
-    if (rcnt >= sizeof(XmemDrvrConnection)) 
+    if (rcnt >= sizeof(XmemDrvrConnection))
       return Connect(conx,ccon);
     pseterr(EINVAL);
     return SYSERR;
@@ -3001,14 +3001,14 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
 
   case XmemDrvrSEND_INTERRUPT: /* Send an interrupt to other nodes */
     IOCTL_TRACK("XmemDrvrSEND_INTERRUPT");
-    if (rcnt >= sizeof(XmemDrvrSendBuf)) { 
+    if (rcnt >= sizeof(XmemDrvrSendBuf)) {
       sbuf = (XmemDrvrSendBuf *)arg;
       return SendInterrupt(sbuf);
     }
     pseterr(EINVAL);
     return SYSERR;
 
-  case XmemDrvrGET_XMEM_ADDRESS:       
+  case XmemDrvrGET_XMEM_ADDRESS:
     /* Get physical address of reflective memory SDRAM */
     IOCTL_TRACK("XmemDrvrGET_XMEM_ADDRESS");
 
@@ -3026,7 +3026,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
     pseterr(EINVAL);
     return SYSERR;
 
-  case XmemDrvrSET_SEGMENT_TABLE:      
+  case XmemDrvrSET_SEGMENT_TABLE:
     /* Set the list of all defined xmem memory segments */
     IOCTL_TRACK("XmemDrvrSET_SEGMENT_TABLE");
 
@@ -3067,7 +3067,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
 
     if (ccon->Debug) {
       cprintf("xmemDrvr: Rd: Mod:%d Seg:0x%x Off:%d Sze:%d Uad:0x%x Udf:%d\n",
-	      (int)siod->Module, (int)siod->Id, (int)siod->Offset, 
+	      (int)siod->Module, (int)siod->Id, (int)siod->Offset,
 	      (int)siod->Size, (int)siod->UserArray, (int)siod->UpdateFlg);
     }
 
@@ -3166,8 +3166,8 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
       tt_diff23 = (tt_a3 - tt_a2)*1000000000 + tt_na3 - tt_na2;
       tt_diff34 = (tt_a4 - tt_a3)*1000000000 + tt_na4 - tt_na3;
 #endif /* !__linux__ */
-      cprintf("xmemDrvr: dma total: %lu ns\n", tt_diff); 
-      cprintf("@@ 01: %lu ns\n", tt_diff01); 
+      cprintf("xmemDrvr: dma total: %lu ns\n", tt_diff);
+      cprintf("@@ 01: %lu ns\n", tt_diff01);
       cprintf("@@ 12: %lu ns\n", tt_diff12);
       cprintf("@@ 23: %lu ns\n", tt_diff23);
       cprintf("@@ 34: %lu ns\n", tt_diff34);
@@ -3214,8 +3214,8 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
       tt_diff23 = (tt_a3 - tt_a2)*1000000000 + tt_na3 - tt_na2;
       tt_diff34 = (tt_a4 - tt_a3)*1000000000 + tt_na4 - tt_na3;
 #endif /* !__linux__ */
-      cprintf("xmemDrvr: longcopy total: %lu ns\n", tt_diff); 
-      cprintf("@@ 01: %lu ns\n", tt_diff01); 
+      cprintf("xmemDrvr: longcopy total: %lu ns\n", tt_diff);
+      cprintf("@@ 01: %lu ns\n", tt_diff01);
       cprintf("@@ 12: %lu ns\n", tt_diff12);
       cprintf("@@ 23: %lu ns\n", tt_diff23);
       cprintf("@@ 34: %lu ns\n", tt_diff34);
@@ -3227,7 +3227,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
     pseterr(EINVAL); /* will never get to this point, anyway */
     return SYSERR;
 
-  case XmemDrvrCHECK_SEGMENT:  
+  case XmemDrvrCHECK_SEGMENT:
     /* Check to see if a segment has been updated since last read */
     IOCTL_TRACK("XmemDrvrCHECK_SEGMENT");
 
@@ -3241,7 +3241,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
     pseterr(EINVAL);
     return SYSERR;
 
-  case XmemDrvrFLUSH_SEGMENTS:  
+  case XmemDrvrFLUSH_SEGMENTS:
     /* Flush segments out to other nodes after PendingInit */
     IOCTL_TRACK("XmemDrvrFLUSH_SEGMENTS");
 
@@ -3288,7 +3288,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
       }
 
       temptr = riob->UserArray; /* Save the user space address */
-      err = cdcm_copy_from_user(lptr, riob->UserArray, 
+      err = cdcm_copy_from_user(lptr, riob->UserArray,
 				sizeof(long) * riob->Items);
       if (err) {
 	cprintf("xmemDrvr: Copy from user failed. Returned error:%d.\n", err);
@@ -3306,14 +3306,14 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
 	return SYSERR;
       }
 
-      err = cdcm_copy_to_user(riob->UserArray, lptr, 
+      err = cdcm_copy_to_user(riob->UserArray, lptr,
 			      sizeof(long) * riob->Items);
       if (err) {
 	pseterr(EFAULT);
 	return SYSERR;
       }
       return OK;
-	
+
     }
     pseterr(EACCES);
     return SYSERR;
@@ -3335,7 +3335,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
 
       temptr = riob->UserArray; /* Save the user space address */
 
-      err = cdcm_copy_from_user(lptr, riob->UserArray, 
+      err = cdcm_copy_from_user(lptr, riob->UserArray,
 				sizeof(long) * riob->Items);
       if (err) {
 	cprintf("xmemDrvr: Copy from user failed. returned error:%d.\n", err);
@@ -3351,8 +3351,8 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
 	pseterr(EIO);
 	return SYSERR;
       }
-      
-      err = cdcm_copy_to_user(riob->UserArray, lptr, 
+
+      err = cdcm_copy_to_user(riob->UserArray, lptr,
 			      sizeof(long) * riob->Items);
       if (err) {
 	pseterr(EFAULT);
@@ -3378,7 +3378,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
 
 
       temptr = riob->UserArray; /* Save the user space address */
-      err = cdcm_copy_from_user(lptr, riob->UserArray, 
+      err = cdcm_copy_from_user(lptr, riob->UserArray,
 				sizeof(long) * riob->Items);
       if (err) {
 	cprintf("xmemDrvr: Copy from user failed. returned error: %d.\n", err);
@@ -3395,7 +3395,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
 	return SYSERR;
       }
 
-      err = cdcm_copy_to_user(riob->UserArray, lptr, 
+      err = cdcm_copy_to_user(riob->UserArray, lptr,
 			      sizeof(long) * riob->Items);
       if (err) {
 	pseterr(EFAULT);
@@ -3418,7 +3418,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
       }
 
       temptr = riob->UserArray; /* Store the user space address */
-      err = cdcm_copy_from_user(lptr, riob->UserArray, 
+      err = cdcm_copy_from_user(lptr, riob->UserArray,
 				sizeof(long) * riob->Items);
       if (err) {
 	cprintf("xmemDrvr: Copy from user failed. returned error: %d.\n", err);
@@ -3436,7 +3436,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
 	return SYSERR;
       }
 
-      err = cdcm_copy_to_user(riob->UserArray, lptr, 
+      err = cdcm_copy_to_user(riob->UserArray, lptr,
 			      sizeof(long) * riob->Items);
       if (err) {
 	pseterr(EFAULT);
@@ -3468,7 +3468,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
       }
 
       temptr = riob->UserArray; /* Store the user space address */
-      err = cdcm_copy_from_user(lptr, riob->UserArray, 
+      err = cdcm_copy_from_user(lptr, riob->UserArray,
 				sizeof(long) * riob->Items);
       if (err) {
 	cprintf("xmemDrvr: Copy from user failed. returned error: %d.\n", err);
@@ -3493,7 +3493,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
     pseterr(EACCES);
     return SYSERR;
 
-  case XmemDrvrLOCAL_WRITE:  
+  case XmemDrvrLOCAL_WRITE:
     /* Write the PLX9656 local configuration registers (Experts only) */
     IOCTL_TRACK("XmemDrvrLOCAL_WRITE");
     if (rcnt >= sizeof(XmemDrvrRawIoBlock)) {
@@ -3546,7 +3546,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
       }
 
       temptr = riob->UserArray; /* Store the user space address */
-      err = cdcm_copy_from_user(lptr, riob->UserArray, 
+      err = cdcm_copy_from_user(lptr, riob->UserArray,
 				sizeof(long) * riob->Items);
 
       if (err) {
@@ -3582,7 +3582,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
       }
 
       temptr = riob->UserArray; /* Store the user space address */
-      err = cdcm_copy_from_user(lptr, riob->UserArray, 
+      err = cdcm_copy_from_user(lptr, riob->UserArray,
 				sizeof(long) * riob->Items);
       if (err) {
 	cprintf("xmemDrvr: Copy from user failed. returned error: %d.\n", err);
@@ -3617,7 +3617,7 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
     if (lap) {
       if (lav < PAGESIZE)
 	wa->DmaThreshold = lav;
-      else 
+      else
 	cprintf("xmemDrvr: DMA_THRESHOLD should be less than PAGESIZE=%ld\n",
 		   PAGESIZE);
       return OK;

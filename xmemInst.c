@@ -59,14 +59,14 @@ static char info_file[] = "/tmp/xmemDrvr.info";
  *
  * @return info table pointer
  */
-static XmemDrvrInfoTable* build_info_table_and_parse_args(int argc, 
+static XmemDrvrInfoTable* build_info_table_and_parse_args(int argc,
 							  char *argv[],
 							  char *envp[])
 {
   int mcntr, i;
   cdcm_grp_t *grp_ptr;	/* group description pointer */
-  /* module description pointer: */  
-  cdcm_md_t  *md_ptr __attribute__((__unused__)); 
+  /* module description pointer: */
+  cdcm_md_t  *md_ptr __attribute__((__unused__));
   struct list_head *grp_lst = cdcm_inst_vme_arg_parser(argc, argv, envp);
 
   /* pass through all the groups */
@@ -84,8 +84,8 @@ static XmemDrvrInfoTable* build_info_table_and_parse_args(int argc,
       //      infoModule = &(fpi_infotab.ModuleInfo[mcntr]);
       mcntr++;
       /* first base address */
-      if ( ((md_ptr->md_vme1addr & 0x00000fff) == 0) 
-	   && ((md_ptr->md_vme1addr & 0xffff0000) == 0) 
+      if ( ((md_ptr->md_vme1addr & 0x00000fff) == 0)
+	   && ((md_ptr->md_vme1addr & 0xffff0000) == 0)
 	   && (md_ptr->md_vme1addr > 0x00000fff) ) {
 	infoModule->base = md_ptr->md_vme1addr;
 	infoModule->size = sizeof(struct fpiT_vme);
@@ -118,7 +118,7 @@ static XmemDrvrInfoTable* build_info_table_and_parse_args(int argc,
       //    if ( !InfoSetup(&(xmem_infotab.ModuleInfo[i])) )
       xmem_infotab.ModuleFlag[i] = 1; /* Flag = this module declared */
       //    else
-      //      xmem_infotab.ModuleFlag[i] = 0; 
+      //      xmem_infotab.ModuleFlag[i] = 0;
       //      /* Flag = this module non declared */
   }
   //  fpi_infotab.trailer.base = fpi_infotab.trailer.size = -1;

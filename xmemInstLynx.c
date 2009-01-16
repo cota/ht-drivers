@@ -51,7 +51,7 @@ int                      uid, fd, i;
       printf("%s: User ID is not ROOT.\n",progname);
       exit(1);
    }
-   
+
    /***********************************/
    /* Build the info table in memory. */
    /***********************************/

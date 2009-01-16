@@ -8,7 +8,7 @@
  * @date Created on 02/09/2004
  *
  * @version 2.0 Emilio G. Cota 15/10/2008, CDCM-compliant.
- * 
+ *
  * @version 1.0 Julian Lewis 26/08/2004, Lynx/Linux compatible.
  */
 
@@ -231,7 +231,7 @@ typedef struct {
  * Nic patterns XX100, XX101, XX110 are forbidden by the driver.
  * BROADCAST and MULTICAST Bits: they can be ORed with the value to transfer.
  * Example: (XmemDrvrNicINT_1 | XmemDrvrNicBROADCAST) broadcasts INT_1 to
- * all nodes. 
+ * all nodes.
  */
 //@{
 #define XmemDrvrNicCAST 0x38
@@ -239,16 +239,16 @@ typedef struct {
 
 typedef enum {
   //!< Val: XXX000: Request target node(s) reset
-  XmemDrvrNicREQUEST_RESET  = 0x00, 
+  XmemDrvrNicREQUEST_RESET  = 0x00,
 
   //!< Val: XXX001: Type 1 Interrupt
-  XmemDrvrNicINT_1          = 0x01, 
+  XmemDrvrNicINT_1          = 0x01,
 
   //!< Val: XXX010: Type 2 Interrupt
-  XmemDrvrNicINT_2          = 0x02, 
+  XmemDrvrNicINT_2          = 0x02,
 
   //!< Val: XXX011: Type 3 Interrupt (Segment update)
-  XmemDrvrNicSEGMENT_UPDATE = 0x03, 
+  XmemDrvrNicSEGMENT_UPDATE = 0x03,
 
   //!< Val: XXX111: I am Initialized interrupt
   XmemDrvrNicINITIALIZED    = 0x07,
@@ -549,7 +549,7 @@ typedef enum {
 #define XMEM_IOW(nr,sz)  _IOW (XMEM_IOCTL_MAGIC, nr, sz)
 #define XMEM_IOWR(nr,sz) _IOWR(XMEM_IOCTL_MAGIC, nr, sz)
 
-#define XmemDrvrILLEGAL_IOCTL           XMEM_IO (0) 
+#define XmemDrvrILLEGAL_IOCTL           XMEM_IO (0)
 
 
 #define XmemDrvrSET_SW_DEBUG            XMEM_IOW(1, long)
