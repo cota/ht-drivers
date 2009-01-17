@@ -1018,7 +1018,9 @@ static int WrPermSeg(unsigned long segid, unsigned long node, int *nodeid)
   return 1;
 }
 
-
+/* FIXME: BUG on PageCopy: if after settin up a DMA mapping the function fails,
+ * we don't call unmap() before returning SYSERR.
+ */
 /**
  * PageCopy - Copies a page to/from VMIC's SDRAM using DMA.
  *
@@ -1071,6 +1073,8 @@ static int PageCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
     mcon->DmaOp.Dma = cdcm_pci_map(mcon, siod->UserArray,
 				   mcon->DmaOp.Len, mcon->DmaOp.Flag);
   }
+  if (mcon->DmaOp.Dma == 0)
+    goto nomapping;
 
 #ifdef __TEST_TT__
 #ifdef __linux__
@@ -1225,6 +1229,10 @@ static int PageCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
  nosegment:
   cprintf("xmemDrvr:PageCopy:No such segment defined:%d.\n", sgx);
   pseterr(ENXIO);
+  return SYSERR;
+ nomapping:
+  cprintf("xmemDrvr:PageCopy: unable to perform DMA mapping.\n");
+  pseterr(EIO);
   return SYSERR;
 }
 
