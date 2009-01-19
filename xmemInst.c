@@ -36,7 +36,7 @@
 
 #include "xmemDrvr.h"
 
-#include <common/include/list.h>
+#include <list.h>
 #include <cdcm/cdcmUninstInst.h>
 #include <cdcm/cdcmInfoT.h>
 
