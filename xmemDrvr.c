@@ -1293,7 +1293,7 @@ static int SegmentCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
     mcon->DmaOp.Flag = iod == XmemDrvrWRITE;
     mcon->DmaOp.Buffer = siod->UserArray;
 
-    for (pg=0; pg<pgs; pg++) {
+    for (pg = 0; pg < pgs; pg++) {
 
       mcon->DmaOp.Dma = dmac[pg].address; /* this is a portable type */
       mcon->DmaOp.Len = dmac[pg].count;
@@ -1313,7 +1313,8 @@ static int SegmentCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
 
       err = PageCopy(&sio, iod, 1); /* mapped = 1 */
 
-      if (err < 0) break;
+      if (err < 0)
+	break;
       sio.Offset += dmac[pg].count;
     }
     /* clear SG mapping (which also unlocks the pages) */
@@ -1815,7 +1816,8 @@ cdcm_irqret_t IntrHandler(void *m)
       for (i = 0; i < VmicLisrSOURCES; i++) {
 	msk = 1 << i;
 
-	if (! (msk & isrc)) break;
+	if (! (msk & isrc))
+	  continue;
 
 	rbf.Mask |= msk;
 
@@ -1873,7 +1875,8 @@ cdcm_irqret_t IntrHandler(void *m)
 	   * protocol would never end.
 	   */
 
-	  if (! data) break;
+	  if (! data)
+	    break;
 
 	  /* reset known nodes to the only two I know for the time being */
 	  Wa->Nodes = (1 << (mcon->NodeId - 1)) | (1 << (node - 1));
@@ -1937,7 +1940,7 @@ cdcm_irqret_t IntrHandler(void *m)
 	}
       }
 
-      for (i=0; i<XmemDrvrCLIENT_CONTEXTS; i++) {
+      for (i = 0; i < XmemDrvrCLIENT_CONTEXTS; i++) {
 
 	ccon = &Wa->ClientContexts[i];
 
@@ -1947,7 +1950,8 @@ cdcm_irqret_t IntrHandler(void *m)
 
 	msk = mcon->Clients[i];
 
-	if (!(msk & isrc)) break;
+	if (!(msk & isrc))
+	  continue;
 
 	queue = &ccon->Queue;
 	if (queue->Size < XmemDrvrQUEUE_SIZE) {
@@ -2350,7 +2354,7 @@ int XmemDrvrWrite(void *s, struct file *flp, char *u_buf, int cnt)
     msk = mcon->Clients[i];
 
     if (! (msk & XmemDrvrIntrDAEMON))
-      break; /* this client is not connected to IntrDAEMON */
+      continue; /* this client is not connected to IntrDAEMON */
 
 
     /* the client's connected to IntrDAEMON --> fill in his queue */
@@ -2448,7 +2452,8 @@ char* XmemDrvrInstall(void *info)
 	cprintf("xmemDrvr: No VMIC card found: No hardware: Fatal\n");
 	pseterr(ENODEV);
 	return (char *) SYSERR;
-      } else break;
+      } else
+	break; /* no more devices */
     }
 
     mcon = &wa->ModuleContexts[midx];
