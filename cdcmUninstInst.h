@@ -120,9 +120,9 @@ typedef enum _tagDefaultOptionsChars {
 
 /* option characters and their capabilities */
 typedef struct _tagOptCharCap {
-  int opt_val;               /* wchich character */
-  int opt_redef;             /* if (re)defined by the user? */
-  int opt_with_arg;          /* if option requires an argument? */
+  char opt_val;              /* wchich character */
+  int  opt_redef;            /* if (re)defined by the user? */
+  int  opt_with_arg;         /* if option requires an argument? */
   struct list_head opt_list; /* linked list */
 } opt_char_cap_t;
 

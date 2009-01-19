@@ -15,6 +15,10 @@
 #ifndef _CDCM_H_INCLUDE_
 #define _CDCM_H_INCLUDE_
 
+/* for both Lynx/Linux */
+#include "cdcmBoth.h"
+#include "cdcmIo.h"
+
 #ifdef __linux__
 
 #include "cdcmDrvr.h"
@@ -22,9 +26,6 @@
 #include "cdcmLynxDefs.h"
 
 #else  /* __Lynx__ */
-
-#include "cdcmBoth.h"
-#include "cdcmIo.h"
 
 #include <dldd.h>
 #include <errno.h>

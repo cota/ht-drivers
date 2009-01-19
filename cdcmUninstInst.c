@@ -31,8 +31,8 @@
 #include <sys/stat.h>
 #include <sys/param.h>
 
-#include <common/include/general_both.h>
-#include <common/include/list.h>
+#include <include/general_both.h>
+#include <include/list.h>
 #include <cdcm/cdcmInfoT.h>
 #include <cdcm/cdcmUninstInst.h>
 #include <cdcm/cdcmUsrKern.h>
