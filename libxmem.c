@@ -1,7 +1,7 @@
 /**
  * @file libxmem.c
  *
- * @brief Implement a library to handle reflective memory front end
+ * @brief XMEM Reflective Memory Library Implementation
  *
  * @author Julian Lewis
  *
@@ -73,8 +73,11 @@ char *configpath = NULL;
  * NB. A config file looks like the following:
  *
  * ;File name            ;Location of File            ;Comment
+ *
  * ;Reflective memory
+ *
  * xmemtest               /usr/drivers/xmem/          ;Xmem test program
+ *
  * xmemdiag               /usr/xmem/                  ;Xmem daemon test program
  *
  * @return string with full path to the config file on success; NULL otherwise.
@@ -335,6 +338,9 @@ static XmemError InitDevice(XmemDevice device)
  *
  * @param device: device to initialise
  *
+ * Set the device to be used by the library and
+ * perform library initialization code.
+ *
  * @return Appropriate error code (XmemError)
  */
 XmemError XmemInitialize(XmemDevice device)
@@ -398,7 +404,7 @@ XmemNodeId XmemWhoAmI()
  *
  * @param : none
  *
- * Daemons need to know if they are starting warm or cold to correctly
+ * Clients might need to know if they are starting warm or cold to correctly
  * initialize tables and reflective memory.
  * Once the driver tables have been loaded, subsequent instances of any
  * programs using XmemLib will always receive the warm start status,
@@ -445,6 +451,13 @@ char *XmemErrorToString(XmemError err)
  * The set of up and running nodes is determined dynamically through a
  * handshake protocol between nodes.
  *
+ * When there is no driver installed on a DSC, there will be no response from
+ * that DSC to the PENDING_INIT interrupt, so the node will be removed from
+ * the list of ACTIVE nodes. When the node comes back up, it sends out a new
+ * non-zero PENDING_INIT broadcast, and all nodes will respond restablishing
+ * the ACTIVE node list in every node. This is part of the driver ISR logic.
+ * The library event XmemEventMaskINITIALIZED corresponds to PENDING_INIT.
+ *
  * @return initialised node id's.
  */
 XmemNodeId XmemGetAllNodeIds()
@@ -459,8 +472,19 @@ XmemNodeId XmemGetAllNodeIds()
  * XmemRegisterCallback - Register callback to handle Xmem Events.
  *
  * @param cb: callback descriptor
+ * @param mask: event to subscribe to
  *
- * This is the way clients can connect to events
+ * This is the way clients can connect to events.
+ *
+ * Calling with NULL deletes any previous callback that was installed.
+ *
+ * Calling the Wait or Poll library functions may cause the call back
+ * to be invoked.
+ *
+ * Implementing a daemon is nothing more than writing a callback.
+ *
+ * Register your callback function, and subscribe to the things you want
+ * delivered to it.
  *
  * @return Appropriate error message (XmemError)
  */
@@ -505,7 +529,7 @@ XmemEventMask XmemGetRegisteredEvents()
 /**
  * XmemWait - Wait for an Xmem Event with timeout
  *
- * @param timeout: timeout value
+ * @param timeout: in intervals of 10ms; 0 means forever.
  *
  * An incoming event will call any registered callback
  *
@@ -545,6 +569,19 @@ XmemEventMask XmemPoll()
  * @param offset: offset of transfer
  * @param upflag: update message flag
  *
+ * When writing the last time to the table, set the upflag non zero so that a
+ * table update message is sent out to all nodes.
+ *
+ * If SendTable is called with a NULL buffer, the driver will flush the
+ * reflective memory segment to the network by copying it onto itself. This
+ * is rather slow compared to the usual copy because DMA can not be used, and
+ * two PCI-bus accesses ~1us are used for each long word.
+ *
+ * WARNING: Only 32 bit accesses can be made. So the buf parameter must be on
+ * a 'long' boundary, the offset is in longs, and longs is the number of 'longs'
+ * to be transfered. This can be tricky because the size of the buffer to be
+ * allocated must be multiplied by sizeof(long).
+ *
  * @return Appropriate error message (XmemError)
  */
 XmemError XmemSendTable(XmemTableId table, long *buf, unsigned long longs,
@@ -563,6 +600,8 @@ XmemError XmemSendTable(XmemTableId table, long *buf, unsigned long longs,
  * @param buf: client's buffer
  * @param longs: number of 'longs' (i.e. 4 bytes) to transfer
  * @param offset: offset of transfer
+ *
+ * See comments for XmemSendTable.
  *
  * @return Appropriate error message (XmemError)
  */
@@ -600,6 +639,15 @@ XmemError XmemSendMessage(XmemNodeId nodes, XmemMessage *mess)
  *
  * @param : none
  *
+ * Check to see which tables have been updated since the last call. For each
+ * table that has been modified, its ID bit is set in the returned TableId.
+ *
+ * For each client the call maintains the set of tables that the client has
+ * not yet seen, and this set is zeroed after each call.
+ *
+ * This will not invoke your registered callback even if you have registered
+ * for TABLE_UPDATE interrupts.
+ *
  * @return CheckTables handler on success; XmemErrorNOT_INITIALIZED otherwise
  */
 XmemTableId XmemCheckTables()
@@ -615,6 +663,11 @@ XmemTableId XmemCheckTables()
  *
  * @param err: error code
  * @param ioe: data to append
+ *
+ * This routine permits invoking your callback for errors.
+ *
+ * The err parameter contains one error, and ioe contains the sub-error
+ * code as defined above in XmemEventMask description.
  *
  * @return Appropriate error code (XmemError)
  */
@@ -884,7 +937,7 @@ char * XmemGetTableName(XmemTableId table)
   }
 
   XmemErrorCallback(XmemErrorNO_SUCH_TABLE, 0);
-  return (char *) 0;
+  return (char *)0;
 }
 
 
@@ -893,7 +946,7 @@ char * XmemGetTableName(XmemTableId table)
  *
  * @param name: table's name
  *
- * @return <ReturnValue>
+ * @return table id on success; 0 otherwise
  */
 XmemTableId XmemGetTableId(XmemName name)
 {
