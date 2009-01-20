@@ -1,4 +1,3 @@
-/* $Id$ */
 /**
  * @file xmemDrvr.c
  *
@@ -7,6 +6,18 @@
  * @author Julian Lewis AB/CO/HT CERN
  *
  * @date Created on 02/09/2004
+ *
+ * \mainpage Xmem
+ *
+ * \section warning_sec Warning
+ *
+ * NOTE. The driver assumes that the size of a long
+ * in both user and kernel space is 4 bytes; this is only true for 32-bit
+ * machines. Therefore \b 64-bit \b platforms \b are \b NOT \b supported.
+ * This was a design mistake from the early beginning and has not been fixed
+ * yet because we have other priorities.
+ *
+ * \section install_sec Driver Description
  *
  * The driver can handle multiple VMIC modules.
  * This is useful for making "bridges" between distributed memory networks.
@@ -70,9 +81,6 @@
  * "Data Movement Between Big-Endian and Little-Endian Devices",
  * by Kyle Aubrey and Ashan Kabir.
  * http://www.freescale.com/files/32bit/doc/app_note/AN2285.pdf
- *
- * Note that the driver will not work on 64-bit platforms, since it assumes that
- * a type 'long' is 4 bytes long (this comes from the initial version).
  *
  * @version 2.0 Emilio G. Cota 15/10/2008, CDCM-compliant.
  * @version 1.0 Julian Lewis 02/09/2004, Lynx driver.
@@ -157,7 +165,7 @@ unsigned long tt_diff, tt_diff01, tt_diff12, tt_diff23, tt_diff34;
 #endif /* __TEST_TT__ */
 
 
-XmemDrvrWorkingArea *Wa = NULL;
+XmemDrvrWorkingArea *Wa = NULL; //!< Global pointer to Working Area
 
 static unsigned long GetRfmReg(XmemDrvrModuleContext *mcon, VmicRfm reg,
 			       int size);
@@ -521,7 +529,7 @@ static int DrmLocalReadWrite(XmemDrvrModuleContext *mcon, unsigned long addr,
  * @param mcon: module context
  * @param addr: offset within the config registers
  * @param value: pointer to where the data is read/written
- * @param size_l: size of the data to be transferred
+ * @param size: size of the data to be transferred
  * @param flag: XmemDrvr READ/WRITE flag
  *
  * Reads/writes from the PLX9656 configuration registers.
@@ -1236,11 +1244,15 @@ static int PageCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
   return SYSERR;
 }
 
-/* we set a global variable for this, so that the stack is not filled up.
+#define MAX_DMA_CHAIN XmemDrvrMAX_SEGMENT_SIZE/PAGESIZE+1
+//!< Maximum number of dmachain elements that dmac can handle
+
+/*! array to store the returned value from mmchain
+ * 
+ * We set a global variable for this, so that the stack is not filled up.
  * since the region that operates on dmachain is protected by
  * mcon->BusySemaphore, we're safe.
  */
-#define MAX_DMA_CHAIN XmemDrvrMAX_SEGMENT_SIZE/PAGESIZE+1
 struct dmachain dmac[MAX_DMA_CHAIN];
 
 /**
@@ -2610,7 +2622,7 @@ int XmemDrvrUninstall(void *s)
  *
  * @param s: working area
  * @param flp: file pointer
- * @param cm: IOCTL command
+ * @param fct: IOCTL command
  * @param arg: data for the IOCTL
  *
  * @return OK on success
@@ -3678,8 +3690,8 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
 }
 
 
-
-/* driver entry points */
+/*! CDCM-like driver's entry points
+ */
 struct dldd entry_points = {
   XmemDrvrOpen,         /* open      */
   XmemDrvrClose,        /* close     */

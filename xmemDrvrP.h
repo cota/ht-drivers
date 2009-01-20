@@ -43,15 +43,14 @@ typedef enum {
  * Structures and definitions for the client's context
  */
 //@{
-
-//!< TIMEOUT = 1 --> delay of 10ms
-#define XmemDrvrMINIMUM_TIMEOUT 10
+#define XmemDrvrMINIMUM_TIMEOUT 10 	//!< TIMEOUT = 1 --> delay of 10ms
 #define XmemDrvrDEFAULT_TIMEOUT 1000
 #define XmemDrvrBUSY_TIMEOUT 200
 
-//!< Maximum queue size:
-#define XmemDrvrQUEUE_SIZE 128
+#define XmemDrvrQUEUE_SIZE 128 		//!< Maximum queue size
 
+/*! Client's queue
+ */
 typedef struct {
   unsigned short  QueueOff;
   unsigned short  Missed;
@@ -59,15 +58,17 @@ typedef struct {
   XmemDrvrReadBuf Entries[XmemDrvrQUEUE_SIZE];
 } XmemDrvrQueue;
 
+/*! Client's context
+ */
 typedef struct {
-  //!< Non zero when context is being used, else zero
   unsigned long InUse;
+  //!< Non zero when context is being used, else zero
 
   XmemDrvrDebug Debug;           //!< Clients debug settings mask
   unsigned long Pid;             //!< Clients Process ID
 
-  //!< Position of this client in array of clients
   unsigned long ClientIndex;
+  //!< Position of this client in array of clients
 
   unsigned long ModuleIndex;     //!< The VMIC module he is working with
   unsigned long UpdatedSegments; //!< Updated segments mask
@@ -83,10 +84,12 @@ typedef struct {
  * Structures and definitions for the module's context
  */
 //@{
+#define XmemDrvrDMA_TIMEOUT 10 //!< TIMEOUT = 1 --> delay of 10ms.
 
-/* TIMEOUT = 1 --> delay of 10ms. */
-#define XmemDrvrDMA_TIMEOUT 10
-
+/*! DMA Operations Struct
+ *
+ * This is a shared structure used to keep track of the DMA mappings
+ */
 typedef struct {
   char *Buffer;
   cdcm_dma_t Dma;
@@ -94,6 +97,8 @@ typedef struct {
   unsigned short Flag;
 } XmemDmaOp;
 
+/*! Module context
+ */
 typedef struct {
   unsigned long InUse;			//!< Module context in use
   struct drm_node_s *Handle;    	//!< Handle from DRM
@@ -106,13 +111,11 @@ typedef struct {
   unsigned long ModuleIndex;		//!< Which module we are
   unsigned long NodeId;			//!< Node 1..256
 
-  //!< {Rd,Wr}DmaSemaphores are used for tracking the DMA transfer time
   int		RdDmaSemaphore;		//!< DMA 0 engine sem, used for reading
   int		WrDmaSemaphore;		//!< DMA 1 engine sem, used for writing
 
-  //!< the two semaphores below are mutexes
-  int		BusySemaphore;		//!< Module is busy
-  int		TempbufSemaphore;	//!< Tempbuf is being used
+  int		BusySemaphore;		//!< mutex: Module is busy
+  int		TempbufSemaphore;	//!< mutex: Tempbuf is being used
 
   int     	RdTimer;		//!< Read DMA timer
   int     	WrTimer;		//!< Write DMA timer
@@ -124,20 +127,17 @@ typedef struct {
   XmemDrvrScr	Command;		//!< Command bits settings
   VmicLier	InterruptEnable;	//!< Enabled interrupts mask
 
-  //!< Clients interrupts
   XmemDrvrIntr	Clients[XmemDrvrCLIENT_CONTEXTS];
+  //!< Clients interrupts
 
   XmemDmaOp	DmaOp;			//!< DMA mapping info
   struct cdcm_dmabuf Dma;		//!< For CDCM internal use only
 
-  //!< temporary buffer, allocated during the installation of the driver
   void *Tempbuf;
+  //!< temporary buffer, allocated during the installation of the driver
 } XmemDrvrModuleContext;
 //@}
 
-/* ============================================================ */
-/* Driver Working Area                                          */
-/* ============================================================ */
 
 /*! @name Driver's Working Area
  *
@@ -152,6 +152,8 @@ typedef struct {
 #define XmemDrvrDEFAULT_DMA_THRESHOLD PAGESIZE
 #endif
 
+/*! Driver's working area
+ */
 typedef struct {
   unsigned long		Modules;
   unsigned long		DmaThreshold;

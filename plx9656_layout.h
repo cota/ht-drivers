@@ -24,11 +24,11 @@ typedef struct {
 } __attribute__ ((packed)) PlxRegPCIIDR;
 
 typedef enum {
-  //!< Allows I/O space access (I/O Accelerator)
   PlxPcicrIO_SPACE       = 0x0001,
+  //!< Allows I/O space access (I/O Accelerator)
 
-  //!< Allows memory space access (I/O Accelerator)
   PlxPcicrMEMORY_SPACE   = 0x0002,
+  //!< Allows memory space access (I/O Accelerator)
 
   PlxPcicrMASTER_ENABLE  = 0x0008, //!< Allows bus master behaviour
   PlxPcicrMEMORY_WRITE   = 0x0010, //!< Allows DMA
@@ -38,31 +38,33 @@ typedef enum {
 } PlxPcicr;
 
 typedef enum {
-  //!< New capabilities, must be zero for VMIC5565
   PlxPcisrNEW_CAP        = 0x0010,
+  //!< New capabilities, must be zero for VMIC5565
 
-  //!< 66MHz, on the CES power PC this must be zero
   PlxPcisr66MHZ          = 0x0020,
+  //!< 66MHz, on the CES power PC this must be zero
+
   PlxPcisrUSER_DEFINED   = 0x0040, //!< Enable user defined functions
 
-  //!< Indicates fast back to back, its always a 1
   PlxPcisrFAST_BACK      = 0x0080,
+  //!< Indicates fast back to back, its always a 1
+
   PlxPcisrMPARITY_ERROR  = 0x0100, //!< Master parity error detected
   PlxPcisrDEVSEL_0       = 0x0200, //!< DEVSEL Timing set to medium always 1
   PlxPcisrDEVSEL_1       = 0x0400, //!< DEVSEL Timing set to medium always 0
 
-  //!< Indicates target abort, cleared by writing 1
   PlxPcisrTARGET_ABORT   = 0x0800,
+  //!< Indicates target abort, cleared by writing 1
 
-  //!< Received a target abort, cleared by writing 1
   PlxPcisrRTARGET_ABORT  = 0x1000,
+  //!< Received a target abort, cleared by writing 1
 
-  //!< Received a master abort, cleared by writing 1
   PlxPcisrRMTARGET_ABORT = 0x2000,
+  //!< Received a master abort, cleared by writing 1
   PlxPcisrSERR           = 0x4000, //!< System error, clearer by writing 1
 
-  //!< Parity error detected , cleared by writing 1
   PlxPcisrPARITY_ERROR   = 0x8000
+  //!< Parity error detected , cleared by writing 1
 } PlxPcisr;
 
 typedef struct {
@@ -165,14 +167,14 @@ typedef enum {
   PlxIntcsrGEN_SERR		= 0x00000004, //!< Generate a SERR interrupt
   PlxIntcsrENABLE_MBOX		= 0x00000008, //!< Enable Mailbox interrupts
 
-  //!< Enable power manager interrupts
   PlxIntcsrENABLE_PMAN		= 0x00000010,
+  //!< Enable power manager interrupts
 
-  //!< Status of power manager interrupt
   PlxIntcsrSTATUS_PMAN		= 0x00000020,
+  //!< Status of power manager interrupt
 
-  //!< Enable parity error intrerrupts
   PlxIntcsrENABLE_PERR		= 0x00000040,
+  //!< Enable parity error intrerrupts
 
   PlxIntcsrSTATUS_PERR		= 0x00000080, //!< Status of parity error
   PlxIntcsrENABLE_PCI		= 0x00000100, //!< Enable PCI interrupts
@@ -185,45 +187,45 @@ typedef enum {
   PlxIntcsrSTATUS_LOCAL		= 0x00008000, //!< Local interrupt active
   PlxIntcsrENABLE_LOCAL_OUT	= 0x00010000, //!< Enable local interrupt out
 
-  //!< Enable local doorbell interrupts
   PlxIntcsrENABLE_LOCAL_DBELL	= 0x00020000,
+  //!< Enable local doorbell interrupts
 
-  //!< Enable DMA channel 0 interrupts
   PlxIntcsrENABLE_DMA_CHAN_0	= 0x00040000,
+  //!< Enable DMA channel 0 interrupts
 
-  //!< Enable DMA channel 1 interrupts
   PlxIntcsrENABLE_DMA_CHAN_1	= 0x00080000,
+  //!< Enable DMA channel 1 interrupts
 
-  //!< Status of local doorbell interrupt
   PlxIntcsrSTATUS_LOCAL_DBELL	= 0x00100000,
+  //!< Status of local doorbell interrupt
 
-  //!< Status of DMA channel 0 interrupt
   PlxIntcsrSTATUS_DMA_CHAN_0	= 0x00200000,
+  //!< Status of DMA channel 0 interrupt
 
-  //!< Status of DMA channel 1 interrupt
   PlxIntcsrSTATUS_DMA_CHAN_1	= 0x00400000,
+  //!< Status of DMA channel 1 interrupt
 
-  //!< Status of bilt in self test interrupt
   PlxIntcsrSTATUS_BIST		= 0x00800000,
+  //!< Status of bilt in self test interrupt
 
   PlxIntcsrSTATUS_NOT_BMAST	= 0x01000000, //!< Direct master not bus master
   PlxIntcsrSTATUS_NOT_BDMA_0	= 0x02000000, //!< DMA channel 0 not bus master
   PlxIntcsrSTATUS_NOT_BDMA_1	= 0x04000000, //!< DMA channel 1 not bus master
 
-  //!< No target abort after 256 retries
   PlxIntcsrSTATUS_NOT_TARGET_ABORT = 0x08000000,
+  //!< No target abort after 256 retries
 
-  //!< PCI wrote to Mail Box 0 and interrupt enabled
   PlxIntcsrSTATUS_MBOX_0	= 0x10000000,
+  //!< PCI wrote to Mail Box 0 and interrupt enabled
 
-  //!< PCI wrote to Mail Box 1 and interrupt enabled
   PlxIntcsrSTATUS_MBOX_1	= 0x20000000,
+  //!< PCI wrote to Mail Box 1 and interrupt enabled
 
-  //!< PCI wrote to Mail Box 2 and interrupt enabled
   PlxIntcsrSTATUS_MBOX_2	= 0x40000000,
+  //!< PCI wrote to Mail Box 2 and interrupt enabled
 
-  //!< PCI wrote to Mail Box 3 and interrupt enabled
   PlxIntcsrSTATUS_MBOX_3	= 0x80000000
+  //!< PCI wrote to Mail Box 3 and interrupt enabled
 } PlxIntcsr;
 
 typedef enum {
@@ -235,34 +237,34 @@ typedef enum {
   PlxDmaModeWSP4            = 0x00000020, //!< Wait States bit 4
   PlxDmaModeINP_ENB         = 0x00000040, //!< Input Enable
 
-  //!< Continuous Burst Enable or Burst-4 Mode
   PlxDmaModeCONT_BURST_ENB  = 0x00000080,
+  //!< Continuous Burst Enable or Burst-4 Mode
 
   PlxDmaModeLOCL_BURST_ENB  = 0x00000100, //!< Local Burst Enable
   PlxDmaModeSCAT_GATHER     = 0x00000200, //!< Enables Scatter Gather mode
   PlxDmaModeDONE_INT_ENB    = 0x00000400, //!< Enable interrupt on DMA done
 
-  //!< Constant local address or Incremented local address
   PlxDmaModeCONST_LOCL_ADR  = 0x00000800,
+  //!< Constant local address or Incremented local address
 
   PlxDmaModeDEMAND          = 0x00001000, //!< Demand mode piloted by DBREQ#
 
-  //!< Perform invalidate cycles on the PCI bus
   PlxDmaModeINVALIDATE      = 0x00002000,
+  //!< Perform invalidate cycles on the PCI bus
 
   PlxDmaModeEOT_ENB         = 0x00004000, //!< Enables the EOT# input pin
   PlxDmaModeFAST_TERM       = 0x00008000, //!< Enables fast terminate on EOT#
 
-  //!< Clears byte count in Scatter Gather mode
   PlxDmaModeCLR_SCAT_GATH   = 0x00010000,
+  //!< Clears byte count in Scatter Gather mode
 
   PlxDmaModeINT_PIN_SELECT  = 0x00020000, //!< When set its INTA# else its LINT#
 
-  //!< When set PCI Dual Cycles else load DMADAC0
   PlxDmaModeDAC_CHAIN_LOAD  = 0x00040000,
+  //!< When set PCI Dual Cycles else load DMADAC0
 
-  //!< When set EOT# goto the next descriptor, else stop on EOT#
   PlxDmaModeEOT_SCAT_GATH   = 0x00080000,
+  //!< When set EOT# goto the next descriptor, else stop on EOT#
 
   PlxDmaModeRING_MANAGE_END = 0x00100000, //!< When set use DMASIZ[31]
   PlxDmaModeRING_MANAGE_STP = 0x00200000, //!< How RING management is stopped
@@ -277,14 +279,14 @@ typedef enum {
 } PlxDmaCsr;
 
 typedef enum {
-  //!< When set its PCI, else Local address space
   PlxDmaDprSPACE           = 0x01,
+  //!< When set its PCI, else Local address space
 
-  //!< Set when the chain ends in scatter gather mode
   PlxDmaDprEND_CHAIN       = 0x02,
+  //!< Set when the chain ends in scatter gather mode
 
-  //!< When set interrupts on reaching terminal count
   PlxDmaDprTERM_INT_ENB    = 0x04,
+  //!< When set interrupts on reaching terminal count
 
   PlxDmaDprDIR_LOC_PCI     = 0x08   //!< Set: Local to PCI. Clear: PCI to Local
 } PlxDmaDpr;
@@ -297,8 +299,8 @@ typedef enum {
   PlxBigEndBIG_SLAVE_0 = 0x04, //!< Direct slave access, space 0
   PlxBigEndBIG_EEPROM  = 0x08, //!< EEPROM access
 
-  //!< 1=>[Short 0:15 Char 0:7] 0=>[Short 16:31 Char 24:31]
   PlxBigEndBYTE_LANE   = 0x10,
+  //!< 1=>[Short 0:15 Char 0:7] 0=>[Short 16:31 Char 24:31]
 
   PlxBigEndBIG_SLAVE_1 = 0x20, //!< Direct slave access, space 1
   PlxBigEndBIG_DMA_1   = 0x40, //!< DMA Channel 1
@@ -326,8 +328,8 @@ typedef struct {
   uint32_t DMLBAI;	//!< 0x024: LBA for Direct Master to PCI I/O config
   uint32_t DMPBAM;	//!< 0x028: PBA (Remap) Direct Master to PCI memory
 
-  //!< 0x02C: Config address Direct Master to PCI I/O config
   uint32_t DMCFGA;
+  //!< 0x02C: Config address Direct Master to PCI I/O config
   //@}
 
   /*! @name Messaging Queue (I2O) Registers
@@ -413,8 +415,8 @@ typedef struct {
   //@{
   uint32_t LAS1RR;	//!< 0x0F0: Local Address Space 1 Range
 
-  //!< 0x0F4: Local Address Space 1 Local Base Address (Remap)
   uint32_t LAS1BA;
+  //!< 0x0F4: Local Address Space 1 Local Base Address (Remap)
 
   uint32_t LBRD1;	//!< 0x0F8: Space 1 Bus region
   uint32_t DMDAC;	//!< 0x0FC: Direct Master PCI Dual Address Cycles Upper
@@ -447,8 +449,9 @@ typedef enum {
   PlxLocalDMLBAI       = 0x024, //!< LBA for Direct Master to PCI I/O config
   PlxLocalDMPBAM       = 0x028, //!< PBA (Remap) Direct Master to PCI memory
 
-  //!< Localig address Direct Master to PCI I/O config
   PlxLocalDMCFGA       = 0x02C,
+  //!< Localig address Direct Master to PCI I/O config
+
   //@}
 
   /*! @name Messaging Queue (I2O) Registers
@@ -476,8 +479,8 @@ typedef enum {
   PlxLocalL2PDBELL     = 0x064, //!< Local to PCI Doorbell
   PlxLocalINTCSR       = 0x068, //!< Interrupt Control Status
 
-  //!< Serial EEPROM Control, PCI Cmds, User I/O, Init Control
   PlxLocalCNTRL        = 0x06C,
+  //!< Serial EEPROM Control, PCI Cmds, User I/O, Init Control
 
   PlxLocalPCIHDR       = 0x070, //!< PCI Hardwired Localig ID
   PlxLocalPCIHREV      = 0x074, //!< PCI Hardwired Revision ID
@@ -529,13 +532,13 @@ typedef enum {
   PlxLocalAddrEC       = 0x0EC, //!< Reserved
   //@}
 
-  /*! @name Local Localiguration Registers
+  /*! @name Local Configuration Registers
    */
   //@{
   PlxLocalLAS1RR       = 0x0F0, //!< Local Address Space 1 Range
 
-  //!< Local Address Space 1 Local Base Address (Remap)
   PlxLocalLAS1BA       = 0x0F4,
+  //!< Local Address Space 1 Local Base Address (Remap)
 
   PlxLocalLBRD1        = 0x0F8, //!< Space 1 Bus region
   PlxLocalDMDAC        = 0x0FC, //!< Direct Master PCI Dual Address Cycles Upper

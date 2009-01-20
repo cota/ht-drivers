@@ -31,24 +31,23 @@ typedef enum {
    VmicLcsrTX_EMPTY          = 0x00000080, //!< Transmit buffer empty (RO)
    VmicLcsrTX_ALMOST_FULL    = 0x00000040, //!< Transmit buffer almost full (RO)
 
-   //!< Receive buffer has overflowed (RO)
    VmicLcsrRX_OVERFLOW       = 0x00000020,
+   //!< Receive buffer has overflowed (RO)
 
-   //!< Receive buffer is almost full (RO)
    VmicLcsrRX_ALMOST_FULL    = 0x00000010,
+   //!< Receive buffer is almost full (RO)
 
    VmicLcsrSYNC_LOST         = 0x00000008, //!< Lost sync clock (RO)
 
-//!< Incomming signal (light) present (RO)
    VmicLcsrSIGNAL_DETECT     = 0x00000004,
+   //!< Incomming signal (light) present (RO)
 
-   //!< Data is bad or has been lost (RO)
    VmicLcsrDATA_LOST         = 0x00000002,
+   //!< Data is bad or has been lost (RO)
 
    VmicLcsrOWN_DATA          = 0x00000001  //!< Own data is present
-//@}
-
  } VmicLcsr;
+//@}
 
 
 /*! @name VMIC RFM Registers LISR (Status/Control) bits
@@ -60,31 +59,31 @@ typedef enum {
 #define VmicLisrSOURCE_MASK 0x3FCF
 
 typedef enum {
-  //!< Auto clear Interrupt: This bit must always be On
    VmicLisrAC_FLAG           = 0x8000,
+   //!< Auto clear Interrupt: This bit must always be On
 
    VmicLisrENABLE            = 0x4000, //!< Global Interrupt Enable
    VmicLisrPARITY_ERROR      = 0x2000, //!< Parity error
 
-   //!< Cant write a short or byte if parity on
    VmicLisrWRITE_ERROR       = 0x1000,
+   //!< Cant write a short or byte if parity on
 
-   //!< PLL unlocked, data was lost, or signal lost
    VmicLisrLOST_SYNC         = 0x0800,
+   //!< PLL unlocked, data was lost, or signal lost
 
    VmicLisrRX_OVERFLOW       = 0x0400, //!< Receiver buffer overflow
    VmicLisrRX_ALMOST_FULL    = 0x0200, //!< Receive buffer almost full
    VmicLisrDATA_ERROR        = 0x0100, //!< Bad data received, error
    VmicLisrPENDING_INIT      = 0x0080, //!< Another node needs initializing
 
-   //!< This rogue master has clobbered a rogue packet
    VmicLisrROGUE_CLOBBER     = 0x0040,
+   //!< This rogue master has clobbered a rogue packet
 
    VmicLisrBIT5              = 0x0020, //!< Reserved
    VmicLisrBIT4              = 0x0010, //!< Reserved
 
-   //!< Reset me request from some other node
    VmicLisrRESET_RQ          = 0x0008,
+   //!< Reset me request from some other node
 
    VmicLisrINT3              = 0x0004, //!< Pending Interrupt 3
    VmicLisrINT2              = 0x0002, //!< Pending Interrupt 2
@@ -101,31 +100,31 @@ typedef enum {
 #define VmicLierMASK 0xBFCF
 
 typedef enum {
-  //!< Auto clear Interrupt: This bit must always be On
    VmicLierAC_FLAG           = 0x8000,
+   //!< Auto clear Interrupt: This bit must always be On
 
    VmicLierBIT14             = 0x4000, //!< Reserved
    VmicLierPARITY_ERROR      = 0x2000, //!< Parity error
 
-   //!< Cant write a short or byte if parity on
    VmicLierWRITE_ERROR       = 0x1000,
+   //!< Cant write a short or byte if parity on
 
-   //!< PLL unlocked, data was lost, or signal lost
    VmicLierLOST_SYNC         = 0x0800,
+   //!< PLL unlocked, data was lost, or signal lost
 
    VmicLierRX_OVERFLOW       = 0x0400, //!< Receiver buffer overflow
    VmicLierRX_ALMOST_FULL    = 0x0200, //!< Receive buffer almost full
    VmicLierDATA_ERROR        = 0x0100, //!< Bad data received, error
    VmicLierPENDING_INIT      = 0x0080, //!< Another node needs initializing
 
-   //!< This rogue master has clobbered a rogue packet
    VmicLierROGUE_CLOBBER     = 0x0040,
+   //!< This rogue master has clobbered a rogue packet
 
    VmicLierBIT5              = 0x0020, //!< Reserved
    VmicLierBIT4              = 0x0010, //!< Reserved
 
-   //!< Reset me request from some other node
    VmicLierRESET_RQ          = 0x0008,
+   //!< Reset me request from some other node
 
    VmicLierINT3              = 0x0004, //!< Pending Interrupt 3
    VmicLierINT2              = 0x0002, //!< Pending Interrupt 2
