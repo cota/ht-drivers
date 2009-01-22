@@ -63,25 +63,7 @@ static int        	warm_start = 0; //!< Warm vs Cold start
 char *defaultconfigpath = XMEM_PATH CONFIG_FILE_NAME;
 char *configpath = NULL;
 
-/**
- * XmemGetFile - returns the path to a configuration file
- *
- * @param name: desired configuration file
- *
- * This functions access the main configuration file, reading and returning the
- * correct path to the file described in *name.
- * NB. A config file looks like the following:
- *
- * ;File name            ;Location of File            ;Comment
- *
- * ;Reflective memory
- *
- * xmemtest               /usr/drivers/xmem/          ;Xmem test program
- *
- * xmemdiag               /usr/xmem/                  ;Xmem daemon test program
- *
- * @return string with full path to the config file on success; NULL otherwise.
- */
+
 char *XmemGetFile(char *name)
 {
   int 		i;
@@ -329,20 +311,12 @@ static XmemError InitDevice(XmemDevice device)
 //@}
 
 
-
-//<! The following are exported (non-static) Xmem Lib functions
-
-
-/**
- * XmemInitialize - Try to initialise the specified device
- *
- * @param device: device to initialise
- *
- * Set the device to be used by the library and
- * perform library initialization code.
- *
- * @return Appropriate error code (XmemError)
+/*
+ * The following are exported (non-static) Xmem Lib functions
+ * These are documented in the header file.
  */
+
+
 XmemError XmemInitialize(XmemDevice device)
 {
   XmemDevice 	fdev;
@@ -386,46 +360,20 @@ XmemError XmemInitialize(XmemDevice device)
 }
 
 
-/**
- * XmemWhoAmI - Get the node ID of this node
- *
- * @param : none
- *
- * @return node ID of this node
- */
+
 XmemNodeId XmemWhoAmI()
 {
   return my_nid;
 }
 
 
-/**
- * XmemCheckForWarmStart - Check for warm/cold start-up.
- *
- * @param : none
- *
- * Clients might need to know if they are starting warm or cold to correctly
- * initialize tables and reflective memory.
- * Once the driver tables have been loaded, subsequent instances of any
- * programs using XmemLib will always receive the warm start status,
- * cold start status occurs only when the driver tables have not been
- * loaded just after a reboot and a fresh driver install.
- *
- * @return 0 if it's a cold start; non-zero if it's a warm start.
- */
+
 int XmemCheckForWarmStart()
 {
   return warm_start;
 }
 
 
-/**
- * XmemErrorToString - Convert an error into a string.
- *
- * @param err: XmemError to be converted
- *
- * @return static (global) string
- */
 char *XmemErrorToString(XmemError err)
 {
   char 		*cp;
@@ -443,23 +391,8 @@ char *XmemErrorToString(XmemError err)
 }
 
 
-/**
- * XmemGetAllNodeIds - Get all currently up and running nodes
- *
- * @param : none
- *
- * The set of up and running nodes is determined dynamically through a
- * handshake protocol between nodes.
- *
- * When there is no driver installed on a DSC, there will be no response from
- * that DSC to the PENDING_INIT interrupt, so the node will be removed from
- * the list of ACTIVE nodes. When the node comes back up, it sends out a new
- * non-zero PENDING_INIT broadcast, and all nodes will respond restablishing
- * the ACTIVE node list in every node. This is part of the driver ISR logic.
- * The library event XmemEventMaskINITIALIZED corresponds to PENDING_INIT.
- *
- * @return initialised node id's.
- */
+
+
 XmemNodeId XmemGetAllNodeIds()
 {
   if (libinitialized)
@@ -468,26 +401,6 @@ XmemNodeId XmemGetAllNodeIds()
 }
 
 
-/**
- * XmemRegisterCallback - Register callback to handle Xmem Events.
- *
- * @param cb: callback descriptor
- * @param mask: event to subscribe to
- *
- * This is the way clients can connect to events.
- *
- * Calling with NULL deletes any previous callback that was installed.
- *
- * Calling the Wait or Poll library functions may cause the call back
- * to be invoked.
- *
- * Implementing a daemon is nothing more than writing a callback.
- *
- * Register your callback function, and subscribe to the things you want
- * delivered to it.
- *
- * @return Appropriate error message (XmemError)
- */
 XmemError XmemRegisterCallback(void (*cb)(XmemCallbackStruct *cbs),
 			       XmemEventMask mask)
 {
@@ -513,28 +426,12 @@ XmemError XmemRegisterCallback(void (*cb)(XmemCallbackStruct *cbs),
 }
 
 
-/**
- * XmemGetRegisteredEvents - Get currently registered callback's mask
- *
- * @param : none
- *
- * @return mask of currently registered callback
- */
 XmemEventMask XmemGetRegisteredEvents()
 {
   return (XmemEventMask)libcallmask;
 }
 
 
-/**
- * XmemWait - Wait for an Xmem Event with timeout
- *
- * @param timeout: in intervals of 10ms; 0 means forever.
- *
- * An incoming event will call any registered callback
- *
- * @return Wait handler on success; 0 otherwise
- */
 XmemEventMask XmemWait(int timeout)
 {
   if (libinitialized)
@@ -543,15 +440,8 @@ XmemEventMask XmemWait(int timeout)
 }
 
 
-/**
- * XmemPoll - poll for an Xmem Event
- *
- * @param : none
- *
- * An incoming event will call any registered callback for that event
- *
- * @return Poll handled on success; 0 otherwise
- */
+
+
 XmemEventMask XmemPoll()
 {
   if (libinitialized)
@@ -560,30 +450,6 @@ XmemEventMask XmemPoll()
 }
 
 
-/**
- * XmemSendTable - Send a client's buffer to reflective memory table
- *
- * @param table: table to be written to
- * @param buf: client's buffer
- * @param longs: number of 'longs' (4 bytes) to transfer
- * @param offset: offset of transfer
- * @param upflag: update message flag
- *
- * When writing the last time to the table, set the upflag non zero so that a
- * table update message is sent out to all nodes.
- *
- * If SendTable is called with a NULL buffer, the driver will flush the
- * reflective memory segment to the network by copying it onto itself. This
- * is rather slow compared to the usual copy because DMA can not be used, and
- * two PCI-bus accesses ~1us are used for each long word.
- *
- * WARNING: Only 32 bit accesses can be made. So the buf parameter must be on
- * a 'long' boundary, the offset is in longs, and longs is the number of 'longs'
- * to be transfered. This can be tricky because the size of the buffer to be
- * allocated must be multiplied by sizeof(long).
- *
- * @return Appropriate error message (XmemError)
- */
 XmemError XmemSendTable(XmemTableId table, long *buf, unsigned long longs,
 			unsigned long offset, unsigned long upflag)
 {
@@ -593,18 +459,6 @@ XmemError XmemSendTable(XmemTableId table, long *buf, unsigned long longs,
 }
 
 
-/**
- * XmemRecvTable - Update a client's buffer from a reflective memory table
- *
- * @param table: table to read from
- * @param buf: client's buffer
- * @param longs: number of 'longs' (i.e. 4 bytes) to transfer
- * @param offset: offset of transfer
- *
- * See comments for XmemSendTable.
- *
- * @return Appropriate error message (XmemError)
- */
 XmemError XmemRecvTable(XmemTableId table, long *buf, unsigned long longs,
 			unsigned long offset)
 {
@@ -614,18 +468,7 @@ XmemError XmemRecvTable(XmemTableId table, long *buf, unsigned long longs,
 }
 
 
-/**
- * XmemSendMessage - Send a message to other nodes
- *
- * @param nodes: receiving nodes' mask
- * @param mess: message
- *
- * If the node parameter is zero, then nothing happens. If it's equal to
- * 0xFFFFFFFF the message is sent via broadcast, else multicast or unicast
- * is used.
- *
- * @return Appropriate error code (XmemError)
- */
+
 XmemError XmemSendMessage(XmemNodeId nodes, XmemMessage *mess)
 {
   if (libinitialized)
@@ -634,22 +477,7 @@ XmemError XmemSendMessage(XmemNodeId nodes, XmemMessage *mess)
 }
 
 
-/**
- * XmemCheckTables - Check which tables were updated
- *
- * @param : none
- *
- * Check to see which tables have been updated since the last call. For each
- * table that has been modified, its ID bit is set in the returned TableId.
- *
- * For each client the call maintains the set of tables that the client has
- * not yet seen, and this set is zeroed after each call.
- *
- * This will not invoke your registered callback even if you have registered
- * for TABLE_UPDATE interrupts.
- *
- * @return CheckTables handler on success; XmemErrorNOT_INITIALIZED otherwise
- */
+
 XmemTableId XmemCheckTables()
 {
   if (libinitialized)
@@ -658,19 +486,7 @@ XmemTableId XmemCheckTables()
 }
 
 
-/**
- * XmemErrorCallback - Invokes callback for errors
- *
- * @param err: error code
- * @param ioe: data to append
- *
- * This routine permits invoking your callback for errors.
- *
- * The err parameter contains one error, and ioe contains the sub-error
- * code as defined above in XmemEventMask description.
- *
- * @return Appropriate error code (XmemError)
- */
+
 XmemError XmemErrorCallback(XmemError err, unsigned long ioe)
 {
   XmemCallbackStruct cbs;
@@ -721,16 +537,7 @@ XmemError XmemErrorCallback(XmemError err, unsigned long ioe)
 }
 
 
-/**
- * XmemGetKey - generate a key from name
- *
- * @param name: name to generate a key from
- *
- * This is general enough to be included in the library.
- * This hash algorithm is needed for handling shared memory keys.
- *
- * @return generated key
- */
+
 int XmemGetKey(char *name)
 {
   int 	i;
@@ -748,22 +555,7 @@ int XmemGetKey(char *name)
 }
 
 
-/**
- * XmemGetSharedMemory - Create/Get a shared memory segment
- *
- * @param tid: table id
- *
- * Create/Get a shared memory segment to hold the given table, and initialize
- * it by reading from reflective memory. The shared memory segment is opened
- * with read and write access.
- * If it exists already then a pointer to it is returned, otherwise it is
- * created an initialised.
- * The tid parameter must have only one bit set in it.
- * On error a null is returned, and any callback registered for errors will be
- * called, in any case errno contains the system error number for the failure.
- *
- * @return pointer to segment on success; NULL otherwise.
- */
+
 long *XmemGetSharedMemory(XmemTableId tid)
 {
   int 		tnum, msk;
@@ -843,31 +635,14 @@ long *XmemGetSharedMemory(XmemTableId tid)
 }
 
 
-/**
- * XmemGetAllTableIds - get all currently defined table id's
- *
- * @param : none
- *
- * There can be up to 32 tables each ones' id corresponds to a single bit in
- * a double word.
- *
- * @return used segment tables mask
- */
+
 XmemTableId XmemGetAllTableIds()
 {
   return seg_tab.Used;
 }
 
 
-/**
- * XmemGetNodeName - Get the name of a node from its node id
- *
- * @param node: node id
- *
- * This is usually the name of the host on which the node is implemented.
- *
- * @return node name on success; NULL otherwise.
- */
+
 char * XmemGetNodeName(XmemNodeId node)
 {
   int i;
@@ -887,13 +662,7 @@ char * XmemGetNodeName(XmemNodeId node)
 }
 
 
-/**
- * XmemGetNodeId - Get the id of a node from its name
- *
- * @param name: node's name
- *
- * @return node's id on success; 0 otherwise
- */
+
 XmemNodeId XmemGetNodeId(XmemName name)
 {
   int 		i;
@@ -913,15 +682,7 @@ XmemNodeId XmemGetNodeId(XmemName name)
 }
 
 
-/**
- * XmemGetTableName - Get the name of a table from its table id
- *
- * @param table: table id
- *
- * Tables are defined in a configuration file
- *
- * @return table's name on success; NULL otherwise
- */
+
 char * XmemGetTableName(XmemTableId table)
 {
   int 		i;
@@ -941,13 +702,7 @@ char * XmemGetTableName(XmemTableId table)
 }
 
 
-/**
- * XmemGetTableId - get the id of a table from its name
- *
- * @param name: table's name
- *
- * @return table id on success; 0 otherwise
- */
+
 XmemTableId XmemGetTableId(XmemName name)
 {
   int		i;
@@ -967,18 +722,7 @@ XmemTableId XmemGetTableId(XmemName name)
 }
 
 
-/**
- * XmemGetTableDesc - Get description of a table
- *
- * @param table: table id
- * @param longs: table size
- * @param nodes: nodes with write access
- * @param user: users of the segment
- *
- * Note that the description is returned by reference
- *
- * @return Appropriate error code (XmemError)
- */
+
 XmemError XmemGetTableDesc(XmemTableId table, unsigned long *longs,
 			   XmemNodeId *nodes, unsigned long *user)
 {
@@ -1001,13 +745,7 @@ XmemError XmemGetTableDesc(XmemTableId table, unsigned long *longs,
 }
 
 
-/**
- * XmemReadTableFile - read tables from files into shared memory segments
- *
- * @param tid: table id
- *
- * @return Appropriate error code (XmemError)
- */
+
 XmemError XmemReadTableFile(XmemTableId tid)
 {
   int 		i, cnt;
@@ -1060,13 +798,7 @@ XmemError XmemReadTableFile(XmemTableId tid)
 }
 
 
-/**
- * XmemWriteTableFile - Write tables from shared memory segments to files
- *
- * @param tid: table id
- *
- * @return Appropriate error code (XmemError)
- */
+
 XmemError XmemWriteTableFile(XmemTableId tid)
 {
   int 		i, cnt;
@@ -1137,13 +869,7 @@ union semun {
 union semun arg;
 #endif /* !__linux__ */
 
-/**
- * XmemBlockCallbacks - Block all client callbacks while the caller is running
- *
- * @param : none
- *
- * @return Appropriate error code (XmemError)
- */
+
 XmemError XmemBlockCallbacks()
 {
   int	key;
@@ -1170,13 +896,7 @@ XmemError XmemBlockCallbacks()
 }
 
 
-/**
- * XmemUnBlockCallbacks - Unblock client callbacks while the caller is running
- *
- * @param : none
- *
- * @return Appropriate error code (XmemError)
- */
+
 XmemError XmemUnBlockCallbacks()
 {
   int	key;
@@ -1203,13 +923,7 @@ XmemError XmemUnBlockCallbacks()
 }
 
 
-/**
- * XmemCallbacksBlocked - Checks that callbacks are blocked
- *
- * @param : none
- *
- * @return 1 if blocked; 0 otherwise
- */
+
 int XmemCallbacksBlocked()
 {
   int	key;
