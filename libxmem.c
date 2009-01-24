@@ -66,58 +66,62 @@ char *configpath = NULL;
 
 char *XmemGetFile(char *name)
 {
-  int 		i;
-  int		j;
-  char 		txt[LN];
-  FILE 		*gpath = NULL;
-  static char 	path[LN];
+	int 		i;
+	int		j;
+	char 		txt[LN];
+	FILE 		*gpath = NULL;
+	static char 	path[LN];
 
+	if (configpath) {
+		gpath = fopen(configpath, "r");
+		if (gpath == NULL) {
+			configpath = NULL;
+		}
+	}
 
-  if (configpath) {
-    gpath = fopen(configpath, "r");
-    if (gpath == NULL) {
-      configpath = NULL;
-    }
-  }
+	if (configpath == NULL) {
+		configpath = defaultconfigpath;
+		gpath = fopen(configpath, "r");
+		if (gpath == NULL) { /* could not open main conf file */
+			configpath = NULL;
+			/* then try in the working directory */
+			sprintf(path, "./%s", name);
+			return path;
+		}
+	}
 
-  if (configpath == NULL) {
-    configpath = defaultconfigpath;
-    gpath = fopen(configpath, "r");
-    if (gpath == NULL) { /* could not open main conf file */
-      configpath = NULL;
-      sprintf(path, "./%s", name); /* then try in the working directory */
-      return path;
-    }
-  }
+	/* now gpath contains a valid FILE pointer to the main conf file */
+	bzero((void *)path, LN);
 
-  /* now gpath contains a valid FILE pointer to the main conf file */
-  bzero((void *)path, LN);
+	while (1) {
 
-  while (1) {
+		/* read a line from the file */
+		if (fgets(txt, LN, gpath) == NULL)
+			break;
 
-    if (fgets(txt, LN, gpath) == NULL) /* read a line from the file */
-      break;
+		if (strncmp(name, txt, strlen(name)) != 0) {
+			/* this line is not the one we're searching for */
+			continue;
+		}
 
-    if (strncmp(name, txt, strlen(name)) != 0)
-      continue; /* this line is not the one we're searching for */
+		/* get rid of the whitespaces between name and path */
+		for (i = strlen(name); i < strlen(txt); i++)
+			if (txt[i] != ' ')
+				break;
 
-    for (i = strlen(name); i < strlen(txt); i++)
-      if (txt[i] != ' ')
-	break; /* get rid of the whitespaces between name and path */
+		j = 0;
+		while (txt[i] != ' ' && txt[i] != '\0' && txt[i] != '\n')
+			path[j++] = txt[i++];
 
-    j = 0;
-    while (txt[i] != ' ' && txt[i] != '\0' && txt[i] != '\n')
-      path[j++] = txt[i++];
+		/* now 'path' contains the path we want */
+		strcat(path, name);
 
-    /* now 'path' contains the path we want */
-    strcat(path, name);
+		fclose(gpath);
+		return path;
+	}
 
-    fclose(gpath);
-    return path;
-  }
-
-  fclose(gpath);
-  return NULL;
+	fclose(gpath);
+	return NULL;
 }
 //@}
 
@@ -131,14 +135,14 @@ char *XmemGetFile(char *name)
 #include "./shmem/ShmemLib.c"
 
 typedef struct {
-  XmemNodeId    (*GetAllNodeIds)();
-  XmemError     (*RegisterCallback)();
-  XmemEventMask (*Wait)();
-  XmemEventMask (*Poll)();
-  XmemError     (*SendTable)();
-  XmemError     (*RecvTable)();
-  XmemError     (*SendMessage)();
-  XmemTableId   (*CheckTables)();
+	XmemNodeId    (*GetAllNodeIds)();
+	XmemError     (*RegisterCallback)();
+	XmemEventMask (*Wait)();
+	XmemEventMask (*Poll)();
+	XmemError     (*SendTable)();
+	XmemError     (*RecvTable)();
+	XmemError     (*SendMessage)();
+	XmemTableId   (*CheckTables)();
 } XmemLibRoutines;
 
 static int 		libinitialized = 0;
@@ -148,20 +152,20 @@ static void (*libcallback)(XmemCallbackStruct *cbs) = NULL;
 
 
 static char *estr[XmemErrorCOUNT] = {
-  "No Error",
-  "Timeout expired while waiting for interrupt",
-  "The Xmem library is not initialized",
-  "Write access to that table is denied for this node",
-  "Could not read table descriptors from file: " SEG_TABLE_NAME,
-  "Syntax error in table descriptors file: " SEG_TABLE_NAME,
-  "Could not read node descriptors from file: " NODE_TABLE_NAME,
-  "Syntax error in node descriptors file: " NODE_TABLE_NAME,
-  "There are currently no tables defined",
-  "That table is not defined in: " SEG_TABLE_NAME,
-  "That node is not defined in: " NODE_TABLE_NAME,
-  "Illegal message ID",
-  "A run time hardware IO error has occured, see: IOError",
-  "System error, see: errno"
+	"No Error",
+	"Timeout expired while waiting for interrupt",
+	"The Xmem library is not initialized",
+	"Write access to that table is denied for this node",
+	"Could not read table descriptors from file: " SEG_TABLE_NAME,
+	"Syntax error in table descriptors file: " SEG_TABLE_NAME,
+	"Could not read node descriptors from file: " NODE_TABLE_NAME,
+	"Syntax error in node descriptors file: " NODE_TABLE_NAME,
+	"There are currently no tables defined",
+	"That table is not defined in: " SEG_TABLE_NAME,
+	"That node is not defined in: " NODE_TABLE_NAME,
+	"Illegal message ID",
+	"A run time hardware IO error has occured, see: IOError",
+	"System error, see: errno"
 };
 
 
@@ -176,36 +180,36 @@ static char *estr[XmemErrorCOUNT] = {
  */
 static XmemError XmemReadNodeTableFile()
 {
-  int 	i;
-  int 	fc;
-  FILE 	*fp;
+	int 	i;
+	int 	fc;
+	FILE 	*fp;
 
-  nodecnt = 0;
+	nodecnt = 0;
 
-  umask(0);
-  fp = fopen(XmemGetFile(NODE_TABLE_NAME), "r");
+	umask(0);
+	fp = fopen(XmemGetFile(NODE_TABLE_NAME), "r");
 
-  if (fp == NULL)
-    return XmemErrorCallback(XmemErrorNODE_TABLE_READ, 0);
+	if (fp == NULL)
+		return XmemErrorCallback(XmemErrorNODE_TABLE_READ, 0);
 
-  node_tab.Used = 0;
+	node_tab.Used = 0;
 
-  for (i = 0; i < XmemDrvrNODES; i++) {
+	for (i = 0; i < XmemDrvrNODES; i++) {
 
-    fc = fscanf(fp,"{ %s 0x%x }\n",
-		(char *)&node_tab.Descriptors[i].Name[0],
-		(int  *)&node_tab.Descriptors[i].Id);
+		fc = fscanf(fp,"{ %s 0x%x }\n",
+			(char *)&node_tab.Descriptors[i].Name[0],
+			(int  *)&node_tab.Descriptors[i].Id);
 
-    if (fc == EOF)
-      break;
-    if (fc != 2)
-      return XmemErrorCallback(XmemErrorNODE_TABLE_SYNTAX, 0);
+		if (fc == EOF)
+			break;
+		if (fc != 2)
+			return XmemErrorCallback(XmemErrorNODE_TABLE_SYNTAX, 0);
 
-    node_tab.Used |= node_tab.Descriptors[i].Id;
-    nodecnt++;
+		node_tab.Used |= node_tab.Descriptors[i].Id;
+		nodecnt++;
 
-  }
-  return XmemErrorSUCCESS;
+	}
+	return XmemErrorSUCCESS;
 }
 
 
@@ -220,39 +224,39 @@ static XmemError XmemReadNodeTableFile()
  */
 static XmemError XmemReadSegTableFile()
 {
-  int 	i;
-  int 	fc;
-  FILE 	*fp;
+	int 	i;
+	int 	fc;
+	FILE 	*fp;
 
-  segcnt = 0;
+	segcnt = 0;
 
-  umask(0);
-  fp = fopen(XmemGetFile(SEG_TABLE_NAME), "r");
-  if (fp == NULL)
-    return XmemErrorCallback(XmemErrorSEG_TABLE_READ, 0);
+	umask(0);
+	fp = fopen(XmemGetFile(SEG_TABLE_NAME), "r");
+	if (fp == NULL)
+		return XmemErrorCallback(XmemErrorSEG_TABLE_READ, 0);
 
-  seg_tab.Used = 0;
+	seg_tab.Used = 0;
 
-  for (i = 0; i < XmemDrvrSEGMENTS; i++) {
+	for (i = 0; i < XmemDrvrSEGMENTS; i++) {
 
-    fc = fscanf(fp,"{ %s 0x%x 0x%x 0x%x 0x%x 0x%x }\n",
-		(char *)&seg_tab.Descriptors[i].Name[0],
-		(int  *)&seg_tab.Descriptors[i].Id,
-		(int  *)&seg_tab.Descriptors[i].Size,
-		(int  *)&seg_tab.Descriptors[i].Address,
-		(int  *)&seg_tab.Descriptors[i].Nodes,
-		(int  *)&seg_tab.Descriptors[i].User);
+		fc = fscanf(fp,"{ %s 0x%x 0x%x 0x%x 0x%x 0x%x }\n",
+			(char *)&seg_tab.Descriptors[i].Name[0],
+			(int  *)&seg_tab.Descriptors[i].Id,
+			(int  *)&seg_tab.Descriptors[i].Size,
+			(int  *)&seg_tab.Descriptors[i].Address,
+			(int  *)&seg_tab.Descriptors[i].Nodes,
+			(int  *)&seg_tab.Descriptors[i].User);
 
-    if (fc == EOF)
-      break;
-    if (fc != 6)
-      return XmemErrorCallback(XmemErrorSEG_TABLE_SYNTAX, 0);
+		if (fc == EOF)
+			break;
+		if (fc != 6)
+			return XmemErrorCallback(XmemErrorSEG_TABLE_SYNTAX, 0);
 
-    seg_tab.Used |= seg_tab.Descriptors[i].Id;
-    segcnt++;
+		seg_tab.Used |= seg_tab.Descriptors[i].Id;
+		segcnt++;
 
-  }
-  return XmemErrorSUCCESS;
+	}
+	return XmemErrorSUCCESS;
 }
 
 
@@ -267,46 +271,46 @@ static XmemError XmemReadSegTableFile()
  */
 static XmemError InitDevice(XmemDevice device)
 {
-  switch (device) {
+	switch (device) {
 
-  case XmemDeviceVMIC:
-    routines.GetAllNodeIds    = VmicGetAllNodeIds;
-    routines.RegisterCallback = VmicRegisterCallback;
-    routines.Wait             = VmicWait;
-    routines.Poll             = VmicPoll;
-    routines.SendTable        = VmicSendTable;
-    routines.RecvTable        = VmicRecvTable;
-    routines.SendMessage      = VmicSendMessage;
-    routines.CheckTables      = VmicCheckTables;
-    return VmicInitialize();
+	case XmemDeviceVMIC:
+		routines.GetAllNodeIds    = VmicGetAllNodeIds;
+		routines.RegisterCallback = VmicRegisterCallback;
+		routines.Wait             = VmicWait;
+		routines.Poll             = VmicPoll;
+		routines.SendTable        = VmicSendTable;
+		routines.RecvTable        = VmicRecvTable;
+		routines.SendMessage      = VmicSendMessage;
+		routines.CheckTables      = VmicCheckTables;
+		return VmicInitialize();
 
-  case XmemDeviceSHMEM:
-    routines.GetAllNodeIds    = ShmemGetAllNodeIds;
-    routines.RegisterCallback = ShmemRegisterCallback;
-    routines.Wait             = ShmemWait;
-    routines.Poll             = ShmemPoll;
-    routines.SendTable        = ShmemSendTable;
-    routines.RecvTable        = ShmemRecvTable;
-    routines.SendMessage      = ShmemSendMessage;
-    routines.CheckTables      = ShmemCheckTables;
-    return ShmemInitialize();
+	case XmemDeviceSHMEM:
+		routines.GetAllNodeIds    = ShmemGetAllNodeIds;
+		routines.RegisterCallback = ShmemRegisterCallback;
+		routines.Wait             = ShmemWait;
+		routines.Poll             = ShmemPoll;
+		routines.SendTable        = ShmemSendTable;
+		routines.RecvTable        = ShmemRecvTable;
+		routines.SendMessage      = ShmemSendMessage;
+		routines.CheckTables      = ShmemCheckTables;
+		return ShmemInitialize();
 
-  case XmemDeviceNETWORK:
-    routines.GetAllNodeIds    = NetworkGetAllNodeIds;
-    routines.RegisterCallback = NetworkRegisterCallback;
-    routines.Wait             = NetworkWait;
-    routines.Poll             = NetworkPoll;
-    routines.SendTable        = NetworkSendTable;
-    routines.RecvTable        = NetworkRecvTable;
-    routines.SendMessage      = NetworkSendMessage;
-    routines.CheckTables      = NetworkCheckTables;
-    return NetworkInitialize();
+	case XmemDeviceNETWORK:
+		routines.GetAllNodeIds    = NetworkGetAllNodeIds;
+		routines.RegisterCallback = NetworkRegisterCallback;
+		routines.Wait             = NetworkWait;
+		routines.Poll             = NetworkPoll;
+		routines.SendTable        = NetworkSendTable;
+		routines.RecvTable        = NetworkRecvTable;
+		routines.SendMessage      = NetworkSendMessage;
+		routines.CheckTables      = NetworkCheckTables;
+		return NetworkInitialize();
 
-  default:
-    break;
+	default:
+		break;
 
-  }
-  return XmemErrorNOT_INITIALIZED;
+	}
+	return XmemErrorNOT_INITIALIZED;
 }
 //@}
 
@@ -319,537 +323,536 @@ static XmemError InitDevice(XmemDevice device)
 
 XmemError XmemInitialize(XmemDevice device)
 {
-  XmemDevice 	fdev;
-  XmemDevice 	ldev;
-  XmemDevice 	dev;
-  XmemError 	err;
+	XmemDevice 	fdev;
+	XmemDevice 	ldev;
+	XmemDevice 	dev;
+	XmemError 	err;
 
-  if (libinitialized)
-    return XmemErrorSUCCESS;
+	if (libinitialized)
+		return XmemErrorSUCCESS;
 
-  bzero((void *)attach_address, XmemMAX_TABLES * sizeof(long *));
+	bzero((void *)attach_address, XmemMAX_TABLES * sizeof(long *));
 
-  bzero((void *)&node_tab, sizeof(XmemDrvrNodeTable));
-  err = XmemReadNodeTableFile();
-  if (err != XmemErrorSUCCESS)
-    return err;
+	bzero((void *)&node_tab, sizeof(XmemDrvrNodeTable));
+	err = XmemReadNodeTableFile();
+	if (err != XmemErrorSUCCESS)
+		return err;
 
-  bzero((void *) &seg_tab, sizeof(XmemDrvrSegTable));
-  err = XmemReadSegTableFile();
-  if (err != XmemErrorSUCCESS)
-    return err;
+	bzero((void *) &seg_tab, sizeof(XmemDrvrSegTable));
+	err = XmemReadSegTableFile();
+	if (err != XmemErrorSUCCESS)
+		return err;
 
-  if (device == XmemDeviceANY) {
-    fdev = XmemDeviceVMIC;
-    ldev = XmemDeviceNETWORK;
-  }
-  else {
-    fdev = device;
-    ldev = device;
-  }
+	if (device == XmemDeviceANY) {
+		fdev = XmemDeviceVMIC;
+		ldev = XmemDeviceNETWORK;
+	}
+	else {
+		fdev = device;
+		ldev = device;
+	}
 
-  for (dev = fdev; dev <= ldev; dev++) {
-    err = InitDevice(dev);
-    if (err == XmemErrorSUCCESS) {
-      libinitialized = 1;
-      return err;
-    }
-  }
+	for (dev = fdev; dev <= ldev; dev++) {
+		err = InitDevice(dev);
+		if (err == XmemErrorSUCCESS) {
+			libinitialized = 1;
+			return err;
+		}
+	}
 
-  return XmemErrorNOT_INITIALIZED;
+	return XmemErrorNOT_INITIALIZED;
 }
 
 
 
 XmemNodeId XmemWhoAmI()
 {
-  return my_nid;
+	return my_nid;
 }
 
 
 
 int XmemCheckForWarmStart()
 {
-  return warm_start;
+	return warm_start;
 }
 
 
 char *XmemErrorToString(XmemError err)
 {
-  char 		*cp;
-  static char 	result[XmemErrorSTRING_SIZE];
+	char 		*cp;
+	static char 	result[XmemErrorSTRING_SIZE];
 
-  if (err < 0 || err >= XmemErrorCOUNT)
-    cp = "No such error number";
-  else
-    cp = estr[(int)err]; /* estr: global error string array */
+	if (err < 0 || err >= XmemErrorCOUNT)
+		cp = "No such error number";
+	else
+		cp = estr[(int)err]; /* estr: global error string array */
 
-  bzero((void *)result, XmemErrorSTRING_SIZE);
-  strcpy(result, cp);
+	bzero((void *)result, XmemErrorSTRING_SIZE);
+	strcpy(result, cp);
 
-  return result;
+	return result;
 }
-
-
 
 
 XmemNodeId XmemGetAllNodeIds()
 {
-  if (libinitialized)
-    return routines.GetAllNodeIds();
-  return 0;
+	if (libinitialized)
+		return routines.GetAllNodeIds();
+	return 0;
 }
 
 
 XmemError XmemRegisterCallback(void (*cb)(XmemCallbackStruct *cbs),
-			       XmemEventMask mask)
+			XmemEventMask mask)
 {
-  XmemError err;
+	XmemError err;
 
-  if (! libinitialized)
-    return XmemErrorNOT_INITIALIZED;
+	if (! libinitialized)
+		return XmemErrorNOT_INITIALIZED;
 
-  err = routines.RegisterCallback(cb, mask);
+	err = routines.RegisterCallback(cb, mask);
 
-  if (err == XmemErrorSUCCESS) {
-    if (mask) {
-      libcallmask |= mask;
-      libcallback = cb;
-    }
-    else {
-      libcallmask = 0;
-      libcallback = NULL;
-    }
-  }
+	if (err == XmemErrorSUCCESS) {
+		if (mask) {
+			libcallmask |= mask;
+			libcallback = cb;
+		}
+		else {
+			libcallmask = 0;
+			libcallback = NULL;
+		}
+	}
 
-  return err;
+	return err;
 }
 
 
 XmemEventMask XmemGetRegisteredEvents()
 {
-  return (XmemEventMask)libcallmask;
+	return (XmemEventMask)libcallmask;
 }
 
 
 XmemEventMask XmemWait(int timeout)
 {
-  if (libinitialized)
-    return routines.Wait(timeout);
-  return 0;
+	if (libinitialized)
+		return routines.Wait(timeout);
+	return 0;
 }
-
-
 
 
 XmemEventMask XmemPoll()
 {
-  if (libinitialized)
-    return routines.Poll();
-  return 0;
+	if (libinitialized)
+		return routines.Poll();
+	return 0;
 }
 
 
 XmemError XmemSendTable(XmemTableId table, long *buf, unsigned long longs,
 			unsigned long offset, unsigned long upflag)
 {
-  if (libinitialized)
-    return routines.SendTable(table, buf, longs, offset, upflag);
-  return XmemErrorNOT_INITIALIZED;
+	if (libinitialized)
+		return routines.SendTable(table, buf, longs, offset, upflag);
+	return XmemErrorNOT_INITIALIZED;
 }
 
 
 XmemError XmemRecvTable(XmemTableId table, long *buf, unsigned long longs,
 			unsigned long offset)
 {
-  if (libinitialized)
-    return routines.RecvTable(table, buf, longs, offset);
-  return XmemErrorNOT_INITIALIZED;
+	if (libinitialized)
+		return routines.RecvTable(table, buf, longs, offset);
+	return XmemErrorNOT_INITIALIZED;
 }
-
 
 
 XmemError XmemSendMessage(XmemNodeId nodes, XmemMessage *mess)
 {
-  if (libinitialized)
-    return routines.SendMessage(nodes, mess);
-  return XmemErrorNOT_INITIALIZED;
+	if (libinitialized)
+		return routines.SendMessage(nodes, mess);
+	return XmemErrorNOT_INITIALIZED;
 }
-
 
 
 XmemTableId XmemCheckTables()
 {
-  if (libinitialized)
-    return routines.CheckTables();
-  return XmemErrorNOT_INITIALIZED;
+	if (libinitialized)
+		return routines.CheckTables();
+	return XmemErrorNOT_INITIALIZED;
 }
-
 
 
 XmemError XmemErrorCallback(XmemError err, unsigned long ioe)
 {
-  XmemCallbackStruct cbs;
+	XmemCallbackStruct cbs;
 
-  if (! libcallback)
-    return err;
+	if (! libcallback)
+		return err;
 
-  bzero((void *)&cbs, sizeof(XmemCallbackStruct));
+	bzero((void *)&cbs, sizeof(XmemCallbackStruct));
 
-  switch (err) {
+	switch (err) {
 
-  case XmemErrorSUCCESS:
-    break;
+	case XmemErrorSUCCESS:
+		break;
 
-  case XmemErrorTIMEOUT:
+	case XmemErrorTIMEOUT:
 
-    cbs.Mask = XmemEventMaskTIMEOUT;
-    if (libcallmask & XmemEventMaskTIMEOUT)
-      libcallback(&cbs);
-    break;
+		cbs.Mask = XmemEventMaskTIMEOUT;
+		if (libcallmask & XmemEventMaskTIMEOUT)
+			libcallback(&cbs);
+		break;
 
-  case XmemErrorIO:
+	case XmemErrorIO:
 
-    cbs.Mask = XmemEventMaskIO;
-    cbs.Data = ioe;
-    if (libcallmask & XmemEventMaskIO)
-      libcallback(&cbs);
-    break;
+		cbs.Mask = XmemEventMaskIO;
+		cbs.Data = ioe;
+		if (libcallmask & XmemEventMaskIO)
+			libcallback(&cbs);
+		break;
 
-  case XmemErrorSYSTEM:
+	case XmemErrorSYSTEM:
 
-    cbs.Mask = XmemEventMaskSYSTEM;
-    cbs.Data = ioe;
-    if (libcallmask & XmemEventMaskSYSTEM)
-      libcallback(&cbs);
-    break;
+		cbs.Mask = XmemEventMaskSYSTEM;
+		cbs.Data = ioe;
+		if (libcallmask & XmemEventMaskSYSTEM)
+			libcallback(&cbs);
+		break;
 
-  default:
+	default:
 
-    cbs.Mask = XmemEventMaskSOFTWARE;
-    cbs.Data = (unsigned long)err;
-    if (libcallmask & XmemEventMaskSOFTWARE)
-      libcallback(&cbs);
-    break;
+		cbs.Mask = XmemEventMaskSOFTWARE;
+		cbs.Data = (unsigned long)err;
+		if (libcallmask & XmemEventMaskSOFTWARE)
+			libcallback(&cbs);
+		break;
 
-  }
-  return err;
+	}
+	return err;
 }
-
 
 
 int XmemGetKey(char *name)
 {
-  int 	i;
-  int	key;
+	int 	i;
+	int	key;
 
-  key = 0;
+	key = 0;
 
-  if (name == NULL)
-    return key;
+	if (name == NULL)
+		return key;
 
-  for (i = 0; i < strlen(name); i++)
-    key = (key << 1) + (int)name[i];
+	for (i = 0; i < strlen(name); i++)
+		key = (key << 1) + (int)name[i];
 
-  return key;
+	return key;
 }
-
 
 
 long *XmemGetSharedMemory(XmemTableId tid)
 {
-  int 		tnum, msk;
-  unsigned long longs, user, bytes, smemid;
-  key_t 	smemky;
-  XmemError 	err;
-  XmemNodeId 	nid;
-  unsigned long	*table;
-  char 		*cp;
+	int 		tnum, msk;
+	unsigned long longs, user, bytes, smemid;
+	key_t 	smemky;
+	XmemError 	err;
+	XmemNodeId 	nid;
+	unsigned long	*table;
+	char 		*cp;
 
-  if (! libinitialized)
-    goto error;
+	if (! libinitialized)
+		goto error;
 
-  for (tnum = 0; tnum < XmemMAX_TABLES; tnum++) {
-    msk = 1 << tnum;
-    if (msk & tid) {
-      if (attach_address[tnum])
-	return attach_address[tnum];
-      else
-	break; /* it doesn't exist yet */
-    }
-  }
+	for (tnum = 0; tnum < XmemMAX_TABLES; tnum++) {
+
+		msk = 1 << tnum;
+
+		if (! (msk & tid))
+			continue;
+
+		if (attach_address[tnum])
+			return attach_address[tnum];
+		else
+			break; /* it doesn't exist yet */
+
+	}
 
 
-  cp = XmemGetTableName(tid);
-  if (! cp)
-    goto error;
+	cp = XmemGetTableName(tid);
+	if (! cp)
+		goto error;
 
-  err = XmemGetTableDesc(tid, &longs, &nid, &user);
-  if (err != XmemErrorSUCCESS)
-    goto error;
+	err = XmemGetTableDesc(tid, &longs, &nid, &user);
+	if (err != XmemErrorSUCCESS)
+		goto error;
 
-  bytes = longs * sizeof(long);
-  smemky = XmemGetKey(cp);
-  smemid = shmget(smemky, bytes, 0666);
+	bytes = longs * sizeof(long);
+	smemky = XmemGetKey(cp);
+	smemid = shmget(smemky, bytes, 0666);
 
-  if (smemid == -1) {
+	if (smemid == -1) {
 
-    if (errno != ENOENT)
-      goto error;
+		if (errno != ENOENT)
+			goto error;
 
-    /* segment does not exist; create it */
-    smemid = shmget(smemky, bytes, IPC_CREAT | 0666);
-    if (smemid == -1)
-      goto error;
+		/* segment does not exist; create it */
+		smemid = shmget(smemky, bytes, IPC_CREAT | 0666);
+		if (smemid == -1)
+			goto error;
 
-    /* attach memory segment to smemid */
-    table = (long *)shmat(smemid, (char *)0, 0);
-    if ((int)table == -1)
-      goto error;
+		/* attach memory segment to smemid */
+		table = (long *)shmat(smemid, (char *)0, 0);
+		if ((int)table == -1)
+			goto error;
 
-    if (tnum < XmemMAX_TABLES)
-      attach_address[tnum] = table;
+		if (tnum < XmemMAX_TABLES)
+			attach_address[tnum] = table;
 
-    err = XmemRecvTable(tid, table, longs, 0);
+		err = XmemRecvTable(tid, table, longs, 0);
 
-    if (err != XmemErrorSUCCESS)
-      goto error;
+		if (err != XmemErrorSUCCESS)
+			goto error;
 
-    return table;
-  }
-  else { /* segment was already there */
+		return table;
+	}
+	else { /* segment was already there */
 
-    table = (long *)shmat(smemid, (char *)0, 0);
-    if ((int)table == -1)
-      goto error;
+		table = (long *)shmat(smemid, (char *)0, 0);
+		if ((int)table == -1)
+			goto error;
 
-    if (tnum < XmemMAX_TABLES)
-      attach_address[tnum] = table;
+		if (tnum < XmemMAX_TABLES)
+			attach_address[tnum] = table;
 
-    return table;
-  }
+		return table;
+	}
 
- error:
-  XmemErrorCallback(XmemErrorSYSTEM, errno);
-  return NULL;
+error:
+	XmemErrorCallback(XmemErrorSYSTEM, errno);
+	return NULL;
 }
-
 
 
 XmemTableId XmemGetAllTableIds()
 {
-  return seg_tab.Used;
+	return seg_tab.Used;
 }
 
 
-
-char * XmemGetNodeName(XmemNodeId node)
+char *XmemGetNodeName(XmemNodeId node)
 {
-  int i;
-  unsigned long msk;
+	int i;
+	unsigned long msk;
 
-  if (! xmem) /* comes from VmicLib.c, means a VMIC device is open */
-    return (char *)0;
+	if (! xmem) /* comes from VmicLib.c, means a VMIC device is open */
+		return (char *)0;
 
-  for (i = 0; i < XmemMAX_NODES; i++) {
-    msk = 1 << i;
-    if (node_tab.Used & msk && node == node_tab.Descriptors[i].Id)
-      return node_tab.Descriptors[i].Name;
-  }
+	for (i = 0; i < XmemMAX_NODES; i++) {
+		msk = 1 << i;
+		if (node_tab.Used & msk && node == node_tab.Descriptors[i].Id)
+			return node_tab.Descriptors[i].Name;
+	}
 
-  XmemErrorCallback(XmemErrorNO_SUCH_NODE, 0);
-  return (char *)0;
+	XmemErrorCallback(XmemErrorNO_SUCH_NODE, 0);
+	return (char *)0;
 }
-
 
 
 XmemNodeId XmemGetNodeId(XmemName name)
 {
-  int 		i;
-  unsigned long	msk;
+	int 		i;
+	unsigned long	msk;
 
-  if (! xmem)
-    return 0;
+	if (! xmem)
+		return 0;
 
-  for (i = 0; i < XmemMAX_NODES; i++) {
-    msk = 1 << i;
-    if (node_tab.Used & msk && strcmp(name, node_tab.Descriptors[i].Name) == 0)
-      return node_tab.Descriptors[i].Id;
-  }
+	for (i = 0; i < XmemMAX_NODES; i++) {
+		msk = 1 << i;
 
-  XmemErrorCallback(XmemErrorNO_SUCH_NODE, 0);
-  return 0;
+		if (strcmp(name, node_tab.Descriptors[i].Name) == 0 &&
+		    node_tab.Used & msk)
+			return node_tab.Descriptors[i].Id;
+	}
+
+	XmemErrorCallback(XmemErrorNO_SUCH_NODE, 0);
+	return 0;
 }
-
 
 
 char * XmemGetTableName(XmemTableId table)
 {
-  int 		i;
-  unsigned long	msk;
+	int 		i;
+	unsigned long	msk;
 
-  if (! xmem)
-    return (char *)0;
+	if (! xmem)
+		return (char *)0;
 
-  for (i = 0; i < XmemMAX_TABLES; i++) {
-    msk = 1 << i;
-    if (seg_tab.Used & msk && table == seg_tab.Descriptors[i].Id)
-      return seg_tab.Descriptors[i].Name;
-  }
+	for (i = 0; i < XmemMAX_TABLES; i++) {
+		msk = 1 << i;
+		if (seg_tab.Used & msk && table == seg_tab.Descriptors[i].Id)
+			return seg_tab.Descriptors[i].Name;
+	}
 
-  XmemErrorCallback(XmemErrorNO_SUCH_TABLE, 0);
-  return (char *)0;
+	XmemErrorCallback(XmemErrorNO_SUCH_TABLE, 0);
+	return (char *)0;
 }
 
 
 
 XmemTableId XmemGetTableId(XmemName name)
 {
-  int		i;
-  unsigned long	msk;
+	int		i;
+	unsigned long	msk;
 
-  if (! xmem)
-    return 0;
+	if (! xmem)
+		return 0;
 
-  for (i = 0; i < XmemMAX_TABLES; i++) {
-    msk = 1 << i;
-    if (seg_tab.Used & msk && strcmp(name,seg_tab.Descriptors[i].Name) == 0)
-      return seg_tab.Descriptors[i].Id;
-  }
+	for (i = 0; i < XmemMAX_TABLES; i++) {
+		msk = 1 << i;
+		if (strcmp(name,seg_tab.Descriptors[i].Name) == 0 &&
+		    seg_tab.Used & msk)
+			return seg_tab.Descriptors[i].Id;
+	}
 
-  XmemErrorCallback(XmemErrorNO_SUCH_TABLE, 0);
-  return 0;
+	XmemErrorCallback(XmemErrorNO_SUCH_TABLE, 0);
+	return 0;
 }
 
 
 
 XmemError XmemGetTableDesc(XmemTableId table, unsigned long *longs,
-			   XmemNodeId *nodes, unsigned long *user)
+			XmemNodeId *nodes, unsigned long *user)
 {
-  int 		i;
-  unsigned long	msk;
+	int 		i;
+	unsigned long	msk;
 
-  if (! xmem)
-    return XmemErrorCallback(XmemErrorNOT_INITIALIZED, 0);
+	if (! xmem)
+		return XmemErrorCallback(XmemErrorNOT_INITIALIZED, 0);
 
-  for (i = 0; i < XmemMAX_TABLES; i++) {
-    msk = 1 << i;
-    if (seg_tab.Used & msk && table == seg_tab.Descriptors[i].Id) {
-      *longs = seg_tab.Descriptors[i].Size/sizeof(long);
-      *nodes = seg_tab.Descriptors[i].Nodes;
-      *user  = seg_tab.Descriptors[i].User;
-      return XmemErrorSUCCESS;
-    }
-  }
-  return XmemErrorCallback(XmemErrorNO_SUCH_TABLE, 0);
+	for (i = 0; i < XmemMAX_TABLES; i++) {
+
+		msk = 1 << i;
+
+		if (seg_tab.Used & msk && table == seg_tab.Descriptors[i].Id) {
+
+			*longs = seg_tab.Descriptors[i].Size / sizeof(long);
+			*nodes = seg_tab.Descriptors[i].Nodes;
+			*user  = seg_tab.Descriptors[i].User;
+
+			return XmemErrorSUCCESS;
+		}
+
+	}
+
+	return XmemErrorCallback(XmemErrorNO_SUCH_TABLE, 0);
 }
-
 
 
 XmemError XmemReadTableFile(XmemTableId tid)
 {
-  int 		i, cnt;
-  unsigned long	msk;
-  unsigned long user, longs, bytes;
-  XmemNodeId 	nodes;
-  XmemError	err;
-  char 		*cp;
-  char		tbnam[64];
-  FILE 		*fp;
-  unsigned long	*table;
+	int 		i, cnt;
+	unsigned long	msk;
+	unsigned long user, longs, bytes;
+	XmemNodeId 	nodes;
+	XmemError	err;
+	char 		*cp;
+	char		tbnam[64];
+	FILE 		*fp;
+	unsigned long	*table;
 
-  for (i = 0; i < XmemMAX_TABLES; i++) {
+	for (i = 0; i < XmemMAX_TABLES; i++) {
 
-    msk = 1 << i;
-    if (! (msk & tid))
-      continue;
+		msk = 1 << i;
+		if (! (msk & tid))
+			continue;
 
-    cp = XmemGetTableName(msk);
-    err = XmemGetTableDesc(msk, &longs, &nodes, &user);
-    if (err != XmemErrorSUCCESS)
-      return err;
+		cp = XmemGetTableName(msk);
+		err = XmemGetTableDesc(msk, &longs, &nodes, &user);
+		if (err != XmemErrorSUCCESS)
+			return err;
 
-    table = XmemGetSharedMemory(msk);
-    if (!table)
-      return XmemErrorNO_SUCH_TABLE;
+		table = XmemGetSharedMemory(msk);
+		if (!table)
+			return XmemErrorNO_SUCH_TABLE;
 
-    bzero((void *)tbnam, 64);
-    strcat(tbnam, cp);
-    umask(0);
+		bzero((void *)tbnam, 64);
+		strcat(tbnam, cp);
+		umask(0);
 
-    fp = fopen(XmemGetFile(tbnam), "r");
-    if (! fp)
-      return XmemErrorCallback(XmemErrorSYSTEM, errno);
+		fp = fopen(XmemGetFile(tbnam), "r");
+		if (!fp)
+			return XmemErrorCallback(XmemErrorSYSTEM, errno);
 
-    bytes = longs * sizeof(long);
-    cnt = fread(table, bytes, 1, fp);
+		bytes = longs * sizeof(long);
+		cnt = fread(table, bytes, 1, fp);
 
-    if (cnt <= 0)
-      err = XmemErrorCallback(XmemErrorSYSTEM, errno);
+		if (cnt <= 0)
+			err = XmemErrorCallback(XmemErrorSYSTEM, errno);
 
-    fclose(fp);
-    fp = NULL;
+		fclose(fp);
+		fp = NULL;
 
-    if (err != XmemErrorSUCCESS)
-      return err;
+		if (err != XmemErrorSUCCESS)
+			return err;
 
-  }
-  return XmemErrorSUCCESS;
+	}
+	return XmemErrorSUCCESS;
 }
 
 
 
 XmemError XmemWriteTableFile(XmemTableId tid)
 {
-  int 		i, cnt;
-  unsigned long	msk;
-  unsigned long	user, longs, bytes;
-  XmemError 	err;
-  XmemNodeId 	nodes;
-  char 		*cp;
-  char 		tbnam[64];
-  unsigned long	*table;
-  FILE		*fp;
+	int 		i, cnt;
+	unsigned long	msk;
+	unsigned long	user, longs, bytes;
+	XmemError 	err;
+	XmemNodeId 	nodes;
+	char 		*cp;
+	char 		tbnam[64];
+	unsigned long	*table;
+	FILE		*fp;
 
 
-  for (i = 0; i < XmemMAX_TABLES; i++) {
+	for (i = 0; i < XmemMAX_TABLES; i++) {
 
-    msk = 1 << i;
+		msk = 1 << i;
 
-    if (! (msk & tid))
-      continue;
+		if (! (msk & tid))
+			continue;
 
-    cp = XmemGetTableName(msk);
+		cp = XmemGetTableName(msk);
 
-    err = XmemGetTableDesc(msk, &longs, &nodes, &user);
-    if (err != XmemErrorSUCCESS)
-      return err;
+		err = XmemGetTableDesc(msk, &longs, &nodes, &user);
+		if (err != XmemErrorSUCCESS)
+			return err;
 
-    table = XmemGetSharedMemory(msk);
-    if (! table)
-      return XmemErrorNO_SUCH_TABLE;
+		table = XmemGetSharedMemory(msk);
+		if (!table)
+			return XmemErrorNO_SUCH_TABLE;
 
-    bzero((void *)tbnam, 64);
-    strcat(tbnam, cp);
-    umask(0);
+		bzero((void *)tbnam, 64);
+		strcat(tbnam, cp);
+		umask(0);
 
-    fp = fopen(XmemGetFile(tbnam), "w");
-    if (! fp)
-      return XmemErrorCallback(XmemErrorSYSTEM, errno);
+		fp = fopen(XmemGetFile(tbnam), "w");
+		if (!fp)
+			return XmemErrorCallback(XmemErrorSYSTEM, errno);
 
-    bytes = longs * sizeof(long);
-    cnt = fwrite(table, bytes, 1, fp);
-    if (cnt <= 0)
-      err = XmemErrorCallback(XmemErrorSYSTEM,errno);
+		bytes = longs * sizeof(long);
+		cnt = fwrite(table, bytes, 1, fp);
+		if (cnt <= 0)
+			err = XmemErrorCallback(XmemErrorSYSTEM,errno);
 
-    fclose(fp);
-    fp = NULL;
+		fclose(fp);
+		fp = NULL;
 
-    if (err != XmemErrorSUCCESS)
-      return err;
+		if (err != XmemErrorSUCCESS)
+			return err;
 
-  }
-  return XmemErrorSUCCESS;
+	}
+	return XmemErrorSUCCESS;
 }
 
 
@@ -860,9 +863,9 @@ XmemError XmemWriteTableFile(XmemTableId tid)
 //@{
 #ifdef __linux__
 union semun {
-  int val;
-  struct semid_ds *buff;
-  unsigned short *array;
+	int val;
+	struct semid_ds *buff;
+	unsigned short *array;
 } arg;
 
 #else /* LynxOS */
@@ -872,73 +875,71 @@ union semun arg;
 
 XmemError XmemBlockCallbacks()
 {
-  int	key;
-  int 	sd;
-  int 	cnt;
-  int 	err;
+	int	key;
+	int 	sd;
+	int 	cnt;
+	int 	err;
 
-  key = XmemGetKey(XMEM_SEMAPHORE);
-  sd  = semget(key, 1, 0666 | IPC_CREAT);
+	key = XmemGetKey(XMEM_SEMAPHORE);
+	sd  = semget(key, 1, 0666 | IPC_CREAT);
 
-  if (sd == -1)
-    return XmemErrorSYSTEM;
+	if (sd == -1)
+		return XmemErrorSYSTEM;
 
-  arg.val = 1;
-  err = semctl(sd, 0, SETVAL, arg);
-  cnt = semctl(sd, 0, GETVAL, arg);
+	arg.val = 1;
+	err = semctl(sd, 0, SETVAL, arg);
+	cnt = semctl(sd, 0, GETVAL, arg);
 
-  if (err == - 1) {
-    perror("XmemBlockCallbacks");
-    return XmemErrorSYSTEM;
-  }
+	if (err == - 1) {
+		perror("XmemBlockCallbacks");
+		return XmemErrorSYSTEM;
+	}
 
-  return XmemErrorSUCCESS;
+	return XmemErrorSUCCESS;
 }
-
 
 
 XmemError XmemUnBlockCallbacks()
 {
-  int	key;
-  int	sd;
-  int	cnt;
-  int	err;
+	int	key;
+	int	sd;
+	int	cnt;
+	int	err;
 
-  key = XmemGetKey(XMEM_SEMAPHORE);
+	key = XmemGetKey(XMEM_SEMAPHORE);
 
-  sd  = semget(key, 1, 0);
-  if (sd == -1)
-    return XmemErrorSYSTEM;
+	sd  = semget(key, 1, 0);
+	if (sd == -1)
+		return XmemErrorSYSTEM;
 
-  arg.val = 0;
-  err = semctl(sd, 0, SETVAL, arg);
-  cnt = semctl(sd, 0, GETVAL, arg);
+	arg.val = 0;
+	err = semctl(sd, 0, SETVAL, arg);
+	cnt = semctl(sd, 0, GETVAL, arg);
 
-  if (err == -1) {
-    perror("XmemUnBlockCallbacks");
-    return XmemErrorSYSTEM;
-  }
+	if (err == -1) {
+		perror("XmemUnBlockCallbacks");
+		return XmemErrorSYSTEM;
+	}
 
-  return XmemErrorSUCCESS;
+	return XmemErrorSUCCESS;
 }
-
 
 
 int XmemCallbacksBlocked()
 {
-  int	key;
-  int	sd;
-  int	cnt;
+	int	key;
+	int	sd;
+	int	cnt;
 
-  key = XmemGetKey(XMEM_SEMAPHORE);
+	key = XmemGetKey(XMEM_SEMAPHORE);
 
-  sd  = semget(key, 1, 0);
-  if (sd == -1)
-    return 0;
+	sd  = semget(key, 1, 0);
+	if (sd == -1)
+		return 0;
 
-  cnt = semctl(sd, 0, GETVAL, arg);
+	cnt = semctl(sd, 0, GETVAL, arg);
 
-  return cnt;
+	return cnt;
 }
 //@}
 
@@ -951,12 +952,12 @@ int XmemCallbacksBlocked()
  */
 void XmemLibUsleep(int dly)
 {
-  struct timespec rqtp, rmtp;
+	struct timespec rqtp, rmtp;
 
-  rqtp.tv_sec = 0;
-  rqtp.tv_nsec = dly * 1000;
+	rqtp.tv_sec = 0;
+	rqtp.tv_nsec = dly * 1000;
 
-  nanosleep(&rqtp, &rmtp);
+	nanosleep(&rqtp, &rmtp);
 }
 
 
@@ -982,42 +983,42 @@ void XmemLibUsleep(int dly)
  */
 int MttLibCompileTable(char *name)
 {
-  int 		tmo, terr;
-  ssize_t	ql;
-  mqd_t 	q;
-  XmemTableId 	tid;
+	int 		tmo, terr;
+	ssize_t	ql;
+	mqd_t 	q;
+	XmemTableId 	tid;
 
-  tid = XmemCheckTables(); /* Clear out any old stuff  */
+	tid = XmemCheckTables(); /* Clear out any old stuff  */
 
-  q = mq_open("/tmp/cmtsrv", O_WRONLY | O_NONBLOCK);
+	q = mq_open("/tmp/cmtsrv", O_WRONLY | O_NONBLOCK);
 
-  if (q == (mqd_t)-1)
-    return 3; /* MttLibErrorIO; */
+	if (q == (mqd_t)-1)
+		return 3; /* MttLibErrorIO; */
 
-  ql = mq_send(q, name, 32, 0); /* 32 == MttLibMAX_NAME_SIZE */
-  terr = errno;
-  mq_close(q);
+	ql = mq_send(q, name, 32, 0); /* 32 == MttLibMAX_NAME_SIZE */
+	terr = errno;
+	mq_close(q);
 
-  if (q == (mqd_t)-1) {
-    if (terr == EAGAIN)
-      return 3; /* MttLibErrorIO; */
-    else
-      return 4; /* MttLibErrorSYS; */
-  }
+	if (q == (mqd_t)-1) {
+		if (terr == EAGAIN)
+			return 3; /* MttLibErrorIO; */
+		else
+			return 4; /* MttLibErrorSYS; */
+	}
 
-  tmo = 0;
-  while (tmo++ < 1000) {	/* 20 Seconds max wait */
+	tmo = 0;
+	while (tmo++ < 1000) {	/* 20 Seconds max wait */
 
-    tid = XmemCheckTables();
+		tid = XmemCheckTables();
 
-    if (tid & TableTskObjM) {
-      XmemLibUsleep(30000);	/* Sleep 30 milliseconds */
-      return 0;			/* MttLibErrorNONE; Object table received */
-    }
+		if (tid & TableTskObjM) {
+			XmemLibUsleep(30000);	/* Sleep 30 milliseconds */
+			return 0; /* MttLibErrorNONE; Object table received */
+		}
 
-    XmemLibUsleep(20000);	/* Sleep 20 milliseconds */
-  }
+		XmemLibUsleep(20000);	/* Sleep 20 milliseconds */
+	}
 
-  return 3; /* MttLibErrorIO; Timeout */
+	return 3; /* MttLibErrorIO; Timeout */
 }
 //@}

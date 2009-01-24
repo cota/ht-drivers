@@ -61,22 +61,22 @@
  */
 //@{
 typedef enum {
-  XmemErrorSUCCESS,           //!< All went OK, No error
-  XmemErrorTIMEOUT,           //!< Timeout
-  XmemErrorNOT_INITIALIZED,   //!< The library has not been initialized
-  XmemErrorWRITE_PROTECTED,   //!< You don't have write segment access
-  XmemErrorSEG_TABLE_READ,    //!< Could not read segment table file
-  XmemErrorSEG_TABLE_SYNTAX,  //!< Syntax error in segment table file
-  XmemErrorNODE_TABLE_READ,   //!< Could not read node table file
-  XmemErrorNODE_TABLE_SYNTAX, //!< Syntax error in node table file
-  XmemErrorNO_TABLES,         //!< No tables are defined
-  XmemErrorNO_SUCH_TABLE,     //!< That table is undefined
-  XmemErrorNO_SUCH_NODE,      //!< That node is undefined
-  XmemErrorNO_SUCH_MESSAGE,   //!< Illegal message
-  XmemErrorIO,                //!< An XmemDrvr IO error, see errno
-  XmemErrorSYSTEM,            //!< System error
+	XmemErrorSUCCESS,           //!< All went OK, No error
+	XmemErrorTIMEOUT,           //!< Timeout
+	XmemErrorNOT_INITIALIZED,   //!< The library has not been initialized
+	XmemErrorWRITE_PROTECTED,   //!< You don't have write segment access
+	XmemErrorSEG_TABLE_READ,    //!< Could not read segment table file
+	XmemErrorSEG_TABLE_SYNTAX,  //!< Syntax error in segment table file
+	XmemErrorNODE_TABLE_READ,   //!< Could not read node table file
+	XmemErrorNODE_TABLE_SYNTAX, //!< Syntax error in node table file
+	XmemErrorNO_TABLES,         //!< No tables are defined
+	XmemErrorNO_SUCH_TABLE,     //!< That table is undefined
+	XmemErrorNO_SUCH_NODE,      //!< That node is undefined
+	XmemErrorNO_SUCH_MESSAGE,   //!< Illegal message
+	XmemErrorIO,                //!< An XmemDrvr IO error, see errno
+	XmemErrorSYSTEM,            //!< System error
 
-  XmemErrorCOUNT
+	XmemErrorCOUNT
 } XmemError;
 
 #define XmemErrorSTRING_SIZE 64
@@ -87,12 +87,12 @@ typedef enum {
  */
 //@{
 typedef enum {
-  XmemDeviceANY,     //!< Use any device available
-  XmemDeviceVMIC,    //!< Use VMIC 6656 reflective memory
-  XmemDeviceSHMEM,   //!< Local shared memory
-  XmemDeviceNETWORK, //!< Use ethernet TCP/IP and UDP protocols
+	XmemDeviceANY,     //!< Use any device available
+	XmemDeviceVMIC,    //!< Use VMIC 6656 reflective memory
+	XmemDeviceSHMEM,   //!< Local shared memory
+	XmemDeviceNETWORK, //!< Use ethernet TCP/IP and UDP protocols
 
-  XmemDeviceCOUNT    //!< Number of available devices
+	XmemDeviceCOUNT    //!< Number of available devices
 } XmemDevice;
 //@}
 
@@ -109,28 +109,28 @@ typedef char XmemName[XmemNAME_SIZE];
  *
  * Nodes are either hosts or VMIC modules. They are identified by a single
  * bit, and they have names, normally it's the hostname.
-*/
+ */
 //@{
 #define XmemMAX_NODES 32         //!< One bit for each node
 #define XmemALL_NODES 0xFFFFFFFF //!< All nodes mask
 
 typedef enum {
-  XmemNodeId_01 = 0x00000001, XmemNodeId_02 = 0x00000002,
-  XmemNodeId_03 = 0x00000004, XmemNodeId_04 = 0x00000008,
-  XmemNodeId_05 = 0x00000010, XmemNodeId_06 = 0x00000020,
-  XmemNodeId_07 = 0x00000040, XmemNodeId_08 = 0x00000080,
-  XmemNodeId_09 = 0x00000100, XmemNodeId_10 = 0x00000200,
-  XmemNodeId_11 = 0x00000400, XmemNodeId_12 = 0x00000800,
-  XmemNodeId_13 = 0x00001000, XmemNodeId_14 = 0x00002000,
-  XmemNodeId_15 = 0x00004000, XmemNodeId_16 = 0x00008000,
-  XmemNodeId_17 = 0x00010000, XmemNodeId_18 = 0x00020000,
-  XmemNodeId_19 = 0x00040000, XmemNodeId_20 = 0x00080000,
-  XmemNodeId_21 = 0x00100000, XmemNodeId_22 = 0x00200000,
-  XmemNodeId_23 = 0x00400000, XmemNodeId_24 = 0x00800000,
-  XmemNodeId_25 = 0x01000000, XmemNodeId_26 = 0x02000000,
-  XmemNodeId_27 = 0x04000000, XmemNodeId_28 = 0x08000000,
-  XmemNodeId_29 = 0x10000000, XmemNodeId_30 = 0x20000000,
-  XmemNodeId_31 = 0x40000000, XmemNodeId_32 = 0x80000000
+	XmemNodeId_01 = 0x00000001, XmemNodeId_02 = 0x00000002,
+	XmemNodeId_03 = 0x00000004, XmemNodeId_04 = 0x00000008,
+	XmemNodeId_05 = 0x00000010, XmemNodeId_06 = 0x00000020,
+	XmemNodeId_07 = 0x00000040, XmemNodeId_08 = 0x00000080,
+	XmemNodeId_09 = 0x00000100, XmemNodeId_10 = 0x00000200,
+	XmemNodeId_11 = 0x00000400, XmemNodeId_12 = 0x00000800,
+	XmemNodeId_13 = 0x00001000, XmemNodeId_14 = 0x00002000,
+	XmemNodeId_15 = 0x00004000, XmemNodeId_16 = 0x00008000,
+	XmemNodeId_17 = 0x00010000, XmemNodeId_18 = 0x00020000,
+	XmemNodeId_19 = 0x00040000, XmemNodeId_20 = 0x00080000,
+	XmemNodeId_21 = 0x00100000, XmemNodeId_22 = 0x00200000,
+	XmemNodeId_23 = 0x00400000, XmemNodeId_24 = 0x00800000,
+	XmemNodeId_25 = 0x01000000, XmemNodeId_26 = 0x02000000,
+	XmemNodeId_27 = 0x04000000, XmemNodeId_28 = 0x08000000,
+	XmemNodeId_29 = 0x10000000, XmemNodeId_30 = 0x20000000,
+	XmemNodeId_31 = 0x40000000, XmemNodeId_32 = 0x80000000
 } XmemNodeId;
 //@}
 
@@ -151,22 +151,22 @@ typedef enum {
 #define XmemALL_TABLES 0xFFFFFFFF //!< All tables mask
 
 typedef enum {
-  XmemTableId_01 = 0x00000001, XmemTableId_02 = 0x00000002,
-  XmemTableId_03 = 0x00000004, XmemTableId_04 = 0x00000008,
-  XmemTableId_05 = 0x00000010, XmemTableId_06 = 0x00000020,
-  XmemTableId_07 = 0x00000040, XmemTableId_08 = 0x00000080,
-  XmemTableId_09 = 0x00000100, XmemTableId_10 = 0x00000200,
-  XmemTableId_11 = 0x00000400, XmemTableId_12 = 0x00000800,
-  XmemTableId_13 = 0x00001000, XmemTableId_14 = 0x00002000,
-  XmemTableId_15 = 0x00004000, XmemTableId_16 = 0x00008000,
-  XmemTableId_17 = 0x00010000, XmemTableId_18 = 0x00020000,
-  XmemTableId_19 = 0x00040000, XmemTableId_20 = 0x00080000,
-  XmemTableId_21 = 0x00100000, XmemTableId_22 = 0x00200000,
-  XmemTableId_23 = 0x00400000, XmemTableId_24 = 0x00800000,
-  XmemTableId_25 = 0x01000000, XmemTableId_26 = 0x02000000,
-  XmemTableId_27 = 0x04000000, XmemTableId_28 = 0x08000000,
-  XmemTableId_29 = 0x10000000, XmemTableId_30 = 0x20000000,
-  XmemTableId_31 = 0x40000000, XmemTableId_32 = 0x80000000
+	XmemTableId_01 = 0x00000001, XmemTableId_02 = 0x00000002,
+	XmemTableId_03 = 0x00000004, XmemTableId_04 = 0x00000008,
+	XmemTableId_05 = 0x00000010, XmemTableId_06 = 0x00000020,
+	XmemTableId_07 = 0x00000040, XmemTableId_08 = 0x00000080,
+	XmemTableId_09 = 0x00000100, XmemTableId_10 = 0x00000200,
+	XmemTableId_11 = 0x00000400, XmemTableId_12 = 0x00000800,
+	XmemTableId_13 = 0x00001000, XmemTableId_14 = 0x00002000,
+	XmemTableId_15 = 0x00004000, XmemTableId_16 = 0x00008000,
+	XmemTableId_17 = 0x00010000, XmemTableId_18 = 0x00020000,
+	XmemTableId_19 = 0x00040000, XmemTableId_20 = 0x00080000,
+	XmemTableId_21 = 0x00100000, XmemTableId_22 = 0x00200000,
+	XmemTableId_23 = 0x00400000, XmemTableId_24 = 0x00800000,
+	XmemTableId_25 = 0x01000000, XmemTableId_26 = 0x02000000,
+	XmemTableId_27 = 0x04000000, XmemTableId_28 = 0x08000000,
+	XmemTableId_29 = 0x10000000, XmemTableId_30 = 0x20000000,
+	XmemTableId_31 = 0x40000000, XmemTableId_32 = 0x80000000
 } XmemTableId;
 //@}
 
@@ -179,24 +179,27 @@ typedef enum {
 #define XmemEventMASKS 9
 
 typedef enum {
-  XmemEventMaskTIMEOUT      = 0x001, //!< IO timeout
-  XmemEventMaskSEND_TABLE   = 0x002, //!< Send table(s), see TableId mask
-  XmemEventMaskUSER         = 0x004, //!< User interrupt, see data
-  XmemEventMaskTABLE_UPDATE = 0x008, //!< Table has been updated, see TableId
-  XmemEventMaskINITIALIZED  = 0x010, //!< Node initialized, see node
+	XmemEventMaskTIMEOUT      = 0x001, //!< IO timeout
+	XmemEventMaskSEND_TABLE   = 0x002, //!< Send table(s), see TableId mask
+	XmemEventMaskUSER         = 0x004, //!< User interrupt, see data
 
-  XmemEventMaskIO           = 0x020,
-  //!< Some IO error, Data contains XmemIoError
+	XmemEventMaskTABLE_UPDATE = 0x008,
+	//!< Table has been updated, see TableId
 
-  XmemEventMaskKILL         = 0x040, //!< Kill yourself
+	XmemEventMaskINITIALIZED  = 0x010, //!< Node initialized, see node
 
-  XmemEventMaskSOFTWARE     = 0x080,
-  //!< Software error, Data contains XmemIoError
+	XmemEventMaskIO           = 0x020,
+	//!< Some IO error, Data contains XmemIoError
 
-  XmemEventMaskSYSTEM       = 0x100,
-  //!< System error, Data contains system errno
+	XmemEventMaskKILL         = 0x040, //!< Kill yourself
 
-  XmemEventMaskMASK         = 0x1FF  //!< Mask bits
+	XmemEventMaskSOFTWARE     = 0x080,
+	//!< Software error, Data contains XmemIoError
+
+	XmemEventMaskSYSTEM       = 0x100,
+	//!< System error, Data contains system errno
+
+	XmemEventMaskMASK         = 0x1FF  //!< Mask bits
 } XmemEventMask;
 //@}
 
@@ -210,13 +213,17 @@ typedef enum {
 #define XmemIoERRORS 5
 
 typedef enum {
-  XmemIoErrorPARITY   = 0x01,    //!< Parity error
-  XmemIoErrorROGUE    = 0x02,    //!< Rogue packet killed
-  XmemIoErrorCONTACT  = 0x04,    //!< Lost contact with network
-  XmemIoErrorHARDWARE = 0x08,    //!< Hardware error, this should never happen
-  XmemIoErrorSOFTWARE = 0x10,    //!< Software error, this should never happen
+	XmemIoErrorPARITY   = 0x01,    //!< Parity error
+	XmemIoErrorROGUE    = 0x02,    //!< Rogue packet killed
+	XmemIoErrorCONTACT  = 0x04,    //!< Lost contact with network
 
-  XmemIoErrorMASK     = 0x1F
+	XmemIoErrorHARDWARE = 0x08,
+	//!< Hardware error, this should never happen
+
+	XmemIoErrorSOFTWARE = 0x10,
+	//!< Software error, this should never happen
+
+	XmemIoErrorMASK     = 0x1F
 } XmemIoError;
 //@}
 
@@ -233,13 +240,13 @@ typedef enum {
  */
 //@{
 typedef enum {
-  XmemInitMessageSEEN_BY,
-  //!< Zero is used to establish the network topology
+	XmemInitMessageSEEN_BY,
+	//!< Zero is used to establish the network topology
 
-  XmemInitMessageRESET,        //!< The node hase been reset
-  XmemInitMessageUSER_DEFINED, //!< A user defined message
+	XmemInitMessageRESET,        //!< The node hase been reset
+	XmemInitMessageUSER_DEFINED, //!< A user defined message
 
-  XmemInitMessageMESSAGES
+	XmemInitMessageMESSAGES
 } XmemInitMessage;
 //@}
 
@@ -247,10 +254,10 @@ typedef enum {
 /*! This structure is delivered to your callback on receipt of an interrupt
  */
 typedef struct {
-  XmemEventMask Mask;        //!< One bit only can be set on call
-  XmemTableId   Table;       //!< Table when relevant
-  XmemNodeId    Node;        //!< Node  when relevant
-  unsigned long Data;        //!< Users data
+	XmemEventMask Mask;        //!< One bit only can be set on call
+	XmemTableId   Table;       //!< Table when relevant
+	XmemNodeId    Node;        //!< Node  when relevant
+	unsigned long Data;        //!< Users data
 } XmemCallbackStruct;
 
 
@@ -264,13 +271,13 @@ typedef struct {
  */
 //@{
 typedef enum {
-  XmemMessageTypeSEND_TABLE,    //!< Send me a table
-  XmemMessageTypeUSER,          //!< Send a USER message
-  XmemMessageTypeTABLE_UPDATE,  //!< Send a table update message
-  XmemMessageTypeINITIALIZE_ME, //!< Send "I need to be initialized"
-  XmemMessageTypeKILL,          //!< Send "Kill yourself"
+	XmemMessageTypeSEND_TABLE,    //!< Send me a table
+	XmemMessageTypeUSER,          //!< Send a USER message
+	XmemMessageTypeTABLE_UPDATE,  //!< Send a table update message
+	XmemMessageTypeINITIALIZE_ME, //!< Send "I need to be initialized"
+	XmemMessageTypeKILL,          //!< Send "Kill yourself"
 
-  XmemMessageTypeCOUNT
+	XmemMessageTypeCOUNT
 } XmemMessageType;
 
 
@@ -279,8 +286,8 @@ typedef enum {
  * For sending messages to other hosts (and to itself)
  */
 typedef struct {
-  XmemMessageType MessageType; //!< See XmemMessageType
-  unsigned long   Data;        //!< TableId/UserData
+	XmemMessageType MessageType; //!< See XmemMessageType
+	unsigned long   Data;        //!< TableId/UserData
 } XmemMessage;
 //@}
 
@@ -481,7 +488,7 @@ XmemTableId XmemGetTableId(XmemName name);
  * @return Appropriate error code (XmemError)
  */
 XmemError XmemGetTableDesc(XmemTableId table, unsigned long *longs,
-				 XmemNodeId *nodes, unsigned long *user);
+			XmemNodeId *nodes, unsigned long *user);
 
 
 
@@ -506,7 +513,7 @@ XmemError XmemGetTableDesc(XmemTableId table, unsigned long *longs,
  * @return Appropriate error message (XmemError)
  */
 XmemError XmemRegisterCallback(void (*cb)(XmemCallbackStruct *cbs),
-				     XmemEventMask mask);
+			XmemEventMask mask);
 
 
 
@@ -566,7 +573,7 @@ XmemEventMask XmemPoll(void);
  *
  * If SendTable is called with a NULL buffer, the driver will flush the
  * reflective memory segment to the network by copying it onto itself. This
- * is rather slow compared to the usual copy because DMA can not be used, and
+ * is rather slow compared to the usual copy because DMA cannot be used, and
  * two PCI-bus accesses ~1us are used for each long word.
  *
  * WARNING: Only 32 bit accesses can be made. So the buf parameter must be on
@@ -577,7 +584,7 @@ XmemEventMask XmemPoll(void);
  * @return Appropriate error message (XmemError)
  */
 XmemError XmemSendTable(XmemTableId table, long *buf, unsigned long longs,
-			      unsigned long offset, unsigned long upflag);
+			unsigned long offset, unsigned long upflag);
 
 
 
@@ -595,7 +602,7 @@ XmemError XmemSendTable(XmemTableId table, long *buf, unsigned long longs,
  * @return Appropriate error message (XmemError)
  */
 XmemError XmemRecvTable(XmemTableId table, long *buf, unsigned long longs,
-			      unsigned long offset);
+			unsigned long offset);
 
 
 
