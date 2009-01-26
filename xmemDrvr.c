@@ -115,11 +115,6 @@
 #include <sys/types.h>
 #include <time.h>
 extern int nanotime(unsigned long *);
-
-/* we include the contents of cdcmBoth and cdcmIo here, because the
- * makefiles are not ready yet :(
- */
-#include <cdcm/cdcmBoth.c>
 #endif /* !__linux__ */
 
 #include "plx9656_layout.h"
