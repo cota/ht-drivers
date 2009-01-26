@@ -25,7 +25,6 @@ static int first_time = 1;
 static XmemDrvrReadBuf drbf;
 
 
-
 /**
  * VmicWriteSegTable - Set the list of all segments into the driver
  *
@@ -41,7 +40,6 @@ static XmemError VmicWriteSegTable()
 {
 	if (!seg_tab.Used)
 		return XmemErrorNO_TABLES;
-
 	/* write segment table into the driver */
 	if (ioctl(xmem, XmemDrvrSET_SEGMENT_TABLE, &seg_tab) < 0)
 		return XmemErrorSYSTEM;
@@ -64,15 +62,11 @@ static int VmicOpen()
 	char 	fnm[32];
 
 	for (i = 1; i <= XmemDrvrCLIENT_CONTEXTS; i++) {
-
 		sprintf(fnm, "/dev/xmem.%1d", i);
-
 		fn = open(fnm, O_RDWR, 0);
-
 		if (fn > 0)
 			return fn;
 	}
-
 	XmemErrorCallback(XmemErrorSYSTEM, errno);
 	return 0;
 }
@@ -96,23 +90,18 @@ XmemError VmicInitialize()
 
 	if (xmem)
 		return XmemErrorSUCCESS;
-
 	xmem = VmicOpen();
-
 	if (!xmem)
 		goto notinit;
 
 	bzero((void *)&stb, sizeof(XmemDrvrSegTable));
-
 	/* read segment table into stb */
 	if (ioctl(xmem, XmemDrvrGET_SEGMENT_TABLE, &stb) >= 0)
 		warm_start = stb.Used; /* this is a warm start */
 
 	err = VmicWriteSegTable();
-
 	if (err != XmemErrorSUCCESS)
 		goto notinit;
-
 	/*
 	 * BUG / FIXME
 	 * setting con.Module = 0 --> the IOCTL handler will take the module
@@ -125,10 +114,8 @@ XmemError VmicInitialize()
 	 */
 	con.Module = 0;
 	con.Mask   = XmemDrvrIntrPENDING_INIT;
-
 	if (ioctl(xmem, XmemDrvrCONNECT, &con) < 0)
 		goto notinit;
-
 	if (ioctl(xmem, XmemDrvrGET_MODULE_DESCRIPTOR, &mdesc) < 0)
 		goto notinit;
 	my_nid = 1 << (mdesc.NodeId - 1);
@@ -137,14 +124,10 @@ XmemError VmicInitialize()
 	if (!warm_start)
 		if (ioctl(xmem, XmemDrvrRESET, NULL) < 0)
 			goto notinit;
-
 	if (debug)
 		if (ioctl(xmem,XmemDrvrSET_SW_DEBUG,&debug) < 0)
 			goto notinit;
-
 	return XmemErrorSUCCESS;
-
-
 notinit:
 	xmem = 0;
 	return XmemErrorNOT_INITIALIZED;
@@ -168,15 +151,12 @@ XmemNodeId VmicGetAllNodeIds()
 
 	if (!xmem)
 		return 0;
-
 	/* Get the node map of all connected to PENDING_INIT */
 	if (ioctl(xmem,XmemDrvrGET_NODES, &nodes) < 0) {
 		XmemErrorCallback(XmemErrorSYSTEM, errno);
 		return 0;
 	}
-
 	return nodes;
-
 }
 
 
@@ -200,13 +180,10 @@ XmemError VmicRegisterCallback(void (*cb)(XmemCallbackStruct *cbs),
 
 	if (!xmem)
 		goto notinit;
-
 	con.Module = 0;
 	con.Mask   = 0;
-
 	if (! (mask & XmemEventMaskMASK)) {
 		/* invalid or empty mask */
-
 		con.Module = 0;
 		con.Mask   = 0;
 #if 0
@@ -215,40 +192,29 @@ XmemError VmicRegisterCallback(void (*cb)(XmemCallbackStruct *cbs),
 #endif
 		callback = NULL;
 		callmask = 0;
-
 		return XmemErrorSUCCESS;
 	}
-
-
 	for (i = 0; i < XmemEventMASKS; i++) {
-
 		msk = 1 << i;
-
 		if (! (msk & mask))
 			continue;
-
 		switch (msk) {
-
 		case XmemEventMaskSEND_TABLE:
 			con.Mask |= XmemDrvrIntrINT_2;
 			callmask |= msk;
 			break;
-
 		case XmemEventMaskUSER:
 			con.Mask |= XmemDrvrIntrINT_1;
 			callmask |= msk;
 			break;
-
 		case XmemEventMaskTABLE_UPDATE:
 			con.Mask |= XmemDrvrIntrSEGMENT_UPDATE;
 			callmask |= msk;
 			break;
-
 		case XmemEventMaskINITIALIZED:
 			con.Mask |= XmemDrvrIntrPENDING_INIT;
 			callmask |= msk;
 			break;
-
 		case XmemEventMaskIO:
 			con.Mask |= XmemDrvrIntrPARITY_ERROR   |
 				    XmemDrvrIntrLOST_SYNC      |
@@ -258,32 +224,23 @@ XmemError VmicRegisterCallback(void (*cb)(XmemCallbackStruct *cbs),
 				    XmemDrvrIntrROGUE_CLOBBER  ;
 			callmask |= msk;
 			break;
-
 		case XmemEventMaskKILL:
 			con.Mask |= XmemDrvrIntrREQUEST_RESET;
 			callmask |= msk;
 			break;
-
 		default:
 			break;
 		}
 	}
-
 	if (callmask) {
-
 		qflg = 0; /* set queueing ON */
-
 		if (ioctl(xmem, XmemDrvrSET_QUEUE_FLAG, &qflg) < 0)
 			return XmemErrorCallback(XmemErrorSYSTEM, errno);
-
 		if (ioctl(xmem, XmemDrvrCONNECT, &con) < 0)
 			return XmemErrorCallback(XmemErrorSYSTEM, errno);
-
 		callback = cb;
 	}
-
 	return XmemErrorSUCCESS;
-
 notinit:
 	return XmemErrorCallback(XmemErrorNOT_INITIALIZED, 0);
 }
@@ -301,7 +258,6 @@ static void VmicUsleep(int dly)
 
 	rqtp.tv_sec = 0;
 	rqtp.tv_nsec = dly * 1000;
-
 	nanosleep(&rqtp, &rmtp);
 }
 
@@ -325,9 +281,7 @@ int VmicDaemonWait(int timeout)
 		if (ioctl(xmem, XmemDrvrSET_TIMEOUT, &timeout) >= 0)
 			first_time = 0;
 	}
-
 	bzero((void *)&drbf, sizeof(XmemDrvrReadBuf));
-
 	if (read(xmem, &drbf, sizeof(XmemDrvrReadBuf)) > 0) {
 		ioctl(xmem, XmemDrvrGET_QUEUE_SIZE, &dqsze);
 		return 1;
@@ -351,90 +305,69 @@ void VmicDaemonCall()
 	XmemCallbackStruct cbs;
 
 	for (i = 0; i < XmemDrvrIntrSOURCES; i++) {
-
 		imsk = 1 << i;
-
 		bzero((void *)&cbs, sizeof(XmemCallbackStruct));
 
 		switch (imsk & drbf.Mask) {
-
 		case XmemDrvrIntrPARITY_ERROR:
 			cbs.Mask = XmemEventMaskIO;
 			cbs.Data = XmemIoErrorPARITY;
-
 			if (callmask & XmemEventMaskIO)
 				callback(&cbs);
 			break;
-
 		case XmemDrvrIntrRX_OVERFLOW:
 		case XmemDrvrIntrRX_ALMOST_FULL:
 		case XmemDrvrIntrDATA_ERROR:
 			cbs.Mask = XmemEventMaskIO;
 			cbs.Data = XmemIoErrorHARDWARE;
-
 			if (callmask & XmemEventMaskIO)
 				callback(&cbs);
 			break;
-
 		case XmemDrvrIntrLOST_SYNC:
 			cbs.Mask = XmemEventMaskIO;
 			cbs.Data = XmemIoErrorCONTACT;
-
 			if (callmask & XmemEventMaskIO)
 				callback(&cbs);
 			break;
-
 		case XmemDrvrIntrROGUE_CLOBBER:
 			cbs.Mask = XmemEventMaskIO;
 			cbs.Data = XmemIoErrorROGUE;
-
 			if (callmask & XmemEventMaskIO)
 				callback(&cbs);
 			break;
-
 		case XmemDrvrIntrPENDING_INIT:
 			cbs.Mask = XmemEventMaskINITIALIZED;
 			cbs.Node = 1 << (drbf.NodeId[XmemDrvrIntIdxPENDING_INIT] - 1);
 			cbs.Data = drbf.NdData[XmemDrvrIntIdxPENDING_INIT];
-
 			if (callmask & XmemEventMaskINITIALIZED)
 				callback(&cbs);
 			break;
-
 		case XmemDrvrIntrREQUEST_RESET:
 			cbs.Mask = XmemEventMaskKILL;
-
 			if (callmask & XmemEventMaskKILL)
 				callback(&cbs);
 			break;
-
 		case XmemDrvrIntrSEGMENT_UPDATE:
 			cbs.Mask  = XmemEventMaskTABLE_UPDATE;
 			cbs.Node  = 1 << (drbf.NodeId[XmemDrvrIntIdxSEGMENT_UPDATE] - 1);
 			cbs.Table = drbf.NdData[XmemDrvrIntIdxSEGMENT_UPDATE];
-
 			if (callmask & XmemEventMaskTABLE_UPDATE)
 				callback(&cbs);
 			break;
-
 		case XmemDrvrIntrINT_2:
 			cbs.Mask  = XmemEventMaskSEND_TABLE;
 			cbs.Node  = 1 << (drbf.NodeId[XmemDrvrIntIdxINT_2] - 1);
 			cbs.Table = drbf.NdData[XmemDrvrIntIdxINT_2];
-
 			if (callmask & XmemEventMaskSEND_TABLE)
 				callback(&cbs);
 			break;
-
 		case XmemDrvrIntrINT_1:
 			cbs.Mask  = XmemEventMaskUSER;
 			cbs.Node  = 1 << (drbf.NodeId[XmemDrvrIntIdxINT_1] - 1);
 			cbs.Data  = drbf.NdData[XmemDrvrIntIdxINT_1];
-
 			if (callmask & XmemEventMaskUSER)
 				callback(&cbs);
 			break;
-
 		default:
 			break;
 		}
@@ -463,20 +396,14 @@ XmemEventMask VmicWait(int timeout)
 
 	if (!callmask)
 		return 0;
-
 	if (!xmem)
 		return XmemErrorCallback(XmemErrorNOT_INITIALIZED, 0);
-
 	if (ioctl(xmem, XmemDrvrSET_TIMEOUT, &timeout) < 0) {
 		XmemErrorCallback(XmemErrorSYSTEM, errno);
 		return 0;
 	}
-
 	bzero((void *)&cbs, sizeof(XmemCallbackStruct));
-
-
 	cc = read(xmem, &rbf, sizeof(XmemDrvrReadBuf));
-
 	if (cc <= 0) {
 		cbs.Mask = XmemEventMaskTIMEOUT;
 		if (callmask & XmemEventMaskTIMEOUT)
@@ -494,14 +421,10 @@ XmemEventMask VmicWait(int timeout)
 			return XmemEventMaskTIMEOUT;
 		}
 	}
-
 	emsk = 0;
 	for (i = 0; i < XmemDrvrIntrSOURCES; i++) {
-
 		imsk = 1 << i;
-
 		switch (imsk & rbf.Mask) {
-
 		case XmemDrvrIntrPARITY_ERROR:
 			cbs.Mask = XmemEventMaskIO;
 			cbs.Data = XmemIoErrorPARITY;
@@ -510,18 +433,15 @@ XmemEventMask VmicWait(int timeout)
 			if (callmask & XmemEventMaskIO)
 				callback(&cbs);
 			break;
-
 		case XmemDrvrIntrRX_OVERFLOW:
 		case XmemDrvrIntrRX_ALMOST_FULL:
 		case XmemDrvrIntrDATA_ERROR:
 			cbs.Mask = XmemEventMaskIO;
 			cbs.Data = XmemIoErrorHARDWARE;
 			emsk |= XmemEventMaskIO;
-
 			if (callmask & XmemEventMaskIO)
 				callback(&cbs);
 			break;
-
 		case XmemDrvrIntrLOST_SYNC:
 			cbs.Mask = XmemEventMaskIO;
 			cbs.Data = XmemIoErrorCONTACT;
@@ -530,63 +450,50 @@ XmemEventMask VmicWait(int timeout)
 			if (callmask & XmemEventMaskIO)
 				callback(&cbs);
 			break;
-
 		case XmemDrvrIntrROGUE_CLOBBER:
 			cbs.Mask = XmemEventMaskIO;
 			cbs.Data = XmemIoErrorROGUE;
 			emsk |= XmemEventMaskIO;
-
 			if (callmask & XmemEventMaskIO)
 				callback(&cbs);
 			break;
-
 		case XmemDrvrIntrPENDING_INIT:
 			cbs.Mask = XmemEventMaskINITIALIZED;
 			cbs.Node = 1 << (rbf.NodeId[XmemDrvrIntIdxPENDING_INIT] - 1);
 			cbs.Data = rbf.NdData[XmemDrvrIntIdxPENDING_INIT];
-
 			if (callmask & XmemEventMaskINITIALIZED)
 				callback(&cbs);
 			break;
-
 		case XmemDrvrIntrREQUEST_RESET:
 			cbs.Mask = XmemEventMaskKILL;
 			emsk |= XmemEventMaskKILL;
-
 			if (callmask & XmemEventMaskKILL)
 				callback(&cbs);
 			break;
-
 		case XmemDrvrIntrSEGMENT_UPDATE:
 			emsk |= XmemEventMaskTABLE_UPDATE;
 			cbs.Mask  = XmemEventMaskTABLE_UPDATE;
 			cbs.Node  = 1 << (rbf.NodeId[XmemDrvrIntIdxSEGMENT_UPDATE] - 1);
 			cbs.Table = rbf.NdData[XmemDrvrIntIdxSEGMENT_UPDATE];
-
 			if (callmask & XmemEventMaskTABLE_UPDATE)
 				callback(&cbs);
 			break;
-
 		case XmemDrvrIntrINT_2:
 			emsk |= XmemEventMaskSEND_TABLE;
 			cbs.Mask  = XmemEventMaskSEND_TABLE;
 			cbs.Node  = 1 << (rbf.NodeId[XmemDrvrIntIdxINT_2] - 1);
 			cbs.Table = rbf.NdData[XmemDrvrIntIdxINT_2];
-
 			if (callmask & XmemEventMaskSEND_TABLE)
 				callback(&cbs);
 			break;
-
 		case XmemDrvrIntrINT_1:
 			emsk |= XmemEventMaskUSER;
 			cbs.Mask  = XmemEventMaskUSER;
 			cbs.Node  = 1 << (rbf.NodeId[XmemDrvrIntIdxINT_1] - 1);
 			cbs.Data  = rbf.NdData[XmemDrvrIntIdxINT_1];
-
 			if (callmask & XmemEventMaskUSER)
 				callback(&cbs);
 			break;
-
 		default:
 			break;
 		}
@@ -614,17 +521,13 @@ XmemEventMask VmicPoll()
 
 	if (!xmem)
 		return 0;
-
 	if (ioctl(xmem, XmemDrvrGET_QUEUE_SIZE, &qsize) < 0) {
 		XmemErrorCallback(XmemErrorSYSTEM, errno);
 		return 0;
 	}
-
 	if (qsize)
 		return VmicWait(0);
-
 	return 0;
-
 }
 
 
@@ -647,19 +550,15 @@ XmemError VmicSendMessage(XmemNodeId nodes, XmemMessage *mess)
 	XmemNodeId 	nmsk;
 	XmemDrvrSendBuf msbf;
 
-
 	if (!xmem)
 		return XmemErrorCallback(XmemErrorNOT_INITIALIZED, 0);
-
 	bzero((void *) &msbf, sizeof(XmemDrvrSendBuf));
-
 	if (nodes == XmemALL_NODES)
 		mcst = XmemDrvrNicBROADCAST;
-	else {
+	else { /* MULTICAST or UNICAST */
 		cnt = 0;
 		for (i = 0; i < XmemMAX_NODES; i++) {
 			nmsk = 1 << i;
-
 			if (nmsk & nodes) {
 				cnt++;
 				nnum = i + 1;
@@ -667,7 +566,6 @@ XmemError VmicSendMessage(XmemNodeId nodes, XmemMessage *mess)
 			if (cnt > 1)
 				break;
 		}
-
 		if (cnt == 1) {
 			mcst = XmemDrvrNicUNICAST;
 			msbf.UnicastNodeId = nnum;
@@ -677,44 +575,34 @@ XmemError VmicSendMessage(XmemNodeId nodes, XmemMessage *mess)
 			msbf.MulticastMask = nodes;
 		}
 	}
-
 	switch (mess->MessageType) {
-
 	case XmemMessageTypeSEND_TABLE:
 		mtyp = XmemDrvrNicINT_2;
 		msbf.Data = mess->Data;
 		break;
-
 	case XmemMessageTypeUSER:
 		mtyp = XmemDrvrNicINT_1;
 		msbf.Data = mess->Data;
 		break;
-
 	case XmemMessageTypeTABLE_UPDATE:
 		mtyp = XmemDrvrNicSEGMENT_UPDATE;
 		msbf.Data = mess->Data;
 		break;
-
 	case XmemMessageTypeINITIALIZE_ME:
 		mtyp = XmemDrvrNicINITIALIZED;
 		msbf.Data = mess->Data;
 		break;
-
 	case XmemMessageTypeKILL:
 		mtyp = XmemDrvrNicREQUEST_RESET;
 		msbf.Data = mess->Data;
 		break;
-
 	default:
 		return XmemErrorCallback(XmemErrorNO_SUCH_MESSAGE, 0);
 	}
-
 	msbf.Module        = 1;
 	msbf.InterruptType = mtyp | mcst;
-
 	if (ioctl(xmem, XmemDrvrSEND_INTERRUPT, &msbf) < 0)
 		return XmemErrorCallback(XmemErrorSYSTEM, errno);
-
 	return XmemErrorSUCCESS;
 }
 
@@ -742,7 +630,6 @@ XmemError VmicSendTable(XmemTableId tid, long *buf, unsigned long longs,
 
 	if (!xmem)
 		return XmemErrorCallback(XmemErrorNOT_INITIALIZED, 0);
-
 	if (buf == NULL) {
 		if (ioctl(xmem, XmemDrvrFLUSH_SEGMENTS, &tid) < 0)
 			return XmemErrorCallback(XmemErrorSYSTEM, errno);
@@ -754,7 +641,6 @@ XmemError VmicSendTable(XmemTableId tid, long *buf, unsigned long longs,
 		sgio.Offset    = offset * sizeof(long);
 		sgio.UserArray = (char *)buf;
 		sgio.UpdateFlg = 0;
-
 		if (ioctl(xmem, XmemDrvrWRITE_SEGMENT, &sgio) < 0) {
 			if (errno == EACCES)
 				return XmemErrorCallback(XmemErrorWRITE_PROTECTED, 0);
@@ -762,13 +648,11 @@ XmemError VmicSendTable(XmemTableId tid, long *buf, unsigned long longs,
 				return XmemErrorCallback(XmemErrorSYSTEM, errno);
 		}
 	}
-
 	if (upflag) {
 		mess.MessageType = XmemMessageTypeTABLE_UPDATE;
 		mess.Data        = tid;
 		return VmicSendMessage(XmemALL_NODES, &mess);
 	}
-
 	return XmemErrorSUCCESS;
 }
 
@@ -790,17 +674,14 @@ XmemError VmicRecvTable(XmemTableId tid, long *buf, unsigned long longs,
 
 	if (!xmem)
 		return XmemErrorCallback(XmemErrorNOT_INITIALIZED, 0);
-
 	sgio.Module    = 1;
 	sgio.Id        = tid;
 	sgio.Size      = longs * sizeof (long);
 	sgio.Offset    = offset * sizeof(long);
 	sgio.UserArray = (char *)buf;
 	sgio.UpdateFlg = 0;
-
 	if (ioctl(xmem, XmemDrvrREAD_SEGMENT, &sgio) < 0)
 		return XmemErrorCallback(XmemErrorSYSTEM, errno);
-
 	return XmemErrorSUCCESS;
 }
 
@@ -819,7 +700,6 @@ XmemTableId VmicCheckTables() {
 
 	if (!xmem)
 		return 0;
-
 	if (ioctl(xmem, XmemDrvrCHECK_SEGMENT, &tmsk) < 0) {
 		XmemErrorCallback(XmemErrorSYSTEM, errno);
 		return 0;

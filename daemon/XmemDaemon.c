@@ -86,7 +86,6 @@ char *TimeToStr(time_t tod)
 		yr = &(tmp[20]);
 
 		sprintf (tbuf, "%s-%s/%s/%s %s", dy, md, mn, yr, ti);
-
 	} else
 		sprintf(tbuf, "--- Zero ---");
 
@@ -122,7 +121,6 @@ XdEventLogEntries *GetEventLogTable()
 	}
 
 	if (errno == ENOENT) {
-
 		/* a shared memory identifier does not exist; create it */
 		smemid = shmget(smemky, sizeof(XdEventLogEntries),
 				IPC_CREAT | 0666);
@@ -320,19 +318,15 @@ void __flush_startup(unsigned long *longs, XmemNodeId *nodes,
 	atids = XmemGetAllTableIds();
 
 	for (i = 0; i < XmemMAX_TABLES; i++) {
-
 		msk = 1 << i;
-
 		if (! (msk & atids))
 			continue;
 
 		XmemGetTableDesc(msk, longs, nodes, user);
-
 		if (! (*nodes & me))
 			continue;
 
 		acnds = XmemGetAllNodeIds() & *nodes;
-
 		/* only the highest node ID issues the write */
 		if ((~me & acnds) > me)
 			continue;
@@ -388,9 +382,7 @@ void callback(XmemCallbackStruct *cbs)
 	}
 
 	for (i = 0; i < XmemEventMASKS; i++) {
-
 		msk = 1 << i;
-
 		if (! (cbs->Mask & msk))
 			continue;
 
@@ -400,48 +392,38 @@ void callback(XmemCallbackStruct *cbs)
 
 			if ((!tid || cbs->Node == me) && !symp)
 				return;
-
 			if (! (me & nodes))
 				break;
 
 			if (user & IN_SHMEM) {
 				smemad = XmemGetSharedMemory(tid);
-
 				if (!smemad)
 					break;
 
 				XmemSendTable(tid, smemad, longs, 0, 1);
-
 				sprintf(txt,
 					"Written table: %s For requesting node: %s",
 					XmemGetTableName(tid),
 					XmemGetNodeName(cbs->Node));
-
 				LogEvent(NULL, txt);
 			}
 			else {
 				XmemSendTable(tid, NULL, 0, 0, 1);
-
 				sprintf(txt,
 					"Flushed table: %s For requesting node: %s",
 					XmemGetTableName(tid),
 					XmemGetNodeName(cbs->Node));
-
 				LogEvent(NULL, txt);
 			}
-
 			break;
 
 		case XmemEventMaskTABLE_UPDATE:
-
 			if ((!tid || cbs->Node == me) && !symp)
 				return;
-
 			if (! (user & IN_SHMEM))
 				break;
 
 			smemad = XmemGetSharedMemory(tid);
-
 			if (smemad) {
 				/* read from reflective memory */
 				XmemRecvTable(tid, smemad, longs, 0);
@@ -450,47 +432,35 @@ void callback(XmemCallbackStruct *cbs)
 					"Received table: %s From updating node: %s",
 					XmemGetTableName(tid),
 					XmemGetNodeName(cbs->Node));
-
 				LogEvent(NULL, txt);
 			}
-
 			if (user & ON_DISC && nodes & me) {
 				acnds = XmemGetAllNodeIds() & nodes;
-
 				/* only the highest node ID issues the write */
 				if ((~me & acnds) > me)
 					break;
 
-
 				XmemWriteTableFile(tid);
-
 				sprintf(txt,
 					"Disc file updated for table: %s For requesting node: %s",
 					XmemGetTableName(tid),
 					XmemGetNodeName(cbs->Node));
-
 				LogEvent(NULL, txt);
 			}
 			break;
 
 		case XmemEventMaskINITIALIZED:
-
 			if (cbs->Data == XmemInitMessageRESET) {
-
 				/* Acknowledge Init and send tables */
 				mess.MessageType = XmemMessageTypeINITIALIZE_ME;
 				mess.Data        = XmemInitMessageSEEN_BY;
 				XmemSendMessage(XmemALL_NODES, &mess);
 
-
 				__flush_startup(&longs, &nodes, &user,
 					      me, cbs->Node);
-
 			}
-
 			if (cbs->Data != XmemInitMessageSEEN_BY)
 				LogEvent(cbs, NULL);
-
 			break;
 
 		case XmemEventMaskKILL:
@@ -536,34 +506,26 @@ void __init_coldstart()
 	tid = XmemGetAllTableIds();
 
 	for (i = 0; i < XmemMAX_TABLES; i++) {
-
 		msk = 1 << i;
-
 		if (! (tid & msk))
 			continue;
 
 		XmemGetTableDesc(msk, &longs, &nodes, &user);
-
 		if (! (nodes & me))
 			continue;
-
 		if (! (user & IN_SHMEM && user & ON_DISC))
 			continue;
 
 		sprintf(txt, "Reading table:%s id:%d from disc",
 			XmemGetTableName((XmemTableId)msk), (int)msk);
-
 		LogEvent(NULL, txt);
 
 		err = XmemReadTableFile(msk);
-
 		if (err == XmemErrorSUCCESS)
 			continue;
 
 		LogEvent(NULL, "WARNING: Failed to read table from disc");
-
 	}
-
 }
 
 
@@ -588,65 +550,48 @@ int main(int argc, char *argv[])
 	event_log = GetEventLogTable();
 
 	err = XmemInitialize(XmemDeviceANY);
-
 	if (err != XmemErrorSUCCESS) {
 		LogEvent(NULL, "Can't initialize library");
 		goto fatal;
 	}
 
-
 	XmemUnBlockCallbacks();
-
 
 	if (!event_log) {
 		LogEvent(NULL, "Can't get: EVENT_LOG shared memory segment");
 		goto fatal;
 	}
 
-
-
 	emsk = XmemEventMaskMASK;
 	/* subscribe the daemon to XmemEventMaskMASK */
 	err = XmemRegisterCallback(callback, emsk);
-
 	if (err != XmemErrorSUCCESS) {
 		LogEvent(NULL, "Can't register callback");
 		goto fatal;
 	}
 
-
 	warmst = XmemCheckForWarmStart();
-
 	if (warmst) {
-
 		LogEvent(NULL,"Warm Start: Begin ...");
-
 		/* Tell the world I exist */
 		mes.MessageType = XmemMessageTypeINITIALIZE_ME;
 		mes.Data        = XmemInitMessageSEEN_BY;
 		XmemSendMessage(XmemALL_NODES, &mes);
 		/* ...it might be interesting to do this in a loop */
-
 	}
 	else {
-
 		LogEvent(NULL, "Cold Start: Initialize Tables: Begin ...");
-
 		/* For cold starts, read tables from disc */
 		__init_coldstart();
-
 		/*Tell the world to send me their tables and that I exist */
 		mes.MessageType = XmemMessageTypeINITIALIZE_ME;
 		mes.Data        = XmemInitMessageRESET;
 		XmemSendMessage(XmemALL_NODES, &mes);
-
 	}
-
 
 	/*
 	 * ...start-up finished.
 	 */
-
 	LogEvent(NULL, "XmemDaemon: Running OK");
 
 	/*
@@ -659,7 +604,6 @@ int main(int argc, char *argv[])
 		}
 		XmemUnBlockCallbacks();
 	}
-
 
 fatal:
 	LogEvent(NULL, "Fatal Error: Daemon Teminated");
