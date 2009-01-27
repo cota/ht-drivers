@@ -673,40 +673,35 @@ static int EnableInterrupts(XmemDrvrModuleContext *mcon, VmicLier msk)
 {
   void *vmap;
   unsigned int lisr_temp;
+  unsigned long ps;
   unsigned long intcsr;
 
   FUNCT_TRACK;
   vmap = mcon->Map;
   msk &= VmicLierMASK; /* Clear out any crap bits (e.g. IntDAEMON) */
-  if (msk & VmicLierINT1) {
-    if ((mcon->InterruptEnable & VmicLierINT1) == 0) {
-      SetRfmReg(mcon, VmicRfmSID1, 1, 0);
-      cdcm_iowrite32(0, vmap + VmicRfmISD1);
-    }
+
+  disable(ps); /* acquire spinlock */
+  if (msk & VmicLierINT1 && !(mcon->InterruptEnable & VmicLierINT1)) {
+    SetRfmReg(mcon, VmicRfmSID1, 1, 0);
+    cdcm_iowrite32(0, vmap + VmicRfmISD1);
   }
-  if (msk & VmicLierINT2) {
-    if ((mcon->InterruptEnable & VmicLierINT2) == 0) {
-      SetRfmReg(mcon, VmicRfmSID2, 1, 0);
-      cdcm_iowrite32(0, vmap + VmicRfmISD2);
-    }
+  if (msk & VmicLierINT2 && !(mcon->InterruptEnable & VmicLierINT2)) {
+    SetRfmReg(mcon, VmicRfmSID2, 1, 0);
+    cdcm_iowrite32(0, vmap + VmicRfmISD2);
   }
-  if (msk & VmicLierINT3) {
-    if ((mcon->InterruptEnable & VmicLierINT3) == 0) {
+  if (msk & VmicLierINT3 && !(mcon->InterruptEnable & VmicLierINT3)) {
       SetRfmReg(mcon, VmicRfmSID3, 1, 0);
       cdcm_iowrite32(0, vmap + VmicRfmISD3);
-    }
   }
-  if (msk & VmicLierPENDING_INIT) {
-    if ((mcon->InterruptEnable & VmicLierPENDING_INIT) == 0) {
+  if (msk & VmicLierPENDING_INIT &&
+      !(mcon->InterruptEnable & VmicLierPENDING_INIT)) {
       SetRfmReg(mcon, VmicRfmINITN, 1, 0);
       cdcm_iowrite32(0, vmap + VmicRfmINITD);
-    }
   }
-  if (msk & VmicLierPARITY_ERROR) {
-    if ((mcon->InterruptEnable & VmicLierPARITY_ERROR) == 0) {
+  if (msk & VmicLierPARITY_ERROR &&
+      !(mcon->InterruptEnable & VmicLierPARITY_ERROR)) {
       mcon->Command |= VmicLcsrPARITY_ON;
       cdcm_iowrite32(cdcm_cpu_to_le32(mcon->Command), vmap + VmicRfmLCSR1);
-    }
   }
   if (msk) {
     mcon->InterruptEnable |= msk;
@@ -728,30 +723,7 @@ static int EnableInterrupts(XmemDrvrModuleContext *mcon, VmicLier msk)
     iointunmask(mcon->IVector);
 #endif
   }
-  return OK;
-}
-
-/**
- * DisableInterrupts - disables triggering the interrupts given through msk
- *
- * @param mcon: module context
- * @param msk: bitmask that contains the interrupts to be disabled
- *
- * @return OK on success
- */
-static int DisableInterrupts(XmemDrvrModuleContext *mcon, VmicLier msk)
-{
-  void *vmap;
-
-  FUNCT_TRACK
-
-  vmap = mcon->Map;
-  msk &= VmicLierMASK; /* Clear out any crap bits */
-
-  if (msk) {
-    mcon->InterruptEnable &= ~msk;
-    cdcm_iowrite32(cdcm_cpu_to_le32(mcon->InterruptEnable), vmap + VmicRfmLIER);
-  }
+  restore(ps); /* release spinlock */
   return OK;
 }
 
@@ -1684,8 +1656,10 @@ static int RawIo(XmemDrvrModuleContext *mcon, XmemDrvrRawIoBlock *riob,
  */
 static int Connect(XmemDrvrConnection *conx, XmemDrvrClientContext *ccon)
 {
-  XmemDrvrModuleContext *mcon;
   int midx;
+  unsigned long ps;
+  XmemDrvrModuleContext *mcon;
+
 
   FUNCT_TRACK;
 
@@ -1695,8 +1669,9 @@ static int Connect(XmemDrvrConnection *conx, XmemDrvrClientContext *ccon)
     midx = ccon->ModuleIndex;
 
   mcon = &Wa->ModuleContexts[midx];
-
+  disable(ps); /* acquire spinlock */
   mcon->Clients[ccon->ClientIndex] |= conx->Mask;
+  restore(ps); /* release spinlock */
   return EnableInterrupts(mcon, conx->Mask);
 }
 
@@ -1709,31 +1684,47 @@ static int Connect(XmemDrvrConnection *conx, XmemDrvrClientContext *ccon)
  * Disconnects a client from a VMIC interrupt, and if it was the only one
  * connected to it, disables that interrupts in the module.
  *
- * @return DisableInterrupts(), OK on success.
+ * @return OK on success.
  */
 static int DisConnect(XmemDrvrConnection *conx, XmemDrvrClientContext *ccon)
 {
+  int i, midx, disall;
+  unsigned long msk;
+  unsigned long ps;
+  void *vmap;
   XmemDrvrModuleContext *mcon;
-  int i, midx;
 
   FUNCT_TRACK;
-
   /* Get the module to disconnect from */
   midx = conx->Module - 1;
   if (midx < 0 || midx >= Wa->Modules)
     midx = ccon->ModuleIndex;
-
   mcon  = &Wa->ModuleContexts[midx];
 
+
+  disable(ps); /* acquire spinlock */
   mcon->Clients[ccon->ClientIndex] &= ~conx->Mask;
-
   /* Check to see if others are connected */
+  disall = 1;
   for (i = 0; i < XmemDrvrCLIENT_CONTEXTS; i++) {
-    if (conx->Mask & mcon->Clients[i])
-      return OK;
+    if (conx->Mask & mcon->Clients[i]) {
+      disall = 0;
+      break;
+    }
   }
+  if (disall) {
+    vmap = mcon->Map;
+    msk = conx->Mask & VmicLierMASK; /* filter out non-hardware interrupts */
+    if (msk) {
+      mcon->InterruptEnable &= ~msk;
+      cdcm_iowrite32(cdcm_cpu_to_le32(mcon->InterruptEnable),
+		     vmap + VmicRfmLIER);
+    }
+  }
+  restore(ps); /* release spinlock */
 
-  return DisableInterrupts(mcon, conx->Mask);
+
+  return OK;
 }
 
 /**
