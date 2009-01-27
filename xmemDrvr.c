@@ -1797,8 +1797,9 @@ cdcm_irqret_t IntrHandler(void *m)
     /* read the interrupt status register (LISR) */
     isrc = cdcm_le32_to_cpu(cdcm_ioread32(vmap + VmicRfmLISR));
     /*
-     * Clear LISR.
-     * This is not done atomically --> it's dangerous.
+     * After reading LISR, Interrupt Global Enable is cleared.
+     * Therefore we re-enable interrupts, but note that
+     * this is not done atomically --> it's dangerous.
      */
     cdcm_iowrite32(cdcm_cpu_to_le32(VmicLisrENABLE), vmap + VmicRfmLISR);
 
@@ -1963,7 +1964,7 @@ cdcm_irqret_t IntrHandler(void *m)
       } /* gone through all the interrupt sources */
 
       /*
-       * Read the interrupt status register (LISR).
+       * Read the interrupt status register (LISR) + re-enable interrupts.
        * As said before, this is non-atomic --> dangerous!
        */
       isrc = cdcm_le32_to_cpu(cdcm_ioread32(vmap + VmicRfmLISR));
