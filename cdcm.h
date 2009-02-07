@@ -25,6 +25,10 @@
 #include "cdcmLynxAPI.h"
 #include "cdcmLynxDefs.h"
 
+#define sel  cdcm_sel  /* see Lynx <sys/file.h> for more details */
+#define file cdcm_file /* see Lynx <sys/file.h> for more details */
+#define enable restore
+
 #else  /* __Lynx__ */
 
 #include <dldd.h>
