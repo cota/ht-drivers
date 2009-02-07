@@ -154,29 +154,9 @@ typedef struct vme_intr_entry {
   char *arg;
 } vme_vec_t;
 
-
-/*  */
-struct pdparam_master {
-  unsigned long iack;	/* vme iack 0: IACK pages, 1: not IACK pages */
-  unsigned long rdpref;	/* VME read prefetch option 0: disable, 1: enable */
-  unsigned long wrpost;	/* VME write posting option 0: disable, 1: enable */
-  unsigned long swap;	/* VME swap option. One of
-			   SINGLE_NO_SWAP, SINGLE_AUTO_SWAP,
-			   SINGLE_WORD_SWAP or SINGLE_BYTEWORD_SWAP */
-  unsigned long sgmin;	/* reserved, must be 0  */
-  unsigned long dum[3];	/* dum[0] shared/private,
-			   dum[1] XPC ADP-type on RIO3, 
-			   dum[2] reserved, must be 0 */
-};
-
 /* page qualifiers */
 #define VME_PG_SHARED  0x00
 #define VME_PG_PRIVATE 0x02
-
-int vme_intset(int, int(*)(void*), char*, vme_vec_t*);
-int vme_intclr(int, vme_vec_t*);
-unsigned int find_controller(unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, struct pdparam_master*);
-unsigned int return_controller(unsigned int, unsigned int);
 
 /* LynxOs to Linux memory constants */
 #define PHYSBASE PAGE_OFFSET

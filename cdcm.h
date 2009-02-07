@@ -21,6 +21,7 @@
 
 #ifdef __linux__
 
+#include "vmebus.h" /* find_controller, etc */
 #include "cdcmDrvr.h"
 #include "cdcmLynxAPI.h"
 #include "cdcmLynxDefs.h"

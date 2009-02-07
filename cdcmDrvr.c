@@ -32,9 +32,7 @@ MODULE_PARM_DESC(ipath, "Absolute path name of the CDCM info file.");
 /* external crap */
 extern char* cdcm_get_info_table(char*, int*);
 extern void  cdcm_pci_cleanup(void);
-#if (CPU != L864 && CPU != L865)		/* TODO Quick fixup for xmem driver */
 extern void cdcm_vme_cleanup(void);
-#endif
 
 extern struct dldd entry_points; /* declared in the user driver part */
 
@@ -586,11 +584,7 @@ static void __exit cdcm_driver_cleanup(void)
   if (cdcmStatT.cdcm_drvr_type == 'P')
     cdcm_pci_cleanup();
   else if (cdcmStatT.cdcm_drvr_type == 'V')
-#if (CPU != L864  && CPU != L865)
     cdcm_vme_cleanup();
-#else
-  ;
-#endif
 
   cdcm_sema_cleanup_all();	/* cleanup semaphores */
   cdcm_cleanup_groups(NULL);
