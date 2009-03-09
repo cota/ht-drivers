@@ -10,7 +10,7 @@
  * Should be included by anyone, who wants to use CDCM.
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @version $Id: cdcm.h,v 1.4 2009/01/09 10:26:03 ygeorgie Exp $
+ * @version
  */
 #ifndef _CDCM_H_INCLUDE_
 #define _CDCM_H_INCLUDE_
@@ -21,10 +21,17 @@
 
 #ifdef __linux__
 
+#include "general_drvr.h"
 #include "vmebus.h" /* find_controller, etc */
 #include "cdcmDrvr.h"
 #include "cdcmLynxAPI.h"
 #include "cdcmLynxDefs.h"
+
+#define find_controller cdcm_find_controller
+extern unsigned int cdcm_find_controller(unsigned int, unsigned int,
+					 unsigned int, unsigned int,
+					 unsigned int,
+					 struct pdparam_master*);
 
 #define sel  cdcm_sel  /* see Lynx <sys/file.h> for more details */
 #define file cdcm_file /* see Lynx <sys/file.h> for more details */
