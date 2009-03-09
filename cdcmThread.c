@@ -11,7 +11,7 @@
  * supplementary functions.
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @version $Id: cdcmThread.c,v 1.3 2009/01/09 10:26:03 ygeorgie Exp $
+ * @version 
  */
 #include "cdcmDrvr.h"
 #include "cdcmThread.h"
@@ -69,8 +69,9 @@ static int cdcm_local_thread(void *data)
     ARGS6;
     break;
   default:
-    PRNT_ABS_ERR("Too much args (%d) for stream task payload!", tparam.tp_argn);
-    return(EINVAL);
+	  PRNT_ABS_ERR("Too much args (%d) for stream task payload!",
+		       tparam.tp_argn);
+    return EINVAL;
     break;
   }
 
@@ -89,7 +90,8 @@ static int cdcm_local_thread(void *data)
     //wait_for_completion(&tparam.tp_handle->thr_c);
   }
 
-  PRNT_DBG("[%d] (aka %s) exits...\n", tparam.tp_handle->thr_pd->pid, tparam.tp_handle->thr_nm);
+  PRNT_DBG(cdcmStatT.cdcm_ipl, "[%d] (aka %s) exits...\n",
+	   tparam.tp_handle->thr_pd->pid, tparam.tp_handle->thr_nm);
   
   return(0); /* all OK */
 }
@@ -143,12 +145,13 @@ int ststart(tpp_t procaddr, int stacksize, int prio, char *name, int nargs, ...)
     return(SYSERR);
 
   if (strlen(name) > CDCM_TNL) 
-    PRNT_ABS_WARN("Desired thread name is too long (%d char > %d char MAX). Will be truncated!\n", strlen(name), CDCM_TNL);
+	  PRNT_ABS_WARN("Desired thread name is too long (%d char > %d char"
+			"MAX). Will be truncated!\n", strlen(name), CDCM_TNL);
 
   /* allocate and initialize stream task handler */
   if ( !(cdcmthrp = kmalloc(sizeof *cdcmthrp, GFP_KERNEL)) ) {
-    PRNT_ABS_WARN("Couldn't allocate new thread handle");
-    return(SYSERR);
+	  PRNT_ABS_WARN("Couldn't allocate new thread handle");
+    return SYSERR;
   }
 
   /* init thread handle (also will zero it out) */
@@ -180,8 +183,9 @@ int ststart(tpp_t procaddr, int stacksize, int prio, char *name, int nargs, ...)
   coco = kthread_run(cdcm_local_thread, &tparp, cdcmthrp->thr_nm);
 
   if (IS_ERR(coco)) {
-    PRNT_ABS_ERR("Unable to start '%s' control thread", cdcmthrp->thr_nm);
-    return(SYSERR);
+	  PRNT_ABS_ERR("Unable to start '%s' control thread",
+		       cdcmthrp->thr_nm);
+    return SYSERR;
   }
     
   /* wait while crusial info will be set up (cdcmthrp->thr_pd pointer) */
@@ -209,15 +213,16 @@ void stremove(int stid)
   int cntr;
   ulong iflags;
 
-  if (!stpd) {			/* bugaga! */
-    PRNT_DBG("Can't stop thread! No such tid (%d)", stid);
-    return;
+  if (!stpd) { /* bugaga! */
+	  PRNT_DBG(cdcmStatT.cdcm_ipl, "Can't stop thread! No such tid (%d)",
+		   stid);
+	  return;
   }
   
-  PRNT_ABS_INFO("%s() Stopping %d tid.", __FUNCTION__, stid);
+  PRNT_ABS_INFO("%s() Stopping %d tid.", __func__, stid);
 
   if ( !(stptr = cdcm_get_thread_handle(stid)) ) {
-    PRNT_DBG("Can't stop thread! No thread handle for tid (%d)", stid);
+    PRNT_DBG(cdcmStatT.cdcm_ipl, "Can't stop thread! No thread handle for tid (%d)", stid);
     return;
   }
 
@@ -230,7 +235,7 @@ void stremove(int stid)
 
   /* we should protect critical region here */
   local_irq_save(iflags); 
-  printk("\t[CDCM] %s() tid[%d] Set victim wake up flag\n", __FUNCTION__, stid);
+  printk("\t[CDCM] %s() tid[%d] Set victim wake up flag\n", __func__, stid);
   stptr->thr_sem = stid;	/* denotes termination order */
 
 
@@ -238,10 +243,10 @@ void stremove(int stid)
    * This synchronous operation  will wake the kthread if it is
    * asleep and will return when thread has terminated.
    */
-  printk("\t%s() calling kthread_stop()...\n", __FUNCTION__);
+  printk("\t%s() calling kthread_stop()...\n", __func__);
   kthread_stop(stpd);
   list_del(&stptr->thr_list); /* exclude me from the list */
-  printk("\t%s(): kthread_stop() return.\n", __FUNCTION__);
+  printk("\t%s(): kthread_stop() return.\n", __func__);
 
   local_irq_restore(iflags);
 }

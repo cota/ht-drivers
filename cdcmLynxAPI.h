@@ -10,7 +10,7 @@
  * It's included in the driver in case of Linux compilation.
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @version $Id: cdcmLynxAPI.h,v 1.5 2009/01/09 10:26:03 ygeorgie Exp $
+ * @version 
  */
 #ifndef _CDCM_LYNX_API_H_INCLUDE_
 #define _CDCM_LYNX_API_H_INCLUDE_

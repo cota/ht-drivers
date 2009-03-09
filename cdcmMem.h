@@ -15,7 +15,6 @@
 #define _CDCM_MEM_H_INCLUDE_
 
 #define CDCM_ALLOC_DEF 16     //!< how many mem block allocated at one shot
-#define CDCM_MEM_BOUND 128*KB //!< what to use kmalloc or vmalloc
 
 /* 
    next are memory flags.

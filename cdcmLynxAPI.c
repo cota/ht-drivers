@@ -9,22 +9,22 @@
  *
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @version $Id: cdcmLynxAPI.c,v 1.3 2009/01/09 10:26:03 ygeorgie Exp $
+ * @version
  */
 #include "cdcmDrvr.h"
 #include "cdcmMem.h"
 
-/* CDCM global variables (declared in the cdcmDrvr.c module)  */
+/* external crap */
 extern int cdcm_err;		/* global error */
 extern cdcmStatics_t cdcmStatT; /* CDCM statics table */
 
 
 /**
- * @brief LynxOs bus error trap mechanism. !TODO!
+ * @brief LynxOs bus error trap mechanism. TODO.
  *
  * @param none
  *
- * @return 
+ * @return
  */
 int recoset(void)
 {
@@ -33,7 +33,7 @@ int recoset(void)
 
 
 /**
- * @brief LynxOs bus error trap mechanism. !TODO!
+ * @brief LynxOs bus error trap mechanism. TODO.
  *
  * @param none
  *
@@ -48,66 +48,23 @@ void noreco(void)
 /**
  * @brief LynxOs service call wrapper.
  *
- * @param err - 
+ * @param err -
  *
- * @return 
+ * @return
  */
 int pseterr(int err)
-{ 
-  cdcm_err = err; 
-  return(err); 
-}
-
-
-/**
- * @brief Allocate memory.
- *
- * @param size - memory size to allocate in bytes
- *
- * LynxOs service call wrapper.
- * Depending on the request memory size - different allocation methods
- * are used. If size is less then 128Kb - kmalloc, vmalloc otherwice.
- * 128kb - for code is to be completely portable (ldd3).
- *
- * @return allocated memory pointer - if success.
- * @return NULL                     - if fails.
- */
-char* sysbrk(unsigned long size)
 {
-  char *mem;
-
-  if ( !(mem = (B2KB(size) > CDCM_MEM_BOUND)? vmalloc(size):kmalloc(size, GFP_KERNEL)) ) {
-    PRNT_ERR("Can't allocate memory size %lu bytes long", size);
-    return(NULL);
-  }
-  return(mem);
-}
-
-
-/**
- * @brief Free allocated memory
- *
- * @param cp   - memory pointer to free
- * @param size - memory size
- *
- * LynxOs service call wrapper. We don't use CDCM memory handler as it's
- * not our business in this case.
- */
-void sysfree(char *cp, unsigned long size)
-{
-  if (B2KB(size) > CDCM_MEM_BOUND)
-    vfree(cp);
-  else
-    kfree(cp);
+  cdcm_err = err;
+  return(err);
 }
 
 
 /**
  * @brief LynxOs service call wrapper.
  *
- * @param buf    - 
- * @param format - 
- * @param ...    - 
+ * @param buf    -
+ * @param format -
+ * @param ...    -
  *
  * Read ksprintf manpage for more info.
  *
@@ -115,14 +72,14 @@ void sysfree(char *cp, unsigned long size)
  */
 int ksprintf(char *buf,char *format, ...)
 {
-  int rc;
-  va_list kspargs;
-  
-  va_start(kspargs, format);
-  rc = vsprintf(buf, format, kspargs);
-  va_end(kspargs);
+	int rc;
+	va_list kspargs;
 
-  return(rc);
+	va_start(kspargs, format);
+	rc = vsprintf(buf, format, kspargs);
+	va_end(kspargs);
+
+	return(rc);
 }
 
 
@@ -131,34 +88,36 @@ int ksprintf(char *buf,char *format, ...)
  *
  * @param pntr - memory address to check
  *
- * @return 
+ * @return
  */
 long rbounds(unsigned long pntr)
 {
-  cdcmm_t *mbptr = cdcm_mem_find_block((char*)pntr); /* mem block pointer */
-  
-  if (mbptr && (mbptr->cmFlg & _IOC_WRITE))
-    return(mbptr->cmSz);
+	/* mem block pointer */
+	cdcmm_t *mbptr = cdcm_mem_find_block((char*)pntr);
 
-  return(0);
+	if (mbptr && (mbptr->cmFlg & _IOC_WRITE))
+		return mbptr->cmSz;
+
+	return 0;
 }
 
 
 /**
  * @brief LynxOs service call wrapper.
  *
- * @param 
+ * @param
  * @param pntr - memory address to check
  *
- * @return 
+ * @return
  */
 long wbounds(unsigned long pntr)
 {
-  cdcmm_t *mbptr = cdcm_mem_find_block((char*)pntr); /* mem block pointer */
+	 /* mem block pointer */
+	cdcmm_t *mbptr = cdcm_mem_find_block((char*)pntr);
 
-  if (mbptr && (mbptr->cmFlg & _IOC_READ))
-    return(mbptr->cmSz);
+	if (mbptr && (mbptr->cmFlg & _IOC_READ))
+		return mbptr->cmSz;
 
-  return(0);
+	return 0;
 }
 

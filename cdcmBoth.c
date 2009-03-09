@@ -11,7 +11,7 @@
  * Depending on the kernel - different actions will be taken.
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @version $Id: cdcmBoth.c,v 1.3 2009/01/09 10:26:03 ygeorgie Exp $
+ * @version
  */
 #include "cdcmBoth.h"
 
@@ -24,7 +24,7 @@
 
 
 /**
- * @brief Should be used to pass user data into kernel address space. 
+ * @brief Should be used to pass user data into kernel address space.
  *
  * @param to   - destination address, in kernel space
  * @param from - source address, in user space
@@ -40,13 +40,13 @@ int cdcm_copy_from_user(void *to, void *from, int size)
 
   if (copy_from_user(to, from, size))
     return(SYSERR); /* -EFAULT on Linux */
-  
+
 
 #else  /* __Lynx__ */
-  
+
 
   /* Even though Lynx can access user space memory directly, we do the memcpy
-   * because assigning to = from directly would make the code much more 
+   * because assigning to = from directly would make the code much more
    * complicated -- since it would copy under Linux but not under LynxOS.
    */
 
@@ -94,15 +94,15 @@ int cdcm_copy_to_user(void *to, void *from, int size)
 
 #if 0
 /**
- * @brief Helps to initialize user-address space pointers. 
+ * @brief Helps to initialize user-address space pointers.
  *
  * @param usr_addr - address from user space
  * @param size     - size to validate
  * @param action   - DIR_READ, DIR_WRITE, or both
- * 
+ *
  * Like that it's possible to perform direct pointer dereferencing afterwards.
  *
- * @return 
+ * @return
  */
 char* cdcm_init_usr_ptr(unsigned int usr_addr, int size, int action)
 {
@@ -118,7 +118,7 @@ char* cdcm_init_usr_ptr(unsigned int usr_addr, int size, int action)
   if (action & DIR_WRITE)
     if (wbounds((unsigned long) usr_addr) < size)
       return(SYSERR); /* -1 */
-  
+
 #endif /* !__linux__ */
 }
 #endif
@@ -129,9 +129,8 @@ cdcm_dma_t cdcm_pci_map(void *handle, void *addr, size_t size, int write)
   /* FIXME: Give an error message */
   int direction;
   cdcm_dma_t dma_handle;
-  cdcm_dev_info_t *cast;
+  struct cdcm_dev_info *cast = (struct cdcm_dev_info*)handle;
 
-  cast = (cdcm_dev_info_t *)handle;
   if (write) direction = PCI_DMA_FROMDEVICE;
   else direction = PCI_DMA_TODEVICE;
 
@@ -167,7 +166,7 @@ void cdcm_pci_unmap(void *handle, cdcm_dma_t dma_addr,
 {
 #ifdef __linux__
   int direction;
-  cdcm_dev_info_t *cast = (cdcm_dev_info_t *)handle;
+  struct cdcm_dev_info *cast = (struct cdcm_dev_info*)handle;
 
   if (write) direction = PCI_DMA_FROMDEVICE;
   else direction = PCI_DMA_TODEVICE;
@@ -179,7 +178,7 @@ void cdcm_pci_unmap(void *handle, cdcm_dma_t dma_addr,
 }
 
 int cdcm_pci_mmchain_lock(void *handle, struct cdcm_dmabuf *dma, int write,
-			  int pid, void *buf, unsigned long size, 
+			  int pid, void *buf, unsigned long size,
 			  struct dmachain *out)
 {
 #ifdef __linux__
@@ -188,7 +187,7 @@ int cdcm_pci_mmchain_lock(void *handle, struct cdcm_dmabuf *dma, int write,
   /* FIXME: check DMA capabilities of the PCI device; barf if it can't
    *        DMA up to 4GB (i.e. 32bits).
    * FIXME: Barf if the user's pages are above 4GB (32bits addresses)
-   * Another get-around for this would be to copy the 'above-4GB' user 
+   * Another get-around for this would be to copy the 'above-4GB' user
    * buffer to kernel space, and DMA from there to the device. But
    * then the performance impact would be pretty serious. This is the
    * so-called bounce-buffers approach. See ivtv-udma.c in /drivers.
@@ -201,10 +200,8 @@ int cdcm_pci_mmchain_lock(void *handle, struct cdcm_dmabuf *dma, int write,
   int err;
   unsigned int len;
   long first, last, data;
-  cdcm_dev_info_t *cast;
+  struct cdcm_dev_info *cast = (struct cdcm_dev_info*)handle;
   struct scatterlist *sgentry;
-
-  cast = (cdcm_dev_info_t *)handle;
 
   if (write) dma->direction = PCI_DMA_FROMDEVICE;
   else dma->direction = PCI_DMA_TODEVICE;
@@ -229,9 +226,9 @@ int cdcm_pci_mmchain_lock(void *handle, struct cdcm_dmabuf *dma, int write,
     printk("xmemDrvr: failed to map user pages, returned %d, expected %d.\n",
 	     err, dma->nr_pages);
     printk("Check that the user buffer is page-aligned.");
-    return -EINVAL;    
+    return -EINVAL;
   }
-  
+
   dma->sglist = kcalloc(dma->nr_pages, sizeof(struct scatterlist), GFP_KERNEL);
   if (NULL == dma->sglist) return SYSERR;
 
@@ -290,11 +287,9 @@ int cdcm_pci_mem_unlock(void *handle, struct cdcm_dmabuf *dma, int pid,
 			int dirty)
 {
 #ifdef __linux__
-  cdcm_dev_info_t *cast;
+	struct cdcm_dev_info *cast = (struct cdcm_dev_info*)handle;
 
-  cast = (cdcm_dev_info_t *)handle;
-
-  if (dma->nr_pages && dma->sglist) 
+  if (dma->nr_pages && dma->sglist)
     pci_unmap_sg(cast->di_pci, dma->sglist, dma->nr_pages, dma->direction);
   __cdcm_clear_dma(dma, dirty);
   return OK;

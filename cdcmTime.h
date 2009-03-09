@@ -9,7 +9,7 @@
  *
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @version $Id: cdcmTime.h,v 1.3 2009/01/09 10:26:03 ygeorgie Exp $
+ * @version 
  */
 #ifndef _CDCM_TIME_H_INCLUDE_
 #define _CDCM_TIME_H_INCLUDE_

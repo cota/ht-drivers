@@ -9,8 +9,9 @@
  *
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @version $Id: cdcmMem.c,v 1.4 2009/01/09 10:26:03 ygeorgie Exp $
+ * @version
  */
+#include "general_drvr.h"	/* various defs */
 #include "cdcmDrvr.h"
 #include "cdcmMem.h"
 
@@ -34,19 +35,19 @@ static cdcmm_t* cdcm_mem_get_free_block(void);
  */
 int cdcm_mem_init(void)
 {
-  int cntr;
-  cdcmm_t *amem; /* allocated memory */
-  
-  for (cntr = 0; cntr < CDCM_ALLOC_DEF; cntr++) {
-    if ( !(amem = kzalloc(sizeof(*amem), GFP_KERNEL)) ) {
-      PRNT_ABS_ERR("Can't alloc CDCM memory handle");
-      return(-ENOMEM);
-    }
-    list_add(&amem->cm_list, &cdcmStatT.cdcm_mem_list_head);
-    ++cdcm_alloc_blocks;
-  }
+	int cntr;
+	cdcmm_t *amem; /* allocated memory */
 
-  return(0);
+	for (cntr = 0; cntr < CDCM_ALLOC_DEF; cntr++) {
+		if ( !(amem = kzalloc(sizeof(*amem), GFP_KERNEL)) ) {
+			PRNT_ABS_ERR("Can't alloc CDCM memory handle");
+			return -ENOMEM;
+		}
+		list_add(&amem->cm_list, &cdcmStatT.cdcm_mem_list_head);
+		++cdcm_alloc_blocks;
+	}
+
+	return 0;
 }
 
 
@@ -59,38 +60,41 @@ int cdcm_mem_init(void)
  */
 int cdcm_mem_free(char *pntr)
 {
-  cdcmm_t *mm = NULL;
+	cdcmm_t *mm = NULL;
 
-  if (!pntr || !(mm = cdcm_mem_find_block(pntr)))
-    return(0);
+	if (!pntr || !(mm = cdcm_mem_find_block(pntr)))
+		return 0;
+	/*
+	PRNT_DBG(cdcmStatT.cdcm_ipl, "Dealloc mem @0x%x, Size %u bytes,"
+	"Flgs 0x%x\n", (unsigned int)pntr->cmPtr, (unsigned int)pntr->cmSz,
+	(unsigned int)pntr->cmFlg);
+	*/
 
-  //PRNT_DBG("Dealloc mem @0x%x, Size %u bytes, Flgs 0x%x\n", (unsigned int)pntr->cmPtr, (unsigned int)pntr->cmSz, (unsigned int)pntr->cmFlg);
+	if (B2KB(mm->cmSz) > MEM_BOUND)
+		vfree(mm->cmPtr);
+	else
+		kfree(mm->cmPtr);
 
-  if (B2KB(mm->cmSz) > CDCM_MEM_BOUND)
-    vfree(mm->cmPtr);
-  else
-    kfree(mm->cmPtr);
-  
-  /* reset */
+	/* reset */
 #if 0
-
-  NOTE - Initialization like this is zeroing out _all_ the rest in the cdcmm_t
-         to which mm points to!
-         I.e. it is _not_ correct!!!
-
-  *mm = (cdcmm_t) {
-    .cmPtr = NULL,
-    .cmSz  = 0,
-    .cmFlg = 0
-  };
+	/*
+	  NOTE - Initialization like this is zeroing out _all_ the rest
+	  in the cdcmm_t to which mm points to! I.e. it is _not_ correct!!!
+	*/
+	*mm = (cdcmm_t) {
+		.cmPtr = NULL,
+		.cmSz  = 0,
+		.cmFlg = 0
+	};
 #endif
-  mm->cmPtr = NULL;
-  mm->cmSz  = 0;
-  mm->cmFlg = 0;
 
-  --cdcm_claimed_blocks;
+	mm->cmPtr = NULL;
+	mm->cmSz  = 0;
+	mm->cmFlg = 0;
 
-  return(0);
+	--cdcm_claimed_blocks;
+
+	return 0;
 }
 
 
@@ -104,21 +108,23 @@ int cdcm_mem_free(char *pntr)
  */
 int cdcm_mem_cleanup_all(void)
 {
-  cdcmm_t *memP, *tmpP;
+	cdcmm_t *memP, *tmpP;
 
-  /* free allocated memory */
-  list_for_each_entry_safe(memP, tmpP, &cdcmStatT.cdcm_mem_list_head, cm_list) {
-    if (memP->cmPtr) {
-      PRNT_DBG("Releasing allocated memory chunk %p\n", memP);
-      cdcm_mem_free(memP->cmPtr);
-    }
-    
-    list_del(&memP->cm_list);
-    --cdcm_alloc_blocks;
-    kfree(memP);
-  }
-  
-  return(0);
+	/* free allocated memory */
+	list_for_each_entry_safe(memP, tmpP, &cdcmStatT.cdcm_mem_list_head,
+				 cm_list) {
+		if (memP->cmPtr) {
+			PRNT_DBG(cdcmStatT.cdcm_ipl, "Releasing allocated"
+				 "memory chunk %p\n", memP);
+			cdcm_mem_free(memP->cmPtr);
+		}
+
+		list_del(&memP->cm_list);
+		--cdcm_alloc_blocks;
+		kfree(memP);
+	}
+
+	return 0;
 }
 
 
@@ -141,25 +147,32 @@ int cdcm_mem_cleanup_all(void)
  */
 char* cdcm_mem_alloc(size_t size, int flgs)
 {
-  cdcmm_t *amem = cdcm_mem_get_free_block();
+	cdcmm_t *amem = cdcm_mem_get_free_block();
 
-  if (!amem) {
-    PRNT_ABS_ERR("Can't allocate CDCM memory handle");
-    return(ERR_PTR(-ENOMEM));
-  }
-  
-  if ( !(amem->cmPtr = (B2KB(size) > CDCM_MEM_BOUND) ? vmalloc(size) : kmalloc(size, GFP_KERNEL)) ) {
-    PRNT_ERR("Can't alloc mem size %u bytes long", size);
-    return(ERR_PTR(-ENOMEM));
-  }
+	if (!amem) {
+		PRNT_ABS_ERR("Can't allocate CDCM memory handle");
+		return(ERR_PTR(-ENOMEM));
+	}
 
-  ++cdcm_claimed_blocks;
-  amem->cmSz  = size;
-  amem->cmFlg = flgs;
+	if ( !(amem->cmPtr = (B2KB(size) > MEM_BOUND) ?
+	       vmalloc(size) :
+	       kmalloc(size, GFP_KERNEL)) ) {
+		PRNT_ERR(cdcmStatT.cdcm_ipl,
+			 "Can't alloc mem size %u bytes long", size);
+		return(ERR_PTR(-ENOMEM));
+	}
 
-  //PRNT_DBG("Alloc mem @0x%x, Size %u bytes, Flgs 0x%x\n", (unsigned int)amem->cmPtr, (unsigned int)size, (unsigned int)flgs);
+	++cdcm_claimed_blocks;
+	amem->cmSz  = size;
+	amem->cmFlg = flgs;
 
-  return(amem->cmPtr);
+	/*
+	  PRNT_DBG(cdcmStatT.cdcm_ipl, "Alloc mem @0x%x, Size %u bytes,"
+	  "Flgs 0x%x\n", (unsigned int)amem->cmPtr, (unsigned int)size,
+	  (unsigned int)flgs);
+	*/
+
+	return amem->cmPtr;
 }
 
 
@@ -173,14 +186,14 @@ char* cdcm_mem_alloc(size_t size, int flgs)
  */
 cdcmm_t* cdcm_mem_find_block(char *mptr)
 {
-  cdcmm_t *tmp;
-  
-  list_for_each_entry(tmp, &cdcmStatT.cdcm_mem_list_head, cm_list) {
-    if (tmp->cmPtr == mptr)
-      return(tmp);
-  }
+	cdcmm_t *tmp;
 
-  return(NULL);	/* not found */
+	list_for_each_entry(tmp, &cdcmStatT.cdcm_mem_list_head, cm_list) {
+		if (tmp->cmPtr == mptr)
+			return tmp;
+	}
+
+	return NULL;	/* not found */
 }
 
 
@@ -194,17 +207,17 @@ cdcmm_t* cdcm_mem_find_block(char *mptr)
  */
 static cdcmm_t* cdcm_mem_get_free_block(void)
 {
-  cdcmm_t *tmp;
+	cdcmm_t *tmp;
 
-  if (cdcm_alloc_blocks == cdcm_claimed_blocks)
-    cdcm_mem_init();	/* allocate new portion */
+	if (cdcm_alloc_blocks == cdcm_claimed_blocks)
+		cdcm_mem_init();	/* allocate new portion */
 
-  list_for_each_entry(tmp, &cdcmStatT.cdcm_mem_list_head, cm_list) {
-    if (tmp->cmPtr == NULL) /* free one */
-      return(tmp);
-  }
+	list_for_each_entry(tmp, &cdcmStatT.cdcm_mem_list_head, cm_list) {
+		if (tmp->cmPtr == NULL) /* free one */
+			return tmp;
+	}
 
-  return(NULL);	/* nomally not reached */
+	return NULL;	/* nomally not reached */
 }
 
 
@@ -215,7 +228,7 @@ static cdcmm_t* cdcm_mem_get_free_block(void)
  *
  * returns the physical address onto which the given virtual address is mapped.
  * Some hardware devices may require a corresponding physical address
- * if they, for example, access physical memory directly (DMA) without the 
+ * if they, for example, access physical memory directly (DMA) without the
  * benefit of the MMU. The value returned by get_phys minus PHYSBASE may be used
  * for such purposes.
  *
@@ -223,27 +236,28 @@ static cdcmm_t* cdcm_mem_get_free_block(void)
  */
 char *get_phys(long vaddr)
 {
-  return 0;
+	return 0;
 }
 
 
 /**
- * mem_lock - guarantees address range is in real memory 
+ * mem_lock - guarantees address range is in real memory
  *
  * @param tjob: process ID that wants to lock memory
  * @param start:virtual start address, in bytes
  * @param size: size of the region of memory to lock, in bytes
  *
- * mem_lock guarantees that a region of virtual memory is locked into physical 
- * memory. mem_lock returns OK if it can lock all the requested memory 
+ * mem_lock guarantees that a region of virtual memory is locked into physical
+ * memory. mem_lock returns OK if it can lock all the requested memory
  * otherwise it will return SYSERR.
  *
- * @return 
+ * @return
  */
 int mem_lock(int tjob, char *start, unsigned long size)
 {
-  return OK; 
+	return OK;
 }
+
 
 /**
  * mem_unlock - frees real memory for swapping !TODO!
@@ -252,14 +266,14 @@ int mem_lock(int tjob, char *start, unsigned long size)
  * @param start: is the virtual start address, in bytes
  * @param size: is the size of the region of memory to lock, in bytes
  * @param dirty: if dirty is non 0 then the entire section of memory from
- * start to size will be marked as dirty. Dirty pages will be written to disk 
+ * start to size will be marked as dirty. Dirty pages will be written to disk
  * by the VM mechanism in the kernel before they are released.
  *
- * mem_unlock unlocks the previously locked region of virtual memory which 
- * allows the memory to be swapped. mem_unlock returns OK if the region 
+ * mem_unlock unlocks the previously locked region of virtual memory which
+ * allows the memory to be swapped. mem_unlock returns OK if the region
  * has been successfully unlocked otherwise it will return SYSERR
  *
- * @return 
+ * @return
  */
 
 
@@ -267,12 +281,11 @@ int mem_lock(int tjob, char *start, unsigned long size)
  * get1page - get one page of physical memory
  *
  * allocates one page of physical memory and returns a virtual address
- * which can be used to access it. 
+ * which can be used to access it.
  *
- * @return 
+ * @return
  */
 char *get1page()
 {
-  return (char *)get_zeroed_page(GFP_KERNEL);
+	return (char *)get_zeroed_page(GFP_KERNEL);
 }
-

@@ -11,10 +11,10 @@
  * All timing-related staff for CDCM is located here, i.e. Lynx stub functions
  * and supplementary functions.
  *
- * @version $Id: cdcmTime.c,v 1.4 2009/01/09 10:26:03 ygeorgie Exp $
+ * @version 
  */
 #include <linux/time.h>
-
+#include "list_extra.h" /* for extra handy list operations */
 #include "cdcmTime.h"
 #include "cdcmThread.h"
 #include "cdcmLynxDefs.h"
@@ -41,7 +41,7 @@ static void cdcm_timer_callback(unsigned long arg)
 
   del_timer(&my_data->ct_timer);
   my_data->ct_on = 0;
-  //PRNT_DBG("is called. Index[%d]", (int)arg);
+  //PRNT_DBG(cdcmStatT.cdcm_ipl, "is called. Index[%d]", (int)arg);
   my_data->ct_uf(my_data->ct_arg); /* call user payload */
 }
 
@@ -95,12 +95,12 @@ int timeout(tpp_t func, void *arg, int interval)
       init_timer(&cdcmStatT.cdcm_timer[cntr].ct_timer);
       add_timer(&cdcmStatT.cdcm_timer[cntr].ct_timer);
 
-      //PRNT_DBG("<%d> for tid[%d]. TimerID[%d] with interval %d ADDED", cdcm_dbg_cntr++, current->pid, cntr+1, interval);
+      //PRNT_DBG(cdcmStatT.cdcm_ipl, "<%d> for tid[%d]. TimerID[%d] with interval %d ADDED", cdcm_dbg_cntr++, current->pid, cntr+1, interval);
       return(cntr + 1); /* timeout ID */
     }
   }
   
-  PRNT_ERR("No more timers (MAX %d)", MAX_CDCM_TIMERS);
+  PRNT_ERR(cdcmStatT.cdcm_ipl, "No more timers (MAX %d)", MAX_CDCM_TIMERS);
   return(SYSERR);
 }
 
@@ -120,15 +120,15 @@ int cancel_timeout(int arg)
     if (cdcmStatT.cdcm_timer[idx].ct_on) {
       del_timer_sync(&cdcmStatT.cdcm_timer[idx].ct_timer);
       cdcmStatT.cdcm_timer[idx].ct_on = 0;
-      //PRNT_DBG("timeout %d cancelled.", arg);
+      //PRNT_DBG(cdcmStatT.cdcm_ipl, "timeout %d cancelled.", arg);
       return(OK);
     }
     
-    //PRNT_DBG("Timer %d already expired.", arg);
+    //PRNT_DBG(cdcmStatT.cdcm_ipl, "Timer %d already expired.", arg);
     return(OK);
   }
 
-  PRNT_ERR("No such timer: %d", arg);
+  PRNT_ERR(cdcmStatT.cdcm_ipl, "No such timer: %d", arg);
   return(SYSERR);
 }
 
@@ -153,7 +153,7 @@ static cdcmsem_t* cdcm_get_sem(int *sem)
   /* see if user wants already used semaphore */
   list_for_each_entry(semptr, &cdcmStatT.cdcm_sem_list_head, wq_sem_list) {
     if (sem == semptr->wq_usr_val) { /* bingo! */
-      //PRNT_DBG("tid [%d] return -->OLD<-- semID[%d]\n", current->pid, semptr->wq_id);
+      //PRNT_DBG(cdcmStatT.cdcm_ipl, "tid [%d] return -->OLD<-- semID[%d]\n", current->pid, semptr->wq_id);
       return(semptr);
     }
   }
@@ -166,7 +166,7 @@ static cdcmsem_t* cdcm_get_sem(int *sem)
   /* allocate and initialize stream task handler */
   if ( !(semptr = kmalloc(sizeof *semptr, GFP_KERNEL)) ) {
     PRNT_ABS_WARN("Couldn't allocate new thread handle");
-    return(NULL);
+    return NULL;
   }
 
   /* init semaphore handle (also will zero it out) */
@@ -182,7 +182,7 @@ static cdcmsem_t* cdcm_get_sem(int *sem)
   /* add it to the linked list */
   list_add(&semptr->wq_sem_list, &cdcmStatT.cdcm_sem_list_head);
 
-  //PRNT_DBG("return -->NEW<-- semID[%d]\n", semptr->wq_id);
+  //PRNT_DBG(cdcmStatT.cdcm_ipl, "return -->NEW<-- semID[%d]\n", semptr->wq_id);
   
   /* leave critical region */
   spin_unlock_irqrestore(&get_sem_lock, spin_flags);
@@ -248,7 +248,7 @@ int swait(int *sem, int flag)
 
   if (!semptr) {
     PRNT_ABS_ERR("EFAULT: No more free wait queues!");
-    return(SYSERR);
+    return SYSERR;
   }
 
   /* enter critical region */
@@ -397,7 +397,9 @@ int swait(int *sem, int flag)
     return(OK);
   } else { /* complete fuckup. shouldn't be! can't determine, why I wake up! */
     
-    PRNT_ABS_ERR("tid[%d] Wake Up by the FUCK UP!!!! This shouldn't happen!!! wq_tflag is %d", current->pid, atomic_read(&semptr->wq_tflag));
+    PRNT_ABS_ERR("tid[%d] Wake Up by the FUCK UP!!!! This shouldn't happen!!!"
+		 "wq_tflag is %d", current->pid,
+		 atomic_read(&semptr->wq_tflag));
 #if 0
     if (stptr)
       printk(" thr_sem is %d\n", stptr->thr_sem);
@@ -457,7 +459,7 @@ int ssignal(int *sem)
     return(OK);
   }
 
-  PRNT_ERR("Can't get handle for %#x sema!\n", (int)sem);
+  PRNT_ERR(cdcmStatT.cdcm_ipl, "Can't get handle for %#x sema!\n", (int)sem);
   return(SYSERR);
 }
 
@@ -478,7 +480,7 @@ int ssignaln(int *sem, int count)
     return(OK);
   }
 
-  PRNT_ERR("Can't get handle for %#x sema!\n", (int)sem);
+  PRNT_ERR(cdcmStatT.cdcm_ipl, "Can't get handle for %#x sema!\n", (int)sem);
   return(SYSERR);
 }
 
@@ -576,7 +578,7 @@ void cdcm_sema_cleanup_all(void)
   
   /* free allocated memory */
   list_for_each_entry_safe(semP, tmpP, &cdcmStatT.cdcm_sem_list_head, wq_sem_list) {
-    //PRNT_DBG("Releasing semaphore [ID%d]\n", semP->wq_id);
+    //PRNT_DBG(cdcmStatT.cdcm_ipl, "Releasing semaphore [ID%d]\n", semP->wq_id);
     list_del(&semP->wq_sem_list);
     kfree(semP);
   }
