@@ -16,7 +16,7 @@
 
 #include <linux/completion.h>
 
-extern int cdcm_dbg_cntr; /* TODO. REMOVE. For CDCM debugging only 
+extern int cdcm_dbg_cntr; /* TODO. REMOVE. For CDCM debugging only
 			     Defined in cdcm.c module */
 
 /* user stream task termination check */
