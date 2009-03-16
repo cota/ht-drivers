@@ -1,0 +1,415 @@
+#+TITLE: /extest/: an Extensible Test-Program for Device Drivers
+#+AUTHOR: Emilio G. Cota
+#+EMAIL: emilio.garcia.cota@cern.ch
+#+OPTIONS: author:t
+#+LATEX_HEADER: \usepackage{ae,aecompl}
+#+LATEX_HEADER: % The following is needed in order to make the code compatible
+#+LATEX_HEADER: % with both latex/dvips and pdflatex.
+#+LATEX_HEADER: \ifx\pdftexversion\undefined
+#+LATEX_HEADER: \usepackage[dvips]{graphicx}
+#+LATEX_HEADER: \else
+#+LATEX_HEADER: \usepackage{graphicx}
+#+LATEX_HEADER: \DeclareGraphicsRule{*}{mps}{*}{}
+#+LATEX_HEADER: \fi
+
+* About /extest/
+  /extest/ is a piece of software which serves as a starting point for the
+  development of test-programs for device drivers. The developer just needs
+  to provide code related to his device, namely a set of commands and how to
+  handle them, and /extest/ will glue them together to produce a test program.
+
+  In the case of a /skel/-based driver, there is even less work to do: all
+  /skel/'s standard calls have built-in support in /extest/.
+
+** Main Features
+   + Extensible: the developer defines new commands and their respective
+     handlers
+   + Support for multi-command input: several commands can be issued
+     in a single text stream
+   + Interactive: support for input history and basic keystrokes (backspace,
+     arrow keys)
+   + Non-Interactive: a stream of commands can also be piped to /extest/
+   + (Optional)Built-in support for /skel/-based drivers: /extest/ works
+     "out of the box" for testing /skel/'s standard calls
+   + Portable: written in C usind standard UNIX libraries only[fn:: It has
+     been tested on Linux and LynxOS]. In particular, the interactive mode is
+     based on /curses/
+   + Free Software (GPL)
+
+* /extest/ for Users
+** Get to Know your Commands
+   The program starts with a command prompt waiting for input. Probably the
+   first thing that the user wants is a list of available commands; this is done
+   by issuing =h= (help)---see example below.
+
+#+BEGIN_EXAMPLE
+NULL@cfv-864-cdv28 [00] > h
+Valid COMMANDS:
+Idx  Name   Params                 Description
+# 1: q      [                 ] -> Quit test program
+# 2: h      [ o c             ] -> Help on commands
+# 3: a      [                 ] -> Atom list commands
+# 4: his    [                 ] -> History
+# 5: s      [ seconds         ] -> Sleep
+# 6: sh     [ Unix Cmd        ] -> Shell command
+# 7: con    [ [Mask [Module]] ] -> Connect
+# 8: cl     [                 ] -> List clients
+# 9: deb    [ 1|2|4/0         ] -> Get/Set driver debug mode
+#10: en     [                 ] -> Enable/Disable
+#11: maps   [                 ] -> Get mapped addresses information
+#12: mo     [ Module          ] -> Select/Show controlled modules
+#13: nm     [                 ] -> Select next module
+#14: qf     [ 1/0 (On/Off)    ] -> Get/Set queue flag
+#15: rio    [ Address         ] -> Raw memory IO
+#16: rst    [                 ] -> Reset module
+#17: si     [                 ] -> Simulate interrupt
+#18: tmo    [ timeout [10ms]  ] -> Get/Set timeout
+#19: ver    [                 ] -> Get versions
+#20: wi     [                 ] -> Wait for interrupt
+#21: myfeat [ option (1-10)   ] -> My feature
+
+Type "h name" to get complete command help
+#+END_EXAMPLE
+
+  Note that in the example above, the first 6 commands are always there when
+  you use /extest/. Commands #7-20 are /built-in/ commands, which
+  normally refer to /skel/ calls. From #21 onwards, the shown commands
+  are specific to the driver/hardware under test.
+
+** Command Syntax
+   Every input stream to the program is parsed and split into meaningful parts,
+   called atoms. There are different types of atoms and depending on their
+   context their meaning may vary.
+
+   NB. For each input line, the character limit is 128 and the maximum number
+   of atoms (including /Separators/ and /Terminators/) is 32.
+
+*** Issuing a Command
+   The most important item is a command, which is a particular case of an
+   /Alpha/ atom---it's an /Alpha/ that matches a valid command name.
+   The command handler will be fed with all the subsequent
+   /Numeric/ [fn:: except when the /Numeric/ precedes an /Open/ atom.], /String/
+   and|or /Operator/ atoms. Example:
+
+   : DRIVER@hostname> command3 8 "filename" setmodule ++
+
+   The command =command3= will be fed with /Numeric/ (8)
+   and /String/ (filename), while the command =setmodule= will receive the
+   /Operator/ (++). If any of these two commands do not exist, then a warning
+   message announcing it will be printed.
+
+*** Looping
+    To build loops the atoms /Open/ and /Close/ parentheses are used. Any
+    preceding /Numeric/ will be taken as the desired number of loop iterations.
+    In case there is no preceding /Numeric/, 1 will be taken by default.
+    Note that the precedence here becomes relevant:
+
+    : DRIVER@hostname> setmodule 64(showconnections)
+
+    =setmodule= will be fed with no arguments, and =showconnections=
+    will be executed 64 times (i.e. 64 belongs _only_ to the loop it introduces.)
+
+    Nesting loops is also allowed:
+
+    : DRVR@hostname> 3 ( 2(showconnections) showcl )
+
+    =showconnections= will be executed 6 times while =showcl= will be executed
+    3 times.
+
+*** Atoms Reference
+
+| *Atom type*  | *Character Class*    |
+|--------------+----------------------|
+| /Alpha/      | =[a-zA-Z_]=          |
+| /Numeric/    | =[0-9]=              |
+| /Separator/  | =[\\t\\n\\r ,]=      |
+| /String/     | =[^"]=               |
+| /Comment/    | =[^%]=               |
+| /Open/       | =[(]=                |
+| /Close/      | =[)]=                |
+| /Terminator/ | =[@\\0]=             |
+| /Operator/   | See "Operators Ref." |
+|--------------+----------------------|
+
+/NB/. Atoms /String/ and /Comment/ cannot be escaped. In the case of a /String/,
+you may use single quotes inside it.
+
+*** Operators Reference
+    Support for operators is currently very limited. The operators below are
+    recognised as such, but it is left up to the command handlers to
+    process them. In other words, /extest/ doesn't _do_ anything with the
+    operators; they're just recognised and passed to the handler (as it does
+    with /Strings/). However for the sake of consistency the descriptions below
+    provide a rough idea of what the user should expect from each operator.
+
+    The user should check help page of each command to see which operators
+    are supported and how they're handled.
+
+| *Operator* | *Description*               |
+|------------+-----------------------------|
+| =#=        | Test: Not equal             |
+| ~=~        | Test: Equal                 |
+| =>=        | Test: Greater than          |
+| =>==       | Test: Greater or equal than |
+| =<=        | Test: Less than             |
+| =<==       | Test: Less or equal than    |
+| =:==       | Assignation: becomes equal  |
+| =+=        | Arith: Addition             |
+| =-=        | Arith: Subtraction          |
+| =*=        | Arith: Multiplication       |
+| =/=        | Arith: Division             |
+| =++=       | Arith: Increment            |
+| =--=       | Arith: Decrement            |
+| =%=        | Bits: AND                   |
+| =!=        | Bits: OR                    |
+| =!!=       | Bits: XOR                   |
+| =##=       | Bits: One's complement      |
+| =#-=       | Bits: Two's complement      |
+| =<<=       | Bits: Left shift            |
+| =>>=       | Bits: Right shift           |
+| =;=        | Stack: POP                  |
+| =->=       | Stack: PUSH                 |
+|------------+-----------------------------|
+
+* /extest/ for Developers
+** Template
+   To use /extest/ for testing your driver, you have to create a =*Tst.c=
+   file in =[...]/coht/myDriver/test/= following this template:
+#+BEGIN_SRC C/l Abbrev
+#include <extest.h>
+#include "myDrvrTst.h" /* define here CmdMYFEATURE, etc. as an enum */
+int  use_builtin_cmds = 1;
+char xmlfile[128] = "path/to/config.xml";
+
+/*! @name specific test commands and their description
+ */
+//@{
+
+/*
+ * struct cmd_desc's definition is shown here for reference
+ *
+ * struct cmd_desc {
+ * 	int  valid;	//!< show command to the user? (1 - yes, 0 - no)
+ *	int  id;	//!< id (user-defined && @def_cmd_id)
+ *	char *name;	//!< spelling
+ *	char *help;	//!< short help string
+ *	char *opt;	//!< options (if any)
+ *	int  comp;	//!< amount of compulsory options
+ *	int  (*handle)(struct cmd_desc *, struct atom *); //!< handler
+ *	int  pa;	//!< number of arguments to be passed to the handler
+ *	struct list_head list; //!< linked list
+ * };
+ */
+struct cmd_desc user_cmds[] = {
+	{ 1, CmdMYFEATURE, "myfeat", "My feature", "option (1-10)", 1,
+	hndl_myfeat },
+	{ 0, } /* list termination */
+};
+//@}
+
+/**
+ * hndl_myfeat - handler for a pretty useless feature
+ *
+ * @param cmdd:  command description
+ * @param atoms: command atoms list
+ *
+ * return >= 0 - on success
+ * return tst_prg_err_t - on failure
+ */
+int hndl_myfeat(struct cmd_desc *cmdd, struct atom *atoms)
+{
+	if (atoms == (struct atom *)VERBOSE_HELP) {
+		printf("This is a dummy feature\n");
+		return 1;
+	}
+	if (!compulsory_ok(cmdd)) {
+		printf("Wrong parameter amount\n");
+		return -TST_ERR_ARG_O_S;
+	}
+	/* whatever(); */
+	printf("MyFeature: do whatever here. Returning...\n");
+	return 1;
+}
+
+int main(int argc, char *argv[], char *envp[])
+{
+	return extest_init(argc, argv);
+}
+#+END_SRC
+
++ The first variable, =use_builtin_cmds=, specifies the usage of
+  a set of pre-defined commands. These are tightly coupled to /skel/,
+  since they make use of /skel/'s IOCTL calls.
+
++ The =xmlfile= variable specifies the path to the XML file which
+  contains the description of the driver we intend to test.
+
++ New commands are defined in the array =user_cmds=. Note that for
+  each command a handler is needed.
+
++ in =main()= we just need to call =extest_init()=.
+
+For reference, the public API is quoted below. Consider to use these
+functions when writing your handlers. Also remember to return the proper
+(negated) error code from =tst_prog_error= whenever a problem is encountered.
+
+#+BEGIN_SRC C/l Abbrev
+/*! @name extest's public API
+ */
+//@{
+//!< Device Node open File Descriptor
+#define _DNFD (tst_glob_d.fd)
+
+//!< User wants verbose command help
+#define VERBOSE_HELP (-1)
+
+//! Test program Error return codes
+typedef enum _tag_tst_prog_error {
+	TST_NO_ERR,		//!< cool
+	TST_ERR_NOT_IMPL,	//!< function not implemented
+	TST_ERR_NO_PARAM,	//!< compulsory parameter is not provided
+	TST_ERR_WRONG_ARG,	//!< wrong command argument
+	TST_ERR_ARG_O_S,	//!< argument overflow/shortcoming
+	TST_ERR_NO_MODULE,	//!< active module not set
+	TST_ERR_IOCTL,		//!< ioctl call fails
+	TST_ERR_SYSCALL,	//!< system call fails
+	TST_ERR_NO_VECTOR,	//!< vector for this call is not provided
+	TST_ERR_LAST		//!< error idx
+} tst_prg_err_t;
+
+/**
+ * do_yes_no - Get user answer (y/n)
+ *
+ * @param question - prompt the user with it
+ * @param extra    - extra argument to the question (can be NULL)
+ *
+ * @return 1 - user replied 'yes'
+ * @return 0 - user replied 'no'
+ */
+int do_yes_no(char *question, char *extra);
+
+/**
+ * compulsory_ok - checks that compulsory parameters are passed
+ *
+ * @param cmdd  - command description
+ * @param atoms - command atoms list
+ *
+ * @return 1 - ok
+ * @return 0 - not ok
+ */
+int compulsory_ok(struct cmd_desc *cmdd);
+
+/**
+ * is_last_atom - checks if @ref atom is the last in the list to be processed
+ *
+ * @param atom - command atoms list
+ *
+ * An atom is considered to be the last one of a list if it is either
+ * the terminator or the atom preceding the terminator
+ *
+ * @return 1 - if it's the last one
+ * @return 0 - if it isn't
+ */
+int is_last_atom(struct atom *atom);
+
+/**
+ * extest_init - Initialise extest
+ *
+ * @param argc - argument counter
+ * @param  char *argv[] - argument values
+ *
+ * This function it is meant to run as long as the test program process runs.
+ * It will only return when there is a severe failure -- such as a signal.
+ *
+ * @return EXIT_FAILURE - on failure
+ */
+int extest_init(int argc, char *argv[]);
+
+//@}
+#+END_SRC
+** Compilation
+   To make proper use of the makefile located at:
+   =[...]/coht/makefiles/Makefile.tst=, you need to follow these two steps:
+
+   + create the file =coht/myDriver/Makefile.specific=
+#+BEGIN_SRC shell-script-mode
+# Base driver name
+DRIVER_NAME = MYDRIVER
+
+# Is this driver is using skel? (y/n)
+IS_SKEL = y
+
+# Is this driver is using CDCM? (y/n)
+IS_CDCM = y
+
+# use extest? (y/n)
+USE_EXTEST = y
+#+END_SRC
+
+   + create the following symlinks at =coht/myDriver/test=
+#+BEGIN_SRC shell-script-mode
+ln -s ../../makefiles/Makefile.tst Makefile
+ln -s ../../makefiles/compiletst compiletst
+#+END_SRC
+   =Makefile.tst= will process the information provided in Makefile.specific
+   and compile accordingly. Remember that this makefile will compile all files
+   in =coht/myDrvr/test/= whose name matches '*Tst.c'.
+
+   To compile the test program, just type =./compiletst= at =coht/myDrvr/test/=.
+
+** Hacking /extest/
+   The source code is located at =[...]/coht/utils/extest/=. It is thoroughly
+   commented so it should be easy to read and understand. At some point in
+   the near future we'll host it at the main CERN's SVN repository.
+
+*** List of source files
+    + extest.c: it has the C code for the public API functions, plus
+      the program's option's parser and the essential command handlers
+      (such as 'help' and 'quit'). It also provides some internal API
+      for the built-in commands.
+    + cmd\_{skel,generic}: handlers for the built-in commands; the generic
+      part is still to be written---probably we'll use something based
+      on the concept of generic IOCTL's used in mil1553's PCI driver.
+    + lite\_shell.c: All the glue needed to provide the /curses/-based CLI.
+    + extest.h: public API header file.
+    + extest\_common.h: main (internal) header file; it has all the important
+      (and non-public) definitions.
+
+* Future Enhancements
+
+  Here's a list of possible enhancements that could be done to /extest/.
+
+  + Critical
+     * FPGA flashing via JTAG for /skel/ drivers (not supported yet)
+
+  + Might be important
+     * RawIO from non-interactive mode: as it is right now, rawIO requires
+       user interaction (it is almost a clone of that =rio= command of CTR's
+       test-program. Matthieu suggested me that it could be a good addition
+       to support raw IO in non-interactive mode.
+     * Generalise even further the concept of /extest/: it wouldn't be very
+       difficult to have /extest/ as a base for _any_ test-program; not just
+       those for testing drivers---for instance for testing libraries.
+     * Provide a real scripting language for /extest/: as it is right
+       now is a command-line parser that passes commands (with arguments)
+       to handlers. It doesn't recover information from those handlers (apart
+       from success/error) and hence it's not very powerful.
+
+       /NB./ I don't know if it would be worth the effort to provide a full-blown
+       scripting language underneath (think of =if-else=, =while=, etc); surely
+       it would be cool, but _unless_ there's a real need I think as it is
+       right now might be just good enough; the principle /Worse is better/
+       springs to mind.
+
+  + Not important (/fancy stuff/)
+     * Interactive mode: support Emacs-like keystrokes (these are the default
+       keystrokes in =bash=, like C-a (beginning of line), C-e (end of line),
+       etc.)
+     * Interactive mode: auto-completion of commands. This could be easily
+       implemented by doing first a /quicksort/ of the available commands---then
+       finding the related commands could be done in an optimal way.
+
+  + Please share your suggestions!
+
+
+
