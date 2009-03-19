@@ -17,12 +17,17 @@
 #include "cdcmDrvr.h"
 #include "cdcmLynxDefs.h"
 #include "cdcmBoth.h"
+#include "cdcmPci.h"
 
 /* external crap */
 extern cdcmStatics_t cdcmStatT;	/* CDCM statics table */
 extern int cdcm_err;		/* global error */
 
 int cdcm_dbg_cntr = 0; /* TODO. REMOVE. for deadlock debugging */
+
+
+static struct cdcm_pci_isr isrs[CDCM_MAX_PCI_ISRS];
+static int nr_isrs; //!< counts how many isrs have already been installed
 
 
 /**
@@ -374,51 +379,96 @@ int drm_locate(struct drm_node_s *node)
   return DRM_EINVALID;
 }
 
-
 /**
- * @brief Wrapper. LynxOs DRM Services for PCI. !TODO!
+ * cdcm_irq_handler - wrapper for LynxOS interrupt handling
  *
- * @param node_h -
- * @param isr    -
- * @param arg    -
+ * @param irq - irq number
+ * @param cookie - cookie passed to the ISR; identifies the module
  *
- * @return
+ * Comment from kernel/irq/manage.c:
+ * 	Dev_id must be globally unique. Normally the address of the
+ *	device data structure is used as the cookie. Since the handler
+ *	receives this value it makes sense to use it.
+ *
+ * We directly call dev_id 'cookie'. Since this constraint is imposed by Linux,
+ * we use it to our advantage; just comparing irq number and address of the
+ * cookie, we ensure that we're calling the right handler.
+ *
+ * @return IRQ_HANDLED - on success
+ * @return IRQ_NONE - otherwise
  */
-int drm_register_isr(struct drm_node_s *node_h, void *isr, void *arg)
+irqreturn_t cdcm_irq_handler(int irq, void *cookie)
 {
-	int cc;
-	struct cdcm_dev_info *cast = (struct cdcm_dev_info*)node_h;
-	cdcm_irqret_t (*isrcast)(int, void *);
+  int i;
 
-	isrcast = (cdcm_irqret_t (*)(int, void *))isr;
-
-	printk("Registering IRQ #%d \n", cast->di_pci->irq);
-	if ( (cc = request_irq(cast->di_pci->irq, isrcast,
-			       IRQF_SHARED | IRQF_DISABLED,
-			       DRIVER_NAME, arg)) ) {
-		printk("Could not allocate IRQ #%d\n", cast->di_pci->irq);
-		return SYSERR;
-	}
-	printk("IRQ #%d registered\n", cast->di_pci->irq);
-	return DRM_OK;
+  for (i = 0; i < nr_isrs; i++) {
+    if (isrs[i].irq == irq && isrs[i].cookie == cookie) {
+      isrs[i].isr(cookie); /* call the driver's ISR */
+      return IRQ_HANDLED;
+    }
+  }
+  return IRQ_NONE;
 }
 
+/**
+ * drm_register_isr - wrapper for LynxOs interrupt registering
+ *
+ * @param node_h - node handle
+ * @param isr - driver's interrupt handler
+ * @param arg - cookie to identify the module
+ *
+ * @return irq number - on success
+ * @return SYSERR - on failure
+ */
+int drm_register_isr(struct drm_node_s *node_h, void (*isr)(void *), void *arg)
+{
+  int rc;
+  struct cdcm_dev_info *cast;
+
+  cast = (struct cdcm_dev_info *)node_h;
+
+  if (nr_isrs >= CDCM_MAX_PCI_ISRS) {
+    PRNT_ABS_ERR("Too many PCI ISR's registered");
+    return SYSERR;
+  }
+
+  rc = request_irq(cast->di_pci->irq, cdcm_irq_handler,
+		    IRQF_SHARED | IRQF_DISABLED, DRIVER_NAME, arg);
+
+  if (rc) {
+    PRNT_ABS_ERR("Could not register the ISR for IRQ #%d", cast->di_pci->irq);
+    return SYSERR;
+  }
+
+  isrs[nr_isrs].irq = cast->di_pci->irq;
+  isrs[nr_isrs].cookie = arg;
+  isrs[nr_isrs].isr = isr;
+  nr_isrs++;
+  return cast->di_pci->irq;
+}
 
 /**
- * @brief Wrapper. LynxOs DRM Services for PCI. !TODO!
+ * drm_unregister_isr - unregister all ISR's for the device
  *
- * @param node_h -
+ * @param node_h - node handle
  *
- * @return
+ * @return DRM_OK - on success
+ * @return SYSERR - on failure (wrong handle or no interrupts registered)
  */
 int drm_unregister_isr(struct drm_node_s *node_h)
 {
-	struct cdcm_dev_info *cast = (struct cdcm_dev_info*) node_h;
+  int i;
+  int freed_isrs = 0;
+  struct cdcm_dev_info *cast = (struct cdcm_dev_info*) node_h;
 
-	/* this is wrong since it should be the cookie
-	   passed to register_isr */
-	free_irq(cast->di_pci->irq, cast->di_pci);
-	return DRM_OK;
+  for (i = 0; i < nr_isrs; i++)
+    if (cast->di_pci->irq == isrs[i].irq) {
+      free_irq(isrs[i].irq, isrs[i].cookie);
+      freed_isrs++;
+    }
+  if (!freed_isrs)
+    return SYSERR;
+  return DRM_OK;
 }
 
 
