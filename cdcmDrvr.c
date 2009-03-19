@@ -480,6 +480,9 @@ static int cdcm_fop_release(struct inode *inode, struct file *filp)
 
   cdcm_err = 0;	/* reset */
 
+  if (!iminor(inode)) /* service entry point. Don't call uep */
+	  return 0;
+
   /* fill in Lynxos file */
   lynx_file.dev = (int)inode->i_rdev;
   lynx_file.access_mode = (filp->f_flags & O_ACCMODE);
