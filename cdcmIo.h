@@ -216,4 +216,24 @@ static inline void cdcm_iowrite32(u_int32_t val, void *addr)
 
 #endif /* !__linux__ */
 
+/*
+ * I/O macros for both platforms
+ * These combine the macros above to cover the most common I/O cases
+ */
+#define cdcm_ioread16be(A) cdcm_be16_to_cpu(cdcm_ioread16((A)))
+#define cdcm_ioread32be(A) cdcm_be32_to_cpu(cdcm_ioread32((A)))
+#define cdcm_ioread64be(A) cdcm_be64_to_cpu(cdcm_ioread64((A)))
+
+#define cdcm_ioread16le(A) cdcm_le16_to_cpu(cdcm_ioread16((A)))
+#define cdcm_ioread32le(A) cdcm_le32_to_cpu(cdcm_ioread32((A)))
+#define cdcm_ioread64le(A) cdcm_le64_to_cpu(cdcm_ioread64((A)))
+
+#define cdcm_iowrite16be(V, A) cdcm_iowrite16(cdcm_cpu_to_be16((V)), (A))
+#define cdcm_iowrite32be(V, A) cdcm_iowrite32(cdcm_cpu_to_be32((V)), (A))
+#define cdcm_iowrite64be(V, A) cdcm_iowrite64(cdcm_cpu_to_be64((V)), (A))
+
+#define cdcm_iowrite16le(V, A) cdcm_iowrite16(cdcm_cpu_to_le16((V)), (A))
+#define cdcm_iowrite32le(V, A) cdcm_iowrite32(cdcm_cpu_to_le32((V)), (A))
+#define cdcm_iowrite64le(V, A) cdcm_iowrite64(cdcm_cpu_to_le64((V)), (A))
+
 #endif /* _CDCM_IO_H_INCLUDE_ */
