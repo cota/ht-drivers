@@ -27,7 +27,6 @@
 #include <linux/vmalloc.h>
 #include <linux/scatterlist.h>
 #define cdcm_dma_t dma_addr_t
-#define CDCM_IRQ_HANDLED IRQ_HANDLED
 
 #else  /* __Lynx__ */
 
@@ -35,7 +34,6 @@
 #include <mem.h>
 #include <conf.h>
 #define cdcm_dma_t unsigned char* /* Valid for Power PC */
-#define CDCM_IRQ_HANDLED
 
 #endif /* !__linux__ */
 
@@ -75,16 +73,6 @@
 #endif
 
 #endif /* __linux__ */
-
-
-
-#ifndef cdcm_irqret_t
-#ifdef __linux__
-#define cdcm_irqret_t irqreturn_t
-#else
-#define cdcm_irqret_t void
-#endif
-#endif
 
 
 /* ms_to_ticks, ticks_to_ms conversion */
