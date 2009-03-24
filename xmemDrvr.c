@@ -113,8 +113,6 @@
 #include <sys/ioctl.h>
 #include <sys/timeout.h>
 #include <sys/types.h>
-#include <time.h>
-extern int nanotime(unsigned long *);
 #endif /* !__linux__ */
 
 #include "plx9656_layout.h"
@@ -147,18 +145,6 @@ do {									    \
 #define IOCTL_TRACK(name)
 #define FUNCT_TRACK
 #endif /* !__DEBUG_TRACK_ALL__ */
-
-//#define __TEST_TT__ /* comment this out to measure data transfer times */
-#ifdef __TEST_TT__
-#ifdef __linux__
-struct timespec t_a, t_b, t_a1, t_a2, t_a3, t_a4;
-#else /* Lynx */
-unsigned long tt_a, tt_na, tt_b, tt_nb;
-unsigned long tt_a1, tt_na1, tt_a2, tt_na2, tt_a3, tt_na3, tt_a4, tt_na4;
-#endif /* !__linux__ */
-unsigned long tt_diff, tt_diff01, tt_diff12, tt_diff23, tt_diff34;
-#endif /* __TEST_TT__ */
-
 
 XmemDrvrWorkingArea *Wa = NULL; //!< Global pointer to Working Area
 
@@ -1051,14 +1037,6 @@ static int PageCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
   if (mcon->DmaOp.Dma == 0)
     goto nomapping;
 
-#ifdef __TEST_TT__
-#ifdef __linux__
-      getnstimeofday(&t_a2);
-#else
-      tt_na2 = nanotime(&tt_a2);
-#endif /* !__linux__ */
-#endif /* __TEST_TT__ */
-
       /* FIXME: code is repeated below. Do it properly! */
   switch (iod) {
   case XmemDrvrWRITE:
@@ -1083,14 +1061,6 @@ static int PageCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
     /* Set transfer direction and termination interrupt */
     dptr = PlxDmaDprTERM_INT_ENB & ~PlxDmaDprDIR_LOC_PCI;
     DrmLocalReadWrite(mcon, PlxLocalDMADPR1, &dptr, 4, XmemDrvrWRITE);
-
-#ifdef __TEST_TT__
-#ifdef __linux__
-      getnstimeofday(&t_a3);
-#else
-      tt_na3 = nanotime(&tt_a3);
-#endif /* !__linux__ */
-#endif /* __TEST_TT__ */
 
     mcon->WrTimer = timeout(WrDmaTimeout, (char *) mcon, XmemDrvrDMA_TIMEOUT);
     if (mcon->WrTimer < 0) {
@@ -1282,13 +1252,6 @@ static int SegmentCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
 		pg + 1, (int)mcon->DmaOp.Dma, (int)mcon->DmaOp.Len,
 		(int)sio.Offset);
       }
-#ifdef __TEST_TT__
-#ifdef __linux__
-      getnstimeofday(&t_a1);
-#else
-      tt_na1 = nanotime(&tt_a1);
-#endif /* !__linux__ */
-#endif /* __TEST_TT__ */
 
       err = PageCopy(&sio, iod, 1); /* mapped = 1 */
 
@@ -1978,14 +1941,6 @@ void IntrHandler(void *m)
 
     ssignal(&mcon->RdDmaSemaphore); /* wake up caller */
 
-#ifdef __TEST_TT__
-#ifdef __linux__
-    getnstimeofday(&t_a4);
-#else
-    tt_na4 = nanotime(&tt_a4);
-#endif /* !__linux__ */
-#endif /* __TEST_TT__ */
-
   }
 
   if (intcsr & PlxIntcsrSTATUS_DMA_CHAN_1) {   /* DMA Channel 1 for writing */
@@ -1994,15 +1949,6 @@ void IntrHandler(void *m)
     DrmLocalReadWrite(mcon, PlxLocalDMACSR1, &dma, 1, XmemDrvrWRITE);
 
     ssignal(&mcon->WrDmaSemaphore); /* wake up caller */
-
-#ifdef __TEST_TT__
-#ifdef __linux__
-    getnstimeofday(&t_a4);
-#else
-    tt_na4 = nanotime(&tt_a4);
-#endif /* !__linux__ */
-#endif /* __TEST_TT__ */
-
   }
 
   /* under Lynx + PowerPC, this is necessary to trigger the interrupts */
@@ -3135,40 +3081,9 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
 	      (int)siod->Size, (int)siod->UserArray, (int)siod->UpdateFlg);
     }
 
-#ifdef __TEST_TT__
-#ifdef __linux__
-    getnstimeofday(&t_a);
-#else
-    tt_na = nanotime(&tt_a);
-#endif /* !__linux__ */
-#endif /* __TEST_TT__ */
-
     if (siod->Size >= Wa->DmaThreshold) { /* use DMA engines */
 
       err = SegmentCopy(siod, XmemDrvrWRITE, ccon, mcon);
-
-#ifdef __TEST_TT__
-#ifdef __linux__
-      getnstimeofday(&t_b);
-      tt_diff = timespec_to_ns(&t_b) - timespec_to_ns(&t_a);
-      tt_diff01 = timespec_to_ns(&t_a1) - timespec_to_ns(&t_a);
-      tt_diff12 = timespec_to_ns(&t_a2) - timespec_to_ns(&t_a1);
-      tt_diff23 = timespec_to_ns(&t_a3) - timespec_to_ns(&t_a2);
-      tt_diff34 = timespec_to_ns(&t_a4) - timespec_to_ns(&t_a3);
-#else
-      tt_nb = nanotime(&tt_b);
-      tt_diff   = (tt_b - tt_a  )*1000000000 + tt_nb - tt_na;
-      tt_diff01 = (tt_a1 - tt_a )*1000000000 + tt_na1 - tt_na;
-      tt_diff12 = (tt_a2 - tt_a1)*1000000000 + tt_na2 - tt_na1;
-      tt_diff23 = (tt_a3 - tt_a2)*1000000000 + tt_na3 - tt_na2;
-      tt_diff34 = (tt_a4 - tt_a3)*1000000000 + tt_na4 - tt_na3;
-#endif /* !__linux__ */
-      cprintf("xmemDrvr: dma total: %lu ns\n", tt_diff);
-      cprintf("@@ 01: %lu ns\n", tt_diff01);
-      cprintf("@@ 12: %lu ns\n", tt_diff12);
-      cprintf("@@ 23: %lu ns\n", tt_diff23);
-      cprintf("@@ 34: %lu ns\n", tt_diff34);
-#endif /* __TEST_TT */
 
       return err;
 
@@ -3194,29 +3109,6 @@ int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
 
       ssignal(&mcon->TempbufSemaphore); /* release mutex */
       /* Note that here we don't need to copy_to_user() */
-
-#ifdef __TEST_TT__
-#ifdef __linux__
-      getnstimeofday(&t_b);
-      tt_diff = timespec_to_ns(&t_b) - timespec_to_ns(&t_a);
-      tt_diff01 = timespec_to_ns(&t_a1) - timespec_to_ns(&t_a);
-      tt_diff12 = timespec_to_ns(&t_a2) - timespec_to_ns(&t_a1);
-      tt_diff23 = timespec_to_ns(&t_a3) - timespec_to_ns(&t_a2);
-      tt_diff34 = timespec_to_ns(&t_a4) - timespec_to_ns(&t_a3);
-#else
-      tt_nb = nanotime(&tt_b);
-      tt_diff   = (tt_b -   tt_a)*1000000000 + tt_nb - tt_na;
-      tt_diff01 = (tt_a1 -  tt_a)*1000000000 + tt_na1 - tt_na;
-      tt_diff12 = (tt_a2 - tt_a1)*1000000000 + tt_na2 - tt_na1;
-      tt_diff23 = (tt_a3 - tt_a2)*1000000000 + tt_na3 - tt_na2;
-      tt_diff34 = (tt_a4 - tt_a3)*1000000000 + tt_na4 - tt_na3;
-#endif /* !__linux__ */
-      cprintf("xmemDrvr: longcopy total: %lu ns\n", tt_diff);
-      cprintf("@@ 01: %lu ns\n", tt_diff01);
-      cprintf("@@ 12: %lu ns\n", tt_diff12);
-      cprintf("@@ 23: %lu ns\n", tt_diff23);
-      cprintf("@@ 34: %lu ns\n", tt_diff34);
-#endif /* __TEST_TT */
 
       return err; /* propagate OK or SYSERR from SegmentCopy() */
 
