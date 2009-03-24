@@ -11,6 +11,10 @@
 #ifndef VMIC_5565
 #define VMIC_5565
 
+#ifndef __KERNEL__
+#include <stdint.h>
+#endif
+
 #define VMIC_VENDOR_ID 0x114A
 #define VMIC_DEVICE_ID 0x5565
 

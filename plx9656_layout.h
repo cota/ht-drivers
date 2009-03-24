@@ -11,6 +11,9 @@
 #ifndef PLX_9656
 #define PLX_9656
 
+#ifndef __KERNEL__
+#include <stdint.h>
+#endif
 
 /*! @name structure of the PLX 9656 Configuration Registers.
  */
