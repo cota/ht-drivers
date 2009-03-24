@@ -1753,8 +1753,6 @@ static void DisConnectAll(XmemDrvrClientContext *ccon) {
   }
 }
 
-/* FIXME: Hack below needed until we fix drm_register_isr in the CDCM */
-
 /**
  * IntrHandler - Interrupt handler
  *
@@ -1769,14 +1767,8 @@ static void DisConnectAll(XmemDrvrClientContext *ccon) {
  * non-atomic way!
  *
  */
-#ifdef __linux__
-cdcm_irqret_t IntrHandler(int irq, void *m)
+void IntrHandler(void *m)
 {
-#else /* LynxOS */
-cdcm_irqret_t IntrHandler(void *m)
-{
-#endif /* !__linux__ */
-
   unsigned long isrc, msk, i;
   void *vmap;
   XmemDrvrQueue         *queue;
@@ -2017,12 +2009,6 @@ cdcm_irqret_t IntrHandler(void *m)
 #if (!defined(__linux__) && defined(__powerpc__))
   iointunmask(mcon->IVector);
 #endif
-
-  /*
-   * FIXME: this is part of the hack related to the function definition.
-   * It should simply be as it is under LynxOs (i.e. void return)
-   */
-  return CDCM_IRQ_HANDLED;
 }
 
 
