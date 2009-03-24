@@ -232,7 +232,7 @@ static unsigned int cdcm_fop_poll(struct file* filp, poll_table* wait)
  *
  * @return
  */
-static int process_cdcm_srv_ioctl(struct inode *inode, struct file *file,
+static long process_cdcm_srv_ioctl(struct inode *inode, struct file *file,
 				  unsigned int cmd, unsigned long arg)
 {
 	int ret = 0; /* return code. OK by default */
@@ -329,7 +329,7 @@ static int process_cdcm_srv_ioctl(struct inode *inode, struct file *file,
  *
  * @return
  */
-static int process_mod_spec_ioctl(struct inode *inode, struct file *file,
+static long process_mod_spec_ioctl(struct inode *inode, struct file *file,
 				  int cmd, long arg)
 {
 	struct cdcm_file lynx_file;
@@ -386,7 +386,6 @@ static int process_mod_spec_ioctl(struct inode *inode, struct file *file,
 /**
  * @brief CDCM ioctl routine.
  *
- * @param inode - inode struct pointer
  * @param file  - file struct pointer
  * @param cmd   - IOCTL command number
  * @param arg   - user args
@@ -398,9 +397,11 @@ static int process_mod_spec_ioctl(struct inode *inode, struct file *file,
  * @return 0 or some positve value         - in case of success.
  * @return -EINVAL, -ENOMEM, -EIO, etc...  - if fails.
  */
-static int cdcm_fop_ioctl(struct inode *inode, struct file *file,
-			  unsigned int cmd, unsigned long arg)
+static long cdcm_fop_ioctl(struct file *file, unsigned int cmd,
+			unsigned long arg)
 {
+	struct inode *inode = file->f_dentry->d_inode;
+
 	cdcm_err = 0;
 	return( !(iminor(inode)) ?
 		process_cdcm_srv_ioctl(inode, file, cmd, arg) :
@@ -501,7 +502,7 @@ struct file_operations cdcm_fops = {
   .read    = cdcm_fop_read,   /* read   */
   .write   = cdcm_fop_write,  /* write  */
   .poll    = cdcm_fop_poll,   /* select - NOT COMPATIBLE! */
-  .ioctl   = cdcm_fop_ioctl,  /* ioctl  */
+  .unlocked_ioctl = cdcm_fop_ioctl,  /* ioctl  */
   .mmap    = cdcm_fop_mmap,   /* mmap   */
   .open    = cdcm_fop_open,   /* open   */
   .release = cdcm_fop_release /* close  */
