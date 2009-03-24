@@ -2026,7 +2026,6 @@ int XmemDrvrOpen(void *s, int dnm, struct file *flp)
   int cnum;                       /* Client number */
   XmemDrvrClientContext *ccon;    /* Client context */
   XmemDrvrQueue         *queue;   /* Client queue */
-  XmemDrvrWorkingArea *wa = (XmemDrvrWorkingArea *)s;
 
   /*
    * We allow one client per minor device, we use the minor device
@@ -2039,7 +2038,7 @@ int XmemDrvrOpen(void *s, int dnm, struct file *flp)
     return SYSERR;
   }
 
-  ccon = &wa->ClientContexts[cnum];
+  ccon = &Wa->ClientContexts[cnum];
 
   if (ccon->InUse) {
     pseterr(EBUSY);
