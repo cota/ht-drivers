@@ -88,6 +88,7 @@
 
 #include <cdcm/cdcmBoth.h>
 #include <cdcm/cdcmIo.h>
+#include <cdcm/cdcmPciDma.h>
 
 #ifdef __linux__
 #include <cdcm/cdcmDrvr.h>
