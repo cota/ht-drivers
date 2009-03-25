@@ -192,13 +192,135 @@ void cdcm_pci_unmap(void *handle, cdcm_dma_t dma_addr,
 #endif
 }
 
+#ifdef __linux__
+/**
+ * @brief initialise a dma buffer
+ *
+ * @param dma - CDCM DMA buffer
+ * @param user - user's buffer's address to be mapped
+ *
+ * Initialise the following values of @ref dma: uaddrl, offset, tail,
+ * nr_pages, direction.
+ */
+static void cdcm_init_dmabuf(struct cdcm_dmabuf *dma, void *userbuf,
+			     unsigned long size, int write)
+{
+  unsigned long first, last;
+
+  dma->uaddrl = (unsigned long)userbuf;
+  first = (dma->uaddrl & PAGE_MASK) >> PAGE_SHIFT;
+  last  = ((dma->uaddrl + size - 1) & PAGE_MASK) >> PAGE_SHIFT;
+
+  dma->offset = dma->uaddrl & ~PAGE_MASK;
+  dma->tail = 1 + ((dma->uaddrl + size - 1) & ~PAGE_MASK);
+  dma->nr_pages = last - first + 1;
+
+  if (write)
+    dma->direction = PCI_DMA_FROMDEVICE;
+  else
+    dma->direction = PCI_DMA_TODEVICE;
+}
+
+/**
+ * @brief find user physical pages and map them into a sg list
+ *
+ * @param - CDCM DMA buffer
+ *
+ * Note that the sglist might have less entries than nr_pages, since
+ * contiguous physical pages are put into the same sg entry.
+ *
+ * @return @ref dma->nr_pages - on success
+ * @return <= 0 - on failure
+ */
+static int cdcm_map_user_pages(struct cdcm_dmabuf *dma)
+{
+  int i, write, retval, len;
+
+  dma->pages = kmalloc(dma->nr_pages * sizeof(struct page *), GFP_KERNEL);
+  if (dma->pages == NULL)
+    return -ENOMEM;
+
+  if (dma->direction == PCI_DMA_FROMDEVICE)
+    write = 1;
+  else
+    write = 0;
+
+  down_read(&current->mm->mmap_sem);
+  retval = get_user_pages(current, current->mm, dma->uaddrl & PAGE_MASK,
+		      dma->nr_pages, dma->direction == PCI_DMA_FROMDEVICE,
+		      0, dma->pages, NULL);
+  up_read(&current->mm->mmap_sem);
+
+  if (retval < 0)
+    goto out_free;
+
+  if (retval < dma->nr_pages) {
+    for (i = 0; i < retval; i++)
+      page_cache_release(dma->pages[i]);
+    retval = -ENOMEM;
+    goto out_free;
+  }
+
+  sg_init_table(dma->sglist, dma->nr_pages);
+
+  /* @todo FIXME: support DMA to HIGHMEM */
+  len = PAGE_SIZE - dma->offset;
+
+  if (dma->nr_pages == 1)
+    len = dma->tail - dma->offset;
+
+  /* pin the first page */
+  sg_set_page(&dma->sglist[0], dma->pages[0], len, dma->offset);
+
+  /* Now with the rest (we know they're aligned) */
+  for (i = 1; i < dma->nr_pages; i++) {
+    if (dma->pages[i] == NULL) {
+      PRNT_ABS_ERR("dma->pages[%d] pointing to NULL", i);
+      goto out_free;
+    }
+    /* the last page probably won't be filled completely */
+    if (i == dma->nr_pages - 1)
+      len = dma->tail;
+    else
+      len = PAGE_SIZE;
+
+    sg_set_page(&dma->sglist[i], dma->pages[i], len, 0);
+  }
+
+ out_free:
+    kfree(dma->pages);
+    return retval;
+}
+#endif /* linux */
+
+/**
+ * @brief map a user's buffer for DMA
+ *
+ * @param handle - CDCM handle
+ * @param dma - DMA buffer handle; needed as a reference to the mapping
+ * @param write - 1 --> PCI DMA to memory; 0 otherwise
+ * @param pid - process ID of the caller
+ * @param buf - user's buffer
+ * @param size - size of the user's buffer
+ * @param out - array of dma addresses to be filled
+ *
+ * The physical pages of @ref buf are put in @ref out; note that these pages
+ * are mapped for dma and locked in memory.
+ * Note also that due to memory overcommit, this function might be fooled
+ * by the kernel, retrieving the same physical pages all over again. To avoid
+ * this, user-space code could either:
+ * - write to the buffer beforehand (eg. zeroeing it)
+ * or
+ * - mlock() the buffer
+ *
+ * @return number of items in the @ref out array - on success
+ * @return SYSERR - on failure
+ */
 int cdcm_pci_mmchain_lock(void *handle, struct cdcm_dmabuf *dma, int write,
 			  int pid, void *buf, unsigned long size,
 			  struct dmachain *out)
 {
 #ifdef __linux__
-  /* FIXME: improve error handling: deallocate stuff when needed. */
-  /* FIXME: No dynamic allocation here --> It should go inside the CDCM */
   /* FIXME: check DMA capabilities of the PCI device; barf if it can't
    *        DMA up to 4GB (i.e. 32bits).
    * FIXME: Barf if the user's pages are above 4GB (32bits addresses)
@@ -206,79 +328,47 @@ int cdcm_pci_mmchain_lock(void *handle, struct cdcm_dmabuf *dma, int write,
    * buffer to kernel space, and DMA from there to the device. But
    * then the performance impact would be pretty serious. This is the
    * so-called bounce-buffers approach. See ivtv-udma.c in /drivers.
-   * BUG: With big malloced buffers from user space (say, more than 8MB)
-   * get_user_pages seems to go crazy -- it returns many pointers to the same
-   * page!
    */
-
-  int i;
-  int err;
-  unsigned int len;
-  long first, last, data;
   struct cdcm_dev_info *cast = (struct cdcm_dev_info*)handle;
   struct scatterlist *sgentry;
+  int i, rc;
 
-  if (write) dma->direction = PCI_DMA_FROMDEVICE;
-  else dma->direction = PCI_DMA_TODEVICE;
-
-  data = (unsigned long)buf;
-  first = ( data         & PAGE_MASK) >> PAGE_SHIFT;
-  last  = ((data+size-1) & PAGE_MASK) >> PAGE_SHIFT;
-  dma->offset = data & ~PAGE_MASK;
-  dma->tail = 1 + ((data + size - 1) & ~PAGE_MASK);
-  dma->nr_pages = last - first + 1;
-  dma->pages = kmalloc(dma->nr_pages * sizeof(struct page *), GFP_KERNEL);
-  if (NULL == dma->pages) return SYSERR;
-
-  /* get_user_pages_fast would be cleaner here, but it's still fairly recent. */
-  down_read(&current->mm->mmap_sem);
-  err = get_user_pages(current, current->mm,
-		       data & PAGE_MASK, dma->nr_pages,
-		       write==1, 0, dma->pages, NULL);
-  up_read(&current->mm->mmap_sem);
-
-  if (err != dma->nr_pages) {
-    printk("xmemDrvr: failed to map user pages, returned %d, expected %d.\n",
-	     err, dma->nr_pages);
-    printk("Check that the user buffer is page-aligned.");
-    return -EINVAL;
-  }
+  cdcm_init_dmabuf(dma, buf, size, write);
 
   dma->sglist = kcalloc(dma->nr_pages, sizeof(struct scatterlist), GFP_KERNEL);
-  if (NULL == dma->sglist) return SYSERR;
+  if (NULL == dma->sglist) {
+    PRNT_ABS_ERR("Cannot allocate space for dma->sglist");
+    goto out_err;
+  }
 
-  sg_init_table(dma->sglist, dma->nr_pages);
+  rc = cdcm_map_user_pages(dma);
 
-  /* DMA to HIGHMEM is risky */
-  //  if (PageHighMem(dma->pages[0])) return SYSERR;
-  len = PAGE_SIZE - dma->offset;
-  if (dma->nr_pages == 1) len = dma->tail - dma->offset;
-  sg_set_page(&dma->sglist[0], dma->pages[0], len, dma->offset);
-
-  /* Now with the rest (we know they're aligned) */
-  for (i=1; i < dma->nr_pages; i++) {
-    if (NULL == dma->pages[i]) return SYSERR;
-    //    if (PageHighMem(dma->pages[i])) return SYSERR;
-    /* the last page probably won't be filled completely */
-    if (i == dma->nr_pages - 1) len = dma->tail;
-    else len = PAGE_SIZE;
-    sg_set_page(&dma->sglist[i], dma->pages[i], len, 0);
+  if (rc != dma->nr_pages) {
+    PRNT_ABS_ERR("failed to map user pages, returned %d, expected %d",
+	     rc, dma->nr_pages);
+    goto out_free_sglist;
   }
 
   dma->sglen = pci_map_sg(cast->di_pci, dma->sglist, dma->nr_pages,
 			  dma->direction);
-  if (dma->sglen <= 0) return SYSERR;
+  if (dma->sglen <= 0) {
+    PRNT_ABS_ERR("pci_map_sg failed");
+    goto out_free_sglist;
+  }
 
   sg_mark_end(&dma->sglist[dma->sglen-1]);
 
-  /*
-   * Read http://lwn.net/Articles/256368/ for the change below.
-   */
   for_each_sg(dma->sglist, sgentry, dma->sglen, i) {
     out[i].address = sg_dma_address(sgentry);
     out[i].count = sg_dma_len(sgentry);
   }
+
   return dma->sglen;
+
+ out_free_sglist:
+  kfree(dma->sglist);
+ out_err:
+  return SYSERR;
 
 #else
 
@@ -298,55 +388,40 @@ int cdcm_pci_mmchain_lock(void *handle, struct cdcm_dmabuf *dma, int write,
 #endif
 }
 
+/**
+ * @brief clean and unlock the dma mappings
+ *
+ * @param handle - CDCM device handle
+ * @param dma - CDCM DMA handle
+ * @param pid - process pid
+ * @param dirty - 'mark pages as dirty' flag
+ *
+ * @return OK - on success
+ * @return SYSERR - on failure
+ */
 int cdcm_pci_mem_unlock(void *handle, struct cdcm_dmabuf *dma, int pid,
 			int dirty)
 {
 #ifdef __linux__
-	struct cdcm_dev_info *cast = (struct cdcm_dev_info*)handle;
+  struct cdcm_dev_info *cast = (struct cdcm_dev_info*)handle;
+  int i;
 
-  if (dma->nr_pages && dma->sglist)
-    pci_unmap_sg(cast->di_pci, dma->sglist, dma->nr_pages, dma->direction);
-  __cdcm_clear_dma(dma, dirty);
+  pci_unmap_sg(cast->di_pci, dma->sglist, dma->sglen, dma->direction);
+
+  for (i = 0; i < dma->sglen; i++) {
+    struct page *page = sg_page(&dma->sglist[i]);
+
+    if (dirty && !PageReserved(page))
+      SetPageDirty(page);
+    page_cache_release(page);
+  }
+
+  kfree(dma->sglist);
+
   return OK;
 #else
 
   return mem_unlock(pid, dma->user_buf, dma->size, dirty);
 
-#endif
-}
-
-int __cdcm_clear_dma(struct cdcm_dmabuf *dma, int dirty) {
-#ifdef __linux__
-  if(dma->pages) {
-    int i;
-
-    for (i=0; i < dma->nr_pages; i++) {
-      if (dirty && !PageReserved(dma->pages[i])) SetPageDirty(dma->pages[i]);
-      page_cache_release(dma->pages[i]);
-    }
-  kfree(dma->pages);
-  dma->pages = NULL;
-  }
-
-  if (dma->sglist) {
-    kfree(dma->sglist);
-    dma->sglist = NULL;
-    dma->sglen = 0;
-  }
-
-  if (dma->vmalloc) {
-    vfree(dma->vmalloc);
-    dma->vmalloc = NULL;
-  }
-
-  if (dma->bus_addr) dma->bus_addr = 0;
-
-  dma->direction = DMA_NONE;
-  dma->offset = 0;
-  dma->nr_pages = 0;
-
-  return OK;
-#else /* LynxOS */
-  return OK;
 #endif
 }

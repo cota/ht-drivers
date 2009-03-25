@@ -130,6 +130,7 @@ struct cdcm_dmabuf {
   int                 offset;
   int                 tail;
   struct page         **pages;
+  unsigned long       uaddrl;
 
   /* for kernel buffers */
   void                *vmalloc;
@@ -158,7 +159,6 @@ void cdcm_pci_unmap(void *, cdcm_dma_t, int, int);
 int cdcm_pci_mmchain_lock(void *, struct cdcm_dmabuf *, int , int, void *,
 			  unsigned long, struct dmachain *);
 int cdcm_pci_mem_unlock(void *, struct cdcm_dmabuf *, int, int);
-int __cdcm_clear_dma(struct cdcm_dmabuf *, int);
 
 #ifdef __Lynx__
 
