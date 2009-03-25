@@ -24,6 +24,7 @@
 #include <linux/pagemap.h>
 #include <linux/pci.h>
 #include <linux/slab.h>
+#include <linux/version.h>
 #include <linux/vmalloc.h>
 #include <linux/scatterlist.h>
 #define cdcm_dma_t dma_addr_t
@@ -92,6 +93,25 @@
 
 /* DMA interfaces */
 #ifdef __linux__
+
+ /**
+ * @brief check if a DMA mapping was successful
+ *
+ * @param pdev - PCI device
+ * @param handle - DMA operation handle
+ *
+ * @return 0 if the DMA mapping was successful
+ * @return !0 otherwise
+ */
+static inline int cdcm_pci_dma_maperror(struct pci_dev *pdev, cdcm_dma_t handle)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27)
+  return pci_dma_mapping_error(pdev, handle);
+#else
+  return pci_dma_mapping_error(handle);
+#endif /* kernel 2.6.27, see commit 8d8bb39b9eba32dd70e87fd5ad5c5dd4ba118e06 */
+}
+
 /*! @name cdcm_dmachain
  * Assimilates in a portable way LynxOS' struct dmachain.
  * address is the (portable) address to be used,

@@ -123,10 +123,22 @@ char* cdcm_init_usr_ptr(unsigned int usr_addr, int size, int action)
 }
 #endif
 
+/**
+ * @brief maps a virtual memory region for PCI DMA
+ *
+ * @param handle CDCM device
+ * @param addr virtual address
+ * @param size size of the region
+ * @param write 1 --> PCI DMA to memory; 0 otherwise.
+ *
+ * Note that this function may fail
+ *
+ * @return address to dma to/from - on success
+ * @return 0 - on failure
+ */
 cdcm_dma_t cdcm_pci_map(void *handle, void *addr, size_t size, int write)
 {
 #ifdef __linux__
-  /* FIXME: Give an error message */
   int direction;
   cdcm_dma_t dma_handle;
   struct cdcm_dev_info *cast = (struct cdcm_dev_info*)handle;
@@ -135,7 +147,10 @@ cdcm_dma_t cdcm_pci_map(void *handle, void *addr, size_t size, int write)
   else direction = PCI_DMA_TODEVICE;
 
   dma_handle = pci_map_single(cast->di_pci, (void *)addr, size, direction);
-  /*  if (pci_dma_mapping_error(cast->di_pci, dma_handle)) return SYSERR; */
+  if (cdcm_pci_dma_maperror(cast->di_pci, dma_handle)) {
+    PRNT_ABS_ERR("PCI DMA mapping failed");
+    return 0;
+  }
   return dma_handle;
 
 #else
