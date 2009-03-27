@@ -2504,6 +2504,10 @@ int XmemDrvrUninstall(void *s)
 	drm_unmap_resource(mcon->Handle, PCI_RESID_BAR2);
 	mcon->Map = NULL;
       }
+      if (mcon->SDRam) {
+	drm_unmap_resource(mcon->Handle, PCI_RESID_BAR3);
+	mcon->SDRam = NULL;
+      }
       drm_unregister_isr(mcon->Handle);
       drm_free_handle(mcon->Handle);
       bzero((void *) mcon, sizeof(XmemDrvrModuleContext));
