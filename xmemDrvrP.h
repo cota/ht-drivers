@@ -17,7 +17,7 @@
 #ifndef XMEM_DRVR_P
 #define XMEM_DRVR_P
 
-#include "plx9656_layout.h"
+#include <plx9656_layout.h>
 #include "vmic5565_layout.h"
 #include "xmemDrvr.h"
 

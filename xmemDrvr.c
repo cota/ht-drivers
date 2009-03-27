@@ -116,7 +116,7 @@
 #include <sys/types.h>
 #endif /* !__linux__ */
 
-#include "plx9656_layout.h"
+#include <plx9656_layout.h>
 #include "vmic5565_layout.h"
 #include "xmemDrvr.h"
 #include "xmemDrvrP.h"
