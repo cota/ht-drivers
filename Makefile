@@ -1,7 +1,7 @@
 DRVR=vmebus ctrirq
 ACCS=lab
 CPU=L865
-KERNEL=2.6.24.7-rt21
+KERNEL=2.6.24.7-rt27
 KERN_DIR="/acc/sys/$(CPU)/usr/src/kernels/$(KERNEL)"
 
 include /acc/src/dsc/co/Make.auto
