@@ -1,0 +1,34 @@
+
+* Make sure all windows mapping are removed at module remove time
+  do it in vme_window_remove. - OK 
+
+* Add a vme_release_mapping() function - OK
+
+* Check with Julian if we want a strict CES driver emulation - OK
+
+* Fix mapping creation desc pci address - OK
+
+* Fix module unload BUG - OK
+
+* At module unload: remove all the mappings - OK
+
+* At file close remove all mappings for the task - OK
+
+* Round up VME address and size to a 64K boundary at window creation - OK
+
+* Implement mmap - OK
+
+* Add CES vme_intset() and vme_intclr() functions - OK
+
+* Write CES emulation user library - OK in vmelib
+
+* Should that lib provides vme_intset() and vme_intclr()? - NO OK
+
+* Write misc library (bus error check, byte swapping, ...) - OK in vmelib
+
+* Implement DMA handling in driver - no need for driver API - OK
+
+* Implement DMA support userspace library - OK
+
+* In vme_dma_exit() try an abort after a wait_event_interruptible_timeout() - OK
+

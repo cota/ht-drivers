@@ -1,0 +1,707 @@
+
+		     TSI148 PCI-VME bridge driver
+		     ----------------------------
+
+		Written by Sébastien Dugué - 23 February 2009
+
+
+
+Table of Contents
+-----------------
+
+	1. Introduction
+
+	2. Driver files layout
+
+	3. PCI-VME bridge driver initialization
+
+	4. VME address space mapping
+	  4.1 VME mapping data structure
+	  4.2 Driver API
+	  4.3 Legacy CES driver API
+	  4.4 User space ioctls API
+
+	5. DMA
+	  5.1 DMA transfer data structure
+	  5.2 Driver API
+	  5.3 User space ioctls API
+
+	6. Interrupts
+	  6.1 Driver API
+	  6.2 Legacy CES driver API
+
+	7. VME bridge procfs tree
+
+	8. User space library
+
+
+1. Introduction
+   ------------
+
+  The TSI148 is a PCI to VME bridge device which allows the host CPU to access
+the VME bus. Those accesses may be achieved either through the mapping of the
+VME address space onto the PCI address space or via a 2-channel DMA controller
+embedded into the TSI148. The chip also allows forwarding of VME interrupts
+to the host CPU.
+
+2. Driver files layout
+   -------------------
+
+  The driver sources are split across several files by main functionality.
+
+  - vme_bridge.c: provides PCI device support for the TSI148 chip. It handles
+	device registration with the PCI subsystem, driver initialization,
+	interrupt registration and basic front end file operations.
+
+  - vme_bridge.h: provides the data structures and definitions internal to the
+	driver.
+
+  - vme_window.c: provides high-level support for PCI to VME address space
+	mappings.
+
+  - vme_irq.c: provides high-level support for VME interrupt registration and
+	management.
+
+  - vme_dma.c: provides high-level DMA support for transfers with the VME bus.
+
+  - vme_dma.h: provides the DMA data structures used internally by the driver.
+
+  - vme_irq.c: provides high-level support for VME interrupt management.
+
+  - vme_misc.c: provides support for miscellaneous functionality of the device,
+	such as bus error checking.
+
+  - tsi148.c: provides low-level support for the TSI148 chip.
+
+  - tsi148.h: provides the low-level data structures and definitions for the
+	TSI148 chip.
+
+  - vmebus.h: provides the API for using the VME bridge driver, both for other
+	drivers and for user space applications. This API encompasses public
+	data structures, definitions and function prototypes.
+
+
+3. PCI-VME bridge driver initialization
+   ------------------------------------
+
+  The driver can be built as a modular driver, therefore it's entry points
+vme_bridge_init_module() and vme_bridge_exit_module() are registered using the
+standard module_init() and module_exit() macros. Those functions are then
+called at insmod and rmmod time respectively
+
+  The TSI148 is a PCI device and as such is initialized as any standard PCI
+device is. Therefore, all the vme_bridge_init_module() function does is to
+register our struct pci_driver vme_bridge_driver with the PCI layer. This
+structure holds the PCI IDs table for the devices (in our case only one) the
+driver handles and the initialization (vme_bridge_init()) and exit
+(vme_bridge_remove()) functions for the device.
+
+  The vme_bridge_init() initialization function is then automatically called
+by the kernel for every device that match one of the IDs in the PCI IDs table.
+
+  vme_bridge_init() takes the following steps to initialize the device and
+the driver data structures:
+
+  - Enable the device using pci_enable_device() before it can be used
+    by the driver.
+
+  - Enable PCI bus mastering for the device (It should be enabled by the BIOS,
+    but who knows, better to force it).
+
+  - Allocate our struct vme_bridge_device data structure that holds information
+    internal to the driver.
+
+  - Get the chip revision and print a message to the console indicating we've
+    found a TSI148 device.
+
+  - Check there is enough PCI address space opened in the parent bridge. If
+    the size is less than 32 MB (0x2000000) the function exits in error.
+
+    This value is quite arbitrary at the moment and will have to be tuned to
+    a more realistic value.
+
+    For example on the MEN A20 board, the total size allocated to the bus
+    the TSI148 resides on is 1 GB (and the TSI148 is, by design, the only
+    device on that bus).
+
+  - Map the TSI148 registers space into the kernel address space using
+    vme_bridge_map() which in turn calls pci_iomap() to map PCI BAR 0 for a size
+    of 4096.
+
+  - Check the device can do 32-bit DMA. If not, DMA will be disabled.
+
+  - Reset the TSI148 chip with tsi148_quiesce().
+
+  - Initialize window management with vme_window_init().
+
+  - Initialize DMA management with vme_dma_init() if we can do DMA.
+
+  - Initialize the TSI148 chip with tsi148_init()
+
+  - Register and create the character devices that will be used to access the
+    bridge functionality with vme_bridge_create_devices().
+
+  - Create and populate the driver procfs tree with vme_procfs_register().
+
+  - Create a PCI-VME window for mapping the TSI148 chip registers onto the VME
+    bus address space with vme_bridge_map_crg(). This is mandatory for proper
+    interrupt processing as explained below in section 6. Interrupts.
+    The physical window used is window number 7 (i.e. the last one). In order
+    to avoid wasting a physical window for only the 4K TSI148 registers address
+    range, the whole A24/D32 VME address space is mapped using that window. A
+    mapping is then created at the top of this address space to hold the TSI148
+    registers (at VME address 0x00fff000 for a size of 4K).
+
+  - Finally, initialize and enable the device interrupts.
+
+
+
+4. VME address space mapping
+   -------------------------
+
+  The TSI148 chip allows to map different VME address space onto the PCI address
+space by way of windows. However, the number of windows that can be mapped at
+any time is limited to 8 (one of those windows is actually reserved for internal
+driver use - see section 6. Interrupts).
+
+  Therefore an abstraction has been made on top of those physical windows which
+is called a logical mapping. A mapping is in fact a sub-window, that maps only
+a part of the VME address space represented by a physical window, with the same
+address modifier and data bus width.
+
+  For example, if a physical window is used to map the entire A24/D32 VME
+address space, then any driver or application that wants to map a sub-range of
+that address space for a board will then need to create a mapping (sub-window)
+on top of that physical window.
+
+  That way, it is possible, at system initialization time, to create the
+physical windows needed, say to map the entire A16/D16, A24/D16, ... address
+spaces and then when drivers or applications come up they will only need to
+create mappings on top of those windows.
+
+  For the sake of simplicity, the data structure used to describe a physical
+window or logical mapping is the same 'struct vme_mapping'.
+
+  Physical windows are created and destroyed with vme_create_window() and
+vme_destroy_window() respectively.
+
+  NOTE: Due to constraints of the TSI148 chip, physical windows must have
+	their VME address and size aligned to a 64K boundary. Therefore the VME
+	address is automatically rounded down to the nearest 64K boundary and
+	the size is automatically rounded up to hold the requested address
+	space range. The aligned fields are returned in the passed descriptor.
+
+  Logical mappings are created and destroyed with vme_find_mapping() and
+vme_release_mapping() respectively. What vme_find_mapping() does is it tries to
+find a physical window that can be used to hold that logical mapping. If none
+is found and if the force argument is set, then a new window is created to hold
+that mapping. In the same way, calling vme_release_mapping() with its force
+argument set will also destroy the physical window if there are no more users.
+
+
+  4.1 VME mapping data structure
+      --------------------------
+
+    As already mentioned, both physical windows and logical mappings are
+  described by a single data structure, namely a struct vme_mapping descriptor.
+
+    This data structure is declared in vmebus.h and has the following fields:
+
+    - window_num: physical window number. This field only has meaning when
+          creating or destroying physical windows. It is also set to the
+	  underlying physical window number when a logical mapping is created.
+
+    - kernel_va: kernel virtual address of the mapping for use by drivers only.
+
+    - user_va: user virtual address of the mapping for use by applications only.
+
+    - fd: user file descriptor of the VME mapping device node.
+
+    - window_enabled: internal state of the physical window.
+
+    - data_width: VME data bus width of the mapping. Possible values are in the
+          vme_data_width enumeration.
+
+    - am: VME address modifier of the mapping. Possible values are in the
+          vme_address_modifier enumeration.
+
+    - read_prefetch_enabled: PCI read prefetch enabled state.
+
+    - read_prefetch_size: PCI read prefetch size (in cache lines). Possible
+          values are in the vme_read_prefetch_size enumeration.
+
+    - v2esst_mode: VME 2eSST transfer speed. Possible values are in the
+          vme_2esst_mode enumeration.
+
+    - bcast_select: VME 2eSST broadcast select.
+
+    - pci_addru: upper 32 bits of the mapping PCI bus start address. Must be 0.
+
+    - pci_addrl: lower 32 bits of the mapping PCI bus start address
+
+    - sizeu: upper 32 bits of the mapping size. Must be 0
+
+    - sizel: lower 32 bits of the mapping size.
+
+    - vme_addru: upper 32 bits of the mapping VME bus start address. Must be 0.
+
+    - vme_addrl: lower 32 bits of the mapping VME bus start address.
+
+
+    Typically, to create a logical mapping, one has to set the data_width, am,
+  VME address and size in the descriptor. The virtual address at which the VME
+  address space is mapped is then returned in kernel_va for drivers or user_va
+  for user space applications.
+
+
+  4.2 Driver API
+      ----------
+
+    Drivers stacked on top of the VME bridge driver may directly use the
+  following functions which are made public and exported through vmebus.h.
+
+    - int vme_get_window_attr(struct vme_mapping *desc)
+
+      Get a physical window attributes. Only the window number in the struct
+      vme_mapping descriptor is used.
+
+      Return 0 on success, or -EINVAL if the window number is out of bounds.
+
+    - int vme_create_window(struct vme_mapping *desc)
+
+      Create and map a PCI-VME window according to the specified descriptor.
+
+      Return 0 on success, or a standard kernel error code on failure.
+
+
+    - int vme_destroy_window(struct vme_mapping *desc)
+
+      Unmap and remove the PCI-VME window specified by the descriptor. Only the
+      window number in the descriptor is used. Destroying a window also forcibly
+      remove all the mappings made on top of that window.
+
+    - int vme_find_mapping(struct vme_mapping *desc, int force)
+
+      Try to find a physical window that can hold the address space specified by
+      the descriptor. If a window is found, then its number is returned in the
+      passed descriptor. If no physical window match and the force flag is set,
+      then a new window is created to hold that mapping.
+
+    - int vme_release_mapping(struct vme_mapping *desc, int force)
+
+      Release a VME mapping made with vme_find_mapping(). If the mapping is the
+      last one on that physical window and the force flag is set then the
+      window is also destroyed.
+
+    - int vme_bus_error_check(int clear)
+
+      Check whether a bus error occurred and clear the error if clear is set.
+
+      Returns 1 if a bus error occurred else 0.
+
+
+  4.3 Legacy CES driver API
+      ---------------------
+
+    For compatibility with drivers using the CES driver API, the following
+  functions are provided. Those are built on top of the previously described
+  functions.
+
+    - unsigned long find_controller(unsigned long vmeaddr, unsigned long len,
+			            unsigned long am, unsigned long offset,
+			            unsigned long size,
+				    struct pdparam_master *param)
+
+      This function is an emulation of the CES driver functionality on Lynx-OS.
+
+      The CES function interface does not give all the needed VME parameters,
+      so the following choices were made and may have to be tweaked:
+
+        - if read prefetch is enabled the the prefetch size is set to 2 cache
+	  lines
+	- the VME address and size are automatically aligned on 64k if needed
+	- the VME address is limited to 32 bits
+	- the size argument is not used anymore for read testing, but is used
+	  to select the data bus width of the mapping and is expressed in bytes.
+	  So, to setup a D16 mapping, size should be set to 2 and for a D32
+	  mapping, it should be set to 4.
+
+      The kernel allocated mapping descriptor address (cookie) is stored in the
+      pdparam_master sgmin field for use by return_controller().
+
+      Returns the virtual address of the mapping, or a standard kernel error
+      code.
+
+      - unsigned long return_controller(unsigned logaddr, unsigned len)
+
+        This function is an emulation of the CES driver functionality on
+	Lynx-OS.
+
+	Returns 0 on success, or a standard kernel error code.
+
+
+  4.4 User space ioctls API
+      --------------------
+
+    All the functionality provided to drivers is also provided to user space
+  applications via ioctls (or via a library that makes use of those ioctls, see
+  section 8. User space library). Most of these ioctls only make calls to the
+  functions described in section 4.2 Driver API.
+
+    The device node used for those ioctls is /dev/vme_mwindow
+
+  - VME_IOCTL_GET_WINDOW_ATTR
+
+    Calls vme_get_window_attr(), the ioctl argument is a struct vme_mapping
+    descriptor.
+
+  - VME_IOCTL_CREATE_WINDOW
+
+    Calls vme_create_window(), the ioctl argument is a struct vme_mapping
+    descriptor.
+
+  - VME_IOCTL_DESTROY_WINDOW
+
+    Calls vme_destroy_window(), the ioctl argument is a struct vme_mapping
+    descriptor.
+
+  - VME_IOCTL_FIND_MAPPING
+
+    Calls vme_find_mapping(), the ioctl argument is a struct vme_mapping
+    descriptor. The force argument used by vme_find_mapping() can be set via the
+    VME_IOCTL_SET_CREATE_ON_FIND_FAIL ioctl (see below)
+
+  - VME_IOCTL_RELEASE_MAPPING
+
+    Calls vme_release_mapping(), the ioctl argument is a struct vme_mapping
+    descriptor. The force argument used by vme_release_mapping() can be set via
+    the VME_IOCTL_SET_DESTROY_ON_REMOVE ioctl (see below)
+
+  - VME_IOCTL_GET_CREATE_ON_FIND_FAIL
+
+    Set or clear the vme_create_on_find_fail flag indicating whether a new
+    window should be created if none can hold the mapping. The ioctl argument
+    is an int.
+
+  - VME_IOCTL_SET_CREATE_ON_FIND_FAIL
+
+    Get the vme_create_on_find_fail flag.
+
+  - VME_IOCTL_GET_DESTROY_ON_REMOVE
+
+    Set or clear the vme_destroy_on_remove flag indicating whether removing the
+    last mapping on a window should also destroys the window. The ioctl argument
+    is an int.
+
+  - VME_IOCTL_SET_DESTROY_ON_REMOVE
+
+    Get the vme_destroy_on_remove flag.
+
+  - VME_IOCTL_GET_BUS_ERROR
+
+    Calls vme_bus_error_check() to get bus error status.
+
+
+5. DMA
+   ---
+
+  The TSI148 chip provides 2 DMA channels to perform transfers between a VME
+address space and the host memory.
+
+  The data structure that describes a DMA request is a struct vme_dma
+descriptor.
+
+  The function that setups and starts the DMA transfer is vme_do_dma() which
+does the following:
+
+    - it first tries to find an available (unused) channel to fulfill the
+      request (if no channel is available, it returns -EBUSY).
+
+    - it then setups the DMA transfer. A scatter gather list of the DMA buffer
+      pages is created, those pages are then mapped onto the PIC bus address
+      space and the TSI148 is programmed.
+
+    - finally, the DMA transfer is started and the caller is put to sleep
+      awaiting transfer completion signaled with an interrupt.
+
+
+  5.1 DMA transfer data structure
+      ---------------------------
+
+    The data structure used to specify DMA transfers is the struct vme_dma
+  descriptor, declared in vmebus.h, which has the following fields:
+
+    - status: transfer status
+
+    - length: transfer length in bytes
+
+    - novmeinc: must be set to 1 when accessing a FIFO like device on the VME
+          bus, else must be 0.
+
+    - dir: transfer direction, either VME_DMA_TO_DEVICE or VME_DMA_FROM_DEVICE.
+
+    - src: transfer source attributes. This is a struct vme_dma_attr described
+          below.
+
+    - dst: transfer destination attributes. This is a struct vme_dma_attr
+          described below.
+
+    - ctrl: transfer control. This is a struct vme_dma_ctrl described below.
+
+
+    The struct vme_dma_attr is used for describing the attributes of a DMA
+  endpoint. All the field excepted for the address are only relevant for an
+  endpoint on the VME bus.
+
+    This data structure has the following fields:
+
+    - data_width: VME data bus width
+
+    - am: VME address modifier
+
+    - v2esst_mode: VME 2eSST transfer speed
+
+    - bcast_select: VME 2eSST broadcast select
+
+    - addru: upper 32 bits of the address. Must be 0.
+
+    - addrl: lower 32 bits of the address.
+
+
+    The struct vme_dma_ctrl defines the following fields:
+
+    - vme_block_size: VME bus block size when the source is VME. This field has
+        its values in the vme_dma_block_size enumeration.
+
+    - vme_backoff_time: VME bus backoff time when the source is VME. This field
+        has its values in the vme_dma_backoff enumeration.
+
+    - pci_block_size: PCI/X bus block size when the source is PCI. This field
+        has its values in the vme_dma_block_size enumeration.
+
+    - pci_backoff_time: PCI bus backoff time when the source is PCI. This field
+        has its values in the vme_dma_backoff enumeration.
+
+
+
+  5.2 Driver API
+      ----------
+
+    Drivers stacked on top of the VME bridge driver may directly use the
+  following function which is made public and exported through vmebus.h.
+
+    - int vme_do_dma(struct vme_dma *desc)
+
+      This function first checks the validity of the user supplied DMA transfer
+      parameters. It then tries to find an available DMA channel to do the
+      transfer, setups that channel and starts the DMA.
+
+      Returns 0 on success, or a standard kernel error code on failure. The
+      completion status of the DMA transfer is returned in desc->status.
+
+  5.3 User space ioctls API
+      --------------------
+
+    User space applications can do DMA transfers through the use of an ioctl (or
+  via a library call, see section 8. User space library).
+
+    The device node used for the DMA ioctl is /dev/vme_dma
+
+  - VME_IOCTL_START_DMA
+
+    Calls vme_do_dma(), the ioctl argument is a struct vme_dma descriptor.
+  
+
+6. Interrupts
+   ----------
+
+  The TSI148 allows VME interrupts to be forwarded onto the PCI bus to the host
+CPU and IACK cycles to be generated on the VME bus. Furthermore, the TSI148 can
+also interrupt the HOST CPU following internal events such as DMA completion.
+
+  NOTE: As already mentioned, due to some TSI148 quirks, the interrupt status
+	and interrupt clear registers need to be accessed through the VME bus.
+	There seems to be some internal state that must be flushed before we
+	can access those registers, and the only way so far is to perform a VME
+	cycle.
+
+  6.1 Driver API
+      ----------
+
+    The VME bridge driver allows drivers to register handlers for VME interrupts
+  using the following API:
+
+    - int vme_request_irq(unsigned int vec, int (*handler)(void *),
+		          void *arg, const char *name)
+
+      Register an interrupt handler for the given VME IRQ vector. When the
+      handler is called, it is passed the argument arg. The name argument is the
+      interrupt name and is informative only, it is used for statistics in
+      procfs.
+
+      NOTE: The return value of the handler is not used by the driver, this is
+	    for compatibility with the CES driver API.
+
+      Returns 0 on success or a standard kernel error code.
+
+    - int vme_free_irq(unsigned int vec)
+
+      Unregister an interrupt handler for the given VME IRQ vector.
+
+      Returns 0 on success or a standard kernel error code.
+
+    - int vme_generate_interrupt(int level, int vector, signed long msecs)
+
+      This function generates a VME interrupt with the given level and vector
+      and waits for IACK for msecs milliseconds.
+
+      Returns 0 on success or a standard kernel error code (-ETIME if it timed
+      out).
+
+
+  6.2 Legacy CES driver API
+      ---------------------
+
+    For compatibility with legacy drivers using the CES driver API, the
+  following functions are provided. Those are built on top of the previously
+  described functions.
+
+    - int vme_intset(int vec, int (*handler)(void *), void *arg, void *sav)
+
+      This function is an emulation of the CES driver functionality on Lynx-OS.
+      The sav argument is unused.
+
+      NOTE: The return value of the handler is not used by the driver.
+
+      Returns 0 on success, or a standard kernel error.
+
+
+    - int vme_intclr(int vec, void *sav)
+
+      This function is an emulation of the CES driver functionality on Lynx-OS.
+
+      Returns 0 on success, or a standard kernel error.
+
+
+
+7. VME bridge procfs tree
+   ----------------------
+
+  The VME bridge driver provides run-time information through pseudo files in
+the procfs directory tree. The VME bridge procfs tree is rooted at /proc/vme
+and provides the following files:
+
+  - /proc/vme/info
+
+    Provides misc information regarding the TSI148 chip, such as the chip
+    revision or the IRQ it's hooked on.
+
+  - /proc/vme/windows
+
+    Shows the VME mappings currently active, both for physical windows and for
+    logical mappings made on top of those.
+
+  - /proc/vme/interrupts
+
+    Shows the TSI148 interrupt sources counters.
+
+  - /proc/vme/irq
+
+    Shows the VME IRQ counters.
+
+  - /proc/vme/tsi148/pcfs
+
+    Dumps the TSI148 PCI/X Configuration Space Registers (PCFS)
+
+  - /proc/vme/tsi148/lcsr
+
+    Dumps the TSI148 Local Control and Status Registers (LCSR)
+
+  - /proc/vme/tsi148/gcsr
+
+    Dumps the TSI148 Global Control and Status Registers (GCSR)
+
+  - /proc/vme/tsi148/crcsr
+
+    Dumps the TSI148 Control and Status Registers (CSR)
+
+
+8. User space library
+   -----------------
+
+  In order to make life easier for user space applications, the libvme library
+is provided that wraps ioctls calls to the driver.
+
+  The library provides the following functions with exactly the same semantic as
+described in 4.2 and 5.2:
+
+  - void *vme_map(struct vme_mapping *desc, int force)
+
+    Maps a VME address space. This is the user space equivalent to
+    vme_find_mapping()
+
+    Returns a user space virtual address for the mapping or NULL on error (in
+    that case errno is set appropriately).
+
+  - int vme_unmap(struct vme_mapping *desc, int force)
+
+    Unmap a VME address space. This is the user space equivalent to
+    vme_release_mapping().
+
+    Returns 0 on success or -1 on error (in that case errno is set
+    appropriately).
+
+  - int vme_dma_read(struct vme_dma *desc)
+
+    Perform a DMA read transfer on the VME bus with the parameters specified in
+    the descriptor.
+
+    Returns 0 on success or -1 on error (in that case errno is set
+    appropriately).
+
+  - int vme_dma_write(struct vme_dma *desc)
+
+    Perform a DMA write transfer on the VME bus with the parameters specified in
+    the descriptor.
+
+    Returns 0 on success or -1 on error (in that case errno is set
+    appropriately).
+
+
+  - int vme_bus_error_check(struct vme_mapping *desc)
+
+    Check for VME a bus error.
+
+    Returns 0 if no bus error occurred, 1 if bus error occurred or -1 on any
+    other error (with errno set appropriately).
+
+
+  For compatibility with legacy applications using the CES library, the
+following functions are also provided:
+
+  - unsigned long find_controller(unsigned long vmeaddr, unsigned long len,
+			          unsigned long am, unsigned long offset,
+			          unsigned long size,
+				  struct pdparam_master *param)
+
+    Map a VME address space into the user address space.
+
+    See section 4.3 Legacy CES driver API, for differences with the original CES
+    API.
+
+    Returns the virtual address of the mapping on success, or 0 if an error
+    occurs (in that case errno is set appropriately).
+
+
+  - unsigned long return_controller(struct vme_mapping *desc)
+
+    Release a VME mapping.
+
+    WARNING: The function interface has been changed to a single parameter,
+	     a struct vme_mapping descriptor as the CES original parameters
+	     are not enough to match a VME mapping.
+
+    Returns 0 on success, or -1 if an error occurs (in that case errno is set
+    appropriately).
+
+

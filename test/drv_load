@@ -1,0 +1,22 @@
+#!/bin/sh
+
+module="vmebus"
+major=221
+
+# Set the console loglevel to DEBUG
+echo 8 > /proc/sys/kernel/printk
+
+# Load module
+/sbin/insmod ../drvr/$module.ko $* || exit 1
+
+# Remove stale nodes
+rm -f /dev/vme_mwindow
+rm -f /dev/vme_dma
+rm -f /dev/vme_ctl
+rm -f /dev/vme_regs
+
+# Create device nodes
+mknod /dev/vme_mwindow c $major 0
+mknod /dev/vme_dma c $major 1
+mknod /dev/vme_ctl c $major 2
+mknod /dev/vme_regs c $major 3

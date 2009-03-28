@@ -1,0 +1,13 @@
+#!/bin/sh
+
+module="vmebus"
+major=221
+
+# Load module
+/sbin/rmmod ../drvr/$module.ko $* || exit 1
+
+# Remove stale nodes
+rm -f /dev/vme_mwindow
+rm -f /dev/vme_dma
+rm -f /dev/vme_ctl
+rm -f /dev/vme_regs
