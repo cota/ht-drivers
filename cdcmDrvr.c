@@ -536,6 +536,10 @@ static void __exit cdcm_driver_cleanup(void)
 {
 	int cntr;
 
+	/* call user's uninstall entry point */
+	if (entry_points.dldd_uninstall(cdcmStatT.cdcm_st) != OK)
+	  PRNT_ABS_WARN("device driver did not uninstall cleanly");
+
 	/* cleanup all captured memory */
 	cdcm_mem_cleanup_all();
 
