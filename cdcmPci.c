@@ -29,6 +29,8 @@ int cdcm_dbg_cntr = 0; /* TODO. REMOVE. for deadlock debugging */
 static struct cdcm_pci_isr isrs[CDCM_MAX_PCI_ISRS];
 static int nr_isrs; //!< counts how many isrs have already been installed
 
+static void *pci_bar_mappings[6]; /* keep track of bar mappings */
+
 
 /**
  * @brief Claims access to a specified device. LynxOs DRM Services for PCI.
@@ -471,6 +473,36 @@ int drm_unregister_isr(struct drm_node_s *node_h)
   return DRM_OK;
 }
 
+/**
+ * @brief get a PCI bar mapped and hook it into 
+ *
+ * @param dev - PCI device that owns the BAR
+ * @param bar - BAR number
+ * @param maxlen - length of the memory to map
+ *
+ * @ref maxlen specifies the maximum length to map -- pass 0 to get
+ * access to the full bar without checking its length first
+ *
+ * @return address of the mapping - on success
+ * @return NULL - on failure
+ */
+static void *cdcm_pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+{
+  pci_bar_mappings[bar] = pci_iomap(dev, bar, maxlen);
+  return pci_bar_mappings[bar];
+}
+
+/**
+ * @brief unmap a PCI bar mapping
+ *
+ * @param dev - PCI device that owns the BAR
+ * @param bar - BAR number
+ */
+static void cdcm_pci_iounmap(struct pci_dev *dev, int bar)
+{
+  pci_iounmap(dev, pci_bar_mappings[bar]);
+  pci_bar_mappings[bar] = NULL;
+}
 
 /**
  * @brief Wrapper. LynxOs DRM Services for PCI. !TODO!
@@ -496,7 +528,7 @@ int drm_map_resource(struct drm_node_s *node_h, int resource_id, unsigned int *v
 	if (pci_request_region(cast->di_pci, bar, DRIVER_NAME) != 0)
 		return DRM_EFAULT;
 	printk("PCI Region request successful; Mapping the bar..\n");
-	*vadrp = (unsigned int)pci_iomap(cast->di_pci, bar, mmio_length);
+	*vadrp = (unsigned int)cdcm_pci_iomap(cast->di_pci, bar, mmio_length);
 	printk("PCI Mapping successful: bar #%d mapped in addr 0x%x\n",
 	       bar, *vadrp);
 	return DRM_OK;
@@ -519,6 +551,7 @@ int drm_unmap_resource(struct drm_node_s *node_h, int resource_id)
 	bar = (resource_id - PCI_RESID_BAR0);
 	if (bar < 0 || bar > 5)
 		return DRM_EFAULT;
+	cdcm_pci_iounmap(cast->di_pci, bar);
 	pci_release_region(cast->di_pci, bar);
 	return DRM_OK;
 }
