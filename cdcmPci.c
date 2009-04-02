@@ -435,7 +435,7 @@ int drm_register_isr(struct drm_node_s *node_h, void (*isr)(void *), void *arg)
   }
 
   rc = request_irq(cast->di_pci->irq, cdcm_irq_handler,
-		    IRQF_SHARED | IRQF_DISABLED, DRIVER_NAME, arg);
+		    IRQF_SHARED | IRQF_DISABLED, __drvrnm(), arg);
 
   if (rc) {
     PRNT_ABS_ERR("Could not register the ISR for IRQ #%d", cast->di_pci->irq);
@@ -525,7 +525,7 @@ int drm_map_resource(struct drm_node_s *node_h, int resource_id, unsigned int *v
 
 	mmio_length = pci_resource_len(cast->di_pci, bar);
 	printk("Requesting PCI region, dev %p : bar #%d\n", cast->di_pci, bar);
-	if (pci_request_region(cast->di_pci, bar, DRIVER_NAME) != 0)
+	if (pci_request_region(cast->di_pci, bar, __drvrnm()) != 0)
 		return DRM_EFAULT;
 	printk("PCI Region request successful; Mapping the bar..\n");
 	*vadrp = (unsigned int)cdcm_pci_iomap(cast->di_pci, bar, mmio_length);
