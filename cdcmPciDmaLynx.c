@@ -9,6 +9,8 @@
  * @section license_sec License
  * Released under the GPL v2. (and only v2, not any later version)
  */
+#ifdef __Lynx__
+
 #include "cdcmPciDma.h"
 #include <kernel.h>
 
@@ -49,3 +51,5 @@ int cdcm_pci_mem_unlock(void *handle, struct cdcm_dmabuf *dma, int pid,
 {
   return mem_unlock(pid, dma->user_buf, dma->size, dirty);
 }
+
+#endif	/* __Lynx__ */
