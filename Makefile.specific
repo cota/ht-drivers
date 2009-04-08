@@ -8,5 +8,10 @@
 # @date Created on 07/04/2009
 ###############################################################################
 
-CPU  := L865
-KVER := 2.6.24.7-rt27
+# Default settings.
+# You can change them in the command line (or directly here) to compile
+# CDCM for another kernel.
+# Examples: make CPU=L865 KVER=2.6.24.7-rt21
+#           make KVER=2.6.24.7-rt21
+CPU  = L865
+KVER = 2.6.24.7-rt27
