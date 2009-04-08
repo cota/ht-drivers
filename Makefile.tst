@@ -6,14 +6,13 @@
 # @author Yury GEORGIEVSKIY. CERN AB/CO
 #
 # @date Created on 13/01/2009
-#
-# <long description>
-#
-# @version
 ###############################################################################
 
-include ../Makefile.specific
-include ../../makefiles/Makefile.base
+# Makefile from current directory supress one from upper level
+-include $(shell if [ -e ./Makefile.specific ]; then echo ./Makefile.specific; \
+	else echo ../Makefile.specific; fi)
+
+-include ../../makefiles/Makefile.base
 
 INSTDIR    = $(addsuffix /$(DLVRYPLS)/$(CPU), $(EXECINSTDIR))
 ADDCFLAGS  = $(STDFLAGS) -DDRIVER_NAME=\"$(DRIVER_NAME)\"
@@ -32,7 +31,7 @@ LDLIBS     = \
 
 vpath %.c ./  ../../utils/user ../../utils/extest
 
-SRCFILES = $(wildcard *Tst.c)
+SRCFILES = $(wildcard *.c)
 
 # the standard test program (utils/extest) will be compiled
 # unless USE_EXTEST is set to 'n'
