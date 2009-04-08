@@ -146,7 +146,7 @@ int drm_unmap_resource(struct drm_node_s *, int);
  * state of corresponding vector table entry. (see prototypes
  * for vme_intset() and vme_intclr()
  *
- * structure used for VME vector jump table 
+ * structure used for VME vector jump table
  *-----------------------------------------------------------------------------
  */
 typedef struct vme_intr_entry {
@@ -165,7 +165,7 @@ typedef struct vme_intr_entry {
 char *get_phys(long);
 int mem_lock(int, char *, unsigned long);
 int mem_unlock(int, char *, long, int);
-char *get1page();
+char *get1page(void);
 
 
 #endif /* _CDCM_LYNX_API_H_INCLUDE_ */
