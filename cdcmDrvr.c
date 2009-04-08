@@ -22,7 +22,7 @@
 #include "general_both.h" /* for handy macroses */
 #include "general_ioctl.h"
 #include "list_extra.h" /* for extra handy list operations */
-#include "libinstkernel.h" /* for intall library to get/parse info tables */
+#include "driver/libinstkernel.h" /* intall library to get/parse info tables */
 
 MODULE_DESCRIPTION("Common Driver Code Manager (CDCM) Driver");
 MODULE_AUTHOR("Yury Georgievskiy, CERN BE/CO");
