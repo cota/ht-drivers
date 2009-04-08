@@ -9,11 +9,12 @@
 ###############################################################################
 
 # Makefile from current directory supress one from upper level
-include $(shell if [ -e ./Makefile.specific ]; then echo ./Makefile.specific; \
+-include $(shell if [ -e ./Makefile.specific ]; then echo ./Makefile.specific; \
 	else echo ../Makefile.specific; fi)
-include ../../makefiles/Makefile.base
 
-ADDCFLAGS   = $(STDFLAGS) -DDRIVER_NAME=\"$(DRIVER_NAME)\"
+-include ../../makefiles/Makefile.base
+
+ADDCFLAGS += $(STDFLAGS) -DDRIVER_NAME=\"$(DRIVER_NAME)\"
 
 # We need to redefine next variable to compile the library...
 OUTPUT_OPTION +=; mv $*.$(CPU).o $(OBJDIR)
@@ -23,12 +24,12 @@ INCDIRS = \
 	../../include
 
 SRCFILES = \
-	$(wildcard *Lib.c)
+	$(wildcard *.c)
 
 LIBRARIES = $(OBJDIR)/lib$(DRIVER_NAME).$(CPU).a
 
 $(LIBRARIES): $(OBJFILES)
-	$(AR) -rv $@ $(addprefix $(OBJDIR)/, $^)
+	$(AR) -rv  $@ $(XTRA_USR_LIBS) $(addprefix $(OBJDIR)/, $^)
 	$(RANLIB) $@
 
 build:: abort $(OBJDIR) $(LIBRARIES) move_objs
