@@ -139,8 +139,10 @@ OBJDIR = $(CPU)_$(BLDTYPE)
 $(CPU)_%:
 	-mkdir -p $@
 
-# Driver and install prog goes here
-FINAL_DEST = object_$(DRIVER_NAME)
+# Driver and install prog goes here.
+# Name is defined _only_ if user in not alredy define it with preferable one
+# in the Makefile.specific
+FINAL_DEST ?= object_$(DRIVER_NAME)
 object_%:
 	-mkdir -p ../$@
 
