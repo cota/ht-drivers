@@ -1,0 +1,37 @@
+###############################################################################
+# @file Kbuild.lynx
+#
+# @brief
+#
+# @author Yury GEORGIEVSKIY. CERN AB/CO
+#
+# @date Created on 13/01/2009
+#
+# @note See Kbuild.linux for more information on howto compile with test
+#	CDCM branches.
+#
+# @version
+###############################################################################
+
+CDCM_D = ../../cdcm
+XML_LIB_D     = /acc/src/dsc/drivers/coht/utils/xml
+XML_D         = ../../utils/xml
+
+EXTRA_DRVR_SRC_FILES += \
+	$(CDCM_D)/cdcmBoth.c
+
+ifeq ($(DRIVER_BUS), PCI)
+EXTRA_DRVR_SRC_FILES += \
+	$(CDCM_D)/cdcmPciDmaLynx.c
+else ifeq ($(DRIVER_BUS), VME)
+# add nothing
+else
+EXTRA_DRVR_SRC_FILES += $(CDCM_D)/cdcmPciDmaLynx.c
+endif
+
+#EXTRA_DRVR_OBJS = $(addsuffix $(EXTOBJ), $(notdir $(basename $(EXTRA_DRVR_SRC_FILES))))
+EXTRA_DRVR_OBJS = $(addsuffix $(EXTOBJ), $(basename $(EXTRA_DRVR_SRC_FILES)))
+
+INCDIRS += \
+	../../skel/driver \
+	$(XML_LIB_D)

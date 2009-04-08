@@ -1,0 +1,49 @@
+###############################################################################
+# @file Makefile.drvr
+#
+# @brief Driver compilation.
+#
+# @author Yury GEORGIEVSKIY. CERN AB/CO
+#
+# @date Created on 13/01/2009
+#
+# <long description>
+#
+# @version
+###############################################################################
+
+include ../Makefile.specific
+
+# For OS Release (OSREL) see in /acc/sys/$(CPU)/usr/src/kernels
+
+ifeq ($(origin CPU), undefined)
+include ../../makefiles/Makefile.base
+endif
+
+# CES Linux
+ifeq ($(CPU), Lces)
+OSREL = ces
+include ../../makefiles/Makefile.lces
+endif
+
+# SLC4
+ifeq ($(CPU), L864)
+OSREL = 2.6.24.4-rt4
+include ../../makefiles/Makefile.linux
+endif
+
+# SLC5
+ifeq ($(CPU), L865)
+
+ifndef OSREL
+OSREL = 2.6.24.7-rt27
+endif
+
+include ../../makefiles/Makefile.linux
+endif
+
+# Lynx
+ifeq ($(CPU), ppc4)
+OSREL = Lynx
+include ../../makefiles/Makefile.lynx
+endif

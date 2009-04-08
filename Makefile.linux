@@ -1,0 +1,64 @@
+###############################################################################
+# @file Makefile.linux
+#
+# @brief Builds up Linux driver.
+#
+# @author Yury GEORGIEVSKIY. CERN BE/CO
+#
+# @date Created on 13/01/2009
+###############################################################################
+
+#SHELL += -x
+
+#OLD_SHELL := $(SHELL)
+#SHELL = $(info Building $@)$(OLD_SHELL)
+
+#OLD_SHELL := $(SHELL)
+#SHELL = $(warning Building $@$(if $<, (from $<))$(if $?, ($? newer)))$(OLD_SHELL)
+
+#export SHELL
+
+ifeq ($(origin CPU), undefined)
+CPU = L865
+endif
+
+include ../Makefile.specific
+include ../../makefiles/Makefile.base
+
+# special build type. For choose correct debug/optimization flags
+BLDTYPE = drv
+#BLDTYPE = dbg
+
+KERNEL_SOURCE := /acc/sys/$(CPU)/usr/src/kernels/$(OSREL)
+# KERNEL_SOURCE := /local/ygeorgie/work-stuff/git/kernel/linux-2.6
+
+PWD := $(shell pwd)
+CPU := $(shell echo $(KERNEL_SOURCE) | awk -F/ '{print $$4}' )
+# BAKS = ,* *~ *.bak *.BAK .es1* .B* %*% .ec1 .ek1 .*~ core a.out *JNL *.lst \\\#*\\\# .nfs* *%
+BAKS = ,* *~ *.bak *.BAK .B* %*% .ec1 .ek1 .*~ core a.out *JNL *.lst \\\#*\\\# .nfs* *%
+
+# What will be finally created
+DRIVERS   = ../$(FINAL_DEST)/$(DRIVER_NAME).$(CPU).ko
+
+# Invokes the kernel build system to come back to the current
+# directory and build module kernel object (.ko)
+#$(obj-m:.o=.ko) drvr: $(OBJDIR) $(FINAL_DEST)
+#$(MAKE) -C $(KERNEL_SOURCE)
+#O=$(PWD)/$(OBJDIR)
+#M=$(PWD)
+#modules
+
+#$(obj-m:.o=.ko)
+drvr: $(OBJDIR) $(FINAL_DEST)
+	$(MAKE) -C $(KERNEL_SOURCE) \
+	SHELL="$(SHELL)" \
+	M=$(PWD) \
+	modules
+#@if [ -d $(OBJDIR)/.tmp_versions ]; then rm -r $(OBJDIR)/.tmp_versions; fi
+#@mv -f .tmp_versions/ *.o .*.o.cmd .*.ko.cmd *.mod.c $(OBJDIR)
+#@mv *.ko $(DRIVERS)
+
+# Local cleanup
+cleanloc clearloc:: abort
+	$(MAKE) -C /acc/sys/$(CPU)/usr/src/kernels/$(OSREL) M=$(PWD) clean
+	$(RM) -rf $(BAKS) $(OBJDIR) ERROR

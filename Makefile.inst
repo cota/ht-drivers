@@ -1,0 +1,89 @@
+###############################################################################
+# @file Makefile.inst
+#
+# @brief Build up driver installation program.
+#
+# @author Yury GEORGIEVSKIY. CERN AB/CO
+#
+# @date Created on 13/02/2009
+#
+# <long description>
+#
+# @version
+###############################################################################
+
+include ../Makefile.specific
+include ../../makefiles/Makefile.base
+
+INSTDIR    = $(addsuffix /$(DLVRYPLS)/$(CPU), $(EXECINSTDIR))
+ADDCFLAGS  = $(STDFLAGS) -DCPU=\"$(CPU)\" -DHAVE_LIBZ
+
+# libraries (and their pathes) to link executable file with
+XTRALIBDIRS = ../../utils/xml
+LOADLIBES  := $(addprefix -L,$(XTRALIBDIRS)) $(LOADLIBES) -linst.$(CPU)
+XTRALIBS    = -lxml2 -lz
+
+vpath %.c ./  ../../utils/user ../../utils/install
+
+SRCFILES = \
+	$(wildcard *Inst.c) \
+	inst_utils.c
+
+ifeq ($(CPU), ppc4)
+XTRALIBDIRS += /ps/local/$(CPU)/lib
+SRCFILES    += extra_for_lynx.c
+else
+SRCFILES    += inst_linux.c
+endif
+
+LDLIBS      = \
+	$(XTRALIBS)
+
+INCDIRS = \
+	./ \
+	../include \
+	../.. \
+	../../include \
+	../../utils
+
+ADDINCLUDES = $(KERN_INCLUDES)
+
+EXEC_OBJS = $(DRIVER_NAME)Inst.$(CPU)
+
+$(EXEC_OBJS): $(OBJFILES)
+
+build:: abort $(FINAL_DEST) $(OBJDIR) $(EXEC_OBJS) move_objs $(DRIVER_NAME)Inst ../$(FINAL_DEST)/instprog
+
+# Move compiled files to proper place
+move_objs:
+	mv $(OBJFILES) $(EXEC_OBJS) $(OBJDIR)
+
+# we should redefine Make.auto rule to get rid of name dependencies
+%.$(CPU): $(OBJFILES)
+	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+
+$(DRIVER_NAME)Inst:
+	@if [ -e "$$@" ]; then \
+		rm -f $@ ; \
+	echo "ln -s $(OBJDIR)/$@"; \
+	ln -s $(OBJDIR)/$@.$(CPU) $@; \
+	fi
+
+../$(FINAL_DEST)/instprog:
+	@if [ -e "$$@" ]; then \
+		rm -f $@ ; \
+	echo "ln -s ../install/$(DRIVER_NAME)Inst $@"; \
+	ln -s  ../install/$(DRIVER_NAME)Inst $@; \
+	fi
+
+install:: abort
+	$(CP) -p $(EXEC_OBJS) $(INSTDIR)/$(BSP)/$(FINAL_DEST)
+	ln -fs ../$(BSP)/$(FINAL_DEST)/$(DRIVER_NAME)Inst $(INSTDIR)/drvrutil/$(DRIVER_NAME)Inst
+	ln -fs ../drvrutil/$(DRIVER_NAME)Inst $(INSTDIR)/bin/$(DRIVER_NAME)Inst
+
+cleanloc clearloc:: abort
+	@ if [ -n "$(OBJDIR)" ]; then \
+		rm -rf $(OBJDIR)* ; \
+	fi
+	-rm -f ../$(FINAL_DEST)/instprog $(DRIVER_NAME)Inst
+	-find ./ -name '*~' -o -name '*.$(CPU).o' | xargs rm -f

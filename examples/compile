@@ -1,0 +1,9 @@
+#!/bin/bash
+# HOWTO compile the driver with local CDCM copy.
+
+rm -r L865_drv/ 2>/dev/null; cd  ../../.__kitchen/ygeorgie/cdcm/; ./rmdrv; cd -
+
+# cleanup skel
+cd ../../skel/driver; rm *.o .*cmd; cd -
+
+make drvr CPU=L865 CDCM_DRVR_DIR=/acc/src/dsc/drivers/coht/.__kitchen/ygeorgie CDCM_D=../../.__kitchen/ygeorgie/cdcm.__kitchen/ygeorgie CDCM_D=../../.__kitchen/ygeorgie/cdcm

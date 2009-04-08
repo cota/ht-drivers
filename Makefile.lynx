@@ -1,0 +1,90 @@
+###############################################################################
+# @file Makeflie.lynx
+#
+# @brief Builds up Lynx driver and installation program.
+#
+# @author Yury GEORGIEVSKIY. CERN AB/CO
+#
+# @date Created on 13/01/2009
+#
+# <long description>
+#
+# @version
+###############################################################################
+
+include ../../makefiles/Makefile.base
+include ../../makefiles/Kbuild.lynx
+
+# special build type. For choose correct debug/optimization flags
+BLDTYPE = drv
+
+ADDCFLAGS   = $(STDFLAGS) -DCPU=\"$(CPU)\"
+ADDINCLUDES = $(KERN_INCLUDES)
+
+# We need to re-define next 2 variables to compile the drivers...
+# Note, that normally, OUTPUT_OPTION should be declared like this:
+# OUTPUT_OPTION +=; mv $*.$(CPU).o $(OBJDIR)
+# But it's NOT working this way, because $@ parameter is vanishing somehow
+# from the definition of the OUTPUT_OPTION (-o $@).
+# Because of this - it should be defined either like:
+# OUTPUT_OPTION = $(OUTPUT_OPTION); mv $*.$(CPU).o $(OBJDIR)
+# or like this (as it's done below):
+# OUTPUT_OPTION +=$@; mv $*.$(CPU).o $(OBJDIR)
+# It's working in this case.
+
+# What will be finally created
+DRIVERS   = ../$(FINAL_DEST)/$(DRIVER_NAME)Drvr.$(CPU).o
+
+$(DRIVERS): CC = $(KERN_CC)
+$(DRIVERS): OUTPUT_OPTION +=$(KFLAGS); mv $*.$(CPU).o $(OBJDIR)
+
+# Old implementation. Was working with old make.
+#$(DRIVERS): OUTPUT_OPTION +=$@; mv $*.$(CPU).o $(OBJDIR)
+
+#$(DRIVER_NAME)Drvr.c
+SRCFILES += \
+	$(wildcard *Drvr.c)
+
+
+# Filter out driver objects
+DRVROBJS = $(filter $(addprefix %Drvr,$(EXTOBJ)), $(OBJFILES)) $(EXTRA_DRVR_OBJS)
+
+INCDIRS += \
+	/acc/sys/$(CPU)/usr/include/ces \
+	../include \
+	../../include \
+	../.. \
+	./ \
+	/acc/sys/ppc4/sys.20070420/bsp.ces
+
+# Major goals
+build:: abort $(OBJDIR) $(FINAL_DEST) $(DRIVERS)
+
+drvr:: $(OBJDIR) $(FINAL_DEST) $(DRIVERS)
+
+# 0x0.
+# This rule produce temporary driver archive file that contains unresolved
+# symbols. They in turn will be used as an input files for 'nm' command.
+# And after 'nm' command call, an import files (that holds all unresolved
+# symbols) will be build.
+$(DRIVER_NAME)Drvr.$(CPU).tmp: $(DRVROBJS)
+	$(KERN_LD) -o $(OBJDIR)/$@ -berok -r $(addprefix $(OBJDIR)/, $(notdir $^))
+
+# 0x1.
+# This rule will put only undefined symbols (those external to an object
+# file) to the '*.import' file.
+%.import: %.tmp
+	$(NM) -u $(OBJDIR)/$< > $(OBJDIR)/$@
+# 0x2.
+# This rules will create a driver shared object that imports an undefined
+# symbols.
+$(DRIVERS): $(DRIVER_NAME)Drvr.$(CPU).import $(DRVROBJS)
+	$(KERN_LD) -o $@ -bM:SRE -bimport:$(addprefix $(OBJDIR)/, $(notdir $^))
+
+# Local cleaning
+cleanloc clearloc:: abort
+	@ if [ -n "$(ISP)" ]; then \
+		rm -rf $(ISP)* ; \
+	fi
+	-rm -f $(DRIVERS)
+	find ./ -name '*~' | xargs rm -f

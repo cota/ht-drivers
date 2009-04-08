@@ -1,0 +1,15 @@
+#!/bin/bash
+################################################################################
+# @file compiletest
+#
+# @brief Test program compilation script.
+#
+# @author Yury GEORGIEVSKIY. CERN AB/CO
+#
+# @date Created on 13/01/2009
+#
+# @version
+################################################################################
+
+# compile test program for Linux
+make clean all CPU=L865
