@@ -3,24 +3,20 @@
 #
 # @brief Build up driver installation program.
 #
-# @author Yury GEORGIEVSKIY. CERN AB/CO
+# @author Yury GEORGIEVSKIY. CERN BE/CO
 #
 # @date Created on 13/02/2009
-#
-# <long description>
-#
-# @version
 ###############################################################################
 
 include ../Makefile.specific
 include ../../makefiles/Makefile.base
 
 INSTDIR    = $(addsuffix /$(DLVRYPLS)/$(CPU), $(EXECINSTDIR))
-ADDCFLAGS  = $(STDFLAGS) -DCPU=\"$(CPU)\" -DHAVE_LIBZ
+ADDCFLAGS  = $(STDFLAGS) -DCPU=\"$(CPU)\"
 
 # libraries (and their pathes) to link executable file with
-XTRALIBDIRS = ../../utils/xml
-LOADLIBES  := $(addprefix -L,$(XTRALIBDIRS)) $(LOADLIBES) -linst.$(CPU)
+XTRALIBDIRS = ../../utils/user
+LOADLIBES  := $(addprefix -L,$(XTRALIBDIRS)) $(LOADLIBES) -lutils.$(CPU)
 XTRALIBS    = -lxml2 -lz
 
 vpath %.c ./  ../../utils/user ../../utils/install
@@ -30,8 +26,7 @@ SRCFILES = \
 	inst_utils.c
 
 ifeq ($(CPU), ppc4)
-XTRALIBDIRS += /ps/local/$(CPU)/lib
-SRCFILES    += extra_for_lynx.c
+# something to include? As for now - nothing.
 else
 SRCFILES    += inst_linux.c
 endif
