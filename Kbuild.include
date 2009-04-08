@@ -1,0 +1,40 @@
+###############################################################################
+# @file Kbuild.include
+#
+# @brief Generic definitions to build Linux drivers.
+#
+# @author Yury GEORGIEVSKIY. CERN AB/CO
+#
+# @date Created on 07/04/2009
+#
+# Should be included by the driver Makefile && Kbuild.
+# CDCM and driver utils Kbuilds are using it as well.
+###############################################################################
+
+# Where everything is nested
+TOPDIR = /acc/src/dsc/drivers/coht
+
+# kernel src dir
+KSRC := /acc/sys/$(CPU)/usr/src/kernels/$(KVER)
+
+# That's our default target when none is given on the command line
+PHONY := _all
+_all:
+
+# Compiled files goes here
+OBJDIR = $(CPU)/$(KVER)
+$(OBJDIR):
+	mkdir -p $@
+
+# Filter out all objects files from current directory - getting rid
+# of ',name.c' backup files
+comma = ,
+EXTOBJ	= .o
+SRCSFXS = .c
+DRVRSRCFILES = $(wildcard $(M)/*.c)
+FLTSRCFILES = $(filter-out $(M)/$(comma)%, $(filter $(addprefix %, $(SRCSFXS)),$(DRVRSRCFILES)))
+OBJFILES = $(addsuffix $(EXTOBJ),$(notdir $(basename $(FLTSRCFILES))))
+
+# Absolutely needed pathes
+ccflags-y := \
+	-I$(TOPDIR)/include

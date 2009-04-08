@@ -1,11 +1,11 @@
 ###############################################################################
 # @file Kbuild.linux
 #
-# @brief General kbuild for compiling linux drivers
+# @brief Kbuild for compiling linux drivers
 #
 # @author Yury GEORGIEVSKIY. CERN AB/CO
 #
-# @date Created on 13/01/2009
+# @date Created on 08/04/2009
 #
 # @note For developers @e only. To work && test git branches - use .__kitchen
 #       directory with your username inside.
@@ -27,79 +27,120 @@
 #             -> git-commit
 ###############################################################################
 
+# Include specific Makefile to get driver configuraion
 include $(M)/../Makefile.specific
 
-# Should be relative to the $(M) path, i.e. cwd
-# I didn't use CDCM_DRVR_DIR in XML_LIB_D because the former can be redefined
-# to be able to work with test CDCM versions.
+# Include generic definitions
+include $(M)/../../makefiles/Kbuild.include
 
-CDCM_DRVR_DIR = /acc/src/dsc/drivers/coht
-XML_LIB_D     = /acc/src/dsc/drivers/coht/utils/xml
-XML_D         = ../../utils/xml
-CDCM_D        = ../../cdcm
-SKEL_D        = ../../skel/driver
-UTILS_D       = ../../utils/drvr
+CDCM_D = ../../cdcm/$(CPU)/$(KVER)
+UTIL_D = ../../utils/driver/$(CPU)/$(KVER)
 
-VPATH += /acc/src/dsc/drivers/coht/cdcm
-
-# Files, should be compiled with every driver
-# CDCM is always using libinst.
-CDCM_SRC_FILES += \
-	$(UTILS_D)/drvr_load_file.c \
-	$(UTILS_D)/drvr_utils.c \
+# Extra CC flags && needed pathes
+ccflags-y += \
+	-I$(M) \
+	-I$(TOPDIR) \
+	-I$(M)/../include \
+	-I$(TOPDIR)/skel/driver \
+	-I$(TOPDIR)/utils/driver \
 	\
-	$(CDCM_D)/cdcmBoth.c \
-        $(CDCM_D)/cdcmDrvr.c \
-	$(CDCM_D)/cdcmLynxAPI.c \
-	$(CDCM_D)/cdcmMem.c \
-        $(CDCM_D)/cdcmThread.c \
-        $(CDCM_D)/cdcmTime.c \
-	\
-	$(XML_D)/libinstkernel.c
+	-DDRIVER_NAME=\"$(DRIVER_NAME)\" \
+	-DCPU=$(CPU) \
+	-DCOMPILE_TIME=$(shell date --utc +%s)
+
+# What we need to build
+obj-m := $(DRIVER_NAME).o
+
+# Virgin driver (without any extra features) consists of _all_  '*.c'
+# files in './driver' directory
+$(DRIVER_NAME)-y := $(OBJFILES)
+
+# If driver is 'skel' compliant?
+ifeq ($(IS_SKEL),y)
+
+# 'skel' hosting dir
+SKEL_D = $(obj)/../../skel/driver
+
+# Get all *.c files from there
+SKELSRCF = $(wildcard $(SKEL_D)/*.c)
+
+# Kill all ',backup' files
+FLTSKELFILES = $(filter-out $(SKEL_D)/$(comma)%, $(filter $(addprefix %, $(SRCSFXS)),$(SKELSRCF)))
+
+# Final list of 'skel' *.c files
+skel = $(addsuffix $(SRCSFXS),$(notdir $(basename $(FLTSKELFILES))))
+
+# Took examples from xtensa/boot/lib
+# Copy all 'skel' *.c files into local dir for compilation
+quiet_cmd_copy_skel = COPY    $@
+      cmd_copy_skel = cat $< > $@
+
+# Remove already compiled 'skel' *.c files from local dir
+quiet_cmd_remove_skel = RM    $<
+      cmd_remove_skel = rm -f $<
+
+# We copy 'skel' *.c files locally for compilation
+# Check 'Static Pattern Rules' in makefile manual
+$(addprefix $(obj)/,$(skel)):  $(obj)/%: $(SKEL_D)/%
+	$(call cmd,copy_skel)
+
+# Add extra files to the list (including XML, as 'skel' is using it)
+$(DRIVER_NAME)-y += $(skel:.c=.o) $(addprefix $(UTIL_D)/, libinstkernel.o)
+
+# Should redefine .o compilation rule as skel *.c
+# files should be removed after compilation
+$(addprefix $(obj)/,$(skel:.c=.o)): %.o: %.c
+	$(call cmd,cc_o_c)
+	@rm -f $(depfile)
+	$(call cmd,remove_skel)
+
+# 'skel' is CDCM compliant with VME && PCI bus support
+IS_CDCM        = y
+CONFIG_BUS_PCI = y
+CONFIG_BUS_VME = y
+endif # IS_SKEL
 
 
-# Driver type (PCI, VME or BOTH) -- BOTH (which is the default)
-# means that both Pci and Vme CDCM files will be compiled
-ifeq ($(DRIVER_BUS), PCI)
-CDCM_SRC_FILES += $(CDCM_D)/cdcmPci.c \
-	$(CDCM_D)/cdcmPciDmaLinux.c
-else ifeq ($(DRIVER_BUS), VME)
-CDCM_SRC_FILES += $(CDCM_D)/cdcmVme.c
-else
-CDCM_SRC_FILES += $(CDCM_D)/cdcmPci.c \
-	$(CDCM_D)/cdcmVme.c \
-	$(CDCM_D)/cdcmPciDmaLinux.c
-endif
+# CDCM driver types
+# This is VME
+ifeq ($(CONFIG_BUS_VME),y)
 
+# 'vmebridge' hosting dir
+VMEB_D = $(obj)/../../vmebridge/driver
 
-SKEL_SRC_FILES += \
-	$(SKEL_D)/skeldrvr.c
+cdcmvme-$(CONFIG_BUS_VME) += cdcmVme.o
 
-ifeq ($(IS_SKEL), n)
-ifeq ($(IS_CDCM), y)
-EXTRA_DRVR_OBJS = $(addsuffix .o, $(basename $(CDCM_SRC_FILES))) $(addsuffix .o, $(basename $(EXTRA_SRC_FILES)))
-else
-EXTRA_DRVR_OBJS = $(addsuffix .o, $(basename $(EXTRA_SRC_FILES)))
-endif
-else ifeq ($(IS_SKEL), y)
-EXTRA_DRVR_OBJS = $(addsuffix .o, $(basename $(CDCM_SRC_FILES))) $(addsuffix .o, $(basename $(SKEL_SRC_FILES))) $(addsuffix .o, $(basename $(EXTRA_SRC_FILES)))
-else
-$(error IS_SKEL is not defined!)
-endif
+quiet_cmd_copy_symvers = COPY    $@
+      cmd_copy_symvers = cat $< > $@
 
-# Filter out driver objects
-comma = ,
-EXTOBJ	= .o
-SRCSFXS = .c
-DRVRSRCFILES = $(wildcard $(M)/*Drvr.c)
-FLTSRCFILES = $(filter-out $(M)/$(comma)%, $(filter $(addprefix %, $(SRCSFXS)),$(DRVRSRCFILES)))
-OBJFILES = $(addsuffix $(EXTOBJ),$(notdir $(basename $(FLTSRCFILES))))
-DRVROBJS = $(filter $(addprefix %Drvr, $(EXTOBJ)), $(OBJFILES))
+# We need to copy 'vmebus' Module.symvers file locally to get
+# rid of compilation warnings.
 
-# '-Wno-strict-prototypes' is used to get rid of warning
-# 'function declaration isn't a prototype'
+# $(extra-y) and $(targets) is _not_ working here
+always += Module.symvers
 
-obj-m     := $(DRIVER_NAME).o
-ccflags-y := -Wno-strict-prototypes $(LINUXINCLUDE) -I$(M) -I$(M)/../include -I$(M)/../../include -I$(CDCM_DRVR_DIR) -I$(M)/$(SKEL_D) -I$(XML_LIB_D) $(EXTRA_INCDIRS) -DDRIVER_NAME=\"$(DRIVER_NAME)\" -DCPU=$(CPU) -DCOMPILE_TIME=$(shell date --utc +%s)
-#$(DRIVER_NAME)-objs := $(DRVROBJS) $(EXTRA_DRVR_OBJS)
-$(DRIVER_NAME)-y := $(DRVROBJS) $(EXTRA_DRVR_OBJS)
+# We need to copy .symvers file locally
+$(obj)/Module.symvers: $(VMEB_D)/Module.symvers
+	$(call cmd,copy_symvers)
+endif # CONFIG_BUS_VME
+
+# This is PCI
+cdcmpci-$(CONFIG_BUS_PCI) += cdcmPci.o cdcmPciDmaLinux.o
+
+# CDCM backbone
+cdcm-$(IS_CDCM) := $(addprefix $(CDCM_D)/, \
+		   cdcmBoth.o cdcmDrvr.o cdcmLynxAPI.o \
+		   cdcmMem.o cdcmThread.o cdcmTime.o \
+		   $(cdcmvme-y) $(cdcmpci-y))
+
+# Extra driver utilities
+xml-$(USE_XML)         := libinstkernel.o
+plx9030-$(USE_PLX9030) := plx9030.o
+plx9656-$(USE_PLX9636) := plx9656.o
+
+# Major driver Utilities
+utils-$(USE_UTILS) := $(addprefix $(UTIL_D)/, \
+	drvr_load_file.o drvr_utils.o $(xml-y) $(plx9030-y) $(plx9656-y))
+
+# Build-up final version with extra things for the driver
+$(DRIVER_NAME)-y += $(cdcm-y) $(utils-y)

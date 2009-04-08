@@ -5,60 +5,44 @@
 #
 # @author Yury GEORGIEVSKIY. CERN BE/CO
 #
-# @date Created on 13/01/2009
+# @date Created on 08/04/2009
 ###############################################################################
-
-#SHELL += -x
-
-#OLD_SHELL := $(SHELL)
-#SHELL = $(info Building $@)$(OLD_SHELL)
-
-#OLD_SHELL := $(SHELL)
-#SHELL = $(warning Building $@$(if $<, (from $<))$(if $?, ($? newer)))$(OLD_SHELL)
-
-#export SHELL
-
-ifeq ($(origin CPU), undefined)
-CPU = L865
-endif
-
 include ../Makefile.specific
-include ../../makefiles/Makefile.base
+include ../../makefiles/Kbuild.include
 
-# special build type. For choose correct debug/optimization flags
-BLDTYPE = drv
-#BLDTYPE = dbg
+# Quiet you!
+MAKEFLAGS += --no-print-directory
 
-KERNEL_SOURCE := /acc/sys/$(CPU)/usr/src/kernels/$(OSREL)
-# KERNEL_SOURCE := /local/ygeorgie/work-stuff/git/kernel/linux-2.6
+# Default target is the driver
+_all: all
 
-PWD := $(shell pwd)
-CPU := $(shell echo $(KERNEL_SOURCE) | awk -F/ '{print $$4}' )
-# BAKS = ,* *~ *.bak *.BAK .es1* .B* %*% .ec1 .ek1 .*~ core a.out *JNL *.lst \\\#*\\\# .nfs* *%
-BAKS = ,* *~ *.bak *.BAK .B* %*% .ec1 .ek1 .*~ core a.out *JNL *.lst \\\#*\\\# .nfs* *%
+# .ko delivery point
+FINAL_DEST = object_$(DRIVER_NAME)
+$(FINAL_DEST):
+	-mkdir -p ../$@
 
 # What will be finally created
-DRIVERS   = ../$(FINAL_DEST)/$(DRIVER_NAME).$(CPU).ko
+DRIVER  = ../$(FINAL_DEST)/$(DRIVER_NAME).$(CPU).ko
 
-# Invokes the kernel build system to come back to the current
-# directory and build module kernel object (.ko)
-#$(obj-m:.o=.ko) drvr: $(OBJDIR) $(FINAL_DEST)
-#$(MAKE) -C $(KERNEL_SOURCE)
-#O=$(PWD)/$(OBJDIR)
-#M=$(PWD)
-#modules
+# Let's roll
+all: $(OBJDIR) $(FINAL_DEST)
+# 1. compile the driver
+	$(MAKE) -C $(KSRC) M=$(PWD) CPU=$(CPU) KVER=$(KVER) modules
 
-#$(obj-m:.o=.ko)
-drvr: $(OBJDIR) $(FINAL_DEST)
-	$(MAKE) -C $(KERNEL_SOURCE) \
-	SHELL="$(SHELL)" \
-	M=$(PWD) \
-	modules
-#@if [ -d $(OBJDIR)/.tmp_versions ]; then rm -r $(OBJDIR)/.tmp_versions; fi
-#@mv -f .tmp_versions/ *.o .*.o.cmd .*.ko.cmd *.mod.c $(OBJDIR)
-#@mv *.ko $(DRIVERS)
+# 2. Remove .tmp_version subdir, if already exists
+	@if [ -d $(OBJDIR)/.tmp_versions ]; then \
+		rm -rf $(OBJDIR)/.tmp_versions; \
+	fi
 
-# Local cleanup
-cleanloc clearloc:: abort
-	$(MAKE) -C /acc/sys/$(CPU)/usr/src/kernels/$(OSREL) M=$(PWD) clean
-	$(RM) -rf $(BAKS) $(OBJDIR) ERROR
+# 3. Move all the compiled stuff in the object directory
+	@mv -f .tmp_versions/ *.o .*.o.cmd .*.ko.cmd *.mod.c *.symvers \
+	$(OBJDIR)
+
+# 4. Deliver kernel object
+	@mv *.ko $(DRIVER)
+
+
+# Guess what
+clean clear:
+	$(MAKE) -C $(KSRC) M=$(PWD) clean
+	$(RM) -rf $(OBJDIR)

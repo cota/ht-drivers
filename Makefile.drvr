@@ -1,49 +1,45 @@
-###############################################################################
+################################################################################
 # @file Makefile.drvr
 #
-# @brief Driver compilation.
+# @brief Driver compilation locomotive
 #
 # @author Yury GEORGIEVSKIY. CERN AB/CO
 #
 # @date Created on 13/01/2009
-#
-# <long description>
-#
-# @version
-###############################################################################
+################################################################################
 
+# In case if user provided CPU && KVER
 include ../Makefile.specific
 
-# For OS Release (OSREL) see in /acc/sys/$(CPU)/usr/src/kernels
-
+# CPU is not defined
 ifeq ($(origin CPU), undefined)
-include ../../makefiles/Makefile.base
+	include ../../makefiles/Makefile.base
 endif
 
 # CES Linux
 ifeq ($(CPU), Lces)
-OSREL = ces
-include ../../makefiles/Makefile.lces
+	OSREL = ces
+	include ../../makefiles/Makefile.lces
 endif
 
 # SLC4
 ifeq ($(CPU), L864)
-OSREL = 2.6.24.4-rt4
-include ../../makefiles/Makefile.linux
+	ifeq ($(KVER),)
+		KVER = 2.6.24.4-rt4
+	endif
+	include ../../makefiles/Makefile.linux
 endif
 
 # SLC5
 ifeq ($(CPU), L865)
-
-ifndef OSREL
-OSREL = 2.6.24.7-rt27
-endif
-
-include ../../makefiles/Makefile.linux
+	ifeq ($(KVER),)
+		KVER = 2.6.24.7-rt27
+	endif
+	include ../../makefiles/Makefile.linux
 endif
 
 # Lynx
 ifeq ($(CPU), ppc4)
-OSREL = Lynx
-include ../../makefiles/Makefile.lynx
+	OSREL = Lynx
+	include ../../makefiles/Makefile.lynx
 endif
