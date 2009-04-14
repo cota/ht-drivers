@@ -10,7 +10,7 @@
 ################################################################################
 
 # compile for Linux
-make clean drvr CPU=L865
+make clean CPU=L865; make CPU=L865
 
 # compile for Lynx
 make clean drvr CPU=ppc4

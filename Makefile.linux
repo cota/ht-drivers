@@ -22,7 +22,7 @@ $(FINAL_DEST):
 	-mkdir -p ../$@
 
 # What will be finally created
-DRIVER  = ../$(FINAL_DEST)/$(DRIVER_NAME).$(CPU).ko
+DRIVER  = ../$(FINAL_DEST)/$(DRIVER_NAME).$(KVER).ko
 
 # Let's roll
 all: $(OBJDIR) $(FINAL_DEST)

@@ -12,7 +12,7 @@ include ../Makefile.specific
 include ../../makefiles/Makefile.base
 
 INSTDIR    = $(addsuffix /$(DLVRYPLS)/$(CPU), $(EXECINSTDIR))
-ADDCFLAGS  = $(STDFLAGS) -DCPU=\"$(CPU)\"
+ADDCFLAGS  = $(STDFLAGS) -DCPU=\"$(CPU)\" -DKVER="$(KVER)"
 
 # libraries (and their pathes) to link executable file with
 XTRALIBDIRS = ../../utils/user

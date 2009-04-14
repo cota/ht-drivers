@@ -14,6 +14,9 @@ include ../../makefiles/Kbuild.lynx
 # special build type. For choose correct debug/optimization flags
 BLDTYPE = drv
 
+# KVER Should be the same as CPU for driver name [Naming Convention]
+KVER := $(CPU)
+
 ADDCFLAGS   = $(STDFLAGS) -DCPU=\"$(CPU)\"
 ADDINCLUDES = $(KERN_INCLUDES)
 
@@ -29,7 +32,7 @@ ADDINCLUDES = $(KERN_INCLUDES)
 # It's working in this case.
 
 # What will be finally created
-DRIVERS   = ../$(FINAL_DEST)/$(DRIVER_NAME)Drvr.$(CPU).o
+DRIVERS   = ../$(FINAL_DEST)/$(DRIVER_NAME).$(KVER).o
 
 $(DRIVERS): CC = $(KERN_CC)
 $(DRIVERS): OUTPUT_OPTION +=$(KFLAGS); mv $*.$(CPU).o $(OBJDIR)
@@ -37,7 +40,6 @@ $(DRIVERS): OUTPUT_OPTION +=$(KFLAGS); mv $*.$(CPU).o $(OBJDIR)
 # Old implementation. Was working with old make.
 #$(DRIVERS): OUTPUT_OPTION +=$@; mv $*.$(CPU).o $(OBJDIR)
 
-#$(DRIVER_NAME)Drvr.c
 SRCFILES += \
 	$(wildcard *Drvr.c)
 
@@ -47,6 +49,7 @@ DRVROBJS = $(filter $(addprefix %Drvr,$(EXTOBJ)), $(OBJFILES)) $(EXTRA_DRVR_OBJS
 
 INCDIRS += \
 	/acc/sys/$(CPU)/usr/include/ces \
+	../../utils/driver \
 	../include \
 	../../include \
 	../.. \
@@ -75,7 +78,7 @@ $(DRIVER_NAME)Drvr.$(CPU).tmp: $(DRVROBJS)
 # This rules will create a driver shared object that imports an undefined
 # symbols.
 $(DRIVERS): $(DRIVER_NAME)Drvr.$(CPU).import $(DRVROBJS)
-	$(KERN_LD) -o $@ -bM:SRE -bimport:$(addprefix $(OBJDIR)/, $(notdir $^))
+	$(KERN_LD) -o $(subst .o,.ko,$@) -bM:SRE -bimport:$(addprefix $(OBJDIR)/, $(notdir $^))
 
 # Local cleaning
 cleanloc clearloc:: abort
