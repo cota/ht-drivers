@@ -6,7 +6,7 @@ KERN_DIR="/acc/sys/$(CPU)/usr/src/kernels/$(KERNEL)"
 
 include /acc/src/dsc/co/Make.auto
 
-DRVDIR=$(shell pwd)/drvr
+DRVDIR=$(shell pwd)/driver
 DRVTESTDIR=$(shell pwd)/drvrtest
 
 all: drvr includes lib drvrtest test
@@ -41,15 +41,15 @@ clean:
 
 .PHONY: drvr drvrtest includes lib test clean
 
-install:: drvr/vmebus.ko drvr/vmebus.h lib/libvmebus.h
+install:: driver/vmebus.ko driver/vmebus.h lib/libvmebus.h
 	for a in $(ACCS);do \
 	    if [ -w /acc/dsc/$$a/$(CPU)/$(KERNEL)/$(DRVR) ]; then \
 		echo Installing TSI148 VME bridge driver in /acc/dsc/$$a/$(CPU)/$(KERNEL)/$(DRVR); \
-		dsc_install drvr/vmebus.ko /acc/dsc/$$a/$(CPU)/$(KERNEL)/$(DRVR); \
+		dsc_install driver/vmebus.ko /acc/dsc/$$a/$(CPU)/$(KERNEL)/$(DRVR); \
 #		make -C apps INSTDIR=/acc/dsc/$$a/$(CPU)/$(KERNEL)/$(DRVR) install; \
 	    fi; \
 	done
-	dsc_install drvr/vmebus.h /acc/local/$(CPU)/include
+	dsc_install driver/vmebus.h /acc/local/$(CPU)/include
 	dsc_install lib/libvmebus.h /acc/local/$(CPU)/include
 
 MY= \
@@ -58,8 +58,8 @@ MY= \
     -I/acc/sys/$(CPU)/usr/src/kernels/$(KERNEL)/include/asm-x86/mach-default \
     -D__KERNEL__ -DCONFIG_AS_CFI=1 -DCONFIG_AS_CFI_SIGNAL_FRAME=1
 
-ANSI.h: drvr/tsi148.c drvr/vme_irq.c drvr/vme_window.c drvr/vme_dma.c \
-	drvr/vme_misc.c drvr/vme_cesif.c drvr/vme_bridge.c
+ANSI.h: driver/tsi148.c driver/vme_irq.c driver/vme_window.c driver/vme_dma.c \
+	driver/vme_misc.c driver/vme_cesif.c driver/vme_bridge.c
 	rm -f $@
 	for f in $^; do cproto -es $(MY) -o /tmp/ANSI.h $$f; cat /tmp/ANSI.h >>$@; done
 	rm -f /tmp/ANSI.h

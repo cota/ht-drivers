@@ -7,7 +7,7 @@ major=221
 echo 8 > /proc/sys/kernel/printk
 
 # Load module
-/sbin/insmod ../drvr/$module.ko $* || exit 1
+/sbin/insmod ../driver/$module.ko $* || exit 1
 
 # Remove stale nodes
 rm -f /dev/vme_mwindow

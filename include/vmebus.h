@@ -1,1 +1,1 @@
-../drvr/vmebus.h
+../driver/vmebus.h
