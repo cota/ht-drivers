@@ -10,8 +10,6 @@
  * All, that concerning threads is located here, i.e. all stub functions and
  * supplementary functions.
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
- *
- * @version 
  */
 #include "cdcmDrvr.h"
 #include "cdcmThread.h"
@@ -21,7 +19,7 @@ extern cdcmStatics_t cdcmStatT;
 
 
 /* if you know the better way to pass arbitrary number of parameters to
-   the function - let me know pls... (IMHO __builtin_apply_args() and co. 
+   the function - let me know pls... (IMHO __builtin_apply_args() and co.
    is not fit here) */
 #define ARGS0 tparam.tp_payload()
 #define ARGS1 tparam.tp_payload(tparam.tp_args[0])
@@ -31,9 +29,9 @@ extern cdcmStatics_t cdcmStatT;
 #define ARGS5 tparam.tp_payload(tparam.tp_args[0], tparam.tp_args[1], tparam.tp_args[2], tparam.tp_args[3], tparam.tp_args[4])
 #define ARGS6 tparam.tp_payload(tparam.tp_args[0], tparam.tp_args[1], tparam.tp_args[2], tparam.tp_args[3], tparam.tp_args[4], tparam.tp_args[5])
 /**
- * @brief 
+ * @brief
  *
- * @param data - 
+ * @param data -
  *
  * @return The return value should be zero or a negative error number.
  *         It will be passed to @e kthread_stop().
@@ -78,7 +76,7 @@ static int cdcm_local_thread(void *data)
   /* if here - thread receive termination order. die... */
 
   printk("\n[CDCM] [%d] (aka %s) Receive termination order!\n", tparam.tp_handle->thr_pd->pid, tparam.tp_handle->thr_nm);
-  
+
   if (!tparam.tp_handle->thr_pd) {
     printk("\n--------------------->FUCKEN SHIT!! WE SHOULDN'T BE HERE!!!!\n");
     /* checks if parameter is already initialized. It should be assigned
@@ -92,7 +90,7 @@ static int cdcm_local_thread(void *data)
 
   PRNT_DBG(cdcmStatT.cdcm_ipl, "[%d] (aka %s) exits...\n",
 	   tparam.tp_handle->thr_pd->pid, tparam.tp_handle->thr_nm);
-  
+
   return(0); /* all OK */
 }
 
@@ -100,7 +98,7 @@ static int cdcm_local_thread(void *data)
 /**
  * @brief Obtains thread handle structure based on the thread id.
  *
- * @param stid - 
+ * @param stid -
  *
  * @return thread handle pointer - if SUCCESS.
  * @return NULL                  - otherwise.
@@ -144,7 +142,7 @@ int ststart(tpp_t procaddr, int stacksize, int prio, char *name, int nargs, ...)
   if (nargs > CDCM_MAX_THR_ARGS)
     return(SYSERR);
 
-  if (strlen(name) > CDCM_TNL) 
+  if (strlen(name) > CDCM_TNL)
 	  PRNT_ABS_WARN("Desired thread name is too long (%d char > %d char"
 			"MAX). Will be truncated!\n", strlen(name), CDCM_TNL);
 
@@ -178,7 +176,7 @@ int ststart(tpp_t procaddr, int stacksize, int prio, char *name, int nargs, ...)
   for (cntr = 0; cntr < nargs; cntr++)
     tparp.tp_args[cntr] = va_arg(argptr, char *);
   va_end(argptr);
-  
+
   /* Start up our control thread */
   coco = kthread_run(cdcm_local_thread, &tparp, cdcmthrp->thr_nm);
 
@@ -187,7 +185,7 @@ int ststart(tpp_t procaddr, int stacksize, int prio, char *name, int nargs, ...)
 		       cdcmthrp->thr_nm);
     return SYSERR;
   }
-    
+
   /* wait while crusial info will be set up (cdcmthrp->thr_pd pointer) */
   wait_for_completion(&cdcmthrp->thr_c);
 
@@ -208,45 +206,49 @@ int ststart(tpp_t procaddr, int stacksize, int prio, char *name, int nargs, ...)
  */
 void stremove(int stid)
 {
-  struct task_struct *stpd = find_task_by_pid(stid);
-  cdcmthr_t *stptr; /* victim data */
-  int cntr;
-  ulong iflags;
+	struct task_struct *stpd = find_task_by_pid_ns(stid, &init_pid_ns);
 
-  if (!stpd) { /* bugaga! */
-	  PRNT_DBG(cdcmStatT.cdcm_ipl, "Can't stop thread! No such tid (%d)",
-		   stid);
-	  return;
-  }
-  
-  PRNT_ABS_INFO("%s() Stopping %d tid.", __func__, stid);
+	cdcmthr_t *stptr; /* victim data */
+	int cntr;
+	ulong iflags;
 
-  if ( !(stptr = cdcm_get_thread_handle(stid)) ) {
-    PRNT_DBG(cdcmStatT.cdcm_ipl, "Can't stop thread! No thread handle for tid (%d)", stid);
-    return;
-  }
+	if (!stpd) { /* bugaga! */
+		PRNT_DBG(cdcmStatT.cdcm_ipl,
+			 "Can't stop thread! No such tid (%d)", stid);
+		return;
+	}
 
-  /* cleanup timeouts (if any) */
-  for (cntr = 0; cntr < MAX_CDCM_TIMERS; cntr++)
-    if (cdcmStatT.cdcm_timer[cntr].ct_on == stid) {
-      del_timer_sync(&cdcmStatT.cdcm_timer[cntr].ct_timer);
-      cdcmStatT.cdcm_timer[cntr].ct_on = 0;
-    }
+	PRNT_ABS_INFO("%s() Stopping %d tid.", __func__, stid);
 
-  /* we should protect critical region here */
-  local_irq_save(iflags); 
-  printk("\t[CDCM] %s() tid[%d] Set victim wake up flag\n", __func__, stid);
-  stptr->thr_sem = stid;	/* denotes termination order */
+	if ( !(stptr = cdcm_get_thread_handle(stid)) ) {
+		PRNT_DBG(cdcmStatT.cdcm_ipl,
+			 "Can't stop thread! No thread handle for tid (%d)",
+			 stid);
+		return;
+	}
+
+	/* cleanup timeouts (if any) */
+	for (cntr = 0; cntr < MAX_CDCM_TIMERS; cntr++)
+		if (cdcmStatT.cdcm_timer[cntr].ct_on == stid) {
+			del_timer_sync(&cdcmStatT.cdcm_timer[cntr].ct_timer);
+			cdcmStatT.cdcm_timer[cntr].ct_on = 0;
+		}
+
+	/* we should protect critical region here */
+	local_irq_save(iflags);
+	printk("\t[CDCM] %s() tid[%d] Set victim wake up flag\n",
+	       __func__, stid);
+	stptr->thr_sem = stid;	/* denotes termination order */
 
 
-  /*
-   * This synchronous operation  will wake the kthread if it is
-   * asleep and will return when thread has terminated.
-   */
-  printk("\t%s() calling kthread_stop()...\n", __func__);
-  kthread_stop(stpd);
-  list_del(&stptr->thr_list); /* exclude me from the list */
-  printk("\t%s(): kthread_stop() return.\n", __func__);
+	/*
+	 * This synchronous operation  will wake the kthread if it is
+	 * asleep and will return when thread has terminated.
+	 */
+	printk("\t%s() calling kthread_stop()...\n", __func__);
+	kthread_stop(stpd);
+	list_del(&stptr->thr_list); /* exclude me from the list */
+	printk("\t%s(): kthread_stop() return.\n", __func__);
 
-  local_irq_restore(iflags);
+	local_irq_restore(iflags);
 }

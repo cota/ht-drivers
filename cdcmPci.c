@@ -53,8 +53,9 @@ int drm_get_handle(int buslayer_id, int vendor_id, int device_id,
 	struct cdcm_dev_info *dit = NULL;
 	struct pci_dev *pprev = (list_empty(&cdcmStatT.cdcm_dev_list)) ?
 		NULL :
-		(list_entry(list_last_entry(&cdcmStatT.cdcm_dev_list),
-			    struct cdcm_dev_info, di_list))->di_pci;
+		list_last_entry(&cdcmStatT.cdcm_dev_list,
+				struct cdcm_dev_info, di_list)->di_pci;
+
 	struct pci_dev *pcur = pci_get_device(vendor_id, device_id, pprev);
 
 	cdcm_err = 0; /* reset */
