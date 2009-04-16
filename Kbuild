@@ -1,10 +1,10 @@
 # Include generic definitions
-include $(M)/../makefiles/Kbuild.include
+include $(ROOTDIR)/makefiles/Kbuild.include
 
 # Extra CC flags && needed pathes
 ccflags-y += \
 	-Wno-strict-prototypes \
-	-I$(TOPDIR)/utils
+	-I$(ROOTDIR)/utils
 
 # CDCM files
 cdcm-y := $(OBJFILES)
