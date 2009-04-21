@@ -103,13 +103,6 @@ make_relpath() {
     echo $p1$b1
 }
 
-
-#   FRM=/acc/src/dsc/drivers/coht/
-#TARGET=/acc/src/dsc/drivers/coht/drivers/coht/ctr/vme/linux_ygeorgie/
-
-TARGET=/acc/src/dsc/drivers/coht.c
-   FRM=/acc/src/dsc/drivers/coht/ctr/vme/linux_ygeorgie/
-
 RESULT=$(make_relpath "$1" "$2")
 
 echo "$RESULT"
