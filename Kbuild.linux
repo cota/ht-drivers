@@ -10,39 +10,53 @@
 # @note For developers @e only. To work && test git branches - use .__kitchen
 #       directory with your username inside.
 #
-# @example Let's say you want to work on your own CDCM branch. What should be
-#          done is:
-#          1. -> cd .__kitchen/<usrname>
-#          2. -> git-clone ../../cdcm
-#          3. Do modifications in the cloned CDCM
-#             (i.e. in __kitchen/<usrname>/cdcm)
-#          4. Check if your driver is still working with it.
-#             To do this - cd to the driver dir.
-#             4.1. -> cd coht/nulldrvr/driver
-#             4.2 compile with local CDCM. Example:
-#                 make clean drvr CPU=L865 \
-#                 CDCM_DRVR_DIR=/acc/src/dsc/drivers/coht/.__kitchen/ygeorgie \
-#                 CDCM_D=../../.__kitchen/ygeorgie/cdcm
-#          5. Commit changes in the main CDCM branch:
-#             -> git-commit
+# @b example
+#    Let's say you want to work on your own CDCM branch. What should be done is:
+#      1. -> cd .__kitchen/<usrname>
+#
+#      2. -> git-clone ../../cdcm
+#
+#      3. Do modifications in the cloned CDCM
+#         (for example in __kitchen/ygeorgie/cdcm)
+#
+#      4. Recompile your local copy of CDCM for desired kernel version
+#	  -> make KVER=2.6.29.1-rt7
+#
+#      5. Check if your driver is still working with it.
+#         To do this - cd to the driver dir.
+#         4.1. -> cd coht/nulldrvr/driver
+#         4.2 compile with local CDCM. Example:
+#             make clean CPU=L865
+#             make CPU=L865 \
+#	      CDCM_D=/acc/src/dsc/drivers/coht/.__kitchen/ygeorgie/cdcm
+#
+#      6. Commit changes in the main CDCM branch:
+#         -> git-commit
 ###############################################################################
 
-# Include specific Makefile to get driver configuraion
+# Include specific Makefile to get driver configuraion settings
 include $(M)/../Makefile.specific
 
 # Include generic definitions
-include $(M)/../../makefiles/Kbuild.include
+include $(ROOTDIR)/makefiles/Kbuild.include
 
-CDCM_D = ../../cdcm/$(CPU)/$(KVER)
-UTIL_D = ../../utils/driver/$(CPU)/$(KVER)
+# Ensure lowecase drivername
+DRIVER_NAME := $(shell echo $(DRIVER_NAME) | tr "[:upper:]" "[:lower:]")
+
+# User can provide it's own CDCM directory
+CDCM_D ?= $(ROOTDIR)/cdcm
+
+# Do relative pathes
+CDCM_D_REL := $(call abs2rel, $(CDCM_D)/$(CPU)/$(KVER)/, $(M)/)
+UTIL_D_REL := $(call abs2rel, $(ROOTDIR)/utils/driver/$(CPU)/$(KVER)/, $(M)/)
 
 # Extra CC flags && needed pathes
 ccflags-y += \
 	-I$(M) \
-	-I$(TOPDIR) \
+	-I$(ROOTDIR) \
 	-I$(M)/../include \
-	-I$(TOPDIR)/skel/driver \
-	-I$(TOPDIR)/utils/driver \
+	-I$(ROOTDIR)/skel/driver \
+	-I$(ROOTDIR)/utils/driver \
 	\
 	-DDRIVER_NAME=\"$(DRIVER_NAME)\" \
 	-DCPU=$(CPU) \
@@ -51,15 +65,15 @@ ccflags-y += \
 # What we need to build
 obj-m := $(DRIVER_NAME).o
 
-# Virgin driver (without any extra features) consists of _all_  '*.c'
-# files in './driver' directory
+#  Virgin driver (without any extra features) consists of _all_  '*.c'
+#+ files in './driver' directory
 $(DRIVER_NAME)-y := $(OBJFILES)
 
 # If driver is 'skel' compliant?
 ifeq ($(IS_SKEL),y)
 
 # 'skel' hosting dir
-SKEL_D = $(obj)/../../skel/driver
+SKEL_D = $(ROOTDIR)/skel/driver
 
 # Get all *.c files from there
 SKELSRCF = $(wildcard $(SKEL_D)/*.c)
@@ -85,7 +99,7 @@ $(addprefix $(obj)/,$(skel)):  $(obj)/%: $(SKEL_D)/%
 	$(call cmd,copy_skel)
 
 # Add extra files to the list (including XML, as 'skel' is using it)
-$(DRIVER_NAME)-y += $(skel:.c=.o) $(addprefix $(UTIL_D)/, libinstkernel.o)
+$(DRIVER_NAME)-y += $(skel:.c=.o)
 
 # Should redefine .o compilation rule as skel *.c
 # files should be removed after compilation
@@ -94,7 +108,8 @@ $(addprefix $(obj)/,$(skel:.c=.o)): %.o: %.c
 	@rm -f $(depfile)
 	$(call cmd,remove_skel)
 
-# 'skel' is CDCM compliant with VME && PCI bus support
+# 'skel' is CDCM compliant with VME && PCI bus support, using XML library
+USE_XML        = y
 IS_CDCM        = y
 CONFIG_BUS_PCI = y
 CONFIG_BUS_VME = y
@@ -106,7 +121,7 @@ endif # IS_SKEL
 ifeq ($(CONFIG_BUS_VME),y)
 
 # 'vmebridge' hosting dir
-VMEB_D = $(obj)/../../vmebridge/driver
+VMEB_D = $(call abs2rel, $(ROOTDIR)/vmebridge/driver/, $(M)/)
 
 cdcmvme-$(CONFIG_BUS_VME) += cdcmVme.o
 
@@ -120,7 +135,7 @@ quiet_cmd_copy_symvers = COPY    $@
 always += Module.symvers
 
 # We need to copy .symvers file locally
-$(obj)/Module.symvers: $(VMEB_D)/Module.symvers
+$(obj)/Module.symvers: $(VMEB_D)Module.symvers
 	$(call cmd,copy_symvers)
 endif # CONFIG_BUS_VME
 
@@ -128,19 +143,18 @@ endif # CONFIG_BUS_VME
 cdcmpci-$(CONFIG_BUS_PCI) += cdcmPci.o cdcmPciDmaLinux.o
 
 # CDCM backbone
-cdcm-$(IS_CDCM) := $(addprefix $(CDCM_D)/, \
+cdcm-$(IS_CDCM) := $(addprefix $(CDCM_D_REL), \
 		   cdcmBoth.o cdcmDrvr.o cdcmLynxAPI.o \
 		   cdcmMem.o cdcmThread.o cdcmTime.o \
 		   $(cdcmvme-y) $(cdcmpci-y))
 
-# Extra driver utilities
-xml-$(USE_XML)         := libinstkernel.o
-plx9030-$(USE_PLX9030) := plx9030.o
-plx9656-$(USE_PLX9636) := plx9656.o
-
 # Major driver Utilities
-utils-$(USE_UTILS) := $(addprefix $(UTIL_D)/, \
-	drvr_load_file.o drvr_utils.o $(xml-y) $(plx9030-y) $(plx9656-y))
+utils-$(USE_UTILS) := $(addprefix $(UTIL_D_REL), drvr_load_file.o drvr_utils.o)
+
+# Extra driver utilities
+xml-$(USE_XML)         := $(addprefix $(UTIL_D_REL), libinstkernel.o)
+plx9030-$(USE_PLX9030) := $(addprefix $(UTIL_D_REL), plx9030.o)
+plx9656-$(USE_PLX9636) := $(addprefix $(UTIL_D_REL), plx9656.o)
 
 # Build-up final version with extra things for the driver
-$(DRIVER_NAME)-y += $(cdcm-y) $(utils-y)
+$(DRIVER_NAME)-y += $(cdcm-y) $(utils-y) $(xml-y) $(plx9030-y) $(plx9656-y)

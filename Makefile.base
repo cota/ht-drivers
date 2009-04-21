@@ -5,6 +5,8 @@
 #
 # @author Yury GEORGIEVSKIY. CERN BE/CO
 #
+# Should be include in the makefile _after_ Makefile.specific
+#
 # @date Created on 13/01/2009
 ###############################################################################
 
@@ -14,7 +16,7 @@ ifndef CPU
 	@echo "'CPU' declaration expected."
 	@echo "Exiting..."; exit 1
 
-else #Don't proceed if error
+else # Don't proceed if error
 
 # Do not print "Entering directory ..."
 MAKEFLAGS += --no-print-directory
@@ -130,14 +132,17 @@ depend dep::
 endif # BLDTYPE
 ############################################################################
 
-# Object files directory buidup
-OBJDIR = $(CPU)_$(BLDTYPE)
-$(CPU)_%:
-	-mkdir -p $@
+# Compiled files goes here
+OBJDIR = $(CPU)/$(KVER)
+$(OBJDIR):
+	mkdir -p $@
+
+# Ensure lowecase drivername
+DRIVER_NAME := $(shell echo $(DRIVER_NAME) | tr "[:upper:]" "[:lower:]")
 
 # Driver and install prog goes here.
-# Name is defined _only_ if user in not alredy define it with preferable one
-# in the Makefile.specific
+# This name is defined _only_ if user in not alredy define it with preferable
+# one in the Makefile.specific. Driver name is lowercase-ensured.
 FINAL_DEST ?= object_$(DRIVER_NAME)
 object_%:
 	-mkdir -p ../$@

@@ -11,11 +11,10 @@
 # CDCM and driver utils Kbuilds are using it as well.
 ###############################################################################
 
-# Where everything is nested
-TOPDIR = /acc/src/dsc/drivers/coht
-
 # kernel src dir
 KSRC := /acc/sys/$(CPU)/usr/src/kernels/$(KVER)
+
+abs2rel = $(shell $(ROOTDIR)/makefiles/abs2rel.sh $(1) $(2))
 
 # That's our default target when none is given on the command line
 PHONY := _all
@@ -36,5 +35,5 @@ FLTSRCFILES = $(filter-out $(M)/$(comma)%, $(filter $(addprefix %, $(SRCSFXS)),$
 OBJFILES = $(addsuffix $(EXTOBJ),$(notdir $(basename $(FLTSRCFILES))))
 
 # Absolutely needed pathes
-ccflags-y := \
-	-I$(TOPDIR)/include
+ccflags-y += \
+	-I$(ROOTDIR)/include

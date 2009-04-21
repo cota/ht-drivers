@@ -7,13 +7,12 @@
 #
 # @date Created on 13/01/2009
 #
-# @note See Kbuild.linux for more information on howto compile with test
-#	CDCM branches.
+# @b NOTE See Kbuild.linux for more information on howto compile with test
+#         CDCM branches
 ###############################################################################
-
-CDCM_D = ../../cdcm
-XML_LIB_D     = /acc/src/dsc/drivers/coht/utils/xml
-XML_D         = ../../utils/xml
+CDCM_D    = ../../cdcm
+XML_LIB_D = /acc/src/dsc/drivers/coht/utils/xml
+XML_D     = ../../utils/xml
 
 EXTRA_DRVR_SRC_FILES += \
 	$(CDCM_D)/cdcmBoth.c

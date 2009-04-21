@@ -5,9 +5,12 @@
 #
 # @author Yury GEORGIEVSKIY. CERN BE/CO
 #
+# @b NOTE
+# Don't use this makefile directly!
+# It should be included through Makefile.drvr _ONLY_
+#
 # @date Created on 13/01/2009
 ###############################################################################
-
 include ../../makefiles/Makefile.base
 
 # special build type. For choose correct debug/optimization flags

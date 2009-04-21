@@ -5,10 +5,17 @@
 #
 # @author Yury GEORGIEVSKIY. CERN BE/CO
 #
+# @b NOTE
+# Don't use this makefile directly!
+# It should be included through Makefile.drvr _ONLY_
+#
 # @date Created on 08/04/2009
 ###############################################################################
-include ../Makefile.specific
-include ../../makefiles/Kbuild.include
+# Include generic definitions
+include $(ROOTDIR)/makefiles/Kbuild.include
+
+# Ensure lowecase drivername
+DRIVER_NAME := $(shell echo $(DRIVER_NAME) | tr "[:upper:]" "[:lower:]")
 
 # Quiet you!
 MAKEFLAGS += --no-print-directory
@@ -27,7 +34,8 @@ DRIVER  = ../$(FINAL_DEST)/$(DRIVER_NAME).$(KVER).ko
 # Let's roll
 all: $(OBJDIR) $(FINAL_DEST)
 # 1. compile the driver
-	$(MAKE) -C $(KSRC) M=$(PWD) CPU=$(CPU) KVER=$(KVER) modules
+	$(MAKE) -C $(KSRC) M=$(PWD) CPU=$(CPU) KVER=$(KVER) \
+	ROOTDIR=$(ROOTDIR) modules
 
 # 2. Remove .tmp_version subdir, if already exists
 	@if [ -d $(OBJDIR)/.tmp_versions ]; then \
@@ -36,7 +44,7 @@ all: $(OBJDIR) $(FINAL_DEST)
 
 # 3. Move all the compiled stuff in the object directory
 	@mv -f .tmp_versions/ *.o .*.o.cmd .*.ko.cmd *.mod.c *.symvers \
-	$(OBJDIR)
+	Module.markers modules.order $(OBJDIR)
 
 # 4. Deliver kernel object
 	@mv *.ko $(DRIVER)
@@ -44,5 +52,5 @@ all: $(OBJDIR) $(FINAL_DEST)
 
 # Guess what
 clean clear:
-	$(MAKE) -C $(KSRC) M=$(PWD) clean
+	$(MAKE) -C $(KSRC) M=$(PWD) ROOTDIR=$(ROOTDIR) clean
 	$(RM) -rf $(OBJDIR)

@@ -10,6 +10,7 @@
 ################################################################################
 rm -f *.o .*.o.cmd .*.o.d .*.ko.cmd *.ko *.mod.c
 rm -fr .tmp_versions/ LYNX603_4.0.0_* LINUX_CES_*
-rm -f ../object/*
+#rm -f ../object/*
 rm -f /tmp/shlvcompvars
-rm -fr *.o .*.o.cmd .*.o.d .tmp_versions/ Module.symvers *.o_shipped
+rm -fr *.o .*.o.cmd .*.o.d .tmp_versions/ Module.symvers *.o_shipped \
+    Module.markers modules.order

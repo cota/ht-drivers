@@ -19,7 +19,7 @@ ifeq ($(CPU), L864)
 endif
 
 ifeq ($(CPU), L865)
-	include $(M)/../../makefiles/Kbuild.linux
+	include $(ROOTDIR)/makefiles/Kbuild.linux
 endif
 
 ifeq ($(CPU), ppc4)

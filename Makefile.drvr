@@ -8,18 +8,26 @@
 # @date Created on 13/01/2009
 ################################################################################
 
-# In case if user provided CPU && KVER
+# In case if user provided CPU, KVER or ROOTDIR
 include ../Makefile.specific
 
-# CPU is not defined
+#SHELL += -x
+
+# User can provide it's own
+ifeq ($(origin $(ROOTDIR)), undefined)
+	# Where everything is nested
+	ROOTDIR := /acc/src/dsc/drivers/coht
+endif
+
+# Error. CPU is not defined
 ifeq ($(origin CPU), undefined)
-	include ../../makefiles/Makefile.base
+	include $(ROOTDIR)/makefiles/Makefile.base
 endif
 
 # CES Linux
 ifeq ($(CPU), Lces)
 	OSREL = ces
-	include ../../makefiles/Makefile.lces
+	include $(ROOTDIR)/makefiles/Makefile.lces
 endif
 
 # SLC4
@@ -27,19 +35,21 @@ ifeq ($(CPU), L864)
 	ifeq ($(KVER),)
 		KVER = 2.6.24.4-rt4
 	endif
-	include ../../makefiles/Makefile.linux
+	include $(ROOTDIR)/makefiles/Makefile.linux
 endif
 
 # SLC5
 ifeq ($(CPU), L865)
 	ifeq ($(KVER),)
-		KVER = 2.6.24.7-rt27
+		KVER = 2.6.29.1-rt7
 	endif
-	include ../../makefiles/Makefile.linux
+	include $(ROOTDIR)/makefiles/Makefile.linux
 endif
 
 # Lynx
 ifeq ($(CPU), ppc4)
-	OSREL = Lynx
-	include ../../makefiles/Makefile.lynx
+	ifeq ($(KVER),)
+		KVER = 4.0.0
+	endif
+	include $(ROOTDIR)/makefiles/Makefile.lynx
 endif
