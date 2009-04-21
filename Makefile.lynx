@@ -5,17 +5,15 @@
 #
 # @author Yury GEORGIEVSKIY. CERN BE/CO
 #
+# @b NOTE
+# Don't use this makefile directly!
+# It should be included through Makefile.drvr _ONLY_
+#
 # @date Created on 13/01/2009
 ###############################################################################
 
 include ../../makefiles/Makefile.base
 include ../../makefiles/Kbuild.lynx
-
-# special build type. For choose correct debug/optimization flags
-BLDTYPE = drv
-
-# KVER Should be the same as CPU for driver name [Naming Convention]
-KVER := $(CPU)
 
 ADDCFLAGS   = $(STDFLAGS) -DCPU=\"$(CPU)\"
 ADDINCLUDES = $(KERN_INCLUDES)
@@ -32,7 +30,7 @@ ADDINCLUDES = $(KERN_INCLUDES)
 # It's working in this case.
 
 # What will be finally created
-DRIVERS   = ../$(FINAL_DEST)/$(DRIVER_NAME).$(KVER).o
+DRIVERS   = ../$(FINAL_DEST)/$(DRIVER_NAME).$(KVER).ko
 
 $(DRIVERS): CC = $(KERN_CC)
 $(DRIVERS): OUTPUT_OPTION +=$(KFLAGS); mv $*.$(CPU).o $(OBJDIR)
@@ -40,12 +38,11 @@ $(DRIVERS): OUTPUT_OPTION +=$(KFLAGS); mv $*.$(CPU).o $(OBJDIR)
 # Old implementation. Was working with old make.
 #$(DRIVERS): OUTPUT_OPTION +=$@; mv $*.$(CPU).o $(OBJDIR)
 
-SRCFILES += \
-	$(wildcard *Drvr.c)
-
+# Get all *.c files from current dir. ,*.c will be sorted-out in Makefile.base
+SRCFILES += $(wildcard $(PWD)/*.c)
 
 # Filter out driver objects
-DRVROBJS = $(filter $(addprefix %Drvr,$(EXTOBJ)), $(OBJFILES)) $(EXTRA_DRVR_OBJS)
+DRVROBJS = $(OBJFILES) $(EXTRA_DRVR_OBJS)
 
 INCDIRS += \
 	/acc/sys/$(CPU)/usr/include/ces \
