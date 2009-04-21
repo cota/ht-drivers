@@ -15,3 +15,4 @@
 #           make KVER=2.6.24.7-rt21
 CPU  = L865
 KVER = 2.6.24.7-rt27
+#KVER = 2.6.29.1-rt7

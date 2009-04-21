@@ -65,3 +65,6 @@ ncscope.*
 *.orig
 *~
 \#*#
+
+# Storage dirs
+L865/
