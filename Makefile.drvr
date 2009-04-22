@@ -14,7 +14,7 @@ include ../Makefile.specific
 #SHELL += -x
 
 # User can provide it's own
-ifeq ($(origin $(ROOTDIR)), undefined)
+ifeq ("$(origin ROOTDIR)", "undefined")
 	# Where everything is nested
 	ROOTDIR := /acc/src/dsc/drivers/coht
 endif

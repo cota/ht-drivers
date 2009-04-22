@@ -26,7 +26,7 @@
 #         To do this - cd to the driver dir.
 #         4.1. -> cd coht/nulldrvr/driver
 #         4.2 compile with local CDCM. Example:
-#             make clean CPU=L865
+#             make clean CPU=L865;
 #             make CPU=L865 \
 #	      CDCM_D=/acc/src/dsc/drivers/coht/.__kitchen/ygeorgie/cdcm
 #
@@ -43,6 +43,13 @@ include $(ROOTDIR)/makefiles/Kbuild.include
 # Ensure lowecase drivername
 DRIVER_NAME := $(shell echo $(DRIVER_NAME) | tr "[:upper:]" "[:lower:]")
 
+# User can compile with his own version of CDCM
+ifeq ("$(origin CDCM_D)", "command line")
+	CDCM_INC_DIR := $(shell echo "$(CDCM_D)" | sed -e 's:\([^/]\)$$:\1/:g' | sed -e 's:\(/.*/\).*/$$:\1:g')
+else
+	CDCM_INC_DIR := $(ROOTDIR)
+endif
+
 # User can provide it's own CDCM directory
 CDCM_D ?= $(ROOTDIR)/cdcm
 
@@ -50,10 +57,12 @@ CDCM_D ?= $(ROOTDIR)/cdcm
 CDCM_D_REL := $(call abs2rel, $(CDCM_D)/$(CPU)/$(KVER)/, $(M)/)
 UTIL_D_REL := $(call abs2rel, $(ROOTDIR)/utils/driver/$(CPU)/$(KVER)/, $(M)/)
 
-# Extra CC flags && needed pathes
+#  Extra CC flags && needed pathes
+#  -I$(ROOTDIR) - This dir is not included directly because user can use it's
+#+ own CDCM version.
 ccflags-y += \
 	-I$(M) \
-	-I$(ROOTDIR) \
+	-I$(CDCM_INC_DIR) \
 	-I$(M)/../include \
 	-I$(ROOTDIR)/skel/driver \
 	-I$(ROOTDIR)/utils/driver \
