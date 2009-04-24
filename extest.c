@@ -31,7 +31,7 @@
 #include <sys/param.h>
 #include <unistd.h>
 
-#include <xml/libinst.h>
+#include <libinst.h>
 
 /* local includes */
 #include <err.h>
