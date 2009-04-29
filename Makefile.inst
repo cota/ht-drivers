@@ -21,9 +21,7 @@ XTRALIBS    = -lxml2 -lz
 
 vpath %.c ./  ../../utils/user ../../utils/install
 
-SRCFILES = \
-	$(wildcard *Inst.c) \
-	inst_utils.c
+SRCFILES = $(wildcard *.c) inst_utils.c
 
 ifeq ($(CPU), ppc4)
 # something to include? As for now - nothing.

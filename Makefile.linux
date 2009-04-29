@@ -23,8 +23,9 @@ MAKEFLAGS += --no-print-directory
 # Default target is the driver
 _all: all
 
-# .ko delivery point
-FINAL_DEST = object_$(DRIVER_NAME)
+#  .ko delivery point
+#+ This name is defined _only_ if user in not alredy define it
+FINAL_DEST ?= object_$(DRIVER_NAME)
 $(FINAL_DEST):
 	-mkdir -p ../$@
 

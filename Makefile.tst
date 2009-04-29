@@ -9,8 +9,11 @@
 ###############################################################################
 
 # Makefile from current directory supress one from upper level
--include $(shell if [ -e ./Makefile.specific ]; then echo ./Makefile.specific; \
-	else echo ../Makefile.specific; fi)
+include $(shell if [ -e ./Makefile.specific ]; then \
+		echo ./Makefile.specific; \
+	else \
+		echo ../Makefile.specific; \
+	fi)
 
 -include ../../makefiles/Makefile.base
 
@@ -18,9 +21,9 @@ INSTDIR    = $(addsuffix /$(DLVRYPLS)/$(CPU), $(EXECINSTDIR))
 ADDCFLAGS  = $(STDFLAGS) -DDRIVER_NAME=\"$(DRIVER_NAME)\"
 
 # libraries (and their pathes) to link executable file with
-XTRALIBDIRS = ../../utils/xml ../$(FINAL_DEST)
+XTRALIBDIRS = ../../utils/user ../$(FINAL_DEST)
 LOADLIBES  := $(addprefix -L,$(XTRALIBDIRS)) $(LOADLIBES) -ltermcap \
-	   -linst.$(CPU)
+	   -lutils.$(CPU)
 
 # Get all local libs (in object_ directory) user wants to compile with
 LOCAL_LIBS = $(patsubst ../$(FINAL_DEST)/lib%.a, -l%, $(wildcard ../$(FINAL_DEST)/*.a))
@@ -50,7 +53,6 @@ endif
 endif
 # end USE_EXTEST
 
-
 ifeq ($(CPU), ppc4)
 SRCFILES    += extra_for_lynx.c
 endif
@@ -61,6 +63,7 @@ INCDIRS = \
 	../driver \
 	../include \
 	../../utils \
+	../../utils/user \
 	../../include \
 	../../utils/extest
 
