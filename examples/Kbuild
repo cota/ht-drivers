@@ -1,0 +1,21 @@
+###############################################################################
+# @file Kbuild
+#
+# @brief TEMPLATE. Specific kbuild for compiling Linux driver
+#
+# @author Yury GEORGIEVSKIY. CERN BE/CO
+#
+# Should be adapted for a specific driver
+#
+# @date Created on 29/04/2009
+###############################################################################
+# Use ccflags-y to pass extra driver compilation flags (if any)
+# ccflags-y =
+
+#  Use XTRA_DRSC to add driver files to compile from other
+#+ then ./driver directories
+#+ Path should be relative to the cwd!
+# XTRA_DSRC =
+
+# include standart general kbuild
+include $(M)/../../makefiles/Kbuild
