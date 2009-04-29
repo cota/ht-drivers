@@ -35,7 +35,13 @@
 ###############################################################################
 
 # Include specific Makefile to get driver configuraion settings
-include $(M)/../Makefile.specific
+# Makefile from current directory supress one from upper level
+include $(shell if [ -e $(M)/Makefile.specific ]; then \
+		echo $(M)/Makefile.specific; \
+	else \
+		echo $(M)/../Makefile.specific; \
+	fi)
+
 
 # Include generic definitions
 include $(ROOTDIR)/makefiles/Kbuild.include
@@ -75,8 +81,33 @@ ccflags-y += \
 obj-m := $(DRIVER_NAME).o
 
 #  Virgin driver (without any extra features) consists of _all_  '*.c'
-#+ files in './driver' directory
+#+ files in './driver' directory.
+#+ User can already add some extra src files to compile in specific Kbuild
 $(DRIVER_NAME)-y := $(OBJFILES)
+
+# Took examples from xtensa/boot/lib
+# Copy extra *.c files into local dir for compilation
+quiet_cmd_copy_xtraf = COPY    $@
+      cmd_copy_xtraf = cat $< > $@
+
+# Remove already compiled extra *.c files from local dir
+quiet_cmd_remove_xtraf = RM    $<
+      cmd_remove_xtraf = rm -f $<
+
+# User can define extra *.c files to compile driver
+ifdef XTRA_DSRC
+xtra = $(addsuffix $(SRCSFXS), $(notdir $(basename $(XTRA_DSRC))))
+
+$(addprefix $(obj)/,$(xtra)): $(obj)/%: $(addsuffix %, $(dir $(XTRA_DSRC)))
+	$(call cmd,copy_xtraf)
+
+$(DRIVER_NAME)-y += $(xtra:.c=.o)
+
+$(addprefix $(obj)/,$(xtra:.c=.o)): %.o: %.c
+	$(call cmd,cc_o_c)
+	@rm -f $(depfile)
+	$(call cmd,remove_xtraf)
+endif #XTRA_DSRC
 
 # If driver is 'skel' compliant?
 ifeq ($(IS_SKEL),y)
@@ -93,35 +124,26 @@ FLTSKELFILES = $(filter-out $(SKEL_D)/$(comma)%, $(filter $(addprefix %, $(SRCSF
 # Final list of 'skel' *.c files
 skel = $(addsuffix $(SRCSFXS),$(notdir $(basename $(FLTSKELFILES))))
 
-# Took examples from xtensa/boot/lib
-# Copy all 'skel' *.c files into local dir for compilation
-quiet_cmd_copy_skel = COPY    $@
-      cmd_copy_skel = cat $< > $@
-
-# Remove already compiled 'skel' *.c files from local dir
-quiet_cmd_remove_skel = RM    $<
-      cmd_remove_skel = rm -f $<
-
 # We copy 'skel' *.c files locally for compilation
 # Check 'Static Pattern Rules' in makefile manual
-$(addprefix $(obj)/,$(skel)):  $(obj)/%: $(SKEL_D)/%
-	$(call cmd,copy_skel)
+$(addprefix $(obj)/,$(skel)): $(obj)/%: $(SKEL_D)/%
+	$(call cmd,copy_xtraf)
 
 # Add extra files to the list (including XML, as 'skel' is using it)
 $(DRIVER_NAME)-y += $(skel:.c=.o)
 
-# Should redefine .o compilation rule as skel *.c
-# files should be removed after compilation
+#  Should redefine .o compilation rule as skel *.c
+#+ files should be removed after compilation
 $(addprefix $(obj)/,$(skel:.c=.o)): %.o: %.c
 	$(call cmd,cc_o_c)
 	@rm -f $(depfile)
-	$(call cmd,remove_skel)
+	$(call cmd,remove_xtraf)
 
 # 'skel' is CDCM compliant with VME && PCI bus support, using XML library
-USE_XML        = y
-IS_CDCM        = y
-CONFIG_BUS_PCI = y
-CONFIG_BUS_VME = y
+USE_XML        := y
+IS_CDCM        := y
+CONFIG_BUS_PCI := y
+CONFIG_BUS_VME := y
 endif # IS_SKEL
 
 
