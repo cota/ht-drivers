@@ -7,7 +7,7 @@
 #
 # Should be adapted for a specific driver
 # @e NOTE
-#  Makefile.specific from the current directory suppressing one from ../
+# Makefile.specific from the current directory suppressing one from ../
 # directory (see 'ctr' driver for example).
 #
 # @date Created on 29/04/2009
@@ -17,22 +17,22 @@
 DRIVER_NAME = <your_module_name>
 
 # If this driver is using skeleton (y/n)
-IS_SKEL = y
+IS_SKEL = n
 
 # If driver is CDCM compliant
-IS_CDCM = y
+IS_CDCM = n
 
 # If driver is VME one
-CONFIG_BUS_VME = y
+CONFIG_BUS_VME = n
 
 # If driver is PCI/PMC one
-CONFIG_BUS_PCI = y
+CONFIG_BUS_PCI = n
 
 # If driver will use extra handy utils (load info file etc...)
-USE_UTILS = y
+USE_UTILS = n
 
 # If driver will use libinst library to get configuration from XML file
-USE_XML = y
+USE_XML = n
 
 # If driver has plx9030 and wants to use its standart operations
 USE_PLX9030 = n
@@ -46,3 +46,7 @@ USE_PLX9656 = n
 #  If you want to compile with CDCM that is _not_ in the ROOTDIR
 #+ (i.e. out-of-standart-tree) - you _SHOULD_ set CDCM_D in the COMMAND LINE!
 #+ See 'out-of-tree-cdcm' file on howto do this.
+
+#  You can redefine FINAL_DEST to deliver compiled object to other then
+#+ ../object_<drvr_name> dir. Prefix ../ is always added to it.
+# FINAL_DEST =

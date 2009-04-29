@@ -34,7 +34,7 @@ abort:
 		echo "Current compilation settings: CPU=$(CPU) BSP=$(BSP) ISP=$(ISP)"; \
 	fi
 
-UTILINSTDIR = /ps/local/$(CPU)/drvrutil
+UTILINSTDIR = /acc/local/$(CPU)/drvrutil
 EXECINSTDIR = /acc/dsc
 ###############################################################################
 

@@ -9,13 +9,18 @@
 ################################################################################
 
 # In case if user provided CPU, KVER or ROOTDIR
-include ../Makefile.specific
+# Makefile from current directory supress one from upper level
+include $(shell if [ -e ./Makefile.specific ]; then \
+		echo ./Makefile.specific; \
+	else \
+		echo ../Makefile.specific; \
+	fi)
 
 #SHELL += -x
 
 # User can provide it's own
 ifeq ("$(origin ROOTDIR)", "undefined")
-	# Where everything is nested
+	# Where everything is nested by default
 	ROOTDIR := /acc/src/dsc/drivers/coht
 endif
 
