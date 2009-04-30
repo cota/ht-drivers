@@ -617,28 +617,26 @@ static void enable_builtin_cmds(void)
  * @param idx - user context index. Normally (0 - MAX_UCA] range\n
  *              0 - is a service entry point, so will return service node name
  *
- * If the user wants the service device handle, the name will contain suffix
- * "_srv". In other words, any of the following will be returned:
- * <mod_name>_srv\n
- * <mod_name>1 ... <mod_name>(MAX_UCA - 1)
+ * If the user wants the service device handle, the name will contain .0 suffix
+ * In other words, any of the following will be returned:\n
+ * <mod_name>.0\n
+ * <mod_name>.1 ... <mod_name>.(MAX_UCA - 1)
  *
  * @return full pathname or just device filename
  */
 static char* devnode(int basename, int idx)
 {
-	static char node_name[64] = { 0 };
-	char devnr[32];
+	static char node_name[64];
 
-	if (idx)
-		snprintf(devnr, 32, "%d", idx);
-	else
-		snprintf(devnr, 32, "srv");
+	memset(node_name, 0, sizeof(node_name));
+
 	if (basename)
-		snprintf(node_name, sizeof(node_name),
-			"%s%s", __drivername, devnr);
+		snprintf(node_name, sizeof(node_name), "%s.%d",
+			 __drivername, idx);
 	else
-		snprintf(node_name, sizeof(node_name), "/dev/"
-			"%s%s", __drivername, devnr);
+		snprintf(node_name, sizeof(node_name), "/dev/%s.%d",
+			 __drivername, idx);
+
 	return node_name;
 }
 
