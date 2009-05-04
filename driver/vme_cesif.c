@@ -83,24 +83,12 @@ unsigned long find_controller(unsigned long vmeaddr, unsigned long len,
 	desc->am = am;
 	desc->bcast_select = 0;
 
-	if (len & 0xffff) {
-		printk(KERN_WARNING PFX "find_controller - "
-		       "Mapping size %lx is not 64k aligned, "
-		       "aligning it to %lx.\n",
-		       len, len & ~0xffff);
-		len &= ~0xffff;
-	}
-
+	/*
+	 * Note: no rounding up/down for size and address at this point,
+	 * since that's taken care of when creating the window (if any).
+	 */
 	desc->sizel = len;
 	desc->sizeu = 0;
-
-	if (vmeaddr & 0xffff) {
-		printk(KERN_WARNING PFX "find_controller - "
-		       "VME address %lx is not 64k aligned, "
-		       "aligning it to %lx.\n",
-		       vmeaddr, vmeaddr & ~0xffff);
-		vmeaddr &= ~0xffff;
-	}
 
 	desc->vme_addrl = vmeaddr;
 	desc->vme_addru = 0;

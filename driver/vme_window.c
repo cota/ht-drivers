@@ -451,10 +451,27 @@ int vme_create_window(struct vme_mapping *desc)
 	if (desc->sizel == 0)
 		return -EINVAL;
 
-	/* Align the mapping size to a 64K boundary */
-	if (desc->sizel & 0xffff)
-		desc->sizel = (desc->vme_addrl + desc->sizel + 0x10000) &
-			~0xffff;
+	/* Round down the initial VME address to a 64K boundary */
+	if (desc->vme_addrl & 0xffff) {
+		unsigned int lowaddr = desc->vme_addrl & ~0xffff;
+
+		printk(KERN_INFO PFX "%s - aligning VME address %08x to 64K "
+			"boundary %08x.\n", __func__, desc->vme_addrl, lowaddr);
+		desc->vme_addrl = lowaddr;
+		desc->sizel += desc->vme_addrl - lowaddr;
+	}
+
+	/*
+	 * Round up the mapping size to a 64K boundary
+	 * Note that vme_addrl is already aligned
+	 */
+	if (desc->sizel & 0xffff) {
+		unsigned int newsize = (desc->sizel + 0x10000) & ~0xffff;
+
+		printk(KERN_INFO PFX "%s - rounding up size %08x to 64K "
+			"boundary %08x.\n", __func__, desc->sizel, newsize);
+		desc->sizel = newsize;
+	}
 
 	/*
 	 * OK from now on we don't want someone else mucking with our
