@@ -354,9 +354,12 @@ int vme_request_irq(unsigned int vec, int (*handler)(void *),
 out_unlock:
 	mutex_unlock(&vme_irq_table_lock);
 
-	printk(KERN_DEBUG PFX "Registered vector %d for %s\n",
-	       vec, virq->name);
-
+	if (!rc)
+		printk(KERN_DEBUG PFX "Registered vector %d for %s\n",
+		       vec, virq->name);
+	else
+		printk(KERN_WARNING PFX "Could not install ISR: vector %d "
+		       "already in use by %s", vec, virq->name);
 	return rc;
 }
 EXPORT_SYMBOL_GPL(vme_request_irq);
