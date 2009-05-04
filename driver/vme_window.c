@@ -717,6 +717,9 @@ try_next:
 		match->kernel_va = window->desc.kernel_va + offset;
 		match->pci_addrl = window->desc.pci_addrl + offset;
 
+		/* Assign window number */
+		match->window_num = i;
+
 		/* Add the new mapping to the window */
 		rc = add_mapping(window, match);
 
