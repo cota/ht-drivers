@@ -146,13 +146,22 @@ EXPORT_SYMBOL_GPL(find_controller);
 unsigned long return_controller(unsigned logaddr, unsigned len)
 {
 	struct vme_mapping *desc = find_vme_mapping_from_addr(logaddr);
+	int err;
 
-	if (desc && !vme_release_mapping(desc, 1)) {
+	if (!desc) {
+		printk(KERN_ERR PFX "%s - mapping not found @ 0x%x",
+			__func__, logaddr);
+		return -1;
+	}
+
+	err = vme_release_mapping(desc, 1);
+	if (!err) {
 		kfree(desc);
 		return 0;
 	}
 
-	printk(KERN_ERR PFX "%s - failed to remove mapping\n", __func__);
+	printk(KERN_ERR PFX "%s - failed to remove mapping @ 0x%x (err=%d)\n",
+		__func__, logaddr, err);
 	return -1;
 }
 EXPORT_SYMBOL_GPL(return_controller);
