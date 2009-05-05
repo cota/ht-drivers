@@ -25,16 +25,21 @@ _all: cdcm
 
 # CDCM only
 cdcm:
+	@-rm -rf ./$(CPU)/$(KVER)
 	$(MAKE) -C $(KSRC) M=$(PWD) CPU=$(CPU) KVER=$(KVER) \
 	ROOTDIR=$(ROOTDIR) modules
 	@-rm -r .*.cmd Module.symvers .tmp_versions/
+	@-rm -rf ./Module.markers ./modules.order
 
 # Driver utilities (including XML library) only
 USRC := $(ROOTDIR)/utils/driver
 utils:
+	@-rm -rf $(USRC)/$(CPU)/$(KVER)
+	@$(USRC)/rmdrvr
 	$(MAKE) -C $(KSRC) M=$(USRC) CPU=$(CPU) KVER=$(KVER) \
 	ROOTDIR=$(ROOTDIR) modules
-	@-rm -r $(USRC)/.*.cmd $(USRC)/Module.symvers $(USRC)/.tmp_versions/
+	@-rm -rf $(USRC)/.*.cmd $(USRC)/Module.symvers $(USRC)/.tmp_versions/
+	@-rm -rf $(USRC)/Module.markers $(USRC)/modules.order
 
 # Rebuild all, including CDCM, XML library and driver utilities.
-all: cdcm utils
+all: utils cdcm
