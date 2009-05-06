@@ -7,4 +7,4 @@ cd  coht/.__kitchen/ygeorgie/cdcm; ./rmdrv; make
 # Goto your driver dir
 cd <your_driver>; ./rmdrvr;
 
-make drvr CPU=L865 CDCM_D=/acc/src/dsc/drivers/coht/.__kitchen/ygeorgie
+make CPU=L865 CDCM_D=/acc/src/dsc/drivers/coht/.__kitchen/ygeorgie

@@ -16,6 +16,7 @@ include $(shell if [ -e ./Makefile.specific ]; then \
 		echo ../Makefile.specific; \
 	fi)
 
+# For debugging
 #SHELL += -x
 
 # User can provide it's own

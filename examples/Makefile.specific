@@ -22,10 +22,10 @@ IS_SKEL = n
 # If driver is CDCM compliant
 IS_CDCM = n
 
-# If driver is VME one
+# If driver is VME one (valid only if IS_CDCM = y)
 CONFIG_BUS_VME = n
 
-# If driver is PCI/PMC one
+# If driver is PCI/PMC one (valid only if IS_CDCM = y)
 CONFIG_BUS_PCI = n
 
 # If driver will use extra handy utils (load info file etc...)
