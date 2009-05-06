@@ -30,7 +30,9 @@ Short file description
 |   |                       compilation. All possible compilation options
 |   |                       are described here.
 |   |-- Makefile.specific - Specific driver description template
-|   `-- compile           - howto compile driver with local CDCM copy
+|   |-- compile_driver    - howto compile driver
+|   |-- deliver_driver    - howto deliver driver
+|   `-- out-of-tree-cdcm  - howto compile driver with local CDCM copy
 |
 `-- rmdrvr         - driver cleaning up
 
