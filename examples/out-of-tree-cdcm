@@ -7,4 +7,10 @@ cd  coht/.__kitchen/ygeorgie/cdcm; ./rmdrv; make
 # Goto your driver dir
 cd <your_driver>; ./rmdrvr;
 
-make CPU=L865 CDCM_D=/acc/src/dsc/drivers/coht/.__kitchen/ygeorgie
+# Compile for Linux
+make CPU=L865 CDCM_D=/acc/src/dsc/drivers/coht/.__kitchen/ygeorgie/cdcm
+
+# Compile for Lynx
+make drvr CPU=ppc4 CDCM_D=/acc/src/dsc/drivers/coht/.__kitchen/ygeorgie/cdcm
+# Note that for Lynx you need to add the following to your Makefile.specific:
+# INCDIRS += path/to/kitchen/ygeorgie
