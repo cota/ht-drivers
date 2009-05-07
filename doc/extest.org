@@ -336,10 +336,10 @@ int extest_init(int argc, char *argv[]);
 # Base driver name
 DRIVER_NAME = MYDRIVER
 
-# Is this driver is using skel? (y/n)
+# Is this driver using skel? (y/n)
 IS_SKEL = y
 
-# Is this driver is using CDCM? (y/n)
+# Is this driver using CDCM? (y/n)
 IS_CDCM = y
 
 # use extest? (y/n)
