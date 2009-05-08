@@ -10,7 +10,7 @@
 # @b NOTE See Kbuild.linux for more information on howto compile with test
 #         CDCM branches
 ###############################################################################
-CDCM_D    = ../../cdcm
+CDCM_D    ?= ../../cdcm
 XML_LIB_D = /acc/src/dsc/drivers/coht/utils/xml
 XML_D     = ../../utils/xml
 
