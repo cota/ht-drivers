@@ -18,7 +18,7 @@ Short file description
 |-- Makefile.lib   - Driver library compilation
 |-- Makefile.linux - Linux driver compilation. Included through Makeflie.drvr
 |-- Makefile.lynx  - Lynx driver compilation. Included through Makeflie.drvr
-|-- Makefile.tst   - Driver/
+|-- Makefile.tst   - Test programs compilation.
 |-- README.1ST     - this file
 |-- abs2rel.sh     - absolute to relative path converter script
 |-- compiledrvr    - driver compilation script
@@ -37,11 +37,19 @@ Short file description
 `-- rmdrvr         - driver cleaning up
 
 
+
 Tips
 ----
+
 1. Makefile.specific from the current directory suppressing one from ../
    directory (see ctr driver for example).
+
 2. Driver name is always lowercase.
+
+3. Any archive (*.a) from object_<driver_name> is automatically linked with
+   test program.
+
+
 
 Not tracked files
 -----------------

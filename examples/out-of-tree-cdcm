@@ -1,4 +1,3 @@
-#!/bin/bash
 # HOWTO compile the driver with local CDCM copy.
 
 # Goto local CDCM. Edit. Compile.
