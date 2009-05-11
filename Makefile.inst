@@ -41,32 +41,23 @@ INCDIRS = \
 
 ADDINCLUDES = $(KERN_INCLUDES)
 
-EXEC_OBJS = $(DRIVER_NAME)Inst.$(CPU)
+EXEC_OBJS = $(DRIVER_NAME)inst
 
 $(EXEC_OBJS): $(OBJFILES)
 
-build:: abort $(FINAL_DEST) $(OBJDIR) $(EXEC_OBJS) move_objs $(DRIVER_NAME)Inst ../$(FINAL_DEST)/instprog
+build:: abort $(FINAL_DEST) $(OBJDIR) $(EXEC_OBJS) ../$(FINAL_DEST)/instprog.$(CPU)
 
-# Move compiled files to proper place
-move_objs:
-	mv $(OBJFILES) $(EXEC_OBJS) $(OBJDIR)
-
-# we should redefine Make.auto rule to get rid of name dependencies
-%.$(CPU): $(OBJFILES)
+# redefine Make.auto rule to get rid of name dependencies
+$(EXEC_OBJS): $(OBJFILES)
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	mv $(OBJFILES) $(EXEC_OBJS) $(OBJDIR)
+	ln -sf $(OBJDIR)$@ $@.$(CPU)
 
-$(DRIVER_NAME)Inst:
+../$(FINAL_DEST)/instprog.$(CPU):
 	@if [ -e "$$@" ]; then \
 		rm -f $@ ; \
-	echo "ln -s $(OBJDIR)/$@"; \
-	ln -s $(OBJDIR)/$@.$(CPU) $@; \
-	fi
-
-../$(FINAL_DEST)/instprog:
-	@if [ -e "$$@" ]; then \
-		rm -f $@ ; \
-	echo "ln -s ../install/$(DRIVER_NAME)Inst $@"; \
-	ln -s  ../install/$(DRIVER_NAME)Inst $@; \
+	echo "ln -s ../install/$(DRIVER_NAME)inst.$(CPU) $@"; \
+	ln -s  ../install/$(DRIVER_NAME)inst.$(CPU) $@; \
 	fi
 
 install:: abort
