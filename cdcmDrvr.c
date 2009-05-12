@@ -242,8 +242,6 @@ static long process_cdcm_srv_ioctl(struct inode *inode, struct file *file,
 	{
 		char itp[128] = { 0 }; /* info table path */
 		ulong *addr = NULL; /* user space info table address */
-		void (*prev)(void*, const void*, int) = NULL;
-		InsLibDrvrDesc *dd = NULL;
 
 		/* get info file path */
 		if (strncpy_from_user(itp, (char*)arg, 128) < 0) {
@@ -258,22 +256,15 @@ static long process_cdcm_srv_ioctl(struct inode *inode, struct file *file,
 		}
 
 		/* set copy method */
-		prev = InsLibSetCopyRoutine((void(*)(void*, const void*, int n))
-					    copy_from_user);
+		InsLibSetCopyRoutine((void(*)(void*, const void*, int n))
+				     copy_from_user);
 
-		/* get info table from the user space */
-		if (!(dd = InsLibCloneOneDriver((InsLibDrvrDesc*)*addr))) {
-			ret = -ENOMEM;
-			goto exit_dr_install;
-		}
-
-		/* restore previous copy method */
-		InsLibSetCopyRoutine(prev);
+		/* infotable should be copied by the user */
 
 		/* hook the uza, call install entry point,
 		   save user statics table */
-		if ( (cdcmStatT.cdcm_st =
-		      entry_points.dldd_install((void*)dd)) == (char*)SYSERR) {
+		cdcmStatT.cdcm_st = entry_points.dldd_install((void*)addr);
+		if (cdcmStatT.cdcm_st == (char*)SYSERR) {
 			PRNT_ABS_ERR("Install vector failed.");
 			ret = -EAGAIN;
 			goto exit_dr_install;
@@ -281,7 +272,6 @@ static long process_cdcm_srv_ioctl(struct inode *inode, struct file *file,
 
 	exit_dr_install:
 		if (addr) sysfree((char*)addr, 0/*not used*/);
-		if (dd) InsLibFreeDriver(dd);
 		return cdcmStatT.cdcm_major; /* return major number */
 	}
 	case _GIOCTL_DR_UNINSTALL: /* cdv_uninstall() */
