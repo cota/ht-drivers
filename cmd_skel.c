@@ -508,8 +508,8 @@ int print_queue()
 		mperr("%s ioctl fails\n", "GET_QUEUE_SIZE");
 		return -TST_ERR_IOCTL;
 	}
-	if (ioctl(_DNFD, SkelDrvrIoctlGET_QUEUE_FLAG, &qover) < 0) {
-		mperr("%s ioctl fails\n", "GET_QUEUE_FLAG");
+	if (ioctl(_DNFD, SkelDrvrIoctlGET_QUEUE_OVERFLOW, &qover) < 0) {
+		mperr("%s ioctl fails\n", "GET_QUEUE_OVERFLOW");
 		return -TST_ERR_IOCTL;
 	}
 	if (qflag)
