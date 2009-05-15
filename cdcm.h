@@ -53,6 +53,7 @@ extern unsigned int cdcm_find_controller(unsigned int, unsigned int,
 #include <ces/absolute.h>
 #include <ces/vmelib.h>
 #include <drm.h>
+#include <pci_resource.h>
 
 extern unsigned long find_controller   _AP((unsigned long vmeaddr, unsigned long len, unsigned long am, unsigned long offset, unsigned long size, struct pdparam_master  *param));
 extern unsigned long return_controller _AP((unsigned long physaddr, unsigned long len));
