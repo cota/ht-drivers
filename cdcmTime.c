@@ -21,10 +21,6 @@
 #include "cdcmLynxDefs.h"
 
 extern cdcmStatics_t cdcmStatT;	/* declared in the cdcmDrvr.c module */
-extern int cdcm_dbg_cntr; /* TODO. REMOVE. For CDCM debugging only. 
-			     Defined in cdcm.c module */
-int cdcm_dbg_irq = 0; /* TODO. REMOVE. For iterrupts debugging only. */
-
 
 extern cdcmthr_t* cdcm_get_thread_handle(int);
 
@@ -105,7 +101,6 @@ int timeout(tpp_t func, void *arg, int interval)
       init_timer(&cdcmStatT.cdcm_timer[cntr].ct_timer);
       add_timer(&cdcmStatT.cdcm_timer[cntr].ct_timer);
 
-      //PRNT_DBG(cdcmStatT.cdcm_ipl, "<%d> for tid[%d]. TimerID[%d] with interval %d ADDED", cdcm_dbg_cntr++, current->pid, cntr+1, interval);
       return(cntr + 1); /* timeout ID */
     }
   }
@@ -270,16 +265,12 @@ int swait(int *sem, int flag)
 
   /*
   MEAS_Wreg2(0xdead);
-  MEAS_Wreg2(cdcm_dbg_irq);
   MEAS_Wreg2(*semptr->wq_usr_val);
   */
-
-  //printk("[CDCMDBG]@%s()=> (tid[%d] <%d>) Called on semID[%d] semptr->wq_usr_val is %d     stptr is %p\n", __FUNCTION__,  current->pid, cdcm_dbg_cntr++, semptr->wq_id, *semptr->wq_usr_val, stptr);
 
   if (*semptr->wq_usr_val > 0) { /* ----> NO NEED TO WAIT <---- */
     --(*semptr->wq_usr_val); /* just decrease sem value */
 
-    //printk("[CDCMDBG]@%s()=> (tid[%d] <%d>) Sem is free. New val is %d. Just continue...\n", __FUNCTION__, current->pid, cdcm_dbg_cntr++, *semptr->wq_usr_val);
     LEAVE_SWAIT_CRITICAL;
 
     /*
@@ -439,8 +430,6 @@ int ssignal(int *sem)
   ulong ssignal_spin_flags;
 
   if (semptr) {
-
-    //printk("[CDCMDBG]@%s()=> tid[%d] <%d>  Signalling semID[%d]. semptr->wq_usr_val is %d. wq_tflag is %d\n", __FUNCTION__,current->pid,  cdcm_dbg_cntr++,  semptr->wq_id, *semptr->wq_usr_val, atomic_read(&semptr->wq_tflag));
 
     /* enter critical region */
     spin_lock_irqsave(&ssignal_sem_lock, ssignal_spin_flags);

@@ -16,27 +16,12 @@
 
 #include <linux/completion.h>
 
-extern int cdcm_dbg_cntr; /* TODO. REMOVE. For CDCM debugging only
-			     Defined in cdcm.c module */
-
 /* user stream task termination check */
 #define CDCM_LOOP_AGAIN				\
 do {						\
   if (kthread_should_stop())			\
     return(0); /* exit user thread function */	\
 } while (0)
-
-#if 0
-/* THIS IS FOR DEBUGGING PURPOSES */
-#define CDCM_LOOP_AGAIN									 \
-do {											 \
-  if (kthread_should_stop()) {								 \
-    printk("<%d> ---------> [%d] thread should stop!\n", cdcm_dbg_cntr++, current->pid); \
-    return(0);										 \
-  } else										 \
-    printk("<%d>---------> [%d] thread looping...\n", cdcm_dbg_cntr++, current->pid);	 \
-} while (0)
-#endif
 
 /* max argument number that thread payload can take.
    TODO. How to bypass this limitation? */

@@ -23,9 +23,6 @@
 extern cdcmStatics_t cdcmStatT;	/* CDCM statics table */
 extern int cdcm_err;		/* global error */
 
-int cdcm_dbg_cntr = 0; /* TODO. REMOVE. for deadlock debugging */
-
-
 static struct cdcm_pci_isr isrs[CDCM_MAX_PCI_ISRS];
 static int nr_isrs; //!< counts how many isrs have already been installed
 

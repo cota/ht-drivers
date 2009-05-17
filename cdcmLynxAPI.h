@@ -54,12 +54,6 @@ extern spinlock_t lynxos_cpu_lock;
 #define disable(x) spin_lock_irqsave(&lynxos_cpu_lock, x)
 #define restore(x) spin_unlock_irqrestore(&lynxos_cpu_lock, x)
 
-/* TODO. REMOVE. for swait interrupts debugging only. defined in cdcmTime.c */
-//extern int cdcm_dbg_irq;
-//#define disable(x)        { local_irq_save(x); cdcm_dbg_irq++; }
-//#define restore(x)        { local_irq_restore(x); cdcm_dbg_irq--; }
-
-
 /* Trying to combine 'struct file' from Linux and Lynx. For now only one 
    field is used. It's one that contains major/minor dev numbers. Note
    that we stick to the Lynx interface.
