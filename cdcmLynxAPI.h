@@ -117,6 +117,7 @@ long  wbounds(unsigned long);
 int   nanotime(unsigned long*);
 int   timeout(int(*)(void*), void *, int);
 int   cancel_timeout(int);
+void  usec_sleep(unsigned long);
 int   swait(int*, int);
 int   ssignal(int*);
 int   ssignaln(int*, int);

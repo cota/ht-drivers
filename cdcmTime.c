@@ -14,6 +14,7 @@
  * @version 
  */
 #include <linux/time.h>
+#include <linux/delay.h>
 #include "list_extra.h" /* for extra handy list operations */
 #include "cdcmTime.h"
 #include "cdcmThread.h"
@@ -27,6 +28,15 @@ int cdcm_dbg_irq = 0; /* TODO. REMOVE. For iterrupts debugging only. */
 
 extern cdcmthr_t* cdcm_get_thread_handle(int);
 
+/**
+ * @brief busy loop for at least the requested number of microseconds
+ *
+ * @param usecs - microseconds
+ */
+void usec_sleep(unsigned long usecs)
+{
+       udelay(usecs);
+}
 
 /**
  * @brief Generic timer callback.

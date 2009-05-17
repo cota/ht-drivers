@@ -78,6 +78,7 @@ int cdcm_copy_to_user(void *, void *, int);
  * they're declared (as non-extern) in cdcmLynxAPI.h.
  */
 extern int ksprintf(char *buf, char *format, ...);
+extern void usec_sleep(unsigned long usecs);
 
 
 #ifdef __Lynx__
