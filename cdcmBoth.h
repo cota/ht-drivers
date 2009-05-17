@@ -72,6 +72,13 @@
 
 int cdcm_copy_from_user(void *, void *, int);
 int cdcm_copy_to_user(void *, void *, int);
+/*
+ * The extern declaration of these functions is mainly for Lynx, since For Linux,
+ * they need to be declared as extern before being used. For Linux,
+ * they're declared (as non-extern) in cdcmLynxAPI.h.
+ */
+extern int ksprintf(char *buf, char *format, ...);
+extern void usec_sleep(unsigned long usecs);
 
 
 #ifdef __Lynx__
