@@ -42,20 +42,16 @@ void usec_sleep(unsigned long usecs)
 /**
  * @brief Generic timer callback.
  *
- * @param arg - Index of the timer data. Assume to be a correct one.
- *
- * @return void
+ * @param arg - Index of the timer data. Assumed to be a valid one.
  */
-static void cdcm_timer_callback(unsigned long arg)
+static void cdcm_timer_cb(unsigned long arg)
 {
-  cdcmt_t *my_data = &cdcmStatT.cdcm_timer[arg];
+	cdcmt_t *my_data = &cdcmStatT.cdcm_timer[arg];
 
-  del_timer(&my_data->ct_timer);
-  my_data->ct_on = 0;
-  //PRNT_DBG(cdcmStatT.cdcm_ipl, "is called. Index[%d]", (int)arg);
-  my_data->ct_uf(my_data->ct_arg); /* call user payload */
+	del_timer(&my_data->ct_timer);
+	my_data->ct_on = 0;
+	my_data->ct_uf(my_data->ct_arg); /* call user payload */
 }
-
 
 /**
  * @brief LynxOs service call wrapper.
@@ -67,15 +63,26 @@ static void cdcm_timer_callback(unsigned long arg)
  */
 int nanotime(unsigned long *sec)
 {
-  struct timespec curtime;
+	struct timespec curtime;
 
-  curtime = current_kernel_time();
+	curtime = current_kernel_time();
 
-  *sec = (unsigned long)curtime.tv_sec;
-  
-  return((int)curtime.tv_nsec);
+	*sec = (unsigned long)curtime.tv_sec;
+
+	return (int)curtime.tv_nsec;
 }
 
+static inline void cdcm_timer_init(tpp_t func, void *arg, int interval, int tid)
+{
+	unsigned long expires = jiffies + msecs_to_jiffies(10 * interval);
+
+	cdcmStatT.cdcm_timer[tid] = (cdcmt_t) {
+		.ct_on = current->pid,
+		.ct_timer = TIMER_INITIALIZER(cdcm_timer_cb, expires, tid),
+		.ct_uf  = func,
+		.ct_arg = arg
+	};
+}
 
 /**
  * @brief LynxOs service call wrapper.
@@ -89,57 +96,51 @@ int nanotime(unsigned long *sec)
  */
 int timeout(tpp_t func, void *arg, int interval)
 {
-  int cntr;
-  //cdcmt_t *cdcmtptr; /* timer handle */
+	int tid; /* timeout ID */
 
-  for (cntr = 0; cntr < MAX_CDCM_TIMERS; cntr++) {
-    if (!cdcmStatT.cdcm_timer[cntr].ct_on) { /* not used */
-      /* initialize for usage */
-      cdcmStatT.cdcm_timer[cntr] = (cdcmt_t) {
-	.ct_on      = current->pid,
-	/* TIMER_INITIALIZER(payload, when to trigger, payload parameter) */
-	.ct_timer = TIMER_INITIALIZER(cdcm_timer_callback, jiffies + msecs_to_jiffies(10*interval), cntr),
-	.ct_uf  = func,
-	.ct_arg = arg
-      };
+	for (tid = 0; tid < MAX_CDCM_TIMERS; tid++) {
 
-      init_timer(&cdcmStatT.cdcm_timer[cntr].ct_timer);
-      add_timer(&cdcmStatT.cdcm_timer[cntr].ct_timer);
+		if (cdcmStatT.cdcm_timer[tid].ct_on)
+			continue;
 
-      return(cntr + 1); /* timeout ID */
-    }
-  }
-  
-  PRNT_ERR(cdcmStatT.cdcm_ipl, "No more timers (MAX %d)", MAX_CDCM_TIMERS);
-  return(SYSERR);
+		/* not used, initialise it */
+		cdcm_timer_init(func, arg, interval, tid);
+
+		init_timer(&cdcmStatT.cdcm_timer[tid].ct_timer);
+		add_timer(&cdcmStatT.cdcm_timer[tid].ct_timer);
+
+		return tid + 1;
+	}
+
+	PRNT_ERR(cdcmStatT.cdcm_ipl, "No more timers available (MAX %d)",
+		 MAX_CDCM_TIMERS);
+	return SYSERR;
 }
-
 
 /**
  * @brief LynxOs service call wrapper.
  *
- * @param arg - timeout id
+ * @param id - timeout id
  *
- * @return 
+ * @return OK - on success
+ * @return SYSERR - on failure
  */
-int cancel_timeout(int arg)
+int cancel_timeout(int id)
 {
-  int idx = arg - 1; /* who should die */
-  
-  if ( idx >= 0 && idx < MAX_CDCM_TIMERS) {
-    if (cdcmStatT.cdcm_timer[idx].ct_on) {
-      del_timer_sync(&cdcmStatT.cdcm_timer[idx].ct_timer);
-      cdcmStatT.cdcm_timer[idx].ct_on = 0;
-      //PRNT_DBG(cdcmStatT.cdcm_ipl, "timeout %d cancelled.", arg);
-      return(OK);
-    }
-    
-    //PRNT_DBG(cdcmStatT.cdcm_ipl, "Timer %d already expired.", arg);
-    return(OK);
-  }
+	int tid = id - 1; /* remember that the user received tid + 1 */
 
-  PRNT_ERR(cdcmStatT.cdcm_ipl, "No such timer: %d", arg);
-  return(SYSERR);
+	if (tid < 0 || tid >= MAX_CDCM_TIMERS) {
+		PRNT_ERR(cdcmStatT.cdcm_ipl, "No such timer: %d", id);
+		return SYSERR;
+	}
+
+	if (!cdcmStatT.cdcm_timer[tid].ct_on)
+		return OK; /* it had already expired */
+
+	del_timer_sync(&cdcmStatT.cdcm_timer[tid].ct_timer);
+	cdcmStatT.cdcm_timer[tid].ct_on = 0;
+
+	return OK;
 }
 
 static struct cdcm_semaphore *__get_sema(int *user_sem)
@@ -464,11 +465,11 @@ int scount(int *user_sem)
  */
 void cdcm_sema_cleanup_all(void)
 {
-	struct cdcm_semaphore *semP, *tmpP;
+	struct cdcm_semaphore *sem, *tmp;
 
 	/* free allocated memory */
-	list_for_each_entry_safe(semP, tmpP, &cdcmStatT.cdcm_sem_list_head, sem_list) {
-		list_del(&semP->sem_list);
-		kfree(semP);
+	list_for_each_entry_safe(sem, tmp, &cdcmStatT.cdcm_sem_list_head,sem_list) {
+		list_del(&sem->sem_list);
+		kfree(sem);
 	}
 }
