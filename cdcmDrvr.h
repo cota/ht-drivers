@@ -111,47 +111,6 @@ typedef struct _cdcmTimer {
 } cdcmt_t;
 //@}
 
-/* LynxOS kernel semaphores implemented using Linux wait queues.
-   We are using wait queues, but not kernel semaphores, because
-   the latter can be acquired only by functions that are allowed to
-   sleep; interrupt handlers and deferrable functions cannot use them.
-   CDCM semaphore is taken only once by the user. It can not be re-used */
-typedef struct _cdcmWaitQueue {
-  wait_queue_head_t wq_head; /* wait queue head for this semaphore */
-  struct list_head  wq_sem_list; /* linked list */
-  int *wq_usr_val; /* address of the user semaphore (NULL - not used).
-		      Dereferense it to obtain current sem value */
-  atomic_t wq_tflag; /* condition flag for waking up threads, that are waiting
-			on the current queue:
-			If it's > 0 - ssignal.
-			One of the waiting threads awakened, and awaken thread
-			is decreasing the flag value by one - i.e. you can
-			consider it as a sort of semaphore signalling (up).
-			This is used in swait and ssignal Lynx syscalls
-			emulation.
-			if it's < 0 - sreset.
-			All waiting threads will be awakened, and wq_flag
-			will be set to negative amount of anticipants */
-  struct task_struct *wq_masta; /* my owner */
-  int wq_init_val; /* initial user-set semaphore value */
-  int wq_id; /* my id. Just to make debug printout more readable */
-} cdcmsem_t;
-
-#if 0
-/* NOTE ON USAGE! (User - is a driver developer, who is using CDCM)
-   If 'sem_usr_sem' is not null - user is using this semaphore. But semaphore
-   can be also be used inside the thread, started by the user. So if
-   'sem_masta' is NULL - it means that thread was already killed, and this
-   semaphore is prohibited to use!
-   */
-typedef struct _cdcmSemaphore {
-  struct semaphore sem_sem;
-  int *sem_usr_sem;		/* user value */
-  struct task_struct *sem_masta; /* my owner */
-  int sem_id;
-} cdcmsem_t;
-#endif
-
 /* ioctl operation information */
 #define DIR_NONE  (1 << 0) /* no params */
 #define DIR_READ  (1 << 1) /* read params */

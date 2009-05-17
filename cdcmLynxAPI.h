@@ -113,6 +113,7 @@ int   timeout(int(*)(void*), void *, int);
 int   cancel_timeout(int);
 void  usec_sleep(unsigned long);
 int   swait(int*, int);
+int   tswait(int *, int, int);
 int   ssignal(int*);
 int   ssignaln(int*, int);
 int   ststart(int(*)(void*), int, int, char *, int, ...);

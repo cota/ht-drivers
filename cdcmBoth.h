@@ -79,7 +79,7 @@ int cdcm_copy_to_user(void *, void *, int);
  */
 extern int ksprintf(char *buf, char *format, ...);
 extern void usec_sleep(unsigned long usecs);
-
+extern int scount(int *semaphore);
 
 #ifdef __Lynx__
 

@@ -1,18 +1,23 @@
 /**
  * @file cdcmTime.c
  *
- * @brief All timing-related staff
+ * @brief timing-related stuff, mainly timers and semaphores
  *
- * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
+ * Copyright (c) 2006-2009 CERN
+ * @author Yury Georgievskiy <yury.georgievskiy@cern.ch>
  *
- * @date Created on 07/07/2006
+ * Copyright (c) 2009 CERN
+ * @author Emilio G. Cota <emilio.garcia.cota@cern.ch>
  *
- * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
- * All timing-related staff for CDCM is located here, i.e. Lynx stub functions
- * and supplementary functions.
+ * Almost all the code related to semaphores has been taken
+ * from the Linux Kernel:
+ * Copyright (c) 2008 Intel Corporation
+ * Author: Matthew Wilcox <willy@linux.intel.com>
  *
- * @version 
+ * @section license_sec License
+ * Released under the GPL v2. (and only v2, not any later version)
  */
+
 #include <linux/time.h>
 #include <linux/delay.h>
 #include "list_extra.h" /* for extra handy list operations */
@@ -22,7 +27,7 @@
 
 extern cdcmStatics_t cdcmStatT;	/* declared in the cdcmDrvr.c module */
 
-extern cdcmthr_t* cdcm_get_thread_handle(int);
+static DEFINE_SPINLOCK(sem_list_lock); /* protect access to cdcm_sem_list */
 
 /**
  * @brief busy loop for at least the requested number of microseconds
@@ -137,448 +142,333 @@ int cancel_timeout(int arg)
   return(SYSERR);
 }
 
-
-/**
- * @brief Gets wait queue for a given semaphore.
- *
- * @param sem - user-defined driver semaphore
- *
- * Or if it's a new one, try to obtain a new one.
- *
- * @return @e wait_queue_head_t pointer that corresponds to the semaphore
- *	   @e sem (either new one or that is already exist).
- * @return NULL - can't allocate semaphore handle.
- */
-spinlock_t get_sem_lock = SPIN_LOCK_UNLOCKED;
-static cdcmsem_t* cdcm_get_sem(int *sem)
+static struct cdcm_semaphore *__get_sema(int *user_sem)
 {
-  cdcmsem_t *semptr; /* semaphore pointer */
-  ulong spin_flags;
-  
-  /* see if user wants already used semaphore */
-  list_for_each_entry(semptr, &cdcmStatT.cdcm_sem_list_head, wq_sem_list) {
-    if (sem == semptr->wq_usr_val) { /* bingo! */
-      //PRNT_DBG(cdcmStatT.cdcm_ipl, "tid [%d] return -->OLD<-- semID[%d]\n", current->pid, semptr->wq_id);
-      return(semptr);
-    }
-  }
-  
-  /* it's a new semaphore. allocate the place */
+	struct cdcm_semaphore *sema;
 
-  /* enter critical region */
-  spin_lock_irqsave(&get_sem_lock, spin_flags);
+	list_for_each_entry(sema, &cdcmStatT.cdcm_sem_list_head, sem_list)
+		if (sema->user_sem == user_sem)
+			return sema;
 
-  /* allocate and initialize stream task handler */
-  if ( !(semptr = kmalloc(sizeof *semptr, GFP_KERNEL)) ) {
-    PRNT_ABS_WARN("Couldn't allocate new thread handle");
-    return NULL;
-  }
+	/* the semaphore hasn't been used until now */
+	sema = kmalloc(sizeof(struct cdcm_semaphore), GFP_ATOMIC);
+	if (sema == NULL) {
+		PRNT_ABS_WARN("Couldn't allocate new semaphore");
+		return NULL;
+	}
 
-  /* init semaphore handle (also will zero it out) */
-  *semptr = (cdcmsem_t) {
-    .wq_usr_val  = sem,     /* take it */
-    .wq_init_val = *sem,    /* set init user value */
-    .wq_masta    = current, /* set my masta */
-    .wq_tflag    = ATOMIC_INIT(0),  /* thread flag */
-    .wq_id = list_capacity(&cdcmStatT.cdcm_sem_list_head) + 1 /* my id */
-  };
-  init_waitqueue_head(&semptr->wq_head);
+	/* initialise the semaphore */
+	*sema = (struct cdcm_semaphore) {
+		.user_sem = user_sem,
+	};
+	cdcm_sem_init(&sema->sem, *user_sem);
+	list_add(&sema->sem_list, &cdcmStatT.cdcm_sem_list_head);
 
-  /* add it to the linked list */
-  list_add(&semptr->wq_sem_list, &cdcmStatT.cdcm_sem_list_head);
-
-  //PRNT_DBG(cdcmStatT.cdcm_ipl, "return -->NEW<-- semID[%d]\n", semptr->wq_id);
-  
-  /* leave critical region */
-  spin_unlock_irqrestore(&get_sem_lock, spin_flags);
-
-  return(semptr);
+	return sema;
 }
 
-
-/* One of the events that we are waiting on.
-   Depending on the caller (thread or major process),
-   different wait conditions are monitored
-
-   Acronyms description:
-   WC  - Wait Condition
-   SSI - Sem Sig Ignore flag (SEM_SIGIGNORE)
-   SSO - Sem Sig all Other flags (SEM_SIGRETRY, SEM_SIGABORT)
-   THR - in case if it was called from the THRead
-*/
-/*
-#define WC_SSI_THR (semptr->wq_tflag > 0 || semptr->wq_tflag < 0 || (stptr->thr_sem == current->pid))
-#define WC_SSI (semptr->wq_tflag > 0 || semptr->wq_tflag < 0)
-
-#define WC_SSO_THR (semptr->wq_tflag > 0 || semptr->wq_tflag < 0 || (stptr->thr_sem == current->pid))
-#define WC_SSO (semptr->wq_tflag > 0 || semptr->wq_tflag < 0)
-*/
-
-#define WC_SSI_THR (atomic_read(&semptr->wq_tflag) || (stptr->thr_sem == current->pid))
-#define WC_SSI (atomic_read(&semptr->wq_tflag))
-
-#define WC_SSO_THR (atomic_read(&semptr->wq_tflag) || (stptr->thr_sem == current->pid))
-#define WC_SSO (atomic_read(&semptr->wq_tflag))
-
-
-/* enter critical region */
-#define ENTER_SWAIT_CRITICAL spin_lock_irqsave(&swait_sem_lock, swait_spin_flags)
-
-/* leave critical region */
-#define LEAVE_SWAIT_CRITICAL spin_unlock_irqrestore(&swait_sem_lock, swait_spin_flags)
-
-static DEFINE_SPINLOCK(swait_sem_lock);
 /**
- * @brief  LynxOs service call wrapper.
+ * @brief finds a cdcm-semaphore given a pointer to a user's semaphore
  *
- * @param sem  - user driver semaphore
- * @param flag - one of SEM_SIGIGNORE, SEM_SIGRETRY, SEM_SIGABORT
+ * @param sem - user's-defined semaphore
  *
- * @return 
+ * @return semaphore - on success
+ * @return NULL - if a new semaphore cannot be allocated
  */
+static struct cdcm_semaphore *get_sema(int *user_sem)
+{
+	struct cdcm_semaphore *sema;
+	unsigned long flags;
+
+	spin_lock_irqsave(&sem_list_lock, flags);
+	sema = __get_sema(user_sem);
+	spin_unlock_irqrestore(&sem_list_lock, flags);
+
+	return sema;
+}
 
 /*
-extern short *ext_reg2;
-#define PURGE_CPUPIPELINE asm("eieio")
-#define MEAS_Wreg2(X) { *ext_reg2 = (X); PURGE_CPUPIPELINE; }
-*/
-
-int swait(int *sem, int flag)
+ * a task is added as a waiter to the tail of the semaphore's wait_list;
+ * then it just loops and gets woken-up by the scheduler (how often
+ * this happens depends on @timeout), to check if it's been marked to wake-up.
+ */
+static inline int __cdcm_down_common(struct cdcm_sem *sem, long state,
+				     long timeout)
 {
-  int coco = 0;
-  cdcmsem_t *semptr = cdcm_get_sem(sem); /* get new or existing one */
-  cdcmthr_t *stptr = NULL;
-  ulong swait_spin_flags;
-  volatile int wee = 0;
+	struct task_struct *task = current;
+	struct cdcm_sem_waiter waiter;
 
-  if (!semptr) {
-    PRNT_ABS_ERR("EFAULT: No more free wait queues!");
-    return SYSERR;
-  }
+	list_add_tail(&waiter.list, &sem->wait_list);
+	waiter.task = task;
+	waiter.up = 0;
 
-  /* enter critical region */
-  ENTER_SWAIT_CRITICAL;
+	for (;;) {
+		if (signal_pending_state(state, task))
+			goto interrupted;
+		if (timeout <= 0)
+			goto timed_out;
+		__set_task_state(task, state);
+		spin_unlock_irq(&sem->lock);
+		timeout = schedule_timeout(timeout);
+		spin_lock_irq(&sem->lock);
+		/*
+		 * In Lynx a kthread might want to wait on a semaphore;
+		 * we check here for the case where the sleeping thread
+		 * has been marked to be stopped. If that's the case,
+		 * we wake up the thread (which will be then killed).
+		 */
+		if (waiter.up || kthread_should_stop())
+			return 0;
+	}
 
-  /* check who is calling - kernel thread or normal process. If stptr is NULL, 
-     then swait is called from the process, but __not__ from the kthread */
-  stptr = cdcm_get_thread_handle(current->pid);
+ timed_out:
+	list_del(&waiter.list);
+	return -ETIME;
 
-  /*
-  MEAS_Wreg2(0xdead);
-  MEAS_Wreg2(*semptr->wq_usr_val);
-  */
+ interrupted:
+	list_del(&waiter.list);
+	return -EINTR;
+}
 
-  if (*semptr->wq_usr_val > 0) { /* ----> NO NEED TO WAIT <---- */
-    --(*semptr->wq_usr_val); /* just decrease sem value */
+static noinline void __cdcm_down(struct cdcm_sem *sem)
+{
+	__cdcm_down_common(sem, TASK_UNINTERRUPTIBLE, MAX_SCHEDULE_TIMEOUT);
+}
 
-    LEAVE_SWAIT_CRITICAL;
+static noinline int __cdcm_down_interruptible(struct cdcm_sem *sem)
+{
+	return __cdcm_down_common(sem, TASK_INTERRUPTIBLE, MAX_SCHEDULE_TIMEOUT);
+}
 
-    /*
-    MEAS_Wreg2(0xdea1);
-    MEAS_Wreg2(*semptr->wq_usr_val);
-    */
+static noinline int __cdcm_down_timeout(struct cdcm_sem *sem, long jiffies)
+{
+	return __cdcm_down_common(sem, TASK_UNINTERRUPTIBLE, jiffies);
+}
 
-    return(OK);
-  } else { /* ----> NEED TO WAIT <---- */
-    --(*semptr->wq_usr_val); /* decrease sem value */
+static inline void cdcm_down(struct cdcm_sem *sem)
+{
+	unsigned long flags;
 
-    /*
-    MEAS_Wreg2(0xdea2);
-    MEAS_Wreg2(*semptr->wq_usr_val);
-    */
+	spin_lock_irqsave(&sem->lock, flags);
+	if (likely(sem->count > 0))
+		sem->count--;
+	else
+		__cdcm_down(sem);
+	spin_unlock_irqrestore(&sem->lock, flags);
+}
 
-    if (flag == SEM_SIGIGNORE) {
+static inline int cdcm_down_interruptible(struct cdcm_sem *sem)
+{
+	unsigned long flags;
+	int result = 0;
 
-      //printk("[CDCMDBG]@%s()=> tid[%d] Go to wait_event_exclusive() on semID[%d] with semptr->wq_usr_val is %d   semptr->wq_tflag is %d", __FUNCTION__, current->pid, semptr->wq_id, *semptr->wq_usr_val, atomic_read(&semptr->wq_tflag));
-      if (stptr) { /* thread */
-	//printk("   stptr->thr_sem is %d\n", stptr->thr_sem);
+	spin_lock_irqsave(&sem->lock, flags);
+	if (likely(sem->count > 0))
+		sem->count--;
+	else
+		result = __cdcm_down_interruptible(sem);
+	spin_unlock_irqrestore(&sem->lock, flags);
 
-	LEAVE_SWAIT_CRITICAL;
+	return result;
+}
 
-	wait_event_exclusive(semptr->wq_head, WC_SSI_THR);
-      } else {	/* process */
-	//printk("\n");
+static inline int cdcm_down_timeout(struct cdcm_sem *sem, long jiffies)
+{
+	unsigned long flags;
+	int result = 0;
+
+	spin_lock_irqsave(&sem->lock, flags);
+	if (likely(sem->count > 0))
+		sem->count--;
+	else
+		result = __cdcm_down_timeout(sem, jiffies);
+	spin_unlock_irqrestore(&sem->lock, flags);
+
+	return result;
+}
+
+static noinline void __cdcm_up_waiter(struct cdcm_sem *sem)
+{
+	struct cdcm_sem_waiter *waiter = list_first_entry(&sem->wait_list,
+						struct cdcm_sem_waiter, list);
+	list_del(&waiter->list);
+	waiter->up = 1;
+	wake_up_process(waiter->task);
+}
+
+/*
+ * 'up' has a very simple implementation:
+ * - if there are no waiters, increment count
+ * - if there are waiters, wake the first waiter in the FIFO up
+ */
+static inline void __cdcm_up(struct cdcm_sem *sem)
+{
+	if (likely(list_empty(&sem->wait_list)))
+		sem->count++;
+	else
+		__cdcm_up_waiter(sem);
+}
+
+static inline void cdcm_up(struct cdcm_sem *sem)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&sem->lock, flags);
+	__cdcm_up(sem);
+	spin_unlock_irqrestore(&sem->lock, flags);
+}
+
+int swait(int *user_sem, int sig)
+{
+	int result = 0;
+	struct cdcm_semaphore *sema = get_sema(user_sem);
+
+	if (get_sema == NULL)
+		return SYSERR;
+
+	switch (sig) {
+	case SEM_SIGIGNORE:
+		cdcm_down(&sema->sem);
+		break;
+	case SEM_SIGABORT:
+	case SEM_SIGRETRY:
+	/* yes, I know SIGRETRY != SIGABORT, but we don't use SIGRETRY.. */
+		return cdcm_down_interruptible(&sema->sem);
+	default:
+		result = SYSERR;
+	}
+
+	return result;
+}
+
+/*
+ * Lynx' tswait: swait with timeout
+ */
+int tswait(int *user_sem, int sig, int interval)
+{
+	struct cdcm_semaphore *sema;
+	unsigned long expires = msecs_to_jiffies(10 * interval);
+
+	if (user_sem == NULL) {
+		msleep(10 * interval);
+		return OK;
+	}
+
+	sema = get_sema(user_sem);
+	if (sema == NULL)
+		return SYSERR;
 
 	/*
-	MEAS_Wreg2(0xde21);
-	MEAS_Wreg2(atomic_read(&semptr->wq_tflag));
-	*/
+	 * ignore the case where interval == 0; Lynx' documentation on this
+	 * is not very clear, and I haven't seen examples of it.
+	 */
+	if (interval <= 0)
+		return swait(user_sem, sig);
 
-	LEAVE_SWAIT_CRITICAL;
-
-	/*
-	MEAS_Wreg2(0xde22);
-	MEAS_Wreg2(atomic_read(&semptr->wq_tflag));
-	*/
-
-	wait_event_exclusive(semptr->wq_head, WC_SSI);
-
-	/*
-	MEAS_Wreg2(0xde23);
-	MEAS_Wreg2(atomic_read(&semptr->wq_tflag));
-	*/
-
-      }
-
-      wee = 1;
-    } else {	/* all the rest - SEM_SIGRETRY, SEM_SIGABORT */
-
-      //printk("[CDCMDBG]@%s=> tid[%d] Go to wait_event_interruptable_exclusive() on semID %d with semptr->wq_usr_val is %d   semptr->wq_tflag is %d", __FUNCTION__, current->pid, semptr->wq_id, *semptr->wq_usr_val, atomic_read(&semptr->wq_tflag));
-      if (stptr) { /* thread */
-	//printk("   stptr->thr_sem is %d\n", stptr->thr_sem);
-	LEAVE_SWAIT_CRITICAL;
-	coco = wait_event_interruptible_exclusive(semptr->wq_head, WC_SSO_THR);
-      } else {
-	//printk("\n");
-	LEAVE_SWAIT_CRITICAL;
-	coco = wait_event_interruptible_exclusive(semptr->wq_head, WC_SSO);
-      }
-
-      if (coco) {
-	//printk(KERN_WARNING "[CDCMDBG]@%s()=> Wait interrupted! (ret code %d)\n", __FUNCTION__, coco);
-	return(SYSERR);
-      }
-    }
-  }
-  /* if we reach this point, then we actually _were_ sleep waiting... */
-
-  /* enter critical region */
-  ENTER_SWAIT_CRITICAL;
-  
-  //printk("[CDCMDBG]@%s()=> tid[%d] Out from %s(). wq_tflag is %d", __FUNCTION__, current->pid, (wee)?"wait_event_exclusive":"wait_event_interruptible_exclusive", atomic_read(&semptr->wq_tflag));
-
-#if 0
-  if (stptr)
-    printk(" thr_sem is %d\n", stptr->thr_sem);
-  else
-    printk("\n");
-#endif
-
-  (*semptr->wq_usr_val)++;	/* increasing semaphore val */
-
-  /*
-  MEAS_Wreg2(0xdea3);
-  MEAS_Wreg2(*semptr->wq_usr_val);
-  */
-
-  /* now check 'wq_tflag' to find out, why we wake up */
-  if (atomic_read(&semptr->wq_tflag) < 0) {
-    /* ------> wake up by sreset <-------- */
-    //printk("[CDCMDBG]@%s()=> tid[%d] Wake up by sreset()\n", __FUNCTION__, current->pid);
-    if (atomic_inc_and_test(&semptr->wq_tflag))
-      /* last one - set semaphore value to zero */
-      *semptr->wq_usr_val = 0;
-    
-    /*
-      ++semptr->wq_tflag;
-      if (!semptr->wq_tflag)
-      *semptr->wq_usr_val = 0;
-      */
-    
-    /* leave critical region */
-    LEAVE_SWAIT_CRITICAL;
-    return(OK);
-  } else if (atomic_read(&semptr->wq_tflag) > 0) {
-    /* ------> wake up by ssignal or ssignaln <-------- */
-    atomic_dec(&semptr->wq_tflag); /* acknowledge */
-
-    //printk("[CDCMDBG]@%s()=> tid[%d] Wake up by ssignal()\n", __FUNCTION__, current->pid);
-
-    /* leave critical region */
-    LEAVE_SWAIT_CRITICAL;
-    return(OK);
-  } else if ( (stptr) ? (stptr->thr_sem == current->pid) : 0 ) {
-    /* __ONLY__ thread can enter here!
-       we are killing you (stremove was called), so just wake up */
-
-    //printk("[CDCMDBG]@%s()=> tid[%d] Wake up by stremove()\n", __FUNCTION__, current->pid);
-
-    /* leave critical region */
-    LEAVE_SWAIT_CRITICAL;
-    return(OK);
-  } else { /* complete fuckup. shouldn't be! can't determine, why I wake up! */
-    
-    PRNT_ABS_ERR("tid[%d] Wake Up by the FUCK UP!!!! This shouldn't happen!!!"
-		 "wq_tflag is %d", current->pid,
-		 atomic_read(&semptr->wq_tflag));
-#if 0
-    if (stptr)
-      printk(" thr_sem is %d\n", stptr->thr_sem);
-    else
-      printk("\n");
-#endif
-
-    /* leave critical region */
-    LEAVE_SWAIT_CRITICAL;
-    return(SYSERR);
-  }
-
+	return cdcm_down_timeout(&sema->sem, expires); /* non-interruptible */
 }
 
-
-/**
- * @brief LynxOs service call wrapper.
- *
- * @param sem - user semaphore
- *
- * @return 
- */
-static DEFINE_SPINLOCK(ssignal_sem_lock);
-int ssignal(int *sem)
+int ssignal(int *user_sem)
 {
-  cdcmsem_t *semptr = cdcm_get_sem(sem); /* get semaphore info table */
-  ulong ssignal_spin_flags;
+	struct cdcm_semaphore *sema = get_sema(user_sem);
 
-  if (semptr) {
+	if (sema == NULL)
+		return SYSERR;
 
-    /* enter critical region */
-    spin_lock_irqsave(&ssignal_sem_lock, ssignal_spin_flags);
-
-    atomic_inc(&semptr->wq_tflag); /* set thread flag */
-
-    /*
-    MEAS_Wreg2(0xaaaa);
-    MEAS_Wreg2(atomic_read(&semptr->wq_tflag));
-    MEAS_Wreg2(*semptr->wq_usr_val);
-    */
-    
-    if (!(*semptr->wq_usr_val)) {
-      /* it was used but no one is waiting on it now, so no need to wake up */
-      ++(*semptr->wq_usr_val);	/* in this case we should increase
-				   the semaphore val */
-      /* leave critical region */
-      spin_unlock_irqrestore(&ssignal_sem_lock, ssignal_spin_flags);
-      return(OK);
-    }
-    /* leave critical region */
-    spin_unlock_irqrestore(&ssignal_sem_lock, ssignal_spin_flags);
-    
-    /* wake up one of the waiting streams */
-    wake_up(&semptr->wq_head);
-    return(OK);
-  }
-
-  PRNT_ERR(cdcmStatT.cdcm_ipl, "Can't get handle for %#x sema!\n", (int)sem);
-  return(SYSERR);
+	cdcm_up(&sema->sem);
+	return OK;
 }
 
-
-/**
- * @brief LynxOs service call wrapper. !TODO!
- *
- * @param sem   - user semaphore
- * @param count - how many times to signal semaphore
- *
- * @return 
+/*
+ * atomically 'up' the semaphore 'count' times
  */
-int ssignaln(int *sem, int count)
+int ssignaln(int *user_sem, int count)
 {
-  cdcmsem_t *semptr = cdcm_get_sem(sem); /* get semaphore info table */
+	struct cdcm_semaphore *sema = get_sema(user_sem);
+	unsigned long flags;
+	int i;
 
-  if (semptr) {
-    return(OK);
-  }
+	if (sema == NULL)
+		return SYSERR;
 
-  PRNT_ERR(cdcmStatT.cdcm_ipl, "Can't get handle for %#x sema!\n", (int)sem);
-  return(SYSERR);
+	spin_lock_irqsave(&sema->sem.lock, flags);
+	for (i = 0; i < count; i++)
+		__cdcm_up(&sema->sem);
+	spin_unlock_irqrestore(&sema->sem.lock, flags);
+
+	return OK;
 }
 
-
-/**
- * @brief LynxOs service call wrapper.
- *
- * @param sem - user semaphore
- *
- * @return void
+/*
+ * if there are no waiters, simply set the count to 0.
+ * if there are waiters, wake them all up.
  */
-static DEFINE_SPINLOCK(sreset_sem_lock);
-void sreset(int *sem)
+static inline void __sreset(struct cdcm_sem *sem)
 {
-  cdcmsem_t *semptr = cdcm_get_sem(sem);
-  ulong sreset_spin_flags;
-  int ant; /* anticipants */
+	int i;
 
-  if (semptr) {
-    
-    /*
-    MEAS_Wreg2(0xbeef);
-    MEAS_Wreg2(*semptr->wq_usr_val);
-    */
+	if (!sem->count) {
+		int waiters = list_capacity(&sem->wait_list);
 
-    /* enter critical region */
-    spin_lock_irqsave(&sreset_sem_lock, sreset_spin_flags);
-
-    if ( !(ant = list_capacity(&(semptr->wq_head.task_list))) ) {
-      /* no one is waiting on this sema, no need to wake up someone */
-      *semptr->wq_usr_val = 0;
-      atomic_set(&semptr->wq_tflag, 0);
-
-      /* leave critical region */
-      spin_unlock_irqrestore(&sreset_sem_lock, sreset_spin_flags);
-
-      return; /* we done */
-    }
-    
-    /* if here, then there are anticipants on this semaphore. Wake'em up */
-    atomic_set(&semptr->wq_tflag, (-1 * ant)); /* set wakeup flag */
-
-    //MEAS_Wreg2(atomic_read(&semptr->wq_tflag));
-
-    /* leave critical region */
-    spin_unlock_irqrestore(&sreset_sem_lock, sreset_spin_flags);
-
-    /* wake up everyone who is waiting on this semaphore */
-    wake_up_all(&semptr->wq_head);
-    return; /* OK */
-  }
-
-  /* ERROR! should not get here! */
-  PRNT_ABS_ERR("Can't get handle for %#x sema!\n", (int)sem);
-  return; /* SYSERR */
+		for (i = 0; i < waiters; i++)
+			__cdcm_up_waiter(sem);
+	} else
+		sem->count = 0;
 }
 
-
-/**
- * @brief LynxOs service call wrapper
- *
- * @param sem - semaphore in question
- *
- *  Returns the value of the semaphore sem. If the count is negative, it
- * indicates the number of processes that are waiting on the semaphore.
- *  If count is zero, no processes are waiting on sem. If count is greater
- * than zero, it represents the number of times it can be "waited" on
- * without having to wait for the semaphore to be signaled.
- *
- * @return the value of the semaphore sem - if OK.
- * @return SYSERR - if there is no such semaphore.
- */
-int scount(int *sem)
+void sreset(int *user_sem)
 {
-  cdcmsem_t *semptr = cdcm_get_sem(sem); /* get semaphore info table */
+	struct cdcm_semaphore *sema = get_sema(user_sem);
+	unsigned long flags;
 
-  if (!semptr) {
-    //printk("[CDCMDBG]@%s()=> Can't get handle for %#x sema!\n", __FUNCTION__, (int)sem);
-    return(SYSERR);
-  }
-  
-  return(*semptr->wq_usr_val);
+	if (sema == NULL)
+		return;
+
+	spin_lock_irqsave(&sema->sem.lock, flags);
+	__sreset(&sema->sem);
+	spin_unlock_irqrestore(&sema->sem.lock, flags);
+}
+
+/*
+ * Note: count is an unsigned int and represents how many tasks can acquire
+ * the semaphore. Therefore if count is bigger than 0, there are no waiters.
+ * If count is zero, then there may (or may not) be waiters; the number of
+ * elements in wait_list provides the answer.
+ */
+static inline int __scount(struct cdcm_sem *sem)
+{
+	if (sem->count > 0)
+		return sem->count;
+	else
+		return -1 * list_capacity(&sem->wait_list);
+}
+
+int scount(int *user_sem)
+{
+	struct cdcm_semaphore *sema = get_sema(user_sem);
+	unsigned long flags;
+	int result;
+
+	if (sema == NULL)
+		return SYSERR;
+
+	spin_lock_irqsave(&sema->sem.lock, flags);
+	result = __scount(&sema->sem);
+	spin_unlock_irqrestore(&sema->sem.lock, flags);
+
+	return result;
 }
 
 /**
  * @brief Cleanup all allocated semaphores.
- *
- * @param void
- *
- * @return void
  */
 void cdcm_sema_cleanup_all(void)
 {
-  cdcmsem_t *semP, *tmpP;
-  
-  /* free allocated memory */
-  list_for_each_entry_safe(semP, tmpP, &cdcmStatT.cdcm_sem_list_head, wq_sem_list) {
-    //PRNT_DBG(cdcmStatT.cdcm_ipl, "Releasing semaphore [ID%d]\n", semP->wq_id);
-    list_del(&semP->wq_sem_list);
-    kfree(semP);
-  }
+	struct cdcm_semaphore *semP, *tmpP;
+
+	/* free allocated memory */
+	list_for_each_entry_safe(semP, tmpP, &cdcmStatT.cdcm_sem_list_head, sem_list) {
+		list_del(&semP->sem_list);
+		kfree(semP);
+	}
 }
