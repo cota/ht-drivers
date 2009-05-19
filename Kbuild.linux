@@ -104,8 +104,7 @@ $(addprefix $(obj)/,$(xtra)): $(obj)/%: $(addsuffix %, $(dir $(XTRA_DSRC)))
 $(DRIVER_NAME)-y += $(xtra:.c=.o)
 
 $(addprefix $(obj)/,$(xtra:.c=.o)): %.o: %.c
-	$(call cmd,cc_o_c)
-	@rm -f $(depfile)
+	$(call if_changed_rule,cc_o_c)
 	$(call cmd,remove_xtraf)
 endif #XTRA_DSRC
 
@@ -129,14 +128,12 @@ skel = $(addsuffix $(SRCSFXS),$(notdir $(basename $(FLTSKELFILES))))
 $(addprefix $(obj)/,$(skel)): $(obj)/%: $(SKEL_D)/%
 	$(call cmd,copy_xtraf)
 
-# Add extra files to the list (including XML, as 'skel' is using it)
 $(DRIVER_NAME)-y += $(skel:.c=.o)
 
 #  Should redefine .o compilation rule as skel *.c
 #+ files should be removed after compilation
 $(addprefix $(obj)/,$(skel:.c=.o)): %.o: %.c
-	$(call cmd,cc_o_c)
-	@rm -f $(depfile)
+	$(call if_changed_rule,cc_o_c)
 	$(call cmd,remove_xtraf)
 
 # 'skel' is CDCM compliant with VME && PCI bus support, using XML library
