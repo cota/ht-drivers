@@ -16,7 +16,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <types.h>
+#include <sys/types.h>
 
 #include <general_both.h>
 #include <list.h>
