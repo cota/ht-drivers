@@ -27,14 +27,14 @@
  */
 //@{
 typedef enum {
-  XmemDrvrREAD  = 1, //!< Do a read operation
-  XmemDrvrWRITE = 2  //!< Do a write operation
+	XmemDrvrREAD  = 1, //!< Do a read operation
+	XmemDrvrWRITE = 2  //!< Do a write operation
 } XmemDrvrIoDir;
 
 typedef enum {
-  XmemDrvrEndianNOT_SET = 0,
-  XmemDrvrEndianBIG,
-  XmemDrvrEndianLITTLE
+	XmemDrvrEndianNOT_SET = 0,
+	XmemDrvrEndianBIG,
+	XmemDrvrEndianLITTLE
 } XmemDrvrEndian;
 //@}
 
@@ -52,30 +52,30 @@ typedef enum {
 /*! Client's queue
  */
 typedef struct {
-  unsigned short  QueueOff;
-  unsigned short  Missed;
-  unsigned short  Size;
-  XmemDrvrReadBuf Entries[XmemDrvrQUEUE_SIZE];
+	unsigned short  QueueOff;
+	unsigned short  Missed;
+	unsigned short  Size;
+	XmemDrvrReadBuf Entries[XmemDrvrQUEUE_SIZE];
 } XmemDrvrQueue;
 
 /*! Client's context
  */
 typedef struct {
-  unsigned long InUse;
-  //!< Non zero when context is being used, else zero
+	unsigned long InUse;
+	//!< Non zero when context is being used, else zero
 
-  XmemDrvrDebug Debug;           //!< Clients debug settings mask
-  unsigned long Pid;             //!< Clients Process ID
+	XmemDrvrDebug Debug;           //!< Clients debug settings mask
+	unsigned long Pid;             //!< Clients Process ID
 
-  unsigned long ClientIndex;
-  //!< Position of this client in array of clients
+	unsigned long ClientIndex;
+	//!< Position of this client in array of clients
 
-  unsigned long ModuleIndex;     //!< The VMIC module he is working with
-  unsigned long UpdatedSegments; //!< Updated segments mask
-  unsigned long Timeout;         //!< Timeout value in ms or zero
-  int  Timer;                    //!< Timer being used by client
-  int  Semaphore;                //!< Semaphore to block on read
-  XmemDrvrQueue Queue;           //!< Interrupt queue
+	unsigned long ModuleIndex;     //!< The VMIC module he is working with
+	unsigned long UpdatedSegments; //!< Updated segments mask
+	unsigned long Timeout;         //!< Timeout value in ms or zero
+	int  Timer;                    //!< Timer being used by client
+	int  Semaphore;                //!< Semaphore to block on read
+	XmemDrvrQueue Queue;           //!< Interrupt queue
 } XmemDrvrClientContext;
 //@}
 
@@ -91,50 +91,50 @@ typedef struct {
  * This is a shared structure used to keep track of the DMA mappings
  */
 typedef struct {
-  char *Buffer;
-  cdcm_dma_t Dma;
-  unsigned long Len;
-  unsigned short Flag;
+	char *Buffer;
+	cdcm_dma_t Dma;
+	unsigned long Len;
+	unsigned short Flag;
 } XmemDmaOp;
 
 /*! Module context
  */
 typedef struct {
-  unsigned long InUse;			//!< Module context in use
-  struct drm_node_s *Handle;    	//!< Handle from DRM
-  unsigned long IVector;		//!< Resulting interrupt vector
-  unsigned long LocalOpen;		//!< Plx9656 local conig open
-  unsigned long ConfigOpen;		//!< Plx9656 configuration open
-  unsigned long RfmOpen;		//!< VMIC RFM register space
-  unsigned long RawOpen;		//!< VMIC SDRAM space
-  unsigned long PciSlot;		//!< Module geographic ID PCI Slot
-  unsigned long ModuleIndex;		//!< Which module we are
-  unsigned long NodeId;			//!< Node 1..256
+	unsigned long InUse;			//!< Module context in use
+	struct drm_node_s *Handle;    	//!< Handle from DRM
+	unsigned long IVector;		//!< Resulting interrupt vector
+	unsigned long LocalOpen;		//!< Plx9656 local conig open
+	unsigned long ConfigOpen;		//!< Plx9656 configuration open
+	unsigned long RfmOpen;		//!< VMIC RFM register space
+	unsigned long RawOpen;		//!< VMIC SDRAM space
+	unsigned long PciSlot;		//!< Module geographic ID PCI Slot
+	unsigned long ModuleIndex;		//!< Which module we are
+	unsigned long NodeId;			//!< Node 1..256
 
-  int		RdDmaSemaphore;		//!< DMA 0 engine sem, used for reading
-  int		WrDmaSemaphore;		//!< DMA 1 engine sem, used for writing
+	int		RdDmaSemaphore;		//!< DMA 0 engine sem, used for reading
+	int		WrDmaSemaphore;		//!< DMA 1 engine sem, used for writing
 
-  int		BusySemaphore;		//!< mutex: Module is busy
-  int		TempbufSemaphore;	//!< mutex: Tempbuf is being used
+	int		BusySemaphore;		//!< mutex: Module is busy
+	int		TempbufSemaphore;	//!< mutex: Tempbuf is being used
 
-  int     	RdTimer;		//!< Read DMA timer
-  int     	WrTimer;		//!< Write DMA timer
-  int    	BusyTimer;		//!< Module busy timer
-  int     	TempbufTimer;		//!< Temp buffer timer
-  VmicRfmMap  	*Map;			//!< Pointer to the real hardware
-  unsigned char	*SDRam;			//!< Direct access to VMIC SD Ram
-  PlxLocalMap	*Local;			//!< Local Plx register space
-  XmemDrvrScr	Command;		//!< Command bits settings
-  VmicLier	InterruptEnable;	//!< Enabled interrupts mask
+	int     	RdTimer;		//!< Read DMA timer
+	int     	WrTimer;		//!< Write DMA timer
+	int    	BusyTimer;		//!< Module busy timer
+	int     	TempbufTimer;		//!< Temp buffer timer
+	VmicRfmMap  	*Map;			//!< Pointer to the real hardware
+	unsigned char	*SDRam;			//!< Direct access to VMIC SD Ram
+	PlxLocalMap	*Local;			//!< Local Plx register space
+	XmemDrvrScr	Command;		//!< Command bits settings
+	VmicLier	InterruptEnable;	//!< Enabled interrupts mask
 
-  XmemDrvrIntr	Clients[XmemDrvrCLIENT_CONTEXTS];
-  //!< Clients interrupts
+	XmemDrvrIntr	Clients[XmemDrvrCLIENT_CONTEXTS];
+	//!< Clients interrupts
 
-  XmemDmaOp	DmaOp;			//!< DMA mapping info
-  struct cdcm_dmabuf Dma;		//!< For CDCM internal use only
+	XmemDmaOp	DmaOp;			//!< DMA mapping info
+	struct cdcm_dmabuf Dma;		//!< For CDCM internal use only
 
-  void *Tempbuf;
-  //!< temporary buffer, allocated during the installation of the driver
+	void *Tempbuf;
+	//!< temporary buffer, allocated during the installation of the driver
 } XmemDrvrModuleContext;
 //@}
 
@@ -155,13 +155,13 @@ typedef struct {
 /*! Driver's working area
  */
 typedef struct {
-  unsigned long		Modules;
-  unsigned long		DmaThreshold;
-  unsigned long		Nodes;		//!< One bit for each node
-  XmemDrvrEndian	Endian;
-  XmemDrvrSegTable	SegTable;
-  XmemDrvrModuleContext	ModuleContexts[XmemDrvrMODULE_CONTEXTS];
-  XmemDrvrClientContext	ClientContexts[XmemDrvrCLIENT_CONTEXTS];
+	unsigned long		Modules;
+	unsigned long		DmaThreshold;
+	unsigned long		Nodes;		//!< One bit for each node
+	XmemDrvrEndian	Endian;
+	XmemDrvrSegTable	SegTable;
+	XmemDrvrModuleContext	ModuleContexts[XmemDrvrMODULE_CONTEXTS];
+	XmemDrvrClientContext	ClientContexts[XmemDrvrCLIENT_CONTEXTS];
 } XmemDrvrWorkingArea;
 //@}
 

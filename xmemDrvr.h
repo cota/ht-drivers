@@ -53,10 +53,10 @@
  */
 //@{
 typedef enum {
-  XmemDrvrDebugNONE   = 0x00, //!< No Debugging
-  XmemDrvrDebugDEBUG  = 0x01, //!< Basic Driver call debug
-  XmemDrvrDebugTRACE  = 0x02, //!< Extra tracing
-  XmemDrvrDebugMODULE = 0x04  //!< Module debug (Linux)
+	XmemDrvrDebugNONE   = 0x00, //!< No Debugging
+	XmemDrvrDebugDEBUG  = 0x01, //!< Basic Driver call debug
+	XmemDrvrDebugTRACE  = 0x02, //!< Extra tracing
+	XmemDrvrDebugMODULE = 0x04  //!< Module debug (Linux)
 } XmemDrvrDebug;
 //@}
 
@@ -65,9 +65,9 @@ typedef enum {
  * Accessed by XmemDrvrGET_VERSION
  */
 typedef struct {
-  unsigned long DriverVersion; //!< UTC: Unix Time of compilation
-  unsigned char BoardRevision; //!< BRV: revision or model numbers
-  unsigned char BoardId;       //!< BID: Should be 0x65
+	unsigned long DriverVersion; //!< UTC: Unix Time of compilation
+	unsigned char BoardRevision; //!< BRV: revision or model numbers
+	unsigned char BoardId;       //!< BID: Should be 0x65
 } XmemDrvrVersion;
 
 
@@ -77,8 +77,8 @@ typedef struct {
  */
 //@{
 typedef enum {
-  XmemDrvrQueueFlagON,  //!< Interrupt event queueing On
-  XmemDrvrQueueFlagOFF, //!< No interrupt event queueing
+	XmemDrvrQueueFlagON,  //!< Interrupt event queueing On
+	XmemDrvrQueueFlagOFF, //!< No interrupt event queueing
 } XmemDrvrQueueFlag;
 //@}
 
@@ -88,11 +88,11 @@ typedef enum {
  * Used by XmemDrvrGET_MODULE_DESCRIPTOR
  */
 typedef struct {
-  unsigned long     Module;  //!< 1..n where n is the last installed VMIC
-  unsigned long     PciSlot; //!< Geographic address
-  unsigned long     NodeId;  //!< Module node Id 1..32
-  unsigned char    *Map;     //!< Pointer to the real hardware
-  unsigned char    *SDRam;   //!< Direct access to VMIC SD Ram
+	unsigned long     Module;  //!< 1..n where n is the last installed VMIC
+	unsigned long     PciSlot; //!< Geographic address
+	unsigned long     NodeId;  //!< Module node Id 1..32
+	unsigned char    *Map;     //!< Pointer to the real hardware
+	unsigned char    *SDRam;   //!< Direct access to VMIC SD Ram
 } XmemDrvrModuleDescriptor;
 
 
@@ -105,38 +105,38 @@ typedef struct {
 #define XmemDrvrScrSTATAE 17
 
 typedef enum {
-  XmemDrvrScrLED_ON            = 0x80000000, //!< RW Red LED
-  XmemDrvrScrTR_OFF            = 0x40000000, //!< RW Transmitter
-  XmemDrvrScrDARK_ON           = 0x20000000, //!< RW Dark on Dark
-  XmemDrvrScrLOOP_ON           = 0x10000000, //!< RW Test mode loop back
-  XmemDrvrScrPARITY_ON         = 0x08000000, //!< RW Parity checking
+	XmemDrvrScrLED_ON            = 0x80000000, //!< RW Red LED
+	XmemDrvrScrTR_OFF            = 0x40000000, //!< RW Transmitter
+	XmemDrvrScrDARK_ON           = 0x20000000, //!< RW Dark on Dark
+	XmemDrvrScrLOOP_ON           = 0x10000000, //!< RW Test mode loop back
+	XmemDrvrScrPARITY_ON         = 0x08000000, //!< RW Parity checking
 
-  XmemDrvrScrREDUNDANT_ON      = 0x04000000,
-  //!< RW Redundant transmission mode (RO)
+	XmemDrvrScrREDUNDANT_ON      = 0x04000000,
+	//!< RW Redundant transmission mode (RO)
 
-  XmemDrvrScrROGUE_MASTER_1_ON = 0x02000000, //!< RO Rogue Master (RO)
-  XmemDrvrScrROGUE_MASTER_0_ON = 0x01000000, //!< RO Rogue Master (RO)
-  XmemDrvrScr128MB             = 0x00100000, //!< RO 128Mb else 64Mb (RO)
-  XmemDrvrScrTX_EMPTY          = 0x00000080, //!< RO Transmit buffer empty (RO)
+	XmemDrvrScrROGUE_MASTER_1_ON = 0x02000000, //!< RO Rogue Master (RO)
+	XmemDrvrScrROGUE_MASTER_0_ON = 0x01000000, //!< RO Rogue Master (RO)
+	XmemDrvrScr128MB             = 0x00100000, //!< RO 128Mb else 64Mb (RO)
+	XmemDrvrScrTX_EMPTY          = 0x00000080, //!< RO Transmit buffer empty (RO)
 
-  XmemDrvrScrTX_ALMOST_FULL    = 0x00000040,
-  //!< RO Transmit buffer almost full (RO)
+	XmemDrvrScrTX_ALMOST_FULL    = 0x00000040,
+	//!< RO Transmit buffer almost full (RO)
 
-  XmemDrvrScrRX_OVERFLOW       = 0x00000020,
-  //!< RO Receive buffer has overflowed (RO)
+	XmemDrvrScrRX_OVERFLOW       = 0x00000020,
+	//!< RO Receive buffer has overflowed (RO)
 
-  XmemDrvrScrRX_ALMOST_FULL    = 0x00000010,
-  //!< RO Receive buffer is almost full (RO)
+	XmemDrvrScrRX_ALMOST_FULL    = 0x00000010,
+	//!< RO Receive buffer is almost full (RO)
 
-  XmemDrvrScrSYNC_LOST         = 0x00000008, //!< RO Lost sync clock (RO)
+	XmemDrvrScrSYNC_LOST         = 0x00000008, //!< RO Lost sync clock (RO)
 
-  XmemDrvrScrSIGNAL_DETECT     = 0x00000004,
-  //!< RO Incomming signal (light) present (RO)
+	XmemDrvrScrSIGNAL_DETECT     = 0x00000004,
+	//!< RO Incomming signal (light) present (RO)
 
-  XmemDrvrScrDATA_LOST         = 0x00000002,
-  //!< RO Data is bad or has been lost (RO)
+	XmemDrvrScrDATA_LOST         = 0x00000002,
+	//!< RO Data is bad or has been lost (RO)
 
-  XmemDrvrScrOWN_DATA          = 0x00000001  //!< RO Own data is present
+	XmemDrvrScrOWN_DATA          = 0x00000001  //!< RO Own data is present
 } XmemDrvrScr;
 //@}
 
@@ -146,8 +146,8 @@ typedef enum {
  * Used by XmemDrvrGET_CLIENT_LIST
  */
 typedef struct {
-  unsigned long Size;
-  unsigned long Pid[XmemDrvrCLIENT_CONTEXTS];
+	unsigned long Size;
+	unsigned long Pid[XmemDrvrCLIENT_CONTEXTS];
 } XmemDrvrClientList;
 
 
@@ -160,39 +160,39 @@ typedef struct {
 #define XmemDrvrIntrSOURCES 17
 
 typedef enum {
-  XmemDrvrIntrDAEMON         = 0x10000, //!< software sync int. from daemon
+	XmemDrvrIntrDAEMON         = 0x10000, //!< software sync int. from daemon
 
-  XmemDrvrIntrAC_FLAG        = 0x8000,
-  //!< Auto clear Interrupt: This bit must always be On
+	XmemDrvrIntrAC_FLAG        = 0x8000,
+	//!< Auto clear Interrupt: This bit must always be On
 
-  XmemDrvrIntrBIT14          = 0x4000, //!< Reserved
-  XmemDrvrIntrPARITY_ERROR   = 0x2000, //!< Parity error
+	XmemDrvrIntrBIT14          = 0x4000, //!< Reserved
+	XmemDrvrIntrPARITY_ERROR   = 0x2000, //!< Parity error
 
-  XmemDrvrIntrWRITE_ERROR    = 0x1000,
-  //!< Cant write a short or byte if parity on
+	XmemDrvrIntrWRITE_ERROR    = 0x1000,
+	//!< Cant write a short or byte if parity on
 
-  XmemDrvrIntrLOST_SYNC      = 0x0800,
-  //!< PLL unlocked, data was lost, or signal lost
+	XmemDrvrIntrLOST_SYNC      = 0x0800,
+	//!< PLL unlocked, data was lost, or signal lost
 
-  XmemDrvrIntrRX_OVERFLOW    = 0x0400, //!< Receiver buffer overflow
-  XmemDrvrIntrRX_ALMOST_FULL = 0x0200, //!< Receive buffer almost full
-  XmemDrvrIntrDATA_ERROR     = 0x0100, //!< Bad data received, error
-  XmemDrvrIntrPENDING_INIT   = 0x0080, //!< Another node needs initializing
+	XmemDrvrIntrRX_OVERFLOW    = 0x0400, //!< Receiver buffer overflow
+	XmemDrvrIntrRX_ALMOST_FULL = 0x0200, //!< Receive buffer almost full
+	XmemDrvrIntrDATA_ERROR     = 0x0100, //!< Bad data received, error
+	XmemDrvrIntrPENDING_INIT   = 0x0080, //!< Another node needs initializing
 
-  XmemDrvrIntrROGUE_CLOBBER  = 0x0040,
-  //!< This rogue master has clobbered a rogue packet
+	XmemDrvrIntrROGUE_CLOBBER  = 0x0040,
+	//!< This rogue master has clobbered a rogue packet
 
-  XmemDrvrIntrBIT5           = 0x0020, //!< Reserved
-  XmemDrvrIntrBIT4           = 0x0010, //!< Reserved
+	XmemDrvrIntrBIT5           = 0x0020, //!< Reserved
+	XmemDrvrIntrBIT4           = 0x0010, //!< Reserved
 
-  XmemDrvrIntrREQUEST_RESET  = 0x0008,
-  //!< Reset me request from some other node
+	XmemDrvrIntrREQUEST_RESET  = 0x0008,
+	//!< Reset me request from some other node
 
-  XmemDrvrIntrSEGMENT_UPDATE = 0x0004,
-  //!< Xmem memory segment updated, one bit per segment in data
+	XmemDrvrIntrSEGMENT_UPDATE = 0x0004,
+	//!< Xmem memory segment updated, one bit per segment in data
 
-  XmemDrvrIntrINT_2          = 0x0002, //!< Pending Interrupt 2
-  XmemDrvrIntrINT_1          = 0x0001  //!< Pending Interrupt 1
+	XmemDrvrIntrINT_2          = 0x0002, //!< Pending Interrupt 2
+	XmemDrvrIntrINT_1          = 0x0001  //!< Pending Interrupt 1
 } XmemDrvrIntr;
 //@}
 
@@ -202,8 +202,8 @@ typedef enum {
  * interrupts described in the field 'Mask'.
  */
 typedef struct {
-  unsigned long Module; //!< Module to connect to
-  XmemDrvrIntr  Mask;   //!< Interrupts
+	unsigned long Module; //!< Module to connect to
+	XmemDrvrIntr  Mask;   //!< Interrupts
 } XmemDrvrConnection;
 
 
@@ -212,11 +212,11 @@ typedef struct {
  * Used by XmemDrvrGET_CLIENT_CONNECTIONS
  */
 typedef struct {
-  unsigned long Pid;  //!< Pid of client whos connections you want
-  unsigned long Size; //!< Number of connection entries
+	unsigned long Pid;  //!< Pid of client whos connections you want
+	unsigned long Size; //!< Number of connection entries
 
-  XmemDrvrConnection Connections[XmemDrvrMODULE_CONTEXTS];
-  //!< Connections this client has:
+	XmemDrvrConnection Connections[XmemDrvrMODULE_CONTEXTS];
+	//!< Connections this client has:
 } XmemDrvrClientConnections;
 
 
@@ -227,27 +227,27 @@ typedef struct {
 #define XmemDrvrNicTYPE 0x07
 
 typedef enum {
-  XmemDrvrNicREQUEST_RESET  = 0x00,
-  //!< Val: XXX000: Request target node(s) reset
+	XmemDrvrNicREQUEST_RESET  = 0x00,
+	//!< Val: XXX000: Request target node(s) reset
 
-  XmemDrvrNicINT_1          = 0x01,
-  //!< Val: XXX001: Type 1 Interrupt
+	XmemDrvrNicINT_1          = 0x01,
+	//!< Val: XXX001: Type 1 Interrupt
 
-  XmemDrvrNicINT_2          = 0x02,
-  //!< Val: XXX010: Type 2 Interrupt
+	XmemDrvrNicINT_2          = 0x02,
+	//!< Val: XXX010: Type 2 Interrupt
 
-  XmemDrvrNicSEGMENT_UPDATE = 0x03,
-  //!< Val: XXX011: Type 3 Interrupt (Segment update)
+	XmemDrvrNicSEGMENT_UPDATE = 0x03,
+	//!< Val: XXX011: Type 3 Interrupt (Segment update)
 
-  XmemDrvrNicINITIALIZED    = 0x07,
-  //!< Val: XXX111: I am Initialized interrupt
+	XmemDrvrNicINITIALIZED    = 0x07,
+	//!< Val: XXX111: I am Initialized interrupt
 
-  XmemDrvrNicBROADCAST      = 0x08, //!< Bit: 001XXX: Send to all nodes
-  //!< The CAST part is an exclusive bit pattern, only one bit can be set
-  XmemDrvrNicMULTICAST      = 0x10, //!< Bit: 010XXX: Multicast
-  //!< The CAST part is an exclusive bit pattern, only one bit can be set
-  XmemDrvrNicUNICAST        = 0x20  //!< Bit: 100XXX: Unicast
-  //!< The CAST part is an exclusive bit pattern, only one bit can be set
+	XmemDrvrNicBROADCAST      = 0x08, //!< Bit: 001XXX: Send to all nodes
+	//!< The CAST part is an exclusive bit pattern, only one bit can be set
+	XmemDrvrNicMULTICAST      = 0x10, //!< Bit: 010XXX: Multicast
+	//!< The CAST part is an exclusive bit pattern, only one bit can be set
+	XmemDrvrNicUNICAST        = 0x20  //!< Bit: 100XXX: Unicast
+	//!< The CAST part is an exclusive bit pattern, only one bit can be set
 } XmemDrvrNic;
 
 
@@ -262,14 +262,14 @@ typedef enum {
  * all nodes.
  */
 typedef struct {
-  unsigned long Module;        //!< Module to send from
-  unsigned long UnicastNodeId; //!< Target Node for unicasts, value 1..256
+	unsigned long Module;        //!< Module to send from
+	unsigned long UnicastNodeId; //!< Target Node for unicasts, value 1..256
 
-  unsigned long MulticastMask;
-  //!< For the first 32 nodes 1..32, one bit each, multicast
+	unsigned long MulticastMask;
+	//!< For the first 32 nodes 1..32, one bit each, multicast
 
-  XmemDrvrNic   InterruptType; //!< See above
-  unsigned long Data;          //!< The data to be sent
+	XmemDrvrNic   InterruptType; //!< See above
+	unsigned long Data;          //!< The data to be sent
 } XmemDrvrSendBuf;
 //@}
 
@@ -279,8 +279,8 @@ typedef struct {
  * Used by XmemDrvrGET_XMEM_ADDRESS
  */
 typedef struct {
-  unsigned long  Module;  //!< Module to send from
-  char          *Address; //!< Address of SDRam
+	unsigned long  Module;  //!< Module to send from
+	char          *Address; //!< Address of SDRam
 } XmemDrvrRamAddress;
 
 
@@ -298,12 +298,12 @@ typedef char XmemDrvrSegName[XmemDrvrSEG_NAME_SIZE];
  * Used by XmemDrvrGET_SEGMENT_TABLE
  */
 typedef struct {
-  XmemDrvrSegName Name;    //!< Name of segment
-  unsigned long   Id;      //!< The Id of this segment as a bit 1..32
-  unsigned long   Size;    //!< Size of segment in bytes
-  char           *Address; //!< Location in VMIC SDRAM
-  unsigned long   Nodes;   //!< Nodes with write access, one bit per node
-  unsigned long   User;    //!< Not used by the driver, for user data
+	XmemDrvrSegName Name;    //!< Name of segment
+	unsigned long   Id;      //!< The Id of this segment as a bit 1..32
+	unsigned long   Size;    //!< Size of segment in bytes
+	char           *Address; //!< Location in VMIC SDRAM
+	unsigned long   Nodes;   //!< Nodes with write access, one bit per node
+	unsigned long   User;    //!< Not used by the driver, for user data
 } XmemDrvrSegDesc;         //!< Segment descriptor
 
 /*! Segment table
@@ -311,8 +311,8 @@ typedef struct {
  * Used by XmemDrvrGET_SEGMENT_TABLE
  */
 typedef struct {
-  unsigned long   Used;                          //!< Which segments are in use
-  XmemDrvrSegDesc Descriptors[XmemDrvrSEGMENTS]; //!< Segment descriptors
+	unsigned long   Used;                          //!< Which segments are in use
+	XmemDrvrSegDesc Descriptors[XmemDrvrSEGMENTS]; //!< Segment descriptors
 } XmemDrvrSegTable;                              //!< Segment table
 //@}
 
@@ -329,8 +329,8 @@ typedef char XmemDrvrNodeName[XmemDrvrNODE_NAME_SIZE];
  * Describes nodes in the driver.
  */
 typedef struct {
-  XmemDrvrNodeName Name; //!< Name of node
-  unsigned long    Id;   //!< The Id of this node as a bit 1..32
+	XmemDrvrNodeName Name; //!< Name of node
+	unsigned long    Id;   //!< The Id of this node as a bit 1..32
 } XmemDrvrNodeDesc;      //!< Node descriptor
 
 /*! Node tables
@@ -340,19 +340,19 @@ typedef struct {
  * test program and the library.
  */
 typedef struct {
-  unsigned long    Used;                       //!< Which nodes are in use
-  XmemDrvrNodeDesc Descriptors[XmemDrvrNODES]; //!< Node descriptors
+	unsigned long    Used;                       //!< Which nodes are in use
+	XmemDrvrNodeDesc Descriptors[XmemDrvrNODES]; //!< Node descriptors
 } XmemDrvrNodeTable;                           //!< Segment table
 //@}
 
 /*! Read/Write segment to/from local address space */
 typedef struct {
-  unsigned long  Module;    //!< Module to do the IO on
-  unsigned long  Id;        //!< Segment Id, "one bit only"
-  unsigned long  Offset;    //!< Where to start reading from
-  unsigned long  Size;      //!< Amount to be read
-  unsigned char *UserArray; //!< Users data buffer
-  unsigned long  UpdateFlg; //!< Send SEGMENT_UPDATE flag
+	unsigned long  Module;    //!< Module to do the IO on
+	unsigned long  Id;        //!< Segment Id, "one bit only"
+	unsigned long  Offset;    //!< Where to start reading from
+	unsigned long  Size;      //!< Amount to be read
+	unsigned char *UserArray; //!< Users data buffer
+	unsigned long  UpdateFlg; //!< Send SEGMENT_UPDATE flag
 } XmemDrvrSegIoDesc;
 
 /*! @name Raw IO to CONFIG LOCAL and RFM registers
@@ -362,18 +362,18 @@ typedef struct {
  */
 //@{
 typedef enum {
-  XmemDrvrBYTE = 1, //!< 8-Bit (Byte)
-  XmemDrvrWORD = 2, //!< 16-Bit (Word)
-  XmemDrvrLONG = 4  //!< 32-Bit (Double Word)
+	XmemDrvrBYTE = 1, //!< 8-Bit (Byte)
+	XmemDrvrWORD = 2, //!< 16-Bit (Word)
+	XmemDrvrLONG = 4  //!< 32-Bit (Double Word)
 } XmemDrvrSize;
 
 /*! Raw IO operations to CONFIG LOCAL and RFM registers
  */
 typedef struct {
-  unsigned long  Items;     //!< Number of items
-  XmemDrvrSize   Size;      //!< Size of item
-  unsigned long  Offset;    //!< Target offset (Bytes)
-  unsigned long *UserArray; //!< Callers data area for IO, starts at zero
+	unsigned long  Items;     //!< Number of items
+	XmemDrvrSize   Size;      //!< Size of item
+	unsigned long  Offset;    //!< Target offset (Bytes)
+	unsigned long *UserArray; //!< Callers data area for IO, starts at zero
 } XmemDrvrRawIoBlock;
 //@}
 
@@ -384,12 +384,12 @@ typedef struct {
  */
 //@{
 typedef enum {
-  XmemDrvrIntIdxINT_1          = 0, //!< General purpose Interrupt 1
-  XmemDrvrIntIdxINT_2          = 1, //!< General purpose Interrupt 2
-  XmemDrvrIntIdxSEGMENT_UPDATE = 2, //!< Memory segment updated interrupt
-  XmemDrvrIntIdxPENDING_INIT   = 3, //!< Pending init request
-  XmemDrvrIntIdxDAEMON         = 4, //!< DAEMON interrupt to clients
-  XmemDrvrIntIdxFIFOS               //!< Number of FIFOs
+	XmemDrvrIntIdxINT_1          = 0, //!< General purpose Interrupt 1
+	XmemDrvrIntIdxINT_2          = 1, //!< General purpose Interrupt 2
+	XmemDrvrIntIdxSEGMENT_UPDATE = 2, //!< Memory segment updated interrupt
+	XmemDrvrIntIdxPENDING_INIT   = 3, //!< Pending init request
+	XmemDrvrIntIdxDAEMON         = 4, //!< DAEMON interrupt to clients
+	XmemDrvrIntIdxFIFOS               //!< Number of FIFOs
 } XmemDrvrIntIdx;
 
 /*! read() entry point structure
@@ -398,10 +398,10 @@ typedef enum {
  * For each of the events they suscribe to, we keep a FIFO.
  */
 typedef struct {
-  unsigned long Module;
-  unsigned long NdData[XmemDrvrIntIdxFIFOS]; //!< Interrupting nodes data
-  unsigned long NodeId[XmemDrvrIntIdxFIFOS]; //!< Interrupting node number
-  XmemDrvrIntr  Mask;                        //!< Interrupt source mask
+	unsigned long Module;
+	unsigned long NdData[XmemDrvrIntIdxFIFOS]; //!< Interrupting nodes data
+	unsigned long NodeId[XmemDrvrIntIdxFIFOS]; //!< Interrupting node number
+	XmemDrvrIntr  Mask;                        //!< Interrupt source mask
 } XmemDrvrReadBuf;
 //@}
 
@@ -421,9 +421,9 @@ typedef struct {
  * to decide what to connect to and when to issue a write().
  */
 typedef struct {
-  unsigned long Module;
-  unsigned long NdData;
-  unsigned long NodeId;
+	unsigned long Module;
+	unsigned long NdData;
+	unsigned long NodeId;
 } XmemDrvrWriteBuf;
 
 
@@ -436,114 +436,114 @@ typedef struct {
 //@{
 typedef enum {
 
-  XmemDrvrILLEGAL_IOCTL,          //!< LynxOs calls me with this
+	XmemDrvrILLEGAL_IOCTL,          //!< LynxOs calls me with this
 
-  //!< Standard IOCTL Commands
+	//!< Standard IOCTL Commands
 
-  XmemDrvrSET_SW_DEBUG,           //!< Set driver debug mode
-  XmemDrvrGET_SW_DEBUG,           //!< Get the driver debug mode
+	XmemDrvrSET_SW_DEBUG,           //!< Set driver debug mode
+	XmemDrvrGET_SW_DEBUG,           //!< Get the driver debug mode
 
-  XmemDrvrGET_VERSION,            //!< Get version date
+	XmemDrvrGET_VERSION,            //!< Get version date
 
-  XmemDrvrSET_TIMEOUT,
-  //!< Set the read() timeout value in intervals of 10ms
+	XmemDrvrSET_TIMEOUT,
+	//!< Set the read() timeout value in intervals of 10ms
 
-  XmemDrvrGET_TIMEOUT,
-  //!< Get the read() timeout value
+	XmemDrvrGET_TIMEOUT,
+	//!< Get the read() timeout value
 
-  XmemDrvrSET_QUEUE_FLAG,         //!< Set queuing capabilities on/off
-  XmemDrvrGET_QUEUE_FLAG,         //!< 1==Q_off, 0==Q_on
-  XmemDrvrGET_QUEUE_SIZE,         //!< Number of events on queue
-  XmemDrvrGET_QUEUE_OVERFLOW,     //!< Number of missed events
+	XmemDrvrSET_QUEUE_FLAG,         //!< Set queuing capabilities on/off
+	XmemDrvrGET_QUEUE_FLAG,         //!< 1==Q_off, 0==Q_on
+	XmemDrvrGET_QUEUE_SIZE,         //!< Number of events on queue
+	XmemDrvrGET_QUEUE_OVERFLOW,     //!< Number of missed events
 
-  XmemDrvrGET_MODULE_DESCRIPTOR,  //!< Get the current Module descriptor
-  XmemDrvrSET_MODULE,             //!< Select the module to work with
-  XmemDrvrGET_MODULE,             //!< Which module am I working with
-  XmemDrvrGET_MODULE_COUNT,       //!< The number of installed VMIC modules
+	XmemDrvrGET_MODULE_DESCRIPTOR,  //!< Get the current Module descriptor
+	XmemDrvrSET_MODULE,             //!< Select the module to work with
+	XmemDrvrGET_MODULE,             //!< Which module am I working with
+	XmemDrvrGET_MODULE_COUNT,       //!< The number of installed VMIC modules
 
-  XmemDrvrSET_MODULE_BY_SLOT,
-  //!< Select the module to work with by slot ID
+	XmemDrvrSET_MODULE_BY_SLOT,
+	//!< Select the module to work with by slot ID
 
-  XmemDrvrGET_MODULE_SLOT,        //!< Get the slot ID of the selected module
+	XmemDrvrGET_MODULE_SLOT,        //!< Get the slot ID of the selected module
 
-  XmemDrvrRESET,
-  //!< Reset the module and perform full initialise
+	XmemDrvrRESET,
+	//!< Reset the module and perform full initialise
 
-  XmemDrvrSET_COMMAND,            //!< Send a command to the VMIC module
-  XmemDrvrGET_STATUS,             //!< Read module status
-  XmemDrvrGET_NODES,              //!< Get the detected nodes
+	XmemDrvrSET_COMMAND,            //!< Send a command to the VMIC module
+	XmemDrvrGET_STATUS,             //!< Read module status
+	XmemDrvrGET_NODES,              //!< Get the detected nodes
 
-  XmemDrvrGET_CLIENT_LIST,        //!< Get the list of driver's clients
+	XmemDrvrGET_CLIENT_LIST,        //!< Get the list of driver's clients
 
-  XmemDrvrCONNECT,                //!< Connect to an object interrupt
-  XmemDrvrDISCONNECT,             //!< Disconnect from an object interrupt
+	XmemDrvrCONNECT,                //!< Connect to an object interrupt
+	XmemDrvrDISCONNECT,             //!< Disconnect from an object interrupt
 
-  XmemDrvrGET_CLIENT_CONNECTIONS,
+	XmemDrvrGET_CLIENT_CONNECTIONS,
 
-  XmemDrvrSEND_INTERRUPT,         //!< Send an interrupt to other nodes
+	XmemDrvrSEND_INTERRUPT,         //!< Send an interrupt to other nodes
 
-  XmemDrvrGET_XMEM_ADDRESS,
-  //!< Get mapped address of reflective memory SDRAM
+	XmemDrvrGET_XMEM_ADDRESS,
+	//!< Get mapped address of reflective memory SDRAM
 
-  XmemDrvrSET_SEGMENT_TABLE,
-  //!< Set the list of all defined xmem memory segments
+	XmemDrvrSET_SEGMENT_TABLE,
+	//!< Set the list of all defined xmem memory segments
 
-  XmemDrvrGET_SEGMENT_TABLE,
-  //!< List of all defined xmem memory segments
+	XmemDrvrGET_SEGMENT_TABLE,
+	//!< List of all defined xmem memory segments
 
-  XmemDrvrREAD_SEGMENT,           //!< Copy from xmem segment to local memory
-  XmemDrvrWRITE_SEGMENT,          //!< Update the segment with new contents
+	XmemDrvrREAD_SEGMENT,           //!< Copy from xmem segment to local memory
+	XmemDrvrWRITE_SEGMENT,          //!< Update the segment with new contents
 
-  XmemDrvrCHECK_SEGMENT,
-  //!< Check to see if a segment has been updated since last read
+	XmemDrvrCHECK_SEGMENT,
+	//!< Check to see if a segment has been updated since last read
 
-  XmemDrvrFLUSH_SEGMENTS,
-  //!< Flush segments out to other nodes after PendingInit
+	XmemDrvrFLUSH_SEGMENTS,
+	//!< Flush segments out to other nodes after PendingInit
 
-  XmemDrvrCONFIG_OPEN,
-  //!< Open plx9656 configuration registers block
+	XmemDrvrCONFIG_OPEN,
+	//!< Open plx9656 configuration registers block
 
-  XmemDrvrLOCAL_OPEN,
-  //!< Open plx9656 local registers block Local/Runtime/DMA
+	XmemDrvrLOCAL_OPEN,
+	//!< Open plx9656 local registers block Local/Runtime/DMA
 
-  XmemDrvrRFM_OPEN,               //!< Open VMIC 5565 FPGA Register block RFM
-  XmemDrvrRAW_OPEN,               //!< Open VMIC 5565 SDRAM
+	XmemDrvrRFM_OPEN,               //!< Open VMIC 5565 FPGA Register block RFM
+	XmemDrvrRAW_OPEN,               //!< Open VMIC 5565 SDRAM
 
-  XmemDrvrCONFIG_READ,
-  //!< Read from plx9656 configuration registers block
+	XmemDrvrCONFIG_READ,
+	//!< Read from plx9656 configuration registers block
 
-  XmemDrvrLOCAL_READ,
-  //!< Read from plx9656 local registers block Local/Runtime/DMA
+	XmemDrvrLOCAL_READ,
+	//!< Read from plx9656 local registers block Local/Runtime/DMA
 
-  XmemDrvrRFM_READ,
-  //!< Read from VMIC 5565 FPGA Register block RFM
+	XmemDrvrRFM_READ,
+	//!< Read from VMIC 5565 FPGA Register block RFM
 
-  XmemDrvrRAW_READ,               //!< Read from VMIC 5565 SDRAM
+	XmemDrvrRAW_READ,               //!< Read from VMIC 5565 SDRAM
 
-  XmemDrvrCONFIG_WRITE,
-  //!< Write to plx9656 configuration registers block
+	XmemDrvrCONFIG_WRITE,
+	//!< Write to plx9656 configuration registers block
 
-  XmemDrvrLOCAL_WRITE,
-  //!< Write to plx9656 local registers block Local/Runtime/DMA
+	XmemDrvrLOCAL_WRITE,
+	//!< Write to plx9656 local registers block Local/Runtime/DMA
 
-  XmemDrvrRFM_WRITE,
-  //!< Write to VMIC 5565 FPGA Register block RFM
+	XmemDrvrRFM_WRITE,
+	//!< Write to VMIC 5565 FPGA Register block RFM
 
-  XmemDrvrRAW_WRITE,              //!< Write to VMIC 5565 SDRAM
+	XmemDrvrRAW_WRITE,              //!< Write to VMIC 5565 SDRAM
 
-  XmemDrvrCONFIG_CLOSE,
-  //!< Close plx9656 configuration registers block
+	XmemDrvrCONFIG_CLOSE,
+	//!< Close plx9656 configuration registers block
 
-  XmemDrvrLOCAL_CLOSE,
-  //!< Close plx9656 local registers block Local/Runtime/DMA
+	XmemDrvrLOCAL_CLOSE,
+	//!< Close plx9656 local registers block Local/Runtime/DMA
 
-  XmemDrvrRFM_CLOSE,              //!< Close VMIC 5565 FPGA Register block RFM
-  XmemDrvrRAW_CLOSE,              //!< Close VMIC 5565 SDRAM
+	XmemDrvrRFM_CLOSE,              //!< Close VMIC 5565 FPGA Register block RFM
+	XmemDrvrRAW_CLOSE,              //!< Close VMIC 5565 SDRAM
 
-  XmemDrvrSET_DMA_THRESHOLD,      //!< Set Drivers DMA threshold
-  XmemDrvrGET_DMA_THRESHOLD,      //!< Get Drivers DMA threshold
+	XmemDrvrSET_DMA_THRESHOLD,      //!< Set Drivers DMA threshold
+	XmemDrvrGET_DMA_THRESHOLD,      //!< Get Drivers DMA threshold
 
-  XmemDrvrLAST_IOCTL
+	XmemDrvrLAST_IOCTL
 
 } XmemDrvrControlFunction;
 //@}
@@ -721,7 +721,7 @@ typedef enum {
  * In our case this is a dummy one -- our install procedure requires it.
  */
 typedef struct {
-  int ModuleFlag[XmemDrvrMODULE_CONTEXTS];
+	int ModuleFlag[XmemDrvrMODULE_CONTEXTS];
 } XmemDrvrInfoTable;
 
 #endif /* !defined(XMEM_DRVR) */
