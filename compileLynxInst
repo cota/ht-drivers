@@ -1,5 +1,0 @@
-#!/usr/local/bin/bash
-
-# LynxOs @ ppc4
-make CPU=ppc4 xmemInst.lynx
-mv xmemInst.lynx ../object_xmem/xmemInst.lynx.ppc4

@@ -1,0 +1,16 @@
+#!/bin/bash
+# HOWTO compile the driver with local CDCM copy.
+
+# Goto local CDCM. Edit. Compile.
+# cd  /acc/src/dsc/drivers/coht/.__kitchen/egarciac/cdcm; ./rmdrvr; make KVER=2.6.29.1-rt7
+cd  /acc/src/dsc/drivers/coht/.__kitchen/egarciac/cdcm; ./rmdrvr; make KVER=2.6.29.4-rt15
+
+# Goto your driver dir
+cd /acc/src/dsc/drivers/coht/xmem/driver; ./rmdrvr;
+
+# compile for Linux
+# make clean CPU=L865; make CPU=L865 CDCM_D=/acc/src/dsc/drivers/coht/.__kitchen/egarciac/cdcm
+make CPU=L865 CDCM_D=/acc/src/dsc/drivers/coht/.__kitchen/egarciac/cdcm
+
+# compile for Lynx
+make drvr CPU=ppc4 CDCM_D=/acc/src/dsc/drivers/coht/.__kitchen/egarciac/cdcm
