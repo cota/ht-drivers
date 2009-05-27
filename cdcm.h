@@ -34,7 +34,6 @@ extern unsigned int cdcm_find_controller(unsigned int, unsigned int,
 					 struct pdparam_master*);
 
 #define sel  cdcm_sel  /* see Lynx <sys/file.h> for more details */
-#define file cdcm_file /* see Lynx <sys/file.h> for more details */
 #define enable restore
 
 #else  /* __Lynx__ */
@@ -54,6 +53,14 @@ extern unsigned int cdcm_find_controller(unsigned int, unsigned int,
 #include <ces/vmelib.h>
 #include <drm.h>
 #include <pci_resource.h>
+
+/*
+ * struct file is used in many places in Linux. Therefore let's just keep
+ * things clean by using the Lynx-like file as 'struct cdcm_file'. This
+ * means that whenever in a LynxOS driver 'struct file' appears, we have
+ * to change it into 'struct cdcm_file'.
+ */
+#define cdcm_file file
 
 extern unsigned long find_controller   _AP((unsigned long vmeaddr, unsigned long len, unsigned long am, unsigned long offset, unsigned long size, struct pdparam_master  *param));
 extern unsigned long return_controller _AP((unsigned long physaddr, unsigned long len));
