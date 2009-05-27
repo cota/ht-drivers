@@ -100,7 +100,7 @@
 #else  /* __Lynx__ */
 #include <conf.h>
 #include <dldd.h>
-#include "drm.h"
+#include <drm.h>
 #include <errno.h>
 #include <kernel.h>
 #include <io.h>
