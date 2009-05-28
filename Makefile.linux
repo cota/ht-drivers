@@ -11,8 +11,6 @@
 #
 # @date Created on 08/04/2009
 ###############################################################################
-# We need ACCS && BSPS
-include /acc/src/dsc/co/Make.common
 
 # Include generic definitions
 include $(ROOTDIR)/makefiles/Kbuild.include
@@ -53,25 +51,8 @@ all: $(OBJDIR) $(FINAL_DEST)
 # 4. Deliver kernel object
 	@mv *.ko $(DRIVER)
 
-
 # CERN delivery
-deliver:
-	@for a in $(ACCS); do \
-		tmp_dir="/acc/dsc/$$a/$(CPU)/$(KVER)/$(DRIVER_NAME)"; \
-		if [ -w $$tmp_dir ]; then \
-			echo -e "\nDelivering $(notdir $(DRIVER)) in $$tmp_dir"; \
-			dsc_install $(DRIVER) $$tmp_dir; \
-		elif [ ! -e $$tmp_dir ]; then \
-			echo -e "\nCreating $$tmp_dir directory..."; \
-			mkdir $$tmp_dir; \
-			echo -e "Delivering $(notdir $(DRIVER)) in $$tmp_dir"; \
-			dsc_install $(DRIVER) $$tmp_dir; \
-		elif [ -e $$tmp_dir ]; then \
-			echo -e "\nCan't deliver $(notdir $(DRIVER)) in $$tmp_dir"; \
-			echo -e "You don't write permissions!"; \
-		fi; \
-	done
-	@echo ""
+include $(ROOTDIR)/makefiles/Makefile.deliver
 
 # Guess what
 clean clear:

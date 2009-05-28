@@ -47,7 +47,7 @@ endif
 # SLC5
 ifeq ($(CPU), L865)
 	ifeq ($(KVER),)
-		KVER = 2.6.29.1-rt7
+		KVER = 2.6.24.7-rt27
 	endif
 	include $(ROOTDIR)/makefiles/Makefile.linux
 endif
