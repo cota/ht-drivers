@@ -85,6 +85,40 @@ static inline void cdcm_sem_init(struct cdcm_sem *sem, int val)
 	lockdep_init_map(&sem->lock.dep_map, "semaphore->lock", &__key, 0);
 }
 
+/*
+ * Note: the following is needed by our current semaphore's implementation.
+ * In 2.6.26 signal_pending_state() was added.
+ * In 2.6.25, the implementation is as in 2.6.29 (see below).
+ * In 2.6.24, we have a much simpler implementation below.
+ *
+ * see commit 364d3c13c17f45da6d638011078d4c4d3070d719 and commit
+ * 5b2becc8cffdccdd60c63099f592ddd35aa6c34f . 364d introduces
+ * signal_pending_state, and 5b2b uses it in down_common().
+ */
+#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,25)
+
+#include <linux/sched.h>
+static inline int signal_pending_state(long state, struct task_struct *p)
+{
+	if (!(state & (TASK_INTERRUPTIBLE | TASK_WAKEKILL)))
+		return 0;
+	if (!signal_pending(p))
+		return 0;
+
+	return (state & TASK_INTERRUPTIBLE) || __fatal_signal_pending(p);
+}
+
+#endif /* 2.6.25 */
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,24)
+
+#include <linux/sched.h>
+static inline int signal_pending_state(long state, struct task_struct *p)
+{
+	return state & TASK_INTERRUPTIBLE && signal_pending(p);
+}
+
+#endif /* 2.6.24 */
+
 void cdcm_sema_cleanup_all(void);
 
 #endif /* _CDCM_TIME_H_INCLUDE_ */
