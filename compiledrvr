@@ -13,4 +13,4 @@
 make clean CPU=L865; make CPU=L865
 
 # compile for Lynx
-make clean drvr CPU=ppc4
+make clean CPU=ppc4 && make CPU=ppc4
