@@ -159,9 +159,7 @@ static struct cdcm_semaphore *__get_sema(int *user_sem)
 	}
 
 	/* initialise the semaphore */
-	*sema = (struct cdcm_semaphore) {
-		.user_sem = user_sem,
-	};
+	sema->user_sem = user_sem;
 	cdcm_sem_init(&sema->sem, *user_sem);
 	list_add(&sema->sem_list, &cdcmStatT.cdcm_sem_list_head);
 

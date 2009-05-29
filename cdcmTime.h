@@ -80,9 +80,9 @@ struct cdcm_sem_waiter {
 
 static inline void cdcm_sem_init(struct cdcm_sem *sem, int val)
 {
-	static struct lock_class_key __key;
-	*sem = (struct cdcm_sem) __CDCM_SEM_INITIALIZER(*sem, val);
-	lockdep_init_map(&sem->lock.dep_map, "semaphore->lock", &__key, 0);
+	spin_lock_init(&sem->lock);
+	sem->count = val;
+	INIT_LIST_HEAD(&sem->wait_list);
 }
 
 /*
