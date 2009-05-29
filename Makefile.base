@@ -93,13 +93,12 @@ vpath %$(EXTOBJ) $(OBJDIR)
 ############################################################################
 # Our Primary target
 ############################################################################
-all::
-	@$(MAKE) $(SELFMFNAME) DLVRYPLS=$(word 2, $(ACCS)) build-subdirs build
+all:
+	@$(MAKE) DLVRYPLS=$(word 2, $(ACCS)) build-subdirs build
 
-# Stub goal for primary target
-# Dummy echoing to suppress "Nothing to be done for build" message
+# quiet
 build::
-	@echo -n
+	@:
 ############################################################################
 
 
@@ -107,7 +106,7 @@ build::
 # Cleaning up
 ############################################################################
 clean clear::
-	@$(MAKE) $(SELFMFNAME) $@loc-subdirs $@loc
+	@$(MAKE) $@loc-subdirs $@loc
 
 # Stub goals for cleaning up
 # Dummy echoing to suppress "Nothing to be done for clean/clear" message
@@ -121,8 +120,8 @@ cleanloc clearloc::
 ############################################################################
 ifndef BLDTYPE
 depend dep::
-	@$(MAKE) $(SELFMFNAME) BLDTYPE=dbg depend-subdirs depend
-	@$(MAKE) $(SELFMFNAME) BLDTYPE=rls depend-subdirs depend
+	@$(MAKE) BLDTYPE=dbg depend-subdirs depend
+	@$(MAKE) BLDTYPE=rls depend-subdirs depend
 else
 depend dep::
 	@if [ ! -z "$(strip $(FLTSRCFILES))" ]; then \
@@ -165,7 +164,7 @@ install::
 
 # lab.% oper.%. oplhc.% (See 'Make.common' file for current delivery places)
 $(addsuffix .%,$(ACCS))::
-	@$(MAKE) $(SELFMFNAME) DLVRYPLS=$(basename $@) $*-subdirs $*
+	@$(MAKE) DLVRYPLS=$(basename $@) $*-subdirs $*
 
 # Descent all the goals into subdirectories
 %-subdirs::
@@ -173,8 +172,8 @@ $(addsuffix .%,$(ACCS))::
 	do \
 	    if [ $$dir != _dummy_dir_ -a -d $$dir ]; then \
 		echo "---------[ Processing '$$dir' directory ]--------------"; \
-		echo "$(MAKE) $(SUBMFNAME) -C $$dir $*-subdirs $*" ; \
-		$(MAKE) $(SUBMFNAME) -C $$dir $*-subdirs $*; \
+		echo "$(MAKE) -C $$dir $*-subdirs $*" ; \
+		$(MAKE) -C $$dir $*-subdirs $*; \
 		if [ $$? -eq 2 ]; then exit 1; fi; \
 	    fi; \
 	done

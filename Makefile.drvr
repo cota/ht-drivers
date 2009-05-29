@@ -16,19 +16,19 @@ include $(shell if [ -e ./Makefile.specific ]; then \
 		echo ../Makefile.specific; \
 	fi)
 
+# That's our default target when none is given on the command line
+PHONY := _all
+_all:
+
 # For debugging
 #SHELL += -x
 
-# User can provide it's own
-ifeq ("$(origin ROOTDIR)", "undefined")
-	# Where everything is nested by default
-	ROOTDIR := /acc/src/dsc/drivers/coht
-endif
+# Where everything is nested
+# User can provide it's own, otherwise default will be used
+ROOTDIR := $(if $(ROOTDIR),$(ROOTDIR),/acc/src/dsc/drivers/coht)
 
-# Error. CPU is not defined
-ifeq ($(origin CPU), undefined)
-	include $(ROOTDIR)/makefiles/Makefile.base
-endif
+# CPU should be defined
+$(if $(CPU),,$(error CPU not defined))
 
 # CES Linux
 ifeq ($(CPU), Lces)
@@ -54,8 +54,13 @@ endif
 
 # Lynx
 ifeq ($(CPU), ppc4)
-	ifeq ($(KVER),)
-		KVER = 4.0.0
-	endif
+	KVER = 4.0.0
 	include $(ROOTDIR)/makefiles/Makefile.lynx
 endif
+
+PHONY += FORCE
+FORCE:
+
+# Declare the contents of the .PHONY variable as phony.  We keep that
+# information in a variable se we can use it in if_changed and friends.
+.PHONY: $(PHONY)

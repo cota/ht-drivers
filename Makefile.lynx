@@ -30,13 +30,13 @@ ADDINCLUDES = $(KERN_INCLUDES)
 # It's working in this case.
 
 # What will be finally created
-DRIVERS   = ../$(FINAL_DEST)/$(DRIVER_NAME).$(KVER).ko
+DRIVER   = ../$(FINAL_DEST)/$(DRIVER_NAME).$(KVER).ko
 
-$(DRIVERS): CC = $(KERN_CC)
-$(DRIVERS): OUTPUT_OPTION +=$(KFLAGS); mv $*.$(CPU).o $(OBJDIR)
+$(DRIVER): CC = $(KERN_CC)
+$(DRIVER): OUTPUT_OPTION +=$(KFLAGS); mv $*.$(CPU).o $(OBJDIR)
 
 # Old implementation. Was working with old make.
-#$(DRIVERS): OUTPUT_OPTION +=$@; mv $*.$(CPU).o $(OBJDIR)
+#$(DRIVER): OUTPUT_OPTION +=$@; mv $*.$(CPU).o $(OBJDIR)
 
 # Get all *.c files from current dir. ,*.c will be sorted-out in Makefile.base
 SRCFILES += $(wildcard $(PWD)/*.c)
@@ -53,10 +53,8 @@ INCDIRS += \
 	./ \
 	/acc/sys/ppc4/sys.20070420/bsp.ces
 
-# Major goals
-build:: abort $(OBJDIR) $(FINAL_DEST) $(DRIVERS)
-
-drvr:: $(OBJDIR) $(FINAL_DEST) $(DRIVERS)
+_all: all
+all: $(OBJDIR) $(FINAL_DEST) $(DRIVER)
 
 # 0x0.
 # This rule produce temporary driver archive file that contains unresolved
@@ -74,7 +72,7 @@ $(DRIVER_NAME)Drvr.$(CPU).tmp: $(DRVROBJS)
 # 0x2.
 # This rules will create a driver shared object that imports an undefined
 # symbols.
-$(DRIVERS): $(DRIVER_NAME)Drvr.$(CPU).import $(DRVROBJS)
+$(DRIVER): $(DRIVER_NAME)Drvr.$(CPU).import $(DRVROBJS)
 	$(KERN_LD) -o $(subst .o,.ko,$@) -bM:SRE -bimport:$(addprefix $(OBJDIR)/, $(notdir $^))
 
 # CERN delivery
@@ -85,5 +83,5 @@ cleanloc clearloc:: abort
 	@ if [ -n "$(ISP)" ]; then \
 		rm -rf $(ISP)* ; \
 	fi
-	-rm -f $(DRIVERS)
+	-rm -f $(DRIVER)
 	find ./ -name '*~' | xargs rm -f
