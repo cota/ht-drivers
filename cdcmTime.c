@@ -286,6 +286,25 @@ static inline int cdcm_down_timeout(struct cdcm_sem *sem, long jiffies)
 	return result;
 }
 
+/**
+ * @brief try to acquire the semaphore, without waiting
+ * @return 0 - if the semaphore has been acquired successfully
+ * @return 1 - if it cannot be acquired
+ */
+static inline int cdcm_down_trylock(struct cdcm_sem *sem)
+{
+	unsigned long flags;
+	int count;
+
+	spin_lock_irqsave(&sem->lock, flags);
+	count = sem->count - 1;
+	if (likely(count >= 0))
+		sem->count = count;
+	spin_unlock_irqrestore(&sem->lock, flags);
+
+	return count < 0;
+}
+
 static noinline void __cdcm_up_waiter(struct cdcm_sem *sem)
 {
 	struct cdcm_sem_waiter *waiter = list_first_entry(&sem->wait_list,
@@ -357,11 +376,9 @@ int tswait(int *user_sem, int sig, int interval)
 	if (sema == NULL)
 		return SYSERR;
 
-	/*
-	 * ignore the case where interval == 0; Lynx' documentation on this
-	 * is not very clear, and I haven't seen examples of it.
-	 */
-	if (interval <= 0)
+	if (!interval)
+		return cdcm_down_trylock(&sema->sem);
+	else if (interval < 0)
 		return swait(user_sem, sig);
 
 	return cdcm_down_timeout(&sema->sem, expires); /* non-interruptible */
