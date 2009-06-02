@@ -387,9 +387,17 @@ static int __devinit vme_bridge_create_devices(void)
 	}
 
 	for (i = 0; i < ARRAY_SIZE(devlist); i++) {
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
 		device_create(vme_class, NULL,
 			      MKDEV(VME_MAJOR, devlist[i].minor),
 			      devlist[i].name);
+#else
+		device_create(vme_class, NULL,
+			      MKDEV(VME_MAJOR, devlist[i].minor), NULL,
+			      devlist[i].name);
+#endif /* 2.6.28 */
+
 	}
 
 	return 0;
