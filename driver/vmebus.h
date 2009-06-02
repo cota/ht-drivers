@@ -148,8 +148,8 @@ struct vme_mapping {
  * \param vme_addrl VME address for the RMW cycle lower 32 bits
  * \param am VME address modifier
  * \param enable_mask Bitmask of the bit
- * \param compare_data 
- * \param swap_data 
+ * \param compare_data
+ * \param swap_data
  *
  */
 struct vme_rmw {
@@ -253,6 +253,24 @@ struct vme_dma {
 
 
 
+/*! @name VME single access swapping policy
+ *@{
+ */
+#define SINGLE_NO_SWAP          0
+#define SINGLE_AUTO_SWAP        1
+#define SINGLE_WORD_SWAP        2
+#define SINGLE_BYTEWORD_SWAP    3
+/*@}*/
+
+
+/*! @name page qualifier
+ *
+ *@{
+ */
+#define VME_PG_SHARED  0x00
+#define VME_PG_PRIVATE 0x02
+/*@}*/
+
 
 /**
  * \brief VME mapping attributes
@@ -261,9 +279,10 @@ struct vme_dma {
  * \param wrpost VME write posting option
  * \param swap VME swap options
  * \param sgmin page descriptor number returned by find_controller
- * \param dum ???
+ * \param dum -- dum[0] page qualifier (shared/private), dum[1] XPC ADP-type
+ *               dum[2] - reserved, _must_ be 0.
  *
- *  This structure is used for the find_controller() and return_controller()
+ * This structure is used for the find_controller() and return_controller()
  * LynxOS CES driver emulation.
  */
 struct pdparam_master
