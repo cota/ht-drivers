@@ -168,5 +168,48 @@ typedef struct {
 } XmemDrvrWorkingArea;
 //@}
 
+#ifdef __linux__
+#define XMEM_ERR KERN_ERR
+#define XMEM_WRN KERN_WARNING
+#define XMEM_NFO KERN_INFO
+#define XMEM_DBG KERN_DEBUG
+#else /* lynx */
+#define XMEM_ERR
+#define XMEM_WRN
+#define XMEM_NFO
+#define XMEM_DBG
+#endif /* __linux__ */
+
+/* error printout */
+#define XMEM_ERROR(format...)				\
+        do {						\
+		kkprintf(XMEM_ERR "[xmem_ERROR] ");	\
+		kkprintf(format);			\
+		kkprintf("\n");				\
+        } while (0)
+
+/* warning printout */
+#define XMEM_WARN(format...)				\
+        do {						\
+		kkprintf(XMEM_WRN "[xmem_WARN] ");	\
+		kkprintf(format);			\
+		kkprintf("\n");				\
+        } while (0)
+
+/* informational printout */
+#define XMEM_INFO(format...)			\
+        do {					\
+		kkprintf(XMEM_NFO "[xmem] ");	\
+		kkprintf(format);		\
+		kkprintf("\n");			\
+        } while (0)
+
+/* debugging printout */
+#define XMEM_DEBUG(format...)						\
+        do {								\
+		kkprintf(XMEM_DBG "[xmem_DEBUG] %s()@%d: ", __FUNCTION__, __LINE__); \
+		kkprintf(format);					\
+		kkprintf("\n");						\
+        } while (0)
 
 #endif
