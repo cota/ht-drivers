@@ -15,6 +15,8 @@
 #ifndef XMEM_DRVR
 #define XMEM_DRVR
 
+#include <general_both.h>
+
 #define XmemDrvrCLIENT_CONTEXTS 16
 //!< Maximum number of simultaneous clients for driver
 
@@ -425,130 +427,6 @@ typedef struct {
 	unsigned long NdData;
 	unsigned long NodeId;
 } XmemDrvrWriteBuf;
-
-
-#if 0
-
-/*! @name IOCTL descriptions
- *
- * Define the name of the IOCTLs and describe them.
- */
-//@{
-typedef enum {
-
-	XmemDrvrILLEGAL_IOCTL,          //!< LynxOs calls me with this
-
-	//!< Standard IOCTL Commands
-
-	XmemDrvrSET_SW_DEBUG,           //!< Set driver debug mode
-	XmemDrvrGET_SW_DEBUG,           //!< Get the driver debug mode
-
-	XmemDrvrGET_VERSION,            //!< Get version date
-
-	XmemDrvrSET_TIMEOUT,
-	//!< Set the read() timeout value in intervals of 10ms
-
-	XmemDrvrGET_TIMEOUT,
-	//!< Get the read() timeout value
-
-	XmemDrvrSET_QUEUE_FLAG,         //!< Set queuing capabilities on/off
-	XmemDrvrGET_QUEUE_FLAG,         //!< 1==Q_off, 0==Q_on
-	XmemDrvrGET_QUEUE_SIZE,         //!< Number of events on queue
-	XmemDrvrGET_QUEUE_OVERFLOW,     //!< Number of missed events
-
-	XmemDrvrGET_MODULE_DESCRIPTOR,  //!< Get the current Module descriptor
-	XmemDrvrSET_MODULE,             //!< Select the module to work with
-	XmemDrvrGET_MODULE,             //!< Which module am I working with
-	XmemDrvrGET_MODULE_COUNT,       //!< The number of installed VMIC modules
-
-	XmemDrvrSET_MODULE_BY_SLOT,
-	//!< Select the module to work with by slot ID
-
-	XmemDrvrGET_MODULE_SLOT,        //!< Get the slot ID of the selected module
-
-	XmemDrvrRESET,
-	//!< Reset the module and perform full initialise
-
-	XmemDrvrSET_COMMAND,            //!< Send a command to the VMIC module
-	XmemDrvrGET_STATUS,             //!< Read module status
-	XmemDrvrGET_NODES,              //!< Get the detected nodes
-
-	XmemDrvrGET_CLIENT_LIST,        //!< Get the list of driver's clients
-
-	XmemDrvrCONNECT,                //!< Connect to an object interrupt
-	XmemDrvrDISCONNECT,             //!< Disconnect from an object interrupt
-
-	XmemDrvrGET_CLIENT_CONNECTIONS,
-
-	XmemDrvrSEND_INTERRUPT,         //!< Send an interrupt to other nodes
-
-	XmemDrvrGET_XMEM_ADDRESS,
-	//!< Get mapped address of reflective memory SDRAM
-
-	XmemDrvrSET_SEGMENT_TABLE,
-	//!< Set the list of all defined xmem memory segments
-
-	XmemDrvrGET_SEGMENT_TABLE,
-	//!< List of all defined xmem memory segments
-
-	XmemDrvrREAD_SEGMENT,           //!< Copy from xmem segment to local memory
-	XmemDrvrWRITE_SEGMENT,          //!< Update the segment with new contents
-
-	XmemDrvrCHECK_SEGMENT,
-	//!< Check to see if a segment has been updated since last read
-
-	XmemDrvrFLUSH_SEGMENTS,
-	//!< Flush segments out to other nodes after PendingInit
-
-	XmemDrvrCONFIG_OPEN,
-	//!< Open plx9656 configuration registers block
-
-	XmemDrvrLOCAL_OPEN,
-	//!< Open plx9656 local registers block Local/Runtime/DMA
-
-	XmemDrvrRFM_OPEN,               //!< Open VMIC 5565 FPGA Register block RFM
-	XmemDrvrRAW_OPEN,               //!< Open VMIC 5565 SDRAM
-
-	XmemDrvrCONFIG_READ,
-	//!< Read from plx9656 configuration registers block
-
-	XmemDrvrLOCAL_READ,
-	//!< Read from plx9656 local registers block Local/Runtime/DMA
-
-	XmemDrvrRFM_READ,
-	//!< Read from VMIC 5565 FPGA Register block RFM
-
-	XmemDrvrRAW_READ,               //!< Read from VMIC 5565 SDRAM
-
-	XmemDrvrCONFIG_WRITE,
-	//!< Write to plx9656 configuration registers block
-
-	XmemDrvrLOCAL_WRITE,
-	//!< Write to plx9656 local registers block Local/Runtime/DMA
-
-	XmemDrvrRFM_WRITE,
-	//!< Write to VMIC 5565 FPGA Register block RFM
-
-	XmemDrvrRAW_WRITE,              //!< Write to VMIC 5565 SDRAM
-
-	XmemDrvrCONFIG_CLOSE,
-	//!< Close plx9656 configuration registers block
-
-	XmemDrvrLOCAL_CLOSE,
-	//!< Close plx9656 local registers block Local/Runtime/DMA
-
-	XmemDrvrRFM_CLOSE,              //!< Close VMIC 5565 FPGA Register block RFM
-	XmemDrvrRAW_CLOSE,              //!< Close VMIC 5565 SDRAM
-
-	XmemDrvrSET_DMA_THRESHOLD,      //!< Set Drivers DMA threshold
-	XmemDrvrGET_DMA_THRESHOLD,      //!< Get Drivers DMA threshold
-
-	XmemDrvrLAST_IOCTL
-
-} XmemDrvrControlFunction;
-//@}
-
-#endif /* if 0 */
 
 
 /*! @name IOCTLS

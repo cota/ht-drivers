@@ -107,20 +107,69 @@ extern void iointunmask(); /* needed to register an interrupt */
 
 //#define __DEBUG_TRACK_ALL__ /* comment this out for debug tracking */
 #ifdef __DEBUG_TRACK_ALL__
-#define IOCTL_TRACK(name)						\
-	do {								\
-		cprintf("XmemDrvr: [IOCTL]--------------------> '%s' called\n", name); \
-	} while (0)
 #define FUNCT_TRACK							\
 	do {								\
 		cprintf("XmemDrvr:[FUNCTION]--------------------> '%s()' called\n", __FUNCTION__); \
 	} while (0)
 #else
-#define IOCTL_TRACK(name)
 #define FUNCT_TRACK
 #endif /* !__DEBUG_TRACK_ALL__ */
 
 XmemDrvrWorkingArea *Wa = NULL; //!< Global pointer to Working Area
+
+static const char *ioc_names[] = {
+	[_IOC_NR(XmemDrvrILLEGAL_IOCTL)]	= "First IOCTL",
+	[_IOC_NR(XmemDrvrSET_SW_DEBUG)]		= "Set Debug Mode",
+	[_IOC_NR(XmemDrvrGET_SW_DEBUG)]		= "Get Debug Mode",
+	[_IOC_NR(XmemDrvrGET_VERSION)]		= "Get Version",
+	[_IOC_NR(XmemDrvrSET_TIMEOUT)]		= "Set Timeout",
+	[_IOC_NR(XmemDrvrGET_TIMEOUT)]		= "Get Timeout",
+	[_IOC_NR(XmemDrvrSET_QUEUE_FLAG)]	= "Set Queue Flag",
+	[_IOC_NR(XmemDrvrGET_QUEUE_FLAG)]	= "Get Queue Flag",
+	[_IOC_NR(XmemDrvrGET_QUEUE_SIZE)]	= "Get Queue Size",
+	[_IOC_NR(XmemDrvrGET_QUEUE_OVERFLOW)]	= "Get Queue Overflow",
+	[_IOC_NR(XmemDrvrGET_MODULE_DESCRIPTOR)] = "Get Module Descriptor",
+	[_IOC_NR(XmemDrvrSET_MODULE)]		= "Set Module",
+	[_IOC_NR(XmemDrvrGET_MODULE)]		= "Get Current Module",
+	[_IOC_NR(XmemDrvrGET_MODULE_COUNT)]	= "Get Module Count",
+	[_IOC_NR(XmemDrvrSET_MODULE_BY_SLOT)]	= "Get Module by Slot",
+	[_IOC_NR(XmemDrvrGET_MODULE_SLOT)]	= "Get Module Slot",
+	[_IOC_NR(XmemDrvrRESET)]		= "Reset",
+	[_IOC_NR(XmemDrvrSET_COMMAND)]		= "Set Command",
+	[_IOC_NR(XmemDrvrGET_STATUS)]		= "Get Status",
+	[_IOC_NR(XmemDrvrGET_NODES)]		= "Get Nodes",
+	[_IOC_NR(XmemDrvrGET_CLIENT_LIST)]	= "Get Client List",
+	[_IOC_NR(XmemDrvrCONNECT)]		= "Connect to Interrupt",
+	[_IOC_NR(XmemDrvrDISCONNECT)]		= "Disconnect from Interrupt",
+	[_IOC_NR(XmemDrvrGET_CLIENT_CONNECTIONS)] = "Get Client Connections",
+	[_IOC_NR(XmemDrvrSEND_INTERRUPT)]	= "Send Interrupt",
+	[_IOC_NR(XmemDrvrGET_XMEM_ADDRESS)]	= "Get Xmem Address",
+	[_IOC_NR(XmemDrvrSET_SEGMENT_TABLE)]	= "Set Segment Table",
+	[_IOC_NR(XmemDrvrGET_SEGMENT_TABLE)]	= "Get Segment Table",
+	[_IOC_NR(XmemDrvrREAD_SEGMENT)]		= "Read Segment",
+	[_IOC_NR(XmemDrvrWRITE_SEGMENT)]	= "Write Segment",
+	[_IOC_NR(XmemDrvrCHECK_SEGMENT)]	= "Check Segment",
+	[_IOC_NR(XmemDrvrFLUSH_SEGMENTS)]	= "Flush Segments",
+	[_IOC_NR(XmemDrvrCONFIG_OPEN)]		= "Open Configuration Regs.",
+	[_IOC_NR(XmemDrvrLOCAL_OPEN)]		= "Open Local Regs.",
+	[_IOC_NR(XmemDrvrRFM_OPEN)]		= "Open RFM Regs.",
+	[_IOC_NR(XmemDrvrRAW_OPEN)]		= "Open VMIC SDRAM",
+	[_IOC_NR(XmemDrvrCONFIG_READ)]		= "Read from Config. Regs.",
+	[_IOC_NR(XmemDrvrLOCAL_READ)]		= "Read from Local Regs.",
+	[_IOC_NR(XmemDrvrRFM_READ)]		= "Read from RFM Regs.",
+	[_IOC_NR(XmemDrvrRAW_READ)]		= "Read from VMIC SDRAM",
+	[_IOC_NR(XmemDrvrCONFIG_WRITE)]		= "Write to Config. Regs.",
+	[_IOC_NR(XmemDrvrLOCAL_WRITE)]		= "Write to Local Regs.",
+	[_IOC_NR(XmemDrvrRFM_WRITE)]		= "Write to RFM Regs.",
+	[_IOC_NR(XmemDrvrRAW_WRITE)]		= "Write to VMIC SDRAM",
+	[_IOC_NR(XmemDrvrCONFIG_CLOSE)]		= "Close Conf. Regs.",
+	[_IOC_NR(XmemDrvrLOCAL_CLOSE)]		= "Close Local Regs.",
+	[_IOC_NR(XmemDrvrRFM_CLOSE)]		= "Close RFM Regs.",
+	[_IOC_NR(XmemDrvrRAW_CLOSE)]		= "Close VMIC SDRAM",
+	[_IOC_NR(XmemDrvrSET_DMA_THRESHOLD)]	= "Set Dma Threshold",
+	[_IOC_NR(XmemDrvrGET_DMA_THRESHOLD)]	= "Get Dma Threshold",
+	[_IOC_NR(XmemDrvrLAST_IOCTL)]		= "Last IOCTL"
+};
 
 static unsigned long GetRfmReg(XmemDrvrModuleContext *mcon, VmicRfm reg,
 			int size);
@@ -278,121 +327,41 @@ static int RdDmaTimeout(void *m)
 	return 0;
 }
 
-/*! @name ioctl_names
- * keeps the names of all the IOCTL's, to be printed when debug is set.
- */
-//@{
-char *ioctl_names[XmemDrvrLAST_IOCTL] = {
-
-	"ILLEGAL_IOCTL",          /* LynxOs calls me with this */
-
-	/* Standard IOCTL Commands */
-
-	"SET_SW_DEBUG",           /* Set driver debug mode */
-	"GET_SW_DEBUG",           /* Get the driver debug mode */
-
-	"GET_VERSION",            /* Get version date */
-
-	"SET_TIMEOUT",            /* Set the read timeout value in micro seconds */
-	"GET_TIMEOUT",            /* Get the read timeout value in micro seconds */
-
-	"SET_QUEUE_FLAG",         /* Set queuing capabiulities on off */
-	"GET_QUEUE_FLAG",         /* 1=Q_off 0=Q_on */
-	"GET_QUEUE_SIZE",         /* Number of events on queue */
-	"GET_QUEUE_OVERFLOW",     /* Number of missed events */
-
-	"GET_MODULE_DESCRIPTOR",  /* Get the current Module descriptor */
-	"SET_MODULE",             /* Select the module to work with */
-	"GET_MODULE",             /* Which module am I working with */
-	"GET_MODULE_COUNT",       /* The number of installed VMIC modules */
-	"SET_MODULE_BY_SLOT",     /* Select the module to work with by slot ID */
-	"GET_MODULE_SLOT",        /* Get the slot ID of the selected module */
-
-	"RESET",                  /* Reset the module and perform full initialize */
-	"SET_COMMAND",            /* Send a command to the VMIC module */
-	"GET_STATUS",             /* Read module status */
-	"GET_NODES",              /* Get the node map of all connected to
-				     pending-init */
-
-	"GET_CLIENT_LIST",        /* Get the list of driver clients */
-
-	"CONNECT",                /* Connect to an object interrupt */
-	"DISCONNECT",             /* Disconnect from an object interrupt */
-	"GET_CLIENT_CONNECTIONS", /* Get the list of a client connections on module */
-
-	"SEND_INTERRUPT",         /* Send an interrupt to other nodes */
-
-	"GET_XMEM_ADDRESS",       /* Get phsical address of reflective memory SDRAM */
-	"SET_SEGMENT_TABLE",      /* Set the list of all defined xmem
-				     memory segments */
-	"GET_SEGMENT_TABLE",      /* List of all defined xmem memory segments */
-
-	"READ_SEGMENT",           /* Copy from xmem segment to local memory */
-	"WRITE_SEGMENT",          /* Update the segment with new contents */
-	"CHECK_SEGMENT",          /* Check to see if a segment has been updated since
-				     last read */
-	"FLUSH-SEGMENTS",         /* Flush segments to xmem nodes */
-
-	/* Hardware specialists raw IO access to PLX and VMIC memory */
-
-	"CONFIG_OPEN",            /* Open plx9656 configuration registers block */
-	"LOCAL_OPEN",             /* Open plx9656 local registers block 
-				     Local/Runtime/DMA */
-	"RFM_OPEN",               /* Open VMIC 5565 FPGA Register block RFM */
-	"RAW_OPEN",               /* Open VMIC 5565 SDRAM  */
-
-	"CONFIG_READ",            /* Read from plx9656 configuration 
-				     registers block */
-	"LOCAL_READ",             /* Read from plx9656 local registers 
-				     block Local/Runtime/DMA */
-	"RFM_READ",               /* Read from VMIC 5565 FPGA Register block RFM */
-	"RAW_READ",               /* Read from VMIC 5565 SDRAM */
-
-	"CONFIG_WRITE",           /* Write to plx9656 configuration registers block */
-	"LOCAL_WRITE",            /* Write to plx9656 local registers block
-				     Local/Runtime/DMA */
-	"RFM_WRITE",              /* Write to VMIC 5565 FPGA Register block RFM */
-	"RAW_WRITE",              /* Write to VMIC 5565 SDRAM */
-
-	"CONFIG_CLOSE",           /* Close plx9656 configuration registers block */
-	"LOCAL_CLOSE",            /* Close plx9656 local registers block
-				     Local/Runtime/DMA */
-	"RFM_CLOSE",              /* Close VMIC 5565 FPGA Register block RFM */
-	"RAW_CLOSE",              /* Close VMIC 5565 SDRAM */
-
-	"SET_DMA_THRESHOLD",      /* Set Drivers DMA threshold */
-	"GET_DMA_THRESHOLD"       /* Get Drivers DMA threshold */
-};
-//@}
+static int ioc_nr_ok(int nr)
+{
+	return WITHIN_RANGE(_IOC_NR(XmemDrvrILLEGAL_IOCTL), _IOC_NR(nr),
+			    _IOC_NR(XmemDrvrLAST_IOCTL)) &&
+		_IOC_TYPE(nr) == XMEM_IOCTL_MAGIC;
+}
 
 /**
  * TraceIoctl - tracks the IOCTL requests by printing on the kernel's log.
  *
- * @param cm: IOCTL command number
+ * @param nr: IOCTL command number
  * @param arg: argument of the IOCTL call
  * @param ccon: pointer to client context
  *
  * This function will work only if XmemDrvrDebugTRACE and ccon->Debug are set.
  *
  */
-static void TraceIoctl(int cm, char *arg, XmemDrvrClientContext *ccon)
+static void TraceIoctl(int nr, char *arg, XmemDrvrClientContext *ccon)
 {
-	int lav;
-	char *iocname;
+	const char *iocname;
 
-	if (XmemDrvrDebugTRACE & ccon->Debug) {
-		if ((cm >= 0) && (cm < XmemDrvrLAST_IOCTL)) {
-			iocname = ioctl_names[(int) cm];
-			if (arg) {
-				lav = *((long *) arg);
-				cprintf("xmemDrvr:Trace:Called IOCTL: %s Arg: %d\n", iocname, (int)lav);
-			} else {
-				cprintf("xmemDrvr:Trace:Called IOCTL: %s (Null argument)\n", iocname);
-			}
-			return ;
-		}
-		cprintf("xmemDrvr: Debug: Trace: Illegal IOCTL number: %d\n",(int) cm);
-	}
+	if (!(ccon->Debug & XmemDrvrDebugTRACE))
+		return;
+
+	if (!ioc_nr_ok(nr))
+		return;
+
+	iocname = ioc_names[_IOC_NR(nr)];
+
+	if (arg)
+		XMEM_INFO("IOCTL '%s' Arg: %d", iocname, *((int *)arg));
+	else
+		XMEM_INFO("IOCTL '%s' Arg: [Null]", iocname);
+
+	return;
 }
 
 /**
@@ -2504,7 +2473,30 @@ int XmemDrvrUninstall(void *s)
 	return OK;
 }
 
+static int rwbounds(int nr, int arg)
+{
+	int r = rbounds(arg);
+	int w = wbounds(arg);
 
+	switch (_IOC_DIR(nr)) {
+	case _IOC_READ:
+		if (w < _IOC_SIZE(nr))
+			return -1;
+		break;
+	case _IOC_WRITE:
+		if (r < _IOC_SIZE(nr))
+			return -1;
+		break;
+	case (_IOC_READ | _IOC_WRITE):
+		if (w < _IOC_SIZE(nr) || r < _IOC_SIZE(nr))
+			return -1;
+		break;
+	case _IOC_NONE:
+	default:
+		break;
+	}
+	return 0;
+}
 
 /*
  * FIXME: it would be _much_ cleaner to have the IOCTL entry point like a switch
@@ -2543,7 +2535,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 	int cm;
 	int i, j, size, pid;
 	int cnum;                 /* Client number */
-	long lav, *lap;           /* Long Value pointed to by Arg */
+	int32_t lav, *lap;           /* Long Value pointed to by Arg */
 	unsigned short sav;       /* Short argument and for Jtag IO */
 	int rcnt, wcnt;           /* Readable, Writable byte counts at arg address */
 	unsigned long ps;
@@ -2567,15 +2559,16 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		rcnt = rbounds((int)arg); /* Number of readable bytes without error */
 		wcnt = wbounds((int)arg); /* Number of writable bytes without error */
 
-		if (rcnt == EFAULT || wcnt == EFAULT) {
-			cprintf("xmemDrvrIoctl: ILLEGAL NON NULL ARG, RCNT=%d/%d\n", rcnt,
-				sizeof(long));
+		if (rwbounds(cm, (int)arg)) {
+			XMEM_WARN("IOCTL: Illegal Non-Null Argument. "
+				"rcnt=%d/%d, wcnt=%d/%d, cmd=%d", rcnt,
+				_IOC_SIZE(cm), wcnt, _IOC_SIZE(cm), cm);
 			pseterr(EINVAL);
-			return(SYSERR);
+			return SYSERR;
 		}
 
-		lav = *((long *)arg); /* Long argument value */
-		lap =   (long *)arg ; /* Long argument pointer */
+		lav = *((uint32_t *)arg); /* Long argument value */
+		lap =   (uint32_t *)arg ; /* Long argument pointer */
 
 	}
 	else {
@@ -2637,7 +2630,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 	switch (cm) {
 
 	case XmemDrvrSET_SW_DEBUG: /* Set driver debug mode */
-		IOCTL_TRACK("XmemDrvrSET_SW_DEBUG");
 		if (lap) {
 			ccon->Debug = (XmemDrvrDebug) lav;
 			return OK;
@@ -2646,7 +2638,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrGET_SW_DEBUG:
-		IOCTL_TRACK("XmemDrvrGET_SW_DEBUG");
 		if (lap) {
 			*lap = (long)ccon->Debug;
 			return OK;
@@ -2655,7 +2646,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrGET_VERSION: /* Get version date */
-		IOCTL_TRACK("XmemDrvrGET_VERSION");
 		if (wcnt >= sizeof(XmemDrvrVersion)) {
 			ver = (XmemDrvrVersion *) arg;
 			return GetVersion(mcon,ver);
@@ -2664,7 +2654,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrSET_TIMEOUT: /* Set the read timeout value */
-		IOCTL_TRACK("XmemDrvrSET_TIMEOUT");
 		if (lap) {
 			if (lav < XmemDrvrMINIMUM_TIMEOUT && lav) {
 				lav = XmemDrvrMINIMUM_TIMEOUT;
@@ -2683,7 +2672,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrGET_TIMEOUT: /* Get the read timeout value */
-		IOCTL_TRACK("XmemDrvrGET_TIMEOUT");
 		if (lap) {
 			*lap = ccon->Timeout;
 			return OK;
@@ -2692,7 +2680,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrSET_QUEUE_FLAG: /* Set queueing capabilities on/off */
-		IOCTL_TRACK("XmemDrvrSET_QUEUE_FLAG");
 		if (lap) {
 			if (lav)
 				ccon->Queue.QueueOff = 1;
@@ -2712,7 +2699,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrGET_QUEUE_FLAG: /* 1-->Q_off, 0-->Q_on */
-		IOCTL_TRACK("XmemDrvrGET_QUEUE_FLAG");
 		if (lap) {
 			*lap = ccon->Queue.QueueOff;
 			return OK;
@@ -2721,7 +2707,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrGET_QUEUE_SIZE: /* Number of events on queue */
-		IOCTL_TRACK("XmemDrvrGET_QUEUE_SIZE");
 		if (lap) {
 			*lap = ccon->Queue.Size;
 			return OK;
@@ -2730,7 +2715,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrGET_QUEUE_OVERFLOW: /* Number of missed events */
-		IOCTL_TRACK("XmemDrvrGET_QUEUE_OVERFLOW");
 		if (lap) {
 
 			disable(ps);
@@ -2744,7 +2728,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrGET_MODULE_DESCRIPTOR:
-		IOCTL_TRACK("XmemDrvrGET_MODULE_DESCRIPTOR");
 		if (wcnt >= sizeof(XmemDrvrModuleDescriptor)) {
 
 			mdesc = (XmemDrvrModuleDescriptor *)arg;
@@ -2761,7 +2744,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrSET_MODULE: /* Select the module to work with */
-		IOCTL_TRACK("XmemDrvrSET_MODULE");
 		if (lap) {
 			if (lav >= 1 &&  lav <= Wa->Modules) {
 				ccon->ModuleIndex = lav - 1;
@@ -2772,7 +2754,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrGET_MODULE: /* Which module am I working with */
-		IOCTL_TRACK("XmemDrvrGET_MODULE");
 		if (lap) {
 			*lap = ccon->ModuleIndex + 1;
 			return OK;
@@ -2781,7 +2762,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrGET_MODULE_COUNT: /* The number of installed modules */
-		IOCTL_TRACK("XmemDrvrGET_MODULE_COUNT");
 		if (lap) {
 			*lap = Wa->Modules;
 			return OK;
@@ -2790,7 +2770,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrSET_MODULE_BY_SLOT: /* Select the module to work with by ID */
-		IOCTL_TRACK("XmemDrvrSET_MODULE_BY_SLOT");
 		if (lap) {
 			for (i = 0; i < Wa->Modules; i++) {
 				mcon = &wa->ModuleContexts[i];
@@ -2806,7 +2785,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrGET_MODULE_SLOT: /* Get the ID of the selected module */
-		IOCTL_TRACK("XmemDrvrGET_MODULE_SLOT");
 		if (lap) {
 			*lap = mcon->PciSlot;
 			return OK;
@@ -2815,11 +2793,9 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrRESET: /* Reset the module, re-establish connections */
-		IOCTL_TRACK("XmemDrvrRESET");
 		return Reset(mcon);
 
 	case XmemDrvrSET_COMMAND: /* Send a command to the VMIC module */
-		IOCTL_TRACK("XmemDrvrSET_COMMAND");
 		if (lap) {
 			GetSetStatus(mcon, (XmemDrvrScr)lav, XmemDrvrWRITE);
 			return OK;
@@ -2828,7 +2804,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrGET_STATUS: /* Read module status */
-		IOCTL_TRACK("XmemDrvrGET_STATUS");
 		if (lap) {
 			*lap = (unsigned long)GetSetStatus(mcon, mcon->Command, XmemDrvrREAD);
 			return OK;
@@ -2837,7 +2812,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrGET_NODES:
-		IOCTL_TRACK("XmemDrvrGET_NODES");
 		if (lap) {
 			*lap = Wa->Nodes;
 			return OK;
@@ -2846,7 +2820,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrGET_CLIENT_LIST: /* Get the list of driver clients */
-		IOCTL_TRACK("XmemDrvrGET_CLIENT_LIST");
 		if (wcnt >= sizeof(XmemDrvrClientList)) {
 
 			cls = (XmemDrvrClientList *)arg;
@@ -2865,7 +2838,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrCONNECT: /* Connect to an object interrupt */
-		IOCTL_TRACK("XmemDrvrCONNECT");
 		conx = (XmemDrvrConnection *)arg;
 		if (rcnt >= sizeof(XmemDrvrConnection))
 			return Connect(conx,ccon);
@@ -2873,7 +2845,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrDISCONNECT: /* Disconnect from an object interrupt */
-		IOCTL_TRACK("XmemDrvrDISCONNECT");
 		conx = (XmemDrvrConnection *)arg;
 		if (rcnt >= sizeof(XmemDrvrConnection)) {
 
@@ -2890,7 +2861,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 
 	case XmemDrvrGET_CLIENT_CONNECTIONS:
 		/* Get the list of a client connections on module */
-		IOCTL_TRACK("XmemDrvrGET_CLIENT_CONNECTIONS");
 
 		if (wcnt >= sizeof(XmemDrvrClientConnections)) {
 
@@ -2921,7 +2891,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrSEND_INTERRUPT: /* Send an interrupt to other nodes */
-		IOCTL_TRACK("XmemDrvrSEND_INTERRUPT");
 		if (rcnt >= sizeof(XmemDrvrSendBuf)) {
 			sbuf = (XmemDrvrSendBuf *)arg;
 			return SendInterrupt(sbuf);
@@ -2931,7 +2900,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 
 	case XmemDrvrGET_XMEM_ADDRESS:
 		/* Get physical address of reflective memory SDRAM */
-		IOCTL_TRACK("XmemDrvrGET_XMEM_ADDRESS");
 
 		if (wcnt >= sizeof(XmemDrvrRamAddress)) {
 			radr = (XmemDrvrRamAddress *)arg;
@@ -2949,7 +2917,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 
 	case XmemDrvrSET_SEGMENT_TABLE:
 		/* Set the list of all defined xmem memory segments */
-		IOCTL_TRACK("XmemDrvrSET_SEGMENT_TABLE");
 
 		if (rcnt >= sizeof(XmemDrvrSegTable)) {
 			stab = (XmemDrvrSegTable *)arg;
@@ -2961,7 +2928,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrGET_SEGMENT_TABLE: /* List of all defined xmem memory segments */
-		IOCTL_TRACK("XmemDrvrGET_SEGMENT_TABLE");
 		if (wcnt >= sizeof(XmemDrvrSegTable)) {
 			stab = (XmemDrvrSegTable *) arg;
 			LongCopy((unsigned long *)stab, (unsigned long *)&Wa->SegTable,
@@ -2973,7 +2939,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 
 	case XmemDrvrREAD_SEGMENT:   /* Copy from xmem segment to local memory */
 
-		IOCTL_TRACK("XmemDrvrREAD_SEGMENT");
 
 		if (wcnt < sizeof(XmemDrvrSegIoDesc)) {
 			pseterr(EINVAL);
@@ -3040,7 +3005,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 
 	case XmemDrvrWRITE_SEGMENT:  /* Update the segment with new contents */
 
-		IOCTL_TRACK("XmemDrvrWRITE_SEGMENT");
 
 		if (rcnt < sizeof(XmemDrvrSegIoDesc)) {
 			pseterr(EINVAL);
@@ -3096,7 +3060,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 
 	case XmemDrvrCHECK_SEGMENT:
 		/* Check to see if a segment has been updated since last read */
-		IOCTL_TRACK("XmemDrvrCHECK_SEGMENT");
 
 		if (lap) {
 			disable(ps);
@@ -3110,7 +3073,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 
 	case XmemDrvrFLUSH_SEGMENTS:
 		/* Flush segments out to other nodes after PendingInit */
-		IOCTL_TRACK("XmemDrvrFLUSH_SEGMENTS");
 
 		if (lap) {
 			return FlushSegments(mcon, *lap);
@@ -3119,27 +3081,22 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrCONFIG_OPEN: /* Open the PLX9656 configuration */
-		IOCTL_TRACK("XmemDrvrCONFIG_OPEN");
 		mcon->ConfigOpen = 1;
 		return OK;
 
 	case XmemDrvrLOCAL_OPEN: /* Open the PLX9656 local configuration */
-		IOCTL_TRACK("XmemDrvrLOCAL_OPEN");
 		mcon->LocalOpen = 1;
 		return OK;
 
 	case XmemDrvrRFM_OPEN: /* Open the VMIC RFM configuration */
-		IOCTL_TRACK("XmemDrvrRFM_OPEN");
 		mcon->RfmOpen = 1;
 		return OK;
 
 	case XmemDrvrRAW_OPEN: /* Open the VMIC SDRAM */
-		IOCTL_TRACK("XmemDrvrRAW_OPEN");
 		mcon->RawOpen = 1;
 		return OK;
 
 	case XmemDrvrCONFIG_READ: /* Read the PLX9656 configuration registers */
-		IOCTL_TRACK("XmemDrvrCONFIG_READ");
 
 		if (wcnt < sizeof(XmemDrvrRawIoBlock)) {
 			pseterr(EINVAL);
@@ -3186,7 +3143,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrLOCAL_READ:  /* Read the PLX9656 local configuration registers */
-		IOCTL_TRACK("XmemDrvrLOCAL_READ");
 		if (wcnt < sizeof(XmemDrvrRawIoBlock)) {
 			pseterr(EINVAL);
 			return SYSERR;
@@ -3233,7 +3189,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 
 	case XmemDrvrRFM_READ: /* Read from VMIC 5565 FPGA Register block RFM */
 
-		IOCTL_TRACK("XmemDrvrRFM_READ");
 		if (wcnt >= sizeof(XmemDrvrRawIoBlock)) {
 
 			riob = (XmemDrvrRawIoBlock *)arg;
@@ -3275,7 +3230,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrRAW_READ: /* Read from VMIC 5565 SDRAM */
-		IOCTL_TRACK("XmemDrvrRAW_READ");
 		if (wcnt >= sizeof(XmemDrvrRawIoBlock)) {
 			riob = (XmemDrvrRawIoBlock *)arg;
 			if (riob->UserArray == NULL) {
@@ -3318,7 +3272,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 
 	case XmemDrvrCONFIG_WRITE:
 		/* Write to PLX9656 configuration registers (Experts only) */
-		IOCTL_TRACK("XmemDrvrCONFIG_WRITE");
 
 		if (rcnt < sizeof(XmemDrvrRawIoBlock)) {
 			pseterr(EINVAL);
@@ -3362,7 +3315,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 
 	case XmemDrvrLOCAL_WRITE:
 		/* Write the PLX9656 local configuration registers (Experts only) */
-		IOCTL_TRACK("XmemDrvrLOCAL_WRITE");
 		if (rcnt >= sizeof(XmemDrvrRawIoBlock)) {
 			pseterr(EINVAL);
 			return SYSERR;
@@ -3403,7 +3355,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrRFM_WRITE: /* Write to VMIC 5565 FPGA Register block RFM */
-		IOCTL_TRACK("XmemDrvrRFM_WRITE");
 		if (rcnt >= sizeof(XmemDrvrRawIoBlock)) {
 			riob = (XmemDrvrRawIoBlock *) arg;
 			if (riob->UserArray == NULL) {
@@ -3439,7 +3390,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrRAW_WRITE: /* Write to VMIC 5565 SDRAM */
-		IOCTL_TRACK("XmemDrvrRAW_WRITE");
 		if (rcnt >= sizeof(XmemDrvrRawIoBlock)) {
 			riob = (XmemDrvrRawIoBlock *) arg;
 			if (riob->UserArray == NULL) {
@@ -3480,7 +3430,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrSET_DMA_THRESHOLD: /* Set Drivers DMA threshold */
-		IOCTL_TRACK("XmemDrvrSET_DMA_THRESHOLD");
 		if (lap) {
 			if (lav < PAGESIZE)
 				wa->DmaThreshold = lav;
@@ -3493,7 +3442,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrGET_DMA_THRESHOLD: /* Get Drivers DMA threshold */
-		IOCTL_TRACK("XmemDrvrGET_DMA_THRESHOLD");
 		if (lap) {
 			*lap = wa->DmaThreshold;
 			return OK;
@@ -3502,22 +3450,18 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 		return SYSERR;
 
 	case XmemDrvrCONFIG_CLOSE: /* Close the PLX9656 configuration */
-		IOCTL_TRACK("XmemDrvrCONFIG_CLOSE");
 		mcon->ConfigOpen = 0;
 		return OK;
 
 	case XmemDrvrLOCAL_CLOSE: /* Close the PLX9656 local configuration */
-		IOCTL_TRACK("XmemDrvrLOCAL_CLOSE");
 		mcon->LocalOpen = 0;
 		return OK;
 
 	case XmemDrvrRFM_CLOSE: /* Close VMIC 5565 FPGA Register block RFM */
-		IOCTL_TRACK("XmemDrvrRFM_CLOSE");
 		mcon->RfmOpen = 0;
 		return OK;
 
 	case XmemDrvrRAW_CLOSE: /* Close VMIC 5565 SDRAM */
-		IOCTL_TRACK("XmemDrvrRAW_CLOSE");
 		mcon->RfmOpen = 0;
 		return OK;
 
