@@ -13,4 +13,4 @@ cd /acc/src/dsc/drivers/coht/xmem/driver; ./rmdrvr;
 make CPU=L865 CDCM_D=/acc/src/dsc/drivers/coht/.__kitchen/egarciac/cdcm
 
 # compile for Lynx
-make drvr CPU=ppc4 CDCM_D=/acc/src/dsc/drivers/coht/.__kitchen/egarciac/cdcm
+make all CPU=ppc4 CDCM_D=/acc/src/dsc/drivers/coht/.__kitchen/egarciac/cdcm
