@@ -1,0 +1,6 @@
+* Clean-up the DMA code (too messy right now)
+* Share code between write() and IntrHandler()
+* Protect the queues with spinlocks
+* Clean-up the IOCTL entry point
+* 64-bit ready (unsigned long all over the place)
+* Get rid of typedefs and long function names
