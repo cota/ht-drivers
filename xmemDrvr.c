@@ -86,40 +86,13 @@
  * @version 1.0 Julian Lewis 02/09/2004, Lynx driver.
  */
 
-#include <cdcm/cdcmBoth.h>
-#include <cdcm/cdcmIo.h>
+#include <cdcm/cdcm.h>
 #include <cdcm/cdcmPciDma.h>
 
-#ifdef __linux__
-#include <cdcm/cdcmDrvr.h>
-#include <cdcm/cdcmLynxAPI.h>
-#include <cdcm/cdcmLynxDefs.h>
-#define sel  cdcm_sel  /* see Lynx <sys/file.h> for more details */
-#define file cdcm_file /* see Lynx <sys/file.h> for more details */
-#define enable restore
-#else  /* __Lynx__ */
-#include <conf.h>
-#include <dldd.h>
-#include <drm.h>
-#include <errno.h>
-#include <kernel.h>
-#include <io.h>
-#include <mem.h>
-#include <param.h>
-#include <pci_resource.h>
-#include <signal.h>
-#include <string.h>
-#include <sys/drm_errno.h>
-#include <sys/file.h>
-#include <sys/ioctl.h>
-#include <sys/timeout.h>
-#include <sys/types.h>
-#endif /* !__linux__ */
-
 #include <plx9656_layout.h>
-#include "vmic5565_layout.h"
-#include "xmemDrvr.h"
-#include "xmemDrvrP.h"
+#include <vmic5565_layout.h>
+#include <xmemDrvr.h>
+#include <xmemDrvrP.h>
 
 #ifndef KB
 #define KB 1024
@@ -429,7 +402,7 @@ static void TraceIoctl(int cm, char *arg, XmemDrvrClientContext *ccon)
  * are platform-independent.
  *
  */
-static void SetEndian()
+static void SetEndian(void)
 {
 #ifdef CDCM_LITTLE_ENDIAN
 	Wa->Endian = XmemDrvrEndianLITTLE;
@@ -1968,7 +1941,7 @@ void IntrHandler(void *m)
  *
  * @return OK on success
  */
-int XmemDrvrOpen(void *s, int dnm, struct file *flp)
+int XmemDrvrOpen(void *s, int dnm, struct cdcm_file *flp)
 {
 	int cnum;                       /* Client number */
 	XmemDrvrClientContext *ccon;    /* Client context */
@@ -2022,7 +1995,7 @@ int XmemDrvrOpen(void *s, int dnm, struct file *flp)
  *
  * @return OK on success
  */
-int XmemDrvrClose(void *s, struct file *flp)
+int XmemDrvrClose(void *s, struct cdcm_file *flp)
 {
 	int cnum;                    /* Client number */
 	XmemDrvrClientContext *ccon; /* Client context */
@@ -2076,7 +2049,7 @@ int XmemDrvrClose(void *s, struct file *flp)
  *
  * @return number of bytes read
  */
-int XmemDrvrRead(void *s, struct file *flp, char *u_buf, int cnt)
+int XmemDrvrRead(void *s, struct cdcm_file *flp, char *u_buf, int cnt)
 {
 	XmemDrvrClientContext *ccon;    /* Client context */
 	XmemDrvrQueue         *queue;
@@ -2215,7 +2188,7 @@ int XmemDrvrRead(void *s, struct file *flp, char *u_buf, int cnt)
  *
  * @return number of bytes written on success.
  */
-int XmemDrvrWrite(void *s, struct file *flp, char *u_buf, int cnt)
+int XmemDrvrWrite(void *s, struct cdcm_file *flp, char *u_buf, int cnt)
 {
 	XmemDrvrModuleContext *mcon;
 	XmemDrvrClientContext *ccon;
@@ -2324,7 +2297,7 @@ int XmemDrvrWrite(void *s, struct file *flp, char *u_buf, int cnt)
  *
  * @return OK on success
  */
-int XmemDrvrSelect(void *s, struct file *flp, int wch, struct sel *ffs)
+int XmemDrvrSelect(void *s, struct cdcm_file *flp, int wch, struct sel *ffs)
 {
 	XmemDrvrClientContext * ccon;
 	XmemDrvrWorkingArea *wa = (XmemDrvrWorkingArea*)s;
@@ -2550,7 +2523,7 @@ int XmemDrvrUninstall(void *s)
  *
  * @return OK on success
  */
-int XmemDrvrIoctl(void *s, struct file * flp, int fct, char * arg)
+int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 {
 	XmemDrvrModuleContext           *mcon;   /* Module context */
 	XmemDrvrClientContext           *ccon;   /* Client context */
