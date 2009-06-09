@@ -105,16 +105,6 @@
 extern void iointunmask(); /* needed to register an interrupt */
 #endif
 
-//#define __DEBUG_TRACK_ALL__ /* comment this out for debug tracking */
-#ifdef __DEBUG_TRACK_ALL__
-#define FUNCT_TRACK							\
-	do {								\
-		cprintf("XmemDrvr:[FUNCTION]--------------------> '%s()' called\n", __FUNCTION__); \
-	} while (0)
-#else
-#define FUNCT_TRACK
-#endif /* !__DEBUG_TRACK_ALL__ */
-
 XmemDrvrWorkingArea *Wa = NULL; //!< Global pointer to Working Area
 
 static const char *ioc_names[] = {
@@ -193,7 +183,6 @@ static void LongCopy(unsigned long *dst, unsigned long *src, unsigned long size)
 	int sb;
 	int i;
 
-	FUNCT_TRACK;
 	sb = size/sizeof(unsigned long);
 	for (i = 0; i < sb; i++) dst[i] = src[i];
 }
@@ -215,7 +204,6 @@ static void LongCopyToXmem(void *vmic_to, void *v_from, unsigned long size)
 	u_int32_t *tbuf = (u_int32_t *)v_from;
 	u_int32_t *ioaddr = (u_int32_t *)vmic_to;
 
-	FUNCT_TRACK;
 	count = size / sizeof(u_int32_t);
 	if (count <= 0) return;
 	do {
@@ -242,7 +230,6 @@ static void LongCopyFromXmem(void *vmic_from, void *v_to, unsigned long size)
 	u_int32_t *tbuf = (u_int32_t *)v_to;
 	u_int32_t *ioaddr = (u_int32_t *)vmic_from;
 
-	FUNCT_TRACK;
 	count = size / sizeof(u_int32_t);
 	if (count <= 0) return;
 	do {
@@ -265,7 +252,6 @@ static void CancelTimeout(int *t)
 	unsigned long ps;
 	int v;
 
-	FUNCT_TRACK;
 	disable(ps);
 	{
 		if ((v = *t)) {
@@ -401,7 +387,6 @@ static int DrmLocalReadWrite(XmemDrvrModuleContext *mcon, unsigned long addr,
 	void *ioaddr;
 	unsigned long ps;
 
-	FUNCT_TRACK;
 	lmap = (void *)mcon->Local;
 	if (!lmap) return SYSERR;
 	ioaddr = lmap + addr;
@@ -473,7 +458,6 @@ static int DrmConfigReadWrite(XmemDrvrModuleContext *mcon, unsigned long addr,
 	unsigned short *sptr;
 	int i=0;
 
-	FUNCT_TRACK;
 	regnum = addr >> 2;
 	cptr = (char *)&regval;
 	sptr = (short *)&regval;
@@ -552,7 +536,6 @@ static int GetVersion(XmemDrvrModuleContext *mcon, XmemDrvrVersion *ver)
 {
 	unsigned long ps;
 
-	FUNCT_TRACK;
 	if (!recoset()) { /* Catch bus errors  */
 		ver->DriverVersion = COMPILE_TIME;                   /* Driver version */
 		ver->BoardRevision = GetRfmReg(mcon,VmicRfmBRV,1);   /* Board Revision RO */
@@ -583,7 +566,6 @@ static int GetVersion(XmemDrvrModuleContext *mcon, XmemDrvrVersion *ver)
 static int PingModule(XmemDrvrModuleContext *mcon)
 {
 	XmemDrvrVersion ver;
-	FUNCT_TRACK;
 	return GetVersion(mcon,&ver);
 }
 
@@ -605,7 +587,6 @@ static int EnableInterrupts(XmemDrvrModuleContext *mcon, VmicLier msk)
 	unsigned long ps;
 	unsigned long intcsr;
 
-	FUNCT_TRACK;
 	vmap = mcon->Map;
 	msk &= VmicLierMASK; /* Clear out any crap bits (e.g. IntDAEMON) */
 
@@ -673,7 +654,6 @@ static XmemDrvrScr GetSetStatus(XmemDrvrModuleContext *mcon, XmemDrvrScr cmd,
 	void *vmap;
 	XmemDrvrScr stat;
 
-	FUNCT_TRACK;
 	vmap = mcon->Map;
 
 	if (iod == XmemDrvrWRITE) {
@@ -700,7 +680,6 @@ static int Reset(XmemDrvrModuleContext *mcon)
 {
 	XmemDrvrSendBuf sbuf;
 
-	FUNCT_TRACK;
 	if (PingModule(mcon) == OK) {
 		EnableInterrupts(mcon, mcon->InterruptEnable);
 		GetSetStatus(mcon, mcon->Command | XmemDrvrScrDARK_ON, XmemDrvrWRITE);
@@ -743,7 +722,6 @@ static void InterruptSelf(XmemDrvrSendBuf *sbuf, XmemDrvrModuleContext *mcon) {
 	unsigned long usegs, msk;
 	int i;
 
-	FUNCT_TRACK;
 	bzero((void *) &rbf, sizeof(XmemDrvrReadBuf));
 	usegs = 0;
 	rbf.Module = sbuf->Module;
@@ -812,7 +790,6 @@ static int SendInterrupt(XmemDrvrSendBuf *sbuf)
 	int i, msk, midx;
 	void *vmap;
 
-	FUNCT_TRACK;
 	midx = sbuf->Module - 1;
 	if (midx < 0 || midx >= Wa->Modules) {
 		pseterr(ENXIO);
@@ -952,7 +929,6 @@ static int PageCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
 	char *sram;
 	unsigned long dmamode, dptr, cmdma, intcsr;
 
-	FUNCT_TRACK;
 	sgx = 0;
 	midx = siod->Module - 1;
 	if (siod->UserArray == NULL && !mapped) goto address_err;
@@ -1158,7 +1134,6 @@ static int SegmentCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
 	int err;
 	unsigned int pg, pgs, myid, sgx, sram;
 
-	FUNCT_TRACK;
 	err = OK;
 
 	swait(&mcon->BusySemaphore, SEM_SIGIGNORE); /* acquire the mutex */
@@ -1281,8 +1256,6 @@ static int FlushSegments(XmemDrvrModuleContext *mcon, unsigned long mask)
 	unsigned long msk, umsk;
 	int i, pg, err, rsze;
 
-	FUNCT_TRACK;
-
 	swait(&mcon->TempbufSemaphore, SEM_SIGIGNORE); /* acquire the mutex */
 	/* Tempbuf has been acquired */
 	swait(&mcon->BusySemaphore, SEM_SIGIGNORE); /* acquire the mutex */
@@ -1373,8 +1346,6 @@ static int RfmIo(XmemDrvrModuleContext *mcon, XmemDrvrRawIoBlock *riob,
 	unsigned long ps;
 	XmemDrvrSize size;
 
-	FUNCT_TRACK;
-
 	rval = OK;
 
 	/* shorter names for the riob variables */
@@ -1454,8 +1425,6 @@ unsigned long GetRfmReg(XmemDrvrModuleContext *mcon, VmicRfm reg, int size)
 	XmemDrvrRawIoBlock ioblk;
 	unsigned long res;
 
-	FUNCT_TRACK;
-
 	ioblk.Items = 1;
 	ioblk.Size = size;
 	ioblk.Offset = reg;
@@ -1480,7 +1449,6 @@ void SetRfmReg(XmemDrvrModuleContext *mcon, VmicRfm reg, int size,
 {
 	XmemDrvrRawIoBlock ioblk;
 
-	FUNCT_TRACK;
 	ioblk.Items = 1;
 	ioblk.Size = size;
 	ioblk.Offset = reg;
@@ -1512,8 +1480,6 @@ static int RawIo(XmemDrvrModuleContext *mcon, XmemDrvrRawIoBlock *riob,
 	int itms, offs, lidx = 0;
 	unsigned long ps;   /* Processor status word */
 	char *iod;
-
-	FUNCT_TRACK;
 
 	rval = OK;
 
@@ -1566,9 +1532,6 @@ static int Connect(XmemDrvrConnection *conx, XmemDrvrClientContext *ccon)
 	unsigned long ps;
 	XmemDrvrModuleContext *mcon;
 
-
-	FUNCT_TRACK;
-
 	/* Get the module to make the connection on */
 	midx = conx->Module - 1;
 	if (midx < 0 || midx >= Wa->Modules)
@@ -1600,7 +1563,6 @@ static int DisConnect(XmemDrvrConnection *conx, XmemDrvrClientContext *ccon)
 	void *vmap;
 	XmemDrvrModuleContext *mcon;
 
-	FUNCT_TRACK;
 	/* Get the module to disconnect from */
 	midx = conx->Module - 1;
 	if (midx < 0 || midx >= Wa->Modules)
@@ -1646,8 +1608,6 @@ static void DisConnectAll(XmemDrvrClientContext *ccon) {
 	XmemDrvrModuleContext *mcon;
 	int i, cidx;
 
-	FUNCT_TRACK;
-
 	cidx = ccon->ClientIndex;
 	for (i = 0; i < Wa->Modules; i++) {
 		mcon = &Wa->ModuleContexts[i];
@@ -1683,8 +1643,6 @@ void IntrHandler(void *m)
 	XmemDrvrSendBuf        sbuf __attribute__((__unused__));
 	unsigned long          intcsr, usegs, node, data, dma;
 	XmemDrvrModuleContext *mcon = (XmemDrvrModuleContext*)m;
-
-	FUNCT_TRACK;
 
 	DrmLocalReadWrite(mcon, PlxLocalINTCSR, &intcsr, 4, XmemDrvrREAD);
 
