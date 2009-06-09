@@ -154,12 +154,6 @@ static const char *ioc_names[] = {
 	[_IOC_NR(XmemDrvrLAST_IOCTL)]		= "Last IOCTL"
 };
 
-static unsigned long GetRfmReg(XmemDrvrModuleContext *mcon, VmicRfm reg,
-			int size);
-static void SetRfmReg(XmemDrvrModuleContext *mcon, VmicRfm reg, int size,
-		unsigned long data);
-static int SendInterrupt(XmemDrvrSendBuf *sbuf);
-
 /**
  * LongCopy - copies size bytes in chunks of longs from src to dst.
  *
@@ -514,6 +508,148 @@ static int DrmConfigReadWrite(XmemDrvrModuleContext *mcon, unsigned long addr,
 #ifndef COMPILE_TIME /* the makefile should set it */
 #define COMPILE_TIME 0
 #endif
+
+/**
+ * RfmIo - read/writes VMIC RFM registers
+ *
+ * @param mcon: module context
+ * @param riob: description of the block on which we want to perform I/O
+ * @param flag: read/write flag
+ *
+ * This function uses the CDCM functions to access the I/O mapped memory.
+ * Note that the memory barriers are not necessary since cdcm_{read,write}X
+ * already include them.
+ * Pay attention as well to the endianness: cdcm_cpu_to_{le,be}X ensure
+ * portable code. This is _address invariance_, which requires the
+ * PLX to be set to little endian (i.e. the PLX doesn't swap anything).
+ *
+ * @return OK on success
+ */
+static int RfmIo(XmemDrvrModuleContext *mcon, XmemDrvrRawIoBlock *riob,
+		XmemDrvrIoDir flag)
+{
+
+	unsigned long *vmap;
+	unsigned long *uary;
+	void *ioaddr;
+	char *iod;
+
+	int rval; /* Return value */
+	int i = 0;
+	int itms, offs;
+	unsigned long ps;
+	XmemDrvrSize size;
+
+	rval = OK;
+
+	/* shorter names for the riob variables */
+	uary = riob->UserArray;
+	size = riob->Size;
+	offs = riob->Offset;
+	itms = riob->Items;
+
+	vmap = (unsigned long *)mcon->Map;
+	ioaddr = (void *)vmap;
+
+	if (itms == 0) itms = 1;
+
+	if (!recoset()) {         /* Catch bus errors */
+
+		for (i = 0; i < itms; i++) {
+
+			if (flag == XmemDrvrWRITE) {
+				switch (size) {
+				case XmemDrvrBYTE:
+					cdcm_iowrite8((u_int8_t)uary[i], ioaddr + offs);
+					break;
+				case XmemDrvrWORD:
+					cdcm_iowrite16(cdcm_cpu_to_le16((u_int16_t)uary[i]), ioaddr + offs);
+					break;
+				case XmemDrvrLONG:
+					cdcm_iowrite32(cdcm_cpu_to_le32((u_int32_t)uary[i]), ioaddr + offs);
+					break;
+				}
+			} else {
+				switch (riob->Size) {
+				case XmemDrvrBYTE:
+					uary[i] = (unsigned long)cdcm_ioread8(ioaddr + offs);
+					break;
+				case XmemDrvrWORD:
+					uary[i] = (unsigned long)cdcm_le16_to_cpu(cdcm_ioread16(ioaddr + offs));
+					break;
+				case XmemDrvrLONG:
+					uary[i] = (unsigned long)cdcm_le32_to_cpu(cdcm_ioread32(ioaddr + offs));
+					break;
+				}
+			}
+			offs += (int) size;
+		}
+	} else {
+		disable(ps);
+
+		if (flag == XmemDrvrWRITE)
+			iod = "Write";
+		else
+			iod = "Read";
+		kkprintf("xmemDrvr: BUS-ERROR: Module:%d Addr:%x Dir:%s Data:%d\n",
+			(int)mcon->ModuleIndex + 1,(int)ioaddr + offs, iod, (int)uary[i]);
+
+		pseterr(ENXIO); /* No such device or address */
+		rval = SYSERR;
+		restore(ps);
+	}
+	noreco(); /* Remove local bus trap */
+	return rval;
+}
+
+/**
+ * GetRfmReg - reads a register from the VMIC's RFM
+ *
+ * @param mcon: module context
+ * @param reg: register offset, from the VmicRfm enum
+ * @param size: bytes to be read
+ *
+ * This is just a wrapper for a single read call through RfmIo().
+ *
+ * @return the register's value (unsigned long format)
+ */
+static unsigned long GetRfmReg(XmemDrvrModuleContext *mcon, VmicRfm reg, int size)
+{
+	XmemDrvrRawIoBlock ioblk;
+	unsigned long res;
+
+	ioblk.Items = 1;
+	ioblk.Size = size;
+	ioblk.Offset = reg;
+	ioblk.UserArray = &res;
+	RfmIo(mcon, &ioblk, XmemDrvrREAD);
+	return res;
+}
+
+/**
+ * SetRfmReg - sets the value of a VMIC's RFM's register
+ *
+ * @param mcon: module context
+ * @param reg: register offset, from the VmicRfm enum
+ * @param size: bytes to be written
+ * @param data: value to be written into the register
+ *
+ * This is just a wrapper for a single write operation through RfmIo().
+ *
+ */
+static void SetRfmReg(XmemDrvrModuleContext *mcon, VmicRfm reg, int size,
+		      unsigned long data)
+{
+	XmemDrvrRawIoBlock ioblk;
+
+	ioblk.Items = 1;
+	ioblk.Size = size;
+	ioblk.Offset = reg;
+	ioblk.UserArray = &data;
+	RfmIo(mcon,&ioblk,XmemDrvrWRITE);
+}
+
+
 /**
  * GetVersion - gets the version (compile time) and checks for bus errors.
  *
@@ -661,39 +797,6 @@ static XmemDrvrScr GetSetStatus(XmemDrvrModuleContext *mcon, XmemDrvrScr cmd,
 }
 
 /**
- * Reset - Resets a module to a default state.
- *
- * @param mcon: module context
- *
- * If the device is not alive, SYSERR is returned.
- *
- * @return OK on success
- */
-static int Reset(XmemDrvrModuleContext *mcon)
-{
-	XmemDrvrSendBuf sbuf;
-
-	if (PingModule(mcon) == OK) {
-		EnableInterrupts(mcon, mcon->InterruptEnable);
-		GetSetStatus(mcon, mcon->Command | XmemDrvrScrDARK_ON, XmemDrvrWRITE);
-		mcon->NodeId = GetRfmReg(mcon, VmicRfmNID, 1);
-		Wa->Nodes = 1 << (mcon->NodeId - 1);
-		/* Tell the network that I need to be initialised in case I'm connected
-		   to PENDING_INIT. */
-		if (mcon->InterruptEnable & XmemDrvrIntrPENDING_INIT) {
-			sbuf.Module        = mcon->ModuleIndex + 1;
-			sbuf.UnicastNodeId = 0;
-			sbuf.MulticastMask = 0;
-			sbuf.Data          = 1 << (mcon->NodeId -1);
-			sbuf.InterruptType = XmemDrvrNicINITIALIZED | XmemDrvrNicBROADCAST;
-			return SendInterrupt(&sbuf);
-		} else return OK;
-	}
-	pseterr(ENXIO);
-	return SYSERR;
-}
-
-/**
  * InterruptSelf - 'Simulate' an interrupt to the module itself.
  *
  * @param sbuf: pointer to struct XmemDrvrSendBuf
@@ -838,6 +941,39 @@ static int SendInterrupt(XmemDrvrSendBuf *sbuf)
 		return SYSERR;
 
 	}
+}
+
+/**
+ * Reset - Resets a module to a default state.
+ *
+ * @param mcon: module context
+ *
+ * If the device is not alive, SYSERR is returned.
+ *
+ * @return OK on success
+ */
+static int Reset(XmemDrvrModuleContext *mcon)
+{
+	XmemDrvrSendBuf sbuf;
+
+	if (PingModule(mcon) == OK) {
+		EnableInterrupts(mcon, mcon->InterruptEnable);
+		GetSetStatus(mcon, mcon->Command | XmemDrvrScrDARK_ON, XmemDrvrWRITE);
+		mcon->NodeId = GetRfmReg(mcon, VmicRfmNID, 1);
+		Wa->Nodes = 1 << (mcon->NodeId - 1);
+		/* Tell the network that I need to be initialised in case I'm connected
+		   to PENDING_INIT. */
+		if (mcon->InterruptEnable & XmemDrvrIntrPENDING_INIT) {
+			sbuf.Module        = mcon->ModuleIndex + 1;
+			sbuf.UnicastNodeId = 0;
+			sbuf.MulticastMask = 0;
+			sbuf.Data          = 1 << (mcon->NodeId -1);
+			sbuf.InterruptType = XmemDrvrNicINITIALIZED | XmemDrvrNicBROADCAST;
+			return SendInterrupt(&sbuf);
+		} else return OK;
+	}
+	pseterr(ENXIO);
+	return SYSERR;
 }
 
 /**
@@ -1306,147 +1442,6 @@ static int FlushSegments(XmemDrvrModuleContext *mcon, unsigned long mask)
 		return SendInterrupt(&sbuf);
 	}
 	return OK;
-}
-
-/**
- * RfmIo - read/writes VMIC RFM registers
- *
- * @param mcon: module context
- * @param riob: description of the block on which we want to perform I/O
- * @param flag: read/write flag
- *
- * This function uses the CDCM functions to access the I/O mapped memory.
- * Note that the memory barriers are not necessary since cdcm_{read,write}X
- * already include them.
- * Pay attention as well to the endianness: cdcm_cpu_to_{le,be}X ensure
- * portable code. This is _address invariance_, which requires the
- * PLX to be set to little endian (i.e. the PLX doesn't swap anything).
- *
- * @return OK on success
- */
-static int RfmIo(XmemDrvrModuleContext *mcon, XmemDrvrRawIoBlock *riob,
-		XmemDrvrIoDir flag)
-{
-
-	unsigned long *vmap;
-	unsigned long *uary;
-	void *ioaddr;
-	char *iod;
-
-	int rval; /* Return value */
-	int i = 0;
-	int itms, offs;
-	unsigned long ps;
-	XmemDrvrSize size;
-
-	rval = OK;
-
-	/* shorter names for the riob variables */
-	uary = riob->UserArray;
-	size = riob->Size;
-	offs = riob->Offset;
-	itms = riob->Items;
-
-	vmap = (unsigned long *)mcon->Map;
-	ioaddr = (void *)vmap;
-
-	if (itms == 0) itms = 1;
-
-	if (!recoset()) {         /* Catch bus errors */
-
-		for (i = 0; i < itms; i++) {
-
-			if (flag == XmemDrvrWRITE) {
-				switch (size) {
-				case XmemDrvrBYTE:
-					cdcm_iowrite8((u_int8_t)uary[i], ioaddr + offs);
-					break;
-				case XmemDrvrWORD:
-					cdcm_iowrite16(cdcm_cpu_to_le16((u_int16_t)uary[i]), ioaddr + offs);
-					break;
-				case XmemDrvrLONG:
-					cdcm_iowrite32(cdcm_cpu_to_le32((u_int32_t)uary[i]), ioaddr + offs);
-					break;
-				}
-			} else {
-				switch (riob->Size) {
-				case XmemDrvrBYTE:
-					uary[i] = (unsigned long)cdcm_ioread8(ioaddr + offs);
-					break;
-				case XmemDrvrWORD:
-					uary[i] = (unsigned long)cdcm_le16_to_cpu(cdcm_ioread16(ioaddr + offs));
-					break;
-				case XmemDrvrLONG:
-					uary[i] = (unsigned long)cdcm_le32_to_cpu(cdcm_ioread32(ioaddr + offs));
-					break;
-				}
-			}
-			offs += (int) size;
-		}
-	} else {
-		disable(ps);
-
-		if (flag == XmemDrvrWRITE)
-			iod = "Write";
-		else
-			iod = "Read";
-		kkprintf("xmemDrvr: BUS-ERROR: Module:%d Addr:%x Dir:%s Data:%d\n",
-			(int)mcon->ModuleIndex + 1,(int)ioaddr + offs, iod, (int)uary[i]);
-
-		pseterr(ENXIO); /* No such device or address */
-		rval = SYSERR;
-		restore(ps);
-	}
-	noreco(); /* Remove local bus trap */
-	return rval;
-}
-
-
-/**
- * GetRfmReg - reads a register from the VMIC's RFM
- *
- * @param mcon: module context
- * @param reg: register offset, from the VmicRfm enum
- * @param size: bytes to be read
- *
- * This is just a wrapper for a single read call through RfmIo().
- *
- * @return the register's value (unsigned long format)
- */
-unsigned long GetRfmReg(XmemDrvrModuleContext *mcon, VmicRfm reg, int size)
-{
-	XmemDrvrRawIoBlock ioblk;
-	unsigned long res;
-
-	ioblk.Items = 1;
-	ioblk.Size = size;
-	ioblk.Offset = reg;
-	ioblk.UserArray = &res;
-	RfmIo(mcon, &ioblk, XmemDrvrREAD);
-	return res;
-}
-
-/**
- * SetRfmReg - sets the value of a VMIC's RFM's register
- *
- * @param mcon: module context
- * @param reg: register offset, from the VmicRfm enum
- * @param size: bytes to be written
- * @param data: value to be written into the register
- *
- * This is just a wrapper for a single write operation through RfmIo().
- *
- */
-void SetRfmReg(XmemDrvrModuleContext *mcon, VmicRfm reg, int size,
-	unsigned long data)
-{
-	XmemDrvrRawIoBlock ioblk;
-
-	ioblk.Items = 1;
-	ioblk.Size = size;
-	ioblk.Offset = reg;
-	ioblk.UserArray = &data;
-	RfmIo(mcon,&ioblk,XmemDrvrWRITE);
 }
 
 /**
