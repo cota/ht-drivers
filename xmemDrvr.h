@@ -45,7 +45,7 @@
 //@{
 #define XmemDrvrMAX_NODE 255
 #define XmemDrvrMIN_NODE 1
-#define XmemDrvrMAX_SEGMENT_SIZE 64*MB
+#define XmemDrvrMAX_SEGMENT_SIZE (64*1024*1024)
 //@}
 
 

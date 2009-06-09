@@ -94,13 +94,6 @@
 #include <xmemDrvr.h>
 #include <xmemDrvrP.h>
 
-#ifndef KB
-#define KB 1024
-#endif
-#ifndef MB
-#define MB 1024*KB
-#endif
-
 #ifdef __powerpc__
 extern void iointunmask(); /* needed to register an interrupt */
 #endif
