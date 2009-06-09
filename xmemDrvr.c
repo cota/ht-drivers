@@ -98,7 +98,7 @@
 extern void iointunmask(); /* needed to register an interrupt */
 #endif
 
-XmemDrvrWorkingArea *Wa = NULL; //!< Global pointer to Working Area
+static XmemDrvrWorkingArea *Wa; //!< Global pointer to Working Area
 
 static const char *ioc_names[] = {
 	[_IOC_NR(XmemDrvrILLEGAL_IOCTL)]	= "First IOCTL",
