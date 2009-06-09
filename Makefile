@@ -1,8 +1,9 @@
-DRVR=vmebus ctrirq
-ACCS=lab
-CPU=L865
-KERNEL=2.6.24.7-rt27
-KERN_DIR="/acc/sys/$(CPU)/usr/src/kernels/$(KERNEL)"
+DRVR = vmebus
+ACCS = lab
+CPU  = L865
+KVER = 2.6.24.7-rt27
+# KVER=2.6.29.4-rt15
+KERN_DIR="/acc/sys/$(CPU)/usr/src/kernels/$(KVER)"
 
 include /acc/src/dsc/co/Make.auto
 
@@ -12,7 +13,7 @@ DRVTESTDIR=$(shell pwd)/drvrtest
 all: drvr includes lib drvrtest test
 
 drvr:
-	make -C $(KERN_DIR) M=$(DRVDIR)
+	make -C $(KERN_DIR) M=$(DRVDIR) KVER=$(KVER)
 
 # We need to copy the vmebus driver symbols file to use its exported symbols
 # because KBUILD_EXTRA_SYMBOLS is not there yet to use in 2.6.24.7-rt21
@@ -43,19 +44,19 @@ clean:
 
 install:: driver/vmebus.ko driver/vmebus.h lib/libvmebus.h
 	for a in $(ACCS);do \
-	    if [ -w /acc/dsc/$$a/$(CPU)/$(KERNEL)/$(DRVR) ]; then \
-		echo Installing TSI148 VME bridge driver in /acc/dsc/$$a/$(CPU)/$(KERNEL)/$(DRVR); \
-		dsc_install driver/vmebus.ko /acc/dsc/$$a/$(CPU)/$(KERNEL)/$(DRVR); \
-#		make -C apps INSTDIR=/acc/dsc/$$a/$(CPU)/$(KERNEL)/$(DRVR) install; \
+	    if [ -w /acc/dsc/$$a/$(CPU)/$(KVER)/$(DRVR) ]; then \
+		echo Installing TSI148 VME bridge driver in /acc/dsc/$$a/$(CPU)/$(KVER)/$(DRVR); \
+		dsc_install driver/vmebus.ko /acc/dsc/$$a/$(CPU)/$(KVER)/$(DRVR); \
+#		make -C apps INSTDIR=/acc/dsc/$$a/$(CPU)/$(KVER)/$(DRVR) install; \
 	    fi; \
 	done
 	dsc_install driver/vmebus.h /acc/local/$(CPU)/include
 	dsc_install lib/libvmebus.h /acc/local/$(CPU)/include
 
 MY= \
-    -I/acc/sys/$(CPU)/usr/src/kernels/$(KERNEL)/include  \
-    -I/acc/sys/$(CPU)/usr/src/kernels/$(KERNEL)/include/asm-x86/mach-generic \
-    -I/acc/sys/$(CPU)/usr/src/kernels/$(KERNEL)/include/asm-x86/mach-default \
+    -I/acc/sys/$(CPU)/usr/src/kernels/$(KVER)/include  \
+    -I/acc/sys/$(CPU)/usr/src/kernels/$(KVER)/include/asm-x86/mach-generic \
+    -I/acc/sys/$(CPU)/usr/src/kernels/$(KVER)/include/asm-x86/mach-default \
     -D__KERNEL__ -DCONFIG_AS_CFI=1 -DCONFIG_AS_CFI_SIGNAL_FRAME=1
 
 ANSI.h: driver/tsi148.c driver/vme_irq.c driver/vme_window.c driver/vme_dma.c \
