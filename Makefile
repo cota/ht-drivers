@@ -32,7 +32,7 @@ includes:
 
 clean:
 	make -C $(KERN_DIR) M=$(DRVDIR) clean
-	make -C drvr clean
+	make -C driver clean
 	make -C $(KERN_DIR) M=$(DRVTESTDIR) clean
 	make -C drvrtest clean
 	make -C lib clean
