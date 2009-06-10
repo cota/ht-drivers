@@ -394,7 +394,7 @@ static int __devinit vme_bridge_create_devices(void)
 			      devlist[i].name);
 #else
 		device_create(vme_class, NULL,
-			      MKDEV(VME_MAJOR, devlist[i].minor), NULL,
+			      MKDEV(VME_MAJOR, devlist[i].minor), "%s",
 			      devlist[i].name);
 #endif /* 2.6.28 */
 
