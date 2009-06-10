@@ -569,7 +569,7 @@ EXPORT_SYMBOL_GPL(vme_create_window);
 
 /**
  * vme_destroy_window() - Unmap and remove a PCI-VME window
- * @desc: Descriptor of the window to remove (only the window number is used)
+ * @window_num: Window Number of the window to be destroyed
  *
  * Unmap and remove the PCI-VME window specified in the &struct vme_mapping
  * parameter also release all the mappings on top of that window.
@@ -583,9 +583,8 @@ EXPORT_SYMBOL_GPL(vme_create_window);
  *
  * Return 0 on success, or a standard kernel error code on failure.
  */
-int vme_destroy_window(struct vme_mapping *desc)
+int vme_destroy_window(int window_num)
 {
-	int window_num = desc->window_num;
 	struct window *window;
 	struct mapping *mapping;
 	struct mapping *tmp;
@@ -837,7 +836,7 @@ int vme_release_mapping(struct vme_mapping *desc, int force)
 	/* Check if there are no more users of this window */
 	if ((window->users == 0) && force) {
 		mutex_unlock(&window->lock);
-		return vme_destroy_window(desc);
+		return vme_destroy_window(window_num);
 	}
 
 out_unlock:
@@ -846,6 +845,16 @@ out_unlock:
 	return rc;
 }
 EXPORT_SYMBOL_GPL(vme_release_mapping);
+
+static int vme_destroy_window_ioctl(int __user *argp)
+{
+	int window_num;
+
+	if (get_user(window_num, argp))
+		return -EFAULT;
+
+	return vme_destroy_window(window_num);
+}
 
 /**
  * vme_window_ioctl() - ioctl file method for the VME window device
@@ -919,16 +928,9 @@ long vme_window_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case VME_IOCTL_DESTROY_WINDOW:
 		/* Unmap and destroy a window.
 		 *
-		 * arg is a pointer to a struct vme_mapping specifying
-		 * the attributes of the window to be destroyed.
+		 * arg is a pointer to the window number
 		 */
-		if (copy_from_user(&desc, (void *)argp,
-				   sizeof(struct vme_mapping)))
-			return -EFAULT;
-
-		rc = vme_destroy_window(&desc);
-
-		break;
+		return vme_destroy_window_ioctl((int __user *)argp);
 
 	case VME_IOCTL_FIND_MAPPING:
 		/*
@@ -1116,10 +1118,7 @@ void __devexit vme_window_exit(void)
 	int i;
 
 	for (i = 0; i < TSI148_NUM_OUT_WINDOWS; i++) {
-		if (window_table[i].active) {
-			struct window *window = &window_table[i];
-
-			vme_destroy_window(&window->desc);
-		}
+		if (window_table[i].active)
+			vme_destroy_window(i);
 	}
 }

@@ -143,10 +143,8 @@ unsigned long return_controller(unsigned logaddr, unsigned len)
 	}
 
 	err = vme_release_mapping(desc, 1);
-	if (!err) {
-		kfree(desc);
+	if (!err)
 		return 0;
-	}
 
 	printk(KERN_ERR PFX "%s - failed to remove mapping @ 0x%x (err=%d)\n",
 		__func__, logaddr, err);

@@ -306,7 +306,7 @@ struct pdparam_master
 /** Create a physical window */
 #define VME_IOCTL_CREATE_WINDOW		_IOW( 'V', 1, struct vme_mapping)
 /** Destroy a physical window */
-#define VME_IOCTL_DESTROY_WINDOW	_IOW( 'V', 2, struct vme_mapping)
+#define VME_IOCTL_DESTROY_WINDOW	_IOW( 'V', 2, int)
 /** Create a mapping over a physical window */
 #define VME_IOCTL_FIND_MAPPING		_IOWR('V', 3, struct vme_mapping)
 /** Remove a mapping */
@@ -347,7 +347,7 @@ extern int vme_generate_interrupt(int, int, signed long);
 extern struct vme_mapping* find_vme_mapping_from_addr(unsigned);
 extern int vme_get_window_attr(struct vme_mapping *);
 extern int vme_create_window(struct vme_mapping *);
-extern int vme_destroy_window(struct vme_mapping *);
+extern int vme_destroy_window(int);
 extern int vme_find_mapping(struct vme_mapping *, int);
 extern int vme_release_mapping(struct vme_mapping *, int);
 

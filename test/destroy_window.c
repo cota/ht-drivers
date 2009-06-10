@@ -15,7 +15,6 @@
 
 #include <vmebus.h>
 
-struct vme_mapping window;
 int window_num;
 
 #define VME_MWINDOW_DEV "/dev/vme_mwindow"
@@ -57,13 +56,11 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	memset(&window, 0, sizeof(struct vme_mapping));
-	window.window_num = window_num;
-
         printf("Destroying window %d\n\n", window_num);
 
-	if (ioctl(fd, VME_IOCTL_DESTROY_WINDOW, &window) < 0) {
-		printf("Failed to destroy window: %s\n", strerror(errno));
+	if (ioctl(fd, VME_IOCTL_DESTROY_WINDOW, &window_num) < 0) {
+		printf("Failed to destroy window#%d: %s\n",
+			window_num, strerror(errno));
 		close(fd);
 		exit(1);
 	}

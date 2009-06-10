@@ -531,7 +531,7 @@ static int __devinit vme_bridge_map_crg(void)
 	return 0;
 
 out_destroy_window:
-	if (vme_destroy_window(&crg_desc) != 0)
+	if (vme_destroy_window(crg_desc.window_num) != 0)
 		printk(KERN_ERR PFX
 		       "vme_bridge_map_crg - Failed to destroy window\n");
 
@@ -541,7 +541,7 @@ out_destroy_window:
 static int __devexit vme_bridge_unmap_crg(void)
 {
 	tsi148_disable_crg(vme_bridge->regs);
-	return vme_destroy_window(&crg_desc);
+	return vme_destroy_window(crg_desc.window_num);
 }
 
 /**
