@@ -1628,8 +1628,12 @@ int tsi148_create_window(struct vme_mapping *desc)
 		    &trans->otsal);
 	iowrite32be(desc->pci_addru, &trans->otsau);
 
-	/* Setup the PCI side end address */
-	oteal = desc->pci_addrl + desc->sizel;
+	/*
+	 * Setup the PCI side end address
+	 * Note that 'oteal' is formed by the upper 2 bytes common to the
+	 * addresses in the last 64K chunk of the window.
+	 */
+	oteal = (desc->pci_addrl + desc->sizel - 1) & ~0xffff;
 	oteau = add64hi(desc->pci_addrl, desc->pci_addru,
 			desc->sizel, desc->sizeu);
 	iowrite32be(oteal, &trans->oteal);
