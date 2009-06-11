@@ -55,6 +55,8 @@ endif
 
 ifeq ($(CPU), ppc4)
 SRCFILES    += extra_for_lynx.c
+else
+LOADLIBES += -lrt
 endif
 
 INCDIRS = \
