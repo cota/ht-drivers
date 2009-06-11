@@ -51,6 +51,16 @@ struct window {
 struct window window_table[TSI148_NUM_OUT_WINDOWS];
 
 /**
+ * struct mapping_taskinfo - Store information about a mapping's user
+ * @pid: pid number
+ * @name: name of the process
+ */
+struct vme_taskinfo {
+	pid_t	pid_nr;
+	char	name[TASK_COMM_LEN];
+};
+
+/**
  * struct mapping - Logical mapping descriptor
  * @list: List of the mappings
  * @mapping: The mapping descriptor
@@ -60,9 +70,9 @@ struct window window_table[TSI148_NUM_OUT_WINDOWS];
  * made on top a hardware windows.
  */
 struct mapping {
-	struct list_head list;
-	struct vme_mapping desc;
-	struct task_struct *client;
+	struct list_head	list;
+	struct vme_mapping	desc;
+	struct vme_taskinfo	client;
 };
 
 /*
@@ -139,8 +149,8 @@ static int vme_window_proc_show_mapping(char *page, int num,
 
 	p += sprintf(p, "(0x%02x)%s / D%2d %5s\n",
 		     desc->am, amod[desc->am], desc->data_width, pfs);
-	p += sprintf(p, "        client: %d %16s\n",
-		     (int)task_pid_nr(mapping->client), mapping->client->comm);
+	p += sprintf(p, "        client: %d %s\n",
+		(int)mapping->client.pid_nr, mapping->client.name);
 
 	return p - page;
 }
@@ -269,7 +279,7 @@ int vme_window_release(struct inode *inode, struct file *file)
 		list_for_each_entry_safe(mapping, tmp,
 					 &window->mappings, list) {
 
-			if (task_pid_nr(p) == task_pid_nr(mapping->client)) {
+			if (task_pid_nr(p) == mapping->client.pid_nr) {
 				/*
 				 * OK, that mapping is held by the process
 				 * release it.
@@ -313,7 +323,8 @@ static int add_mapping(struct window *window, struct vme_mapping *desc)
 	 * This may end up being wrong if this is called from other
 	 * drivers at module load time.
 	 */
-	mapping->client = current;
+	mapping->client.pid_nr = task_pid_nr(current);
+	strcpy(mapping->client.name, current->comm);
 
 	/* Insert mapping at end of window mappings list */
 	list_add_tail(&mapping->list, &window->mappings);
@@ -1073,7 +1084,7 @@ int vme_window_mmap(struct file *file, struct vm_area_struct *vma)
 			 *   - The size match
 			 *   - The pid match
 			 */
-			if ((task_pid_nr(p) == task_pid_nr(mapping->client)) &&
+			if ((task_pid_nr(p) == mapping->client.pid_nr) &&
 			    (mapping->desc.pci_addrl == addr) &&
 			    (mapping->desc.sizel == size)) {
 				rc = vme_remap_pfn_range(vma);
