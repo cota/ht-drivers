@@ -194,7 +194,7 @@ static void LongCopyToXmem(void *vmic_to, void *v_from, unsigned long size)
 	count = size / sizeof(u_int32_t);
 	if (count <= 0) return;
 	do {
-		cdcm_iowrite32(cdcm_cpu_to_le32(*tbuf), ioaddr);
+		cdcm_iowrite32le(*tbuf, ioaddr);
 		tbuf++;
 		ioaddr++;
 	} while (--count != 0);
@@ -220,7 +220,7 @@ static void LongCopyFromXmem(void *vmic_from, void *v_to, unsigned long size)
 	count = size / sizeof(u_int32_t);
 	if (count <= 0) return;
 	do {
-		*tbuf++ = cdcm_le32_to_cpu(cdcm_ioread32(ioaddr));
+		*tbuf++ = cdcm_ioread32le(ioaddr);
 		ioaddr++;
 	} while (--count != 0);
 }
@@ -381,25 +381,25 @@ static int DrmLocalReadWrite(XmemDrvrModuleContext *mcon, unsigned long addr,
 		if (flag == XmemDrvrWRITE) {
 			switch (size) {
 			case XmemDrvrBYTE:
-				cdcm_iowrite8((unsigned char)*value, ioaddr);
+				cdcm_iowrite8(*value, ioaddr);
 				break;
 			case XmemDrvrWORD:
-				cdcm_iowrite16(cdcm_cpu_to_le16((unsigned short)*value), ioaddr);
+				cdcm_iowrite16le(*value, ioaddr);
 				break;
 			case XmemDrvrLONG:
-				cdcm_iowrite32(cdcm_cpu_to_le32((unsigned int)*value), ioaddr);
+				cdcm_iowrite32le(*value, ioaddr);
 				break;
 			}
 		} else {
 			switch (size) {
 			case XmemDrvrBYTE:
-				*value = (unsigned long)cdcm_ioread8(ioaddr);
+				*value = cdcm_ioread8(ioaddr);
 				break;
 			case XmemDrvrWORD:
-				*value = (unsigned long)cdcm_le16_to_cpu(cdcm_ioread16(ioaddr));
+				*value = cdcm_ioread16le(ioaddr);
 				break;
 			case XmemDrvrLONG:
-				*value = (unsigned long)cdcm_le32_to_cpu(cdcm_ioread32(ioaddr));
+				*value = cdcm_ioread32le(ioaddr);
 				break;
 			}
 		}
@@ -560,25 +560,25 @@ static int RfmIo(XmemDrvrModuleContext *mcon, XmemDrvrRawIoBlock *riob,
 			if (flag == XmemDrvrWRITE) {
 				switch (size) {
 				case XmemDrvrBYTE:
-					cdcm_iowrite8((u_int8_t)uary[i], ioaddr + offs);
+					cdcm_iowrite8(uary[i], ioaddr + offs);
 					break;
 				case XmemDrvrWORD:
-					cdcm_iowrite16(cdcm_cpu_to_le16((u_int16_t)uary[i]), ioaddr + offs);
+					cdcm_iowrite16le(uary[i], ioaddr + offs);
 					break;
 				case XmemDrvrLONG:
-					cdcm_iowrite32(cdcm_cpu_to_le32((u_int32_t)uary[i]), ioaddr + offs);
+					cdcm_iowrite32le(uary[i], ioaddr + offs);
 					break;
 				}
 			} else {
 				switch (riob->Size) {
 				case XmemDrvrBYTE:
-					uary[i] = (unsigned long)cdcm_ioread8(ioaddr + offs);
+					uary[i] = cdcm_ioread8(ioaddr + offs);
 					break;
 				case XmemDrvrWORD:
-					uary[i] = (unsigned long)cdcm_le16_to_cpu(cdcm_ioread16(ioaddr + offs));
+					uary[i] = cdcm_ioread16le(ioaddr + offs);
 					break;
 				case XmemDrvrLONG:
-					uary[i] = (unsigned long)cdcm_le32_to_cpu(cdcm_ioread32(ioaddr + offs));
+					uary[i] = cdcm_ioread32le(ioaddr + offs);
 					break;
 				}
 			}
@@ -712,7 +712,7 @@ static int PingModule(XmemDrvrModuleContext *mcon)
 static int EnableInterrupts(XmemDrvrModuleContext *mcon, VmicLier msk)
 {
 	void *vmap;
-	unsigned int lisr_temp;
+	unsigned int lisr_tmp;
 	unsigned long ps;
 	unsigned long intcsr;
 
@@ -722,35 +722,34 @@ static int EnableInterrupts(XmemDrvrModuleContext *mcon, VmicLier msk)
 	disable(ps); /* acquire spinlock */
 	if (msk & VmicLierINT1 && !(mcon->InterruptEnable & VmicLierINT1)) {
 		SetRfmReg(mcon, VmicRfmSID1, 1, 0);
-		cdcm_iowrite32(0, vmap + VmicRfmISD1);
+		cdcm_iowrite32le(0, vmap + VmicRfmISD1);
 	}
 	if (msk & VmicLierINT2 && !(mcon->InterruptEnable & VmicLierINT2)) {
 		SetRfmReg(mcon, VmicRfmSID2, 1, 0);
-		cdcm_iowrite32(0, vmap + VmicRfmISD2);
+		cdcm_iowrite32le(0, vmap + VmicRfmISD2);
 	}
 	if (msk & VmicLierINT3 && !(mcon->InterruptEnable & VmicLierINT3)) {
 		SetRfmReg(mcon, VmicRfmSID3, 1, 0);
-		cdcm_iowrite32(0, vmap + VmicRfmISD3);
+		cdcm_iowrite32le(0, vmap + VmicRfmISD3);
 	}
 	if (msk & VmicLierPENDING_INIT &&
 		!(mcon->InterruptEnable & VmicLierPENDING_INIT)) {
 		SetRfmReg(mcon, VmicRfmINITN, 1, 0);
-		cdcm_iowrite32(0, vmap + VmicRfmINITD);
+		cdcm_iowrite32le(0, vmap + VmicRfmINITD);
 	}
 	if (msk & VmicLierPARITY_ERROR &&
 		!(mcon->InterruptEnable & VmicLierPARITY_ERROR)) {
 		mcon->Command |= VmicLcsrPARITY_ON;
-		cdcm_iowrite32(cdcm_cpu_to_le32(mcon->Command), vmap + VmicRfmLCSR1);
+		cdcm_iowrite32le(mcon->Command, vmap + VmicRfmLCSR1);
 	}
 	if (msk) {
 		mcon->InterruptEnable |= msk;
-		cdcm_iowrite32(cdcm_cpu_to_le32(mcon->InterruptEnable), vmap + VmicRfmLIER);
+		cdcm_iowrite32le(mcon->InterruptEnable, vmap + VmicRfmLIER);
 
-		lisr_temp = cdcm_le32_to_cpu(cdcm_ioread32(vmap + VmicRfmLISR));
+		lisr_tmp = cdcm_ioread32le(vmap + VmicRfmLISR);
 
-		cdcm_iowrite32(cdcm_cpu_to_le32(lisr_temp | VmicLisrENABLE),
-			vmap + VmicRfmLISR);
-		lisr_temp = cdcm_le32_to_cpu(cdcm_ioread32(vmap + VmicRfmLISR));
+		cdcm_iowrite32le(lisr_tmp | VmicLisrENABLE, vmap + VmicRfmLISR);
+		lisr_tmp = cdcm_ioread32le(vmap + VmicRfmLISR);
 
 		DrmLocalReadWrite(mcon, PlxLocalINTCSR, &intcsr, 4, XmemDrvrREAD);
 		intcsr |= PlxIntcsrENABLE_PCI
@@ -788,10 +787,10 @@ static XmemDrvrScr GetSetStatus(XmemDrvrModuleContext *mcon, XmemDrvrScr cmd,
 	if (iod == XmemDrvrWRITE) {
 		cmd &= XmemDrvrScrCMD_MASK;
 		mcon->Command = cmd;
-		cdcm_iowrite32(cdcm_cpu_to_le32(mcon->Command), vmap + VmicRfmLCSR1);
+		cdcm_iowrite32le(mcon->Command, vmap + VmicRfmLCSR1);
 	}
 
-	stat = (XmemDrvrScr)cdcm_le32_to_cpu(cdcm_ioread32(vmap + VmicRfmLCSR1));
+	stat = (XmemDrvrScr)cdcm_ioread32le(vmap + VmicRfmLCSR1);
 
 	return stat;
 }
@@ -897,7 +896,7 @@ static int SendInterrupt(XmemDrvrSendBuf *sbuf)
 	ntype = sbuf->InterruptType & XmemDrvrNicTYPE;
 	ncast = sbuf->InterruptType & XmemDrvrNicCAST;
 
-	cdcm_iowrite32(cdcm_cpu_to_le32(sbuf->Data), vmap + VmicRfmNTD);
+	cdcm_iowrite32le(sbuf->Data, vmap + VmicRfmNTD);
 
 	switch (ncast) {
 
@@ -927,10 +926,7 @@ static int SendInterrupt(XmemDrvrSendBuf *sbuf)
 		if (sbuf->UnicastNodeId == mcon->NodeId)
 			InterruptSelf(sbuf, mcon);
 		else {
-			/* cast needed: UnicastNodeId is a LONG, although its values range
-			 * from 0 to 255.
-			 */
-			cdcm_iowrite8((unsigned char)sbuf->UnicastNodeId, vmap + VmicRfmNTN);
+			cdcm_iowrite8(sbuf->UnicastNodeId, vmap + VmicRfmNTN);
 			cdcm_iowrite8(ntype, vmap + VmicRfmNIC);
 		}
 		return OK;
@@ -1573,8 +1569,8 @@ static int DisConnect(XmemDrvrConnection *conx, XmemDrvrClientContext *ccon)
 		msk = conx->Mask & VmicLierMASK; /* filter out non-hardware interrupts */
 		if (msk) {
 			mcon->InterruptEnable &= ~msk;
-			cdcm_iowrite32(cdcm_cpu_to_le32(mcon->InterruptEnable),
-				vmap + VmicRfmLIER);
+			cdcm_iowrite32le(mcon->InterruptEnable,
+					 vmap + VmicRfmLIER);
 		}
 	}
 	restore(ps); /* release spinlock */
@@ -1639,13 +1635,13 @@ void IntrHandler(void *m)
 		vmap = mcon->Map;
 
 		/* read the interrupt status register (LISR) */
-		isrc = cdcm_le32_to_cpu(cdcm_ioread32(vmap + VmicRfmLISR));
+		isrc = cdcm_ioread32le(vmap + VmicRfmLISR);
 		/*
 		 * After reading LISR, Interrupt Global Enable is cleared.
 		 * Therefore we re-enable interrupts, but note that
 		 * this is not done atomically --> it's dangerous.
 		 */
-		cdcm_iowrite32(cdcm_cpu_to_le32(VmicLisrENABLE), vmap + VmicRfmLISR);
+		cdcm_iowrite32le(VmicLisrENABLE, vmap + VmicRfmLISR);
 
 		isrc &= VmicLisrSOURCE_MASK; /* clean the bitmask */
 
@@ -1701,7 +1697,7 @@ void IntrHandler(void *m)
 					 */
 				case VmicLisrPENDING_INIT:
 
-					data = cdcm_le32_to_cpu(cdcm_ioread32(vmap + VmicRfmINITD));
+					data = cdcm_ioread32le(vmap + VmicRfmINITD);
 					rbf.NdData[XmemDrvrIntIdxPENDING_INIT] = data;
 
 					node = GetRfmReg(mcon, VmicRfmINITN, 1);
@@ -1742,7 +1738,7 @@ void IntrHandler(void *m)
 				case VmicLisrINT3:
 
 					rbf.NdData[XmemDrvrIntIdxSEGMENT_UPDATE] =
-						cdcm_le32_to_cpu(cdcm_ioread32(vmap + VmicRfmISD3));
+						cdcm_ioread32le(vmap + VmicRfmISD3);
 
 					node = GetRfmReg(mcon, VmicRfmSID3, 1);
 					rbf.NodeId[XmemDrvrIntIdxSEGMENT_UPDATE] = node;
@@ -1758,7 +1754,7 @@ void IntrHandler(void *m)
 				case VmicLisrINT2:
 
 					rbf.NdData[XmemDrvrIntIdxINT_2] =
-						cdcm_le32_to_cpu(cdcm_ioread32(vmap + VmicRfmISD2));
+						cdcm_ioread32le(vmap + VmicRfmISD2);
 
 					node = GetRfmReg(mcon, VmicRfmSID2, 1);
 					rbf.NodeId[XmemDrvrIntIdxINT_2] = node;
@@ -1769,7 +1765,7 @@ void IntrHandler(void *m)
 				case VmicLisrINT1:
 
 					rbf.NdData[XmemDrvrIntIdxINT_1] =
-						cdcm_le32_to_cpu(cdcm_ioread32(vmap + VmicRfmISD1));
+						cdcm_ioread32le(vmap + VmicRfmISD1);
 
 					node = GetRfmReg(mcon, VmicRfmSID1, 1);
 					rbf.NodeId[XmemDrvrIntIdxINT_1] = node;
@@ -1811,8 +1807,8 @@ void IntrHandler(void *m)
 			 * Read the interrupt status register (LISR) + re-enable interrupts.
 			 * As said before, this is non-atomic --> dangerous!
 			 */
-			isrc = cdcm_le32_to_cpu(cdcm_ioread32(vmap + VmicRfmLISR));
-			cdcm_iowrite32(cdcm_cpu_to_le32(VmicLisrENABLE), vmap + VmicRfmLISR);
+			isrc = cdcm_ioread32le(vmap + VmicRfmLISR);
+			cdcm_iowrite32le(VmicLisrENABLE, vmap + VmicRfmLISR);
 			isrc &= VmicLisrSOURCE_MASK; /* re-evaluated in the while() */
 		}
 
@@ -1820,7 +1816,7 @@ void IntrHandler(void *m)
 		 * Update enabled interrupts -- this is done using Connect(), I think this
 		 * is unnecessary here.
 		 */
-		cdcm_iowrite32(cdcm_cpu_to_le32(mcon->InterruptEnable), vmap + VmicRfmLIER);
+		cdcm_iowrite32le(mcon->InterruptEnable, vmap + VmicRfmLIER);
 	}
 
 	if (intcsr & PlxIntcsrSTATUS_DMA_CHAN_0) {   /* DMA Channel 0 for reading */
