@@ -717,7 +717,7 @@ static int EnableInterrupts(XmemDrvrModuleContext *mcon, VmicLier msk)
 	unsigned long intcsr;
 
 	vmap = mcon->Map;
-	msk &= VmicLierMASK; /* Clear out any crap bits (e.g. IntDAEMON) */
+	msk &= VmicLierMASK; /* Clear out any crap bits (e.g. IntSOFTWAKEUP) */
 
 	disable(ps); /* acquire spinlock */
 	if (msk & VmicLierINT1 && !(mcon->InterruptEnable & VmicLierINT1)) {
@@ -2083,17 +2083,17 @@ int XmemDrvrRead(void *s, struct cdcm_file *flp, char *u_buf, int cnt)
  * @param cnt: byte count in buffer
  *
  * This entry point is used to wake up clients connected to a 'software
- * interrupt' called IntrDAEMON.
+ * interrupt' called IntrSOFTWAKEUP.
  * For some event it is advisable that certain clients (say clients A) subscribe
  * to its correspondent hardware interrupt, and then when they're called
  * they do some pre-processing before issuing a write() which will wake-up
  * the rest of the clients (say, clients B).
  * Therefore for a certain event we can set a hierarchy.
  *
- * An example of this would be SEGMENT_UPDATE: a daemon (client A) would
+ * An example of this would be SEGMENT_UPDATE: a client (client A) would
  * subscribe to IntrSEGMENT_UPDATE, and then when it's triggered, he would
  * copy the segment to RAM memory and issue a write() announcing it.
- * Then the clients connected to IntrDAEMON (clients B) (NB: they're not
+ * Then the clients connected to IntrSOFTWAKEUP (clients B) (NB: they're not
  * subscribed to IntrSEGMENT_UPDATE) would be woken up -- then they could
  * read safely the updated segment from RAM memory.
  *
@@ -2156,9 +2156,9 @@ int XmemDrvrWrite(void *s, struct cdcm_file *flp, char *u_buf, int cnt)
 	/* Prepare the read buffer for suscribed clients */
 	bzero((void *)&rbf, sizeof(XmemDrvrWriteBuf));
 	rbf.Module = wbf->Module;
-	rbf.NdData[XmemDrvrIntIdxDAEMON] = wbf->NdData;
-	rbf.NodeId[XmemDrvrIntIdxDAEMON] = wbf->NodeId;
-	rbf.Mask = XmemDrvrIntrDAEMON;
+	rbf.NdData[XmemDrvrIntIdxSOFTWAKEUP] = wbf->NdData;
+	rbf.NodeId[XmemDrvrIntIdxSOFTWAKEUP] = wbf->NodeId;
+	rbf.Mask = XmemDrvrIntrSOFTWAKEUP;
 
 	/* then put it in the client's queue */
 	for (i = 0; i < XmemDrvrCLIENT_CONTEXTS; i++) {
@@ -2168,11 +2168,11 @@ int XmemDrvrWrite(void *s, struct cdcm_file *flp, char *u_buf, int cnt)
 
 		msk = mcon->Clients[i];
 
-		if (! (msk & XmemDrvrIntrDAEMON))
-			continue; /* this client is not connected to IntrDAEMON */
+		if (! (msk & XmemDrvrIntrSOFTWAKEUP))
+			continue; /* this client is not connected to IntrSOFTWAKEUP */
 
 
-		/* the client's connected to IntrDAEMON --> fill in his queue */
+		/* the client's connected to IntrSOFTWAKEUP --> fill in his queue */
 
 		disable(ps); /* acquire spinlock */
 

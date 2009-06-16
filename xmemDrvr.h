@@ -162,7 +162,7 @@ typedef struct {
 #define XmemDrvrIntrSOURCES 17
 
 typedef enum {
-	XmemDrvrIntrDAEMON         = 0x10000, //!< software sync int. from daemon
+	XmemDrvrIntrSOFTWAKEUP		= 0x10000, //!< software interrupt
 
 	XmemDrvrIntrAC_FLAG        = 0x8000,
 	//!< Auto clear Interrupt: This bit must always be On
@@ -390,7 +390,7 @@ typedef enum {
 	XmemDrvrIntIdxINT_2          = 1, //!< General purpose Interrupt 2
 	XmemDrvrIntIdxSEGMENT_UPDATE = 2, //!< Memory segment updated interrupt
 	XmemDrvrIntIdxPENDING_INIT   = 3, //!< Pending init request
-	XmemDrvrIntIdxDAEMON         = 4, //!< DAEMON interrupt to clients
+	XmemDrvrIntIdxSOFTWAKEUP	= 4, //!< software interrupt to clients
 	XmemDrvrIntIdxFIFOS               //!< Number of FIFOs
 } XmemDrvrIntIdx;
 
@@ -414,9 +414,9 @@ typedef struct {
  * we have clients of type A and B. For certain events (e.g. SEGMENT_UPDATE)
  * clients A need to perform some operations before B are notified of the
  * event. Therefore B connect to a 'software interrupt from A', called
- * IntrDAEMON, while A are connected to the hardware interrupt for that event.
- * Then when it happens, A issues IntrDAEMON through a write(), waking up
- * every B client waiting on IntrDAEMON, which will obtain a proper
+ * IntrSOFTWAKEUP, while A is subscribed to the real interrupt for that event.
+ * Then when it happens, A issues IntrSOFTWAKEUP through a write(), waking up
+ * every B client waiting on IntrSOFTWAKEUP, which will then obtain a proper
  * XmemDrvrReadBuf.
  *
  * Note that this doesn't impose any policy; it is up to the clients (A and B)
