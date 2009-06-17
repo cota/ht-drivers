@@ -726,40 +726,4 @@ XmemError XmemReadTableFile(XmemTableId tid);
  */
 XmemError XmemWriteTableFile(XmemTableId tid);
 
-
-
-
-/**
- * XmemBlockCallbacks - Block all client callbacks while the caller is running
- *
- * @param : none
- *
- * @return Appropriate error code (XmemError)
- */
-XmemError XmemBlockCallbacks();
-
-
-
-
-/**
- * XmemUnBlockCallbacks - Unblock client callbacks while the caller is running
- *
- * @param : none
- *
- * @return Appropriate error code (XmemError)
- */
-XmemError XmemUnBlockCallbacks();
-
-
-
-
-/**
- * XmemCallbacksBlocked - Checks that callbacks are blocked
- *
- * @param : none
- *
- * @return 1 if blocked; 0 otherwise
- */
-int XmemCallbacksBlocked();
-
 #endif

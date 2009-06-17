@@ -19,12 +19,6 @@ static int xmem = 0; //!< device file handler
 static void (*callback)(XmemCallbackStruct *cbs) = NULL;
 static XmemEventMask callmask = 0;
 
-/* the following static variables are used by VmicDaemon__() functions */
-static int dqsze = 0;
-static int first_time = 1;
-static XmemDrvrReadBuf drbf;
-
-
 /**
  * VmicWriteSegTable - Set the list of all segments into the driver
  *
@@ -247,135 +241,6 @@ notinit:
 
 
 /**
- * VmicUsleep - Sleep for 'delay' us.
- *
- * @param dly: desired delay, in us
- *
- */
-static void VmicUsleep(int dly)
-{
-	struct timespec rqtp, rmtp;
-
-	rqtp.tv_sec = 0;
-	rqtp.tv_nsec = dly * 1000;
-	nanosleep(&rqtp, &rmtp);
-}
-
-
-/**
- * VmicDaemonWait - Wait procedure for the daemon
- *
- * @param timeout: desired timeout, in chunks of 10ms
- *
- * Note that the value of the timeout is only applied the first time this
- * function is called -- for subsequent Waits, the same value for the timeout
- * is applied.
- *
- * The read value, if any, is put into drbuf (Daemon Read BUFfer)
- *
- * @return 1 if data has been read from the queue; 0 otherwise
- */
-int VmicDaemonWait(int timeout)
-{
-	if (first_time) {
-		if (ioctl(xmem, XmemDrvrSET_TIMEOUT, &timeout) >= 0)
-			first_time = 0;
-	}
-	bzero((void *)&drbf, sizeof(XmemDrvrReadBuf));
-	if (read(xmem, &drbf, sizeof(XmemDrvrReadBuf)) > 0) {
-		ioctl(xmem, XmemDrvrGET_QUEUE_SIZE, &dqsze);
-		return 1;
-	}
-	return 0;
-}
-
-
-/**
- * VmicDaemonCall - Procedure to perform Daemon Callbacks
- *
- * @param : none
- *
- * The data stored in drbf is read to execute the appropriate callback
- *
- */
-void VmicDaemonCall()
-{
-	int 		i;
-	XmemDrvrIntr 	imsk;
-	XmemCallbackStruct cbs;
-
-	for (i = 0; i < XmemDrvrIntrSOURCES; i++) {
-		imsk = 1 << i;
-		bzero((void *)&cbs, sizeof(XmemCallbackStruct));
-
-		switch (imsk & drbf.Mask) {
-		case XmemDrvrIntrPARITY_ERROR:
-			cbs.Mask = XmemEventMaskIO;
-			cbs.Data = XmemIoErrorPARITY;
-			if (callmask & XmemEventMaskIO)
-				callback(&cbs);
-			break;
-		case XmemDrvrIntrRX_OVERFLOW:
-		case XmemDrvrIntrRX_ALMOST_FULL:
-		case XmemDrvrIntrDATA_ERROR:
-			cbs.Mask = XmemEventMaskIO;
-			cbs.Data = XmemIoErrorHARDWARE;
-			if (callmask & XmemEventMaskIO)
-				callback(&cbs);
-			break;
-		case XmemDrvrIntrLOST_SYNC:
-			cbs.Mask = XmemEventMaskIO;
-			cbs.Data = XmemIoErrorCONTACT;
-			if (callmask & XmemEventMaskIO)
-				callback(&cbs);
-			break;
-		case XmemDrvrIntrROGUE_CLOBBER:
-			cbs.Mask = XmemEventMaskIO;
-			cbs.Data = XmemIoErrorROGUE;
-			if (callmask & XmemEventMaskIO)
-				callback(&cbs);
-			break;
-		case XmemDrvrIntrPENDING_INIT:
-			cbs.Mask = XmemEventMaskINITIALIZED;
-			cbs.Node = 1 << (drbf.NodeId[XmemDrvrIntIdxPENDING_INIT] - 1);
-			cbs.Data = drbf.NdData[XmemDrvrIntIdxPENDING_INIT];
-			if (callmask & XmemEventMaskINITIALIZED)
-				callback(&cbs);
-			break;
-		case XmemDrvrIntrREQUEST_RESET:
-			cbs.Mask = XmemEventMaskKILL;
-			if (callmask & XmemEventMaskKILL)
-				callback(&cbs);
-			break;
-		case XmemDrvrIntrSEGMENT_UPDATE:
-			cbs.Mask  = XmemEventMaskTABLE_UPDATE;
-			cbs.Node  = 1 << (drbf.NodeId[XmemDrvrIntIdxSEGMENT_UPDATE] - 1);
-			cbs.Table = drbf.NdData[XmemDrvrIntIdxSEGMENT_UPDATE];
-			if (callmask & XmemEventMaskTABLE_UPDATE)
-				callback(&cbs);
-			break;
-		case XmemDrvrIntrINT_2:
-			cbs.Mask  = XmemEventMaskSEND_TABLE;
-			cbs.Node  = 1 << (drbf.NodeId[XmemDrvrIntIdxINT_2] - 1);
-			cbs.Table = drbf.NdData[XmemDrvrIntIdxINT_2];
-			if (callmask & XmemEventMaskSEND_TABLE)
-				callback(&cbs);
-			break;
-		case XmemDrvrIntrINT_1:
-			cbs.Mask  = XmemEventMaskUSER;
-			cbs.Node  = 1 << (drbf.NodeId[XmemDrvrIntIdxINT_1] - 1);
-			cbs.Data  = drbf.NdData[XmemDrvrIntIdxINT_1];
-			if (callmask & XmemEventMaskUSER)
-				callback(&cbs);
-			break;
-		default:
-			break;
-		}
-	}
-}
-
-
-/**
  * VmicWait - Wait for an Event with timeout
  *
  * @param timeout: desired timeout for the wait (in chunks of 10ms)
@@ -409,17 +274,6 @@ XmemEventMask VmicWait(int timeout)
 		if (callmask & XmemEventMaskTIMEOUT)
 			callback(&cbs);
 		return XmemEventMaskTIMEOUT;
-	}
-
-	i = 0;
-	while (XmemCallbacksBlocked()) {
-		VmicUsleep(1000);
-		if (i++ > 1000) {
-			cbs.Mask = XmemEventMaskTIMEOUT;
-			if (callmask & XmemEventMaskTIMEOUT)
-				callback(&cbs);
-			return XmemEventMaskTIMEOUT;
-		}
 	}
 	emsk = 0;
 	for (i = 0; i < XmemDrvrIntrSOURCES; i++) {
