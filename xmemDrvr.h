@@ -15,6 +15,10 @@
 #ifndef XMEM_DRVR
 #define XMEM_DRVR
 
+#ifndef __KERNEL__
+#include <stdint.h>
+#endif
+
 #include <general_both.h>
 
 #define XmemDrvrCLIENT_CONTEXTS 16
@@ -423,9 +427,9 @@ typedef struct {
  * to decide what to connect to and when to issue a write().
  */
 typedef struct {
-	unsigned long Module;
-	unsigned long NdData;
-	unsigned long NodeId;
+	int		Module;
+	uint32_t	Data;
+	uint32_t	NodeId;
 } XmemDrvrWriteBuf;
 
 

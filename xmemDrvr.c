@@ -2156,7 +2156,7 @@ int XmemDrvrWrite(void *s, struct cdcm_file *flp, char *u_buf, int cnt)
 	/* Prepare the read buffer for suscribed clients */
 	bzero((void *)&rbf, sizeof(XmemDrvrWriteBuf));
 	rbf.Module = wbf->Module;
-	rbf.NdData[XmemDrvrIntIdxSOFTWAKEUP] = wbf->NdData;
+	rbf.NdData[XmemDrvrIntIdxSOFTWAKEUP] = wbf->Data;
 	rbf.NodeId[XmemDrvrIntIdxSOFTWAKEUP] = wbf->NodeId;
 	rbf.Mask = XmemDrvrIntrSOFTWAKEUP;
 
