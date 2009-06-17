@@ -352,7 +352,14 @@ char *XmemErrorToString(XmemError err);
  */
 XmemError XmemInitialize(XmemDevice device);
 
-
+/**
+ * @brief Set the default path for initialisation files
+ *
+ * @param pbPath - Path where the configuration files are stored
+ *
+ * @return XmemError
+ */
+XmemError XmemSetPath (char *pbPath);
 
 
 /**

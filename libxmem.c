@@ -54,67 +54,45 @@ static int        	warm_start = 0; //!< Warm vs Cold start
 /* see description in function XmemCheckForWarmStart for further info on this */
 //@}
 
+static char gbConfigPath[LN] = "";
 
-/*! @name configuration path
+/**
+ * @brief Set the default path for initialisation files
  *
- * Used to get a file configuration path
+ * @param pbPath - Path where the configuration files are stored
+ *
+ * @return XmemError
  */
-//@{
-char *defaultconfigpath = XMEM_PATH CONFIG_FILE_NAME;
-char *configpath = NULL;
+XmemError XmemSetPath(char *pbPath)
+{
+	if (pbPath == NULL)
+		return XmemErrorSUCCESS;
 
+	if (strlen(pbPath) < (LN - 20)) {
+		strcpy(gbConfigPath, pbPath);
+		if (gbConfigPath[strlen(gbConfigPath) - 1] != '/')
+			strcat(gbConfigPath, "/");
+	}
 
+	return XmemErrorSUCCESS;
+}
+
+/**
+ * @brief Form the full path of a given configuration file
+ *
+ * @param name - file name
+ *
+ * @return full path of the given file name
+ */
 char *XmemGetFile(char *name)
 {
-	int 		i;
-	int		j;
-	char 		txt[LN];
-	FILE 		*gpath = NULL;
-	static char 	path[LN];
+	static char path[LN];
+	char        *configpath;
 
-	if (configpath) {
-		gpath = fopen(configpath, "r");
-		if (NULL == gpath) {
-			configpath = NULL;
-		}
-	}
-	if (NULL == configpath) {
-		configpath = defaultconfigpath;
-		gpath = fopen(configpath, "r");
-		if (NULL == gpath) { /* could not open main conf file */
-			configpath = NULL;
-			/* then try in the working directory */
-			sprintf(path, "./%s", name);
-			return path;
-		}
-	}
-	/* now gpath contains a valid FILE pointer to the main conf file */
-	bzero((void *)path, LN);
-	while (1) {
-		/* read a line from the file */
-		if (fgets(txt, LN, gpath) == NULL)
-			break;
-		if (strncmp(name, txt, strlen(name)) != 0) {
-			/* this line is not the one we're searching for */
-			continue;
-		}
-		/* get rid of the whitespaces between name and path */
-		for (i = strlen(name); i < strlen(txt); i++)
-			if (txt[i] != ' ')
-				break;
-		j = 0;
-		while (txt[i] != ' ' && txt[i] != '\0' && txt[i] != '\n')
-			path[j++] = txt[i++];
-		/* now 'path' contains the path we want */
-		strcat(path, name);
-		fclose(gpath);
-
-		return path;
-	}
-	fclose(gpath);
-	return NULL;
+	configpath = strlen(gbConfigPath) > 0 ? gbConfigPath : XMEM_PATH;
+	sprintf(path, "%s%s", configpath, name);
+	return path;
 }
-//@}
 
 /*! @name Static variables, constants and functions
  *
