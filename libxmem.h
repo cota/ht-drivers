@@ -176,7 +176,7 @@ typedef enum {
  * The callback routines can be called for different reasons
  */
 //@{
-#define XmemEventMASKS 9
+#define XmemEventMASKS 10
 
 typedef enum {
 	XmemEventMaskTIMEOUT      = 0x001, //!< IO timeout
@@ -199,7 +199,10 @@ typedef enum {
 	XmemEventMaskSYSTEM       = 0x100,
 	//!< System error, Data contains system errno
 
-	XmemEventMaskMASK         = 0x1FF  //!< Mask bits
+	XmemEventMaskSOFTWAKEUP	  = 0x200,
+	//!< Software-driven wake-up
+
+	XmemEventMaskMASK         = 0x3FF  //!< Mask bits
 } XmemEventMask;
 //@}
 

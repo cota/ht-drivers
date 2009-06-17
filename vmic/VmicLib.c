@@ -222,6 +222,10 @@ XmemError VmicRegisterCallback(void (*cb)(XmemCallbackStruct *cbs),
 			con.Mask |= XmemDrvrIntrREQUEST_RESET;
 			callmask |= msk;
 			break;
+		case XmemEventMaskSOFTWAKEUP:
+			con.Mask |= XmemDrvrIntrSOFTWAKEUP;
+			callmask |= msk;
+			break;
 		default:
 			break;
 		}
@@ -346,6 +350,14 @@ XmemEventMask VmicWait(int timeout)
 			cbs.Node  = 1 << (rbf.NodeId[XmemDrvrIntIdxINT_1] - 1);
 			cbs.Data  = rbf.NdData[XmemDrvrIntIdxINT_1];
 			if (callmask & XmemEventMaskUSER)
+				callback(&cbs);
+			break;
+		case XmemDrvrIntrSOFTWAKEUP:
+			emsk |= XmemEventMaskSOFTWAKEUP;
+			cbs.Mask  = XmemEventMaskSOFTWAKEUP;
+			cbs.Node  = 1 << (rbf.NodeId[XmemDrvrIntIdxSOFTWAKEUP] - 1);
+			cbs.Table = rbf.NdData[XmemDrvrIntIdxSOFTWAKEUP];
+			if (callmask & XmemEventMaskSOFTWAKEUP)
 				callback(&cbs);
 			break;
 		default:
