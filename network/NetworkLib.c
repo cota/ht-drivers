@@ -136,3 +136,8 @@ XmemTableId NetworkCheckTables() {
 
    return XmemErrorNOT_INITIALIZED;
 }
+
+XmemError NetworkSendSoftWakeup(uint32_t nodeid, uint32_t data)
+{
+	return 0;
+}

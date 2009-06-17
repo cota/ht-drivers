@@ -572,3 +572,16 @@ XmemTableId VmicCheckTables() {
 	}
 	return tmsk;
 }
+
+XmemError VmicSendSoftWakeup(uint32_t nodeid, uint32_t data)
+{
+	XmemDrvrWriteBuf wbf = {
+		.Module	= 1,
+		.Data	= data,
+		.NodeId	= nodeid,
+	};
+
+	if (write(xmem, &wbf, sizeof(XmemDrvrWriteBuf)) <= 0)
+		return XmemErrorIO;
+	return XmemErrorSUCCESS;
+}

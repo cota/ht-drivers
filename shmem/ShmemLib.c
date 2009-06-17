@@ -188,3 +188,8 @@ XmemTableId tid;
    tmsk = 0;
    return tid;
 }
+
+XmemError ShmemSendSoftWakeup(uint32_t nodeid, uint32_t data)
+{
+	return 0;
+}

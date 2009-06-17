@@ -114,6 +114,7 @@ typedef struct {
 	XmemError     (*RecvTable)();
 	XmemError     (*SendMessage)();
 	XmemTableId   (*CheckTables)();
+	XmemError     (*SendSoftWakeup)();
 } XmemLibRoutines;
 
 static int 		libinitialized = 0;
@@ -238,6 +239,7 @@ static XmemError InitDevice(XmemDevice device)
 		routines.RecvTable        = VmicRecvTable;
 		routines.SendMessage      = VmicSendMessage;
 		routines.CheckTables      = VmicCheckTables;
+		routines.SendSoftWakeup   = VmicSendSoftWakeup;
 		return VmicInitialize();
 
 	case XmemDeviceSHMEM:
@@ -249,6 +251,7 @@ static XmemError InitDevice(XmemDevice device)
 		routines.RecvTable        = ShmemRecvTable;
 		routines.SendMessage      = ShmemSendMessage;
 		routines.CheckTables      = ShmemCheckTables;
+		routines.SendSoftWakeup   = ShmemSendSoftWakeup;
 		return ShmemInitialize();
 
 	case XmemDeviceNETWORK:
@@ -260,6 +263,7 @@ static XmemError InitDevice(XmemDevice device)
 		routines.RecvTable        = NetworkRecvTable;
 		routines.SendMessage      = NetworkSendMessage;
 		routines.CheckTables      = NetworkCheckTables;
+		routines.SendSoftWakeup   = NetworkSendSoftWakeup;
 		return NetworkInitialize();
 
 	default:
@@ -754,6 +758,13 @@ XmemError XmemWriteTableFile(XmemTableId tid)
 			return err;
 	}
 	return XmemErrorSUCCESS;
+}
+
+XmemError XmemSendSoftWakeup(uint32_t nodeid, uint32_t data)
+{
+	if (!libinitialized)
+		return XmemErrorNOT_INITIALIZED;
+	return routines.SendSoftWakeup(nodeid, data);
 }
 
 /**

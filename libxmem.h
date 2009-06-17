@@ -728,4 +728,14 @@ XmemError XmemReadTableFile(XmemTableId tid);
  */
 XmemError XmemWriteTableFile(XmemTableId tid);
 
+/**
+ * @brief Send a software interrupt
+ *
+ * @param nodeid - sender's node id
+ * @param data - data to fill in the read buffer of the connected clients
+ *
+ * @return Appropriate error code (XmemError)
+ */
+XmemError XmemSendSoftWakeup(uint32_t nodeid, uint32_t data);
+
 #endif
