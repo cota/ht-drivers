@@ -13,26 +13,14 @@
  */
 #include <unistd.h>
 #include <stdint.h>
-#include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <stat.h>
-#include <sched.h>
-#include <fcntl.h>
-#include <io.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/file.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <ctype.h>
 #include <mqueue.h>
 #include <time.h>
-#include <errno.h>
 #include <sys/shm.h>
-#include <ipc.h>
-#include <sem.h>
 
 #include <xmemDrvr.h>
 #include <libxmem.h>

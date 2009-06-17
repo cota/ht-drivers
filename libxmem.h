@@ -37,6 +37,8 @@
 #ifndef XMEMLIB
 #define XMEMLIB
 
+#include <stdint.h>
+
 #ifdef __linux__
 #define XMEM_PATH "/dsc/data/xmem/"
 #else /* LynxOs */
