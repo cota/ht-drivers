@@ -12,8 +12,10 @@
  * @version 1.0 Julian Lewis
  */
 #include <unistd.h>
+#include <stdint.h>
 #include <signal.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <stat.h>
 #include <sched.h>
 #include <fcntl.h>
@@ -41,7 +43,7 @@
 //@{
 #define LN 128 //!< length of string (e.g. for full filenames)
 
-static long 		*attach_address[XmemMAX_TABLES];
+static void		*attach_address[XmemMAX_TABLES];
 
 static XmemDrvrSegTable seg_tab;
 static int 		segcnt = 0;
@@ -284,7 +286,7 @@ XmemError XmemInitialize(XmemDevice device)
 
 	if (libinitialized)
 		return XmemErrorSUCCESS;
-	bzero((void *)attach_address, XmemMAX_TABLES * sizeof(long *));
+	bzero((void *)attach_address, XmemMAX_TABLES * sizeof(void *));
 	bzero((void *)&node_tab, sizeof(XmemDrvrNodeTable));
 
 	err = XmemReadNodeTableFile();
@@ -396,20 +398,20 @@ XmemEventMask XmemPoll()
 }
 
 
-XmemError XmemSendTable(XmemTableId table, long *buf, unsigned long longs,
-			unsigned long offset, unsigned long upflag)
+XmemError XmemSendTable(XmemTableId table, void *buf, int elems,
+			int offset, int upflag)
 {
 	if (libinitialized)
-		return routines.SendTable(table, buf, longs, offset, upflag);
+		return routines.SendTable(table, buf, elems, offset, upflag);
 	return XmemErrorNOT_INITIALIZED;
 }
 
 
-XmemError XmemRecvTable(XmemTableId table, long *buf, unsigned long longs,
-			unsigned long offset)
+XmemError XmemRecvTable(XmemTableId table, void *buf, int elems,
+			int offset)
 {
 	if (libinitialized)
-		return routines.RecvTable(table, buf, longs, offset);
+		return routines.RecvTable(table, buf, elems, offset);
 	return XmemErrorNOT_INITIALIZED;
 }
 
@@ -491,14 +493,16 @@ int XmemGetKey(char *name)
 }
 
 
-long *XmemGetSharedMemory(XmemTableId tid)
+void *XmemGetSharedMemory(XmemTableId tid)
 {
 	int 		tnum, msk;
-	unsigned long longs, user, bytes, smemid;
+	unsigned long   bytes, smemid;
+	int		elems;
+	uint32_t	user;
 	key_t 	smemky;
 	XmemError 	err;
 	XmemNodeId 	nid;
-	unsigned long	*table;
+	void		*table;
 	char 		*cp;
 
 	if (! libinitialized)
@@ -518,11 +522,11 @@ long *XmemGetSharedMemory(XmemTableId tid)
 	if (!cp)
 		goto error;
 
-	err = XmemGetTableDesc(tid, &longs, &nid, &user);
+	err = XmemGetTableDesc(tid, &elems, &nid, &user);
 	if (err != XmemErrorSUCCESS)
 		goto error;
 
-	bytes = longs * sizeof(long);
+	bytes = elems * sizeof(uint32_t);
 	smemky = XmemGetKey(cp);
 	smemid = shmget(smemky, bytes, 0666);
 
@@ -534,19 +538,19 @@ long *XmemGetSharedMemory(XmemTableId tid)
 		if (-1 == smemid)
 			goto error;
 		/* attach memory segment to smemid */
-		table = (long *)shmat(smemid, (char *)0, 0);
+		table = shmat(smemid, (char *)0, 0);
 		if (-1 == (int)table)
 			goto error;
 		if (tnum < XmemMAX_TABLES)
 			attach_address[tnum] = table;
 
-		err = XmemRecvTable(tid, table, longs, 0);
+		err = XmemRecvTable(tid, table, elems, 0);
 		if (XmemErrorSUCCESS != err)
 			goto error;
 		return table;
 	}
 	else { /* segment was already there */
-		table = (long *)shmat(smemid, (char *)0, 0);
+		table = shmat(smemid, (char *)0, 0);
 		if (-1 == (int)table)
 			goto error;
 		if (tnum < XmemMAX_TABLES)
@@ -637,8 +641,8 @@ XmemTableId XmemGetTableId(XmemName name)
 
 
 
-XmemError XmemGetTableDesc(XmemTableId table, unsigned long *longs,
-			XmemNodeId *nodes, unsigned long *user)
+XmemError XmemGetTableDesc(XmemTableId table, int *elems,
+			XmemNodeId *nodes, uint32_t *user)
 {
 	int 		i;
 	unsigned long	msk;
@@ -648,7 +652,7 @@ XmemError XmemGetTableDesc(XmemTableId table, unsigned long *longs,
 	for (i = 0; i < XmemMAX_TABLES; i++) {
 		msk = 1 << i;
 		if (seg_tab.Used & msk && table == seg_tab.Descriptors[i].Id) {
-			*longs = seg_tab.Descriptors[i].Size / sizeof(long);
+			*elems = seg_tab.Descriptors[i].Size / sizeof(long);
 			*nodes = seg_tab.Descriptors[i].Nodes;
 			*user  = seg_tab.Descriptors[i].User;
 			return XmemErrorSUCCESS;
@@ -662,20 +666,22 @@ XmemError XmemReadTableFile(XmemTableId tid)
 {
 	int 		i, cnt;
 	unsigned long	msk;
-	unsigned long user, longs, bytes;
+	unsigned long   bytes;
+	int		elems;
+	uint32_t	user;
 	XmemNodeId 	nodes;
 	XmemError	err;
 	char 		*cp;
 	char		tbnam[64];
 	FILE 		*fp;
-	unsigned long	*table;
+	void		*table;
 
 	for (i = 0; i < XmemMAX_TABLES; i++) {
 		msk = 1 << i;
 		if (! (msk & tid))
 			continue;
 		cp = XmemGetTableName(msk);
-		err = XmemGetTableDesc(msk, &longs, &nodes, &user);
+		err = XmemGetTableDesc(msk, &elems, &nodes, &user);
 		if (XmemErrorSUCCESS != err)
 			return err;
 		table = XmemGetSharedMemory(msk);
@@ -689,7 +695,7 @@ XmemError XmemReadTableFile(XmemTableId tid)
 		fp = fopen(XmemGetFile(tbnam), "r");
 		if (!fp)
 			return XmemErrorCallback(XmemErrorSYSTEM, errno);
-		bytes = longs * sizeof(long);
+		bytes = elems * sizeof(uint32_t);
 		cnt = fread(table, bytes, 1, fp);
 		if (cnt <= 0)
 			err = XmemErrorCallback(XmemErrorSYSTEM, errno);
@@ -707,12 +713,14 @@ XmemError XmemWriteTableFile(XmemTableId tid)
 {
 	int 		i, cnt;
 	unsigned long	msk;
-	unsigned long	user, longs, bytes;
+	unsigned long	bytes;
+	int		elems;
+	uint32_t	user;
 	XmemError 	err;
 	XmemNodeId 	nodes;
 	char 		*cp;
 	char 		tbnam[64];
-	unsigned long	*table;
+	void		*table;
 	FILE		*fp;
 
 
@@ -721,7 +729,7 @@ XmemError XmemWriteTableFile(XmemTableId tid)
 		if (! (msk & tid))
 			continue;
 		cp = XmemGetTableName(msk);
-		err = XmemGetTableDesc(msk, &longs, &nodes, &user);
+		err = XmemGetTableDesc(msk, &elems, &nodes, &user);
 		if (XmemErrorSUCCESS != err)
 			return err;
 		table = XmemGetSharedMemory(msk);
@@ -735,7 +743,7 @@ XmemError XmemWriteTableFile(XmemTableId tid)
 		fp = fopen(XmemGetFile(tbnam), "w");
 		if (!fp)
 			return XmemErrorCallback(XmemErrorSYSTEM, errno);
-		bytes = longs * sizeof(long);
+		bytes = elems * sizeof(uint32_t);
 		cnt = fwrite(table, bytes, 1, fp);
 		if (cnt <= 0)
 			err = XmemErrorCallback(XmemErrorSYSTEM,errno);

@@ -140,11 +140,11 @@ typedef enum {
  * Tables are chunks of reflective memory. They are identified by a single
  * bit, and they have names.
  *
- * Get the given tables size in 'longs' (i.e. 4 bytes), and the nodes with write
+ * Get the given tables size in double words (4 bytes), and the nodes with write
  * access to it.
  *
- * WARNING: only 'long' accesses can be made, the longs parameter contains the
- * size of the table in longs. To get the real size multiply by sizeof(long).
+ * WARNING: only 'double word' accesses can be made, the @elems parameter
+ * contains the size of the table in chunks of 32 bits.
  */
 //@{
 #define XmemMAX_TABLES 32         //!< One bit for each table
@@ -260,7 +260,7 @@ typedef struct {
 	XmemEventMask Mask;        //!< One bit only can be set on call
 	XmemTableId   Table;       //!< Table when relevant
 	XmemNodeId    Node;        //!< Node  when relevant
-	unsigned long Data;        //!< Users data
+	uint32_t      Data;        //!< Users data
 } XmemCallbackStruct;
 
 
@@ -290,7 +290,7 @@ typedef enum {
  */
 typedef struct {
 	XmemMessageType MessageType; //!< See XmemMessageType
-	unsigned long   Data;        //!< TableId/UserData
+	uint32_t        Data;        //!< TableId/UserData
 } XmemMessage;
 //@}
 
@@ -489,7 +489,7 @@ XmemTableId XmemGetTableId(XmemName name);
  * XmemGetTableDesc - Get description of a table
  *
  * @param table: table id
- * @param longs: table size
+ * @param elems: number of table elements
  * @param nodes: nodes with write access
  * @param user: users of the segment
  *
@@ -497,8 +497,8 @@ XmemTableId XmemGetTableId(XmemName name);
  *
  * @return Appropriate error code (XmemError)
  */
-XmemError XmemGetTableDesc(XmemTableId table, unsigned long *longs,
-			XmemNodeId *nodes, unsigned long *user);
+XmemError XmemGetTableDesc(XmemTableId table, int *elems,
+			XmemNodeId *nodes, uint32_t *user);
 
 
 
@@ -574,7 +574,7 @@ XmemEventMask XmemPoll(void);
  *
  * @param table: table to be written to
  * @param buf: client's buffer
- * @param longs: number of 'longs' (4 bytes) to transfer
+ * @param elems: number of elements (4 bytes) to transfer
  * @param offset: offset of transfer
  * @param upflag: update message flag
  *
@@ -587,14 +587,13 @@ XmemEventMask XmemPoll(void);
  * two PCI-bus accesses ~1us are used for each long word.
  *
  * WARNING: Only 32 bit accesses can be made. So the buf parameter must be on
- * a 'long' boundary, the offset is in longs, and longs is the number of 'longs'
- * to be transfered. This can be tricky because the size of the buffer to be
- * allocated must be multiplied by sizeof(long).
+ * a 4-byte boundary, the offset is in double words, and elems is the number of
+ * double words to transfer.
  *
  * @return Appropriate error message (XmemError)
  */
-XmemError XmemSendTable(XmemTableId table, long *buf, unsigned long longs,
-			unsigned long offset, unsigned long upflag);
+XmemError XmemSendTable(XmemTableId table, void *buf, int elems,
+			int offset, int upflag);
 
 
 
@@ -604,15 +603,15 @@ XmemError XmemSendTable(XmemTableId table, long *buf, unsigned long longs,
  *
  * @param table: table to read from
  * @param buf: client's buffer
- * @param longs: number of 'longs' (i.e. 4 bytes) to transfer
+ * @param elems: number of elements (i.e. 4 bytes) to transfer
  * @param offset: offset of transfer
  *
  * See comments for XmemSendTable.
  *
  * @return Appropriate error message (XmemError)
  */
-XmemError XmemRecvTable(XmemTableId table, long *buf, unsigned long longs,
-			unsigned long offset);
+XmemError XmemRecvTable(XmemTableId table, void *buf, int elems,
+			int offset);
 
 
 
@@ -703,7 +702,7 @@ int XmemGetKey(char *name);
  *
  * @return pointer to segment on success; NULL otherwise.
  */
-long *XmemGetSharedMemory(XmemTableId tid);
+void *XmemGetSharedMemory(XmemTableId tid);
 
 
 

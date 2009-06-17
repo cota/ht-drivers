@@ -478,7 +478,7 @@ XmemError VmicSendMessage(XmemNodeId nodes, XmemMessage *mess)
  *
  * @param tid: table to be written to
  * @param buf: buffer containing the data
- * @param longs: number of 'longs' (4 bytes) to transfer
+ * @param elems: number of elements (4 bytes) to transfer
  * @param offset: offset whithin the table
  * @param upflag: update message flag
  *
@@ -488,8 +488,8 @@ XmemError VmicSendMessage(XmemNodeId nodes, XmemMessage *mess)
  *
  * @return Appropriate error code (XmemError)
  */
-XmemError VmicSendTable(XmemTableId tid, long *buf, unsigned long longs,
-			unsigned long offset, unsigned long upflag)
+XmemError VmicSendTable(XmemTableId tid, void *buf, int elems,
+			int offset, int upflag)
 {
 	XmemMessage mess;
 	XmemDrvrSegIoDesc sgio;
@@ -503,9 +503,9 @@ XmemError VmicSendTable(XmemTableId tid, long *buf, unsigned long longs,
 	else {
 		sgio.Module    = 1;
 		sgio.Id        = tid;
-		sgio.Size      = longs * sizeof (long);
-		sgio.Offset    = offset * sizeof(long);
-		sgio.UserArray = (char *)buf;
+		sgio.Size      = elems * sizeof(uint32_t);
+		sgio.Offset    = offset * sizeof(uint32_t);
+		sgio.UserArray = buf;
 		sgio.UpdateFlg = 0;
 		if (ioctl(xmem, XmemDrvrWRITE_SEGMENT, &sgio) < 0) {
 			if (errno == EACCES)
@@ -528,13 +528,13 @@ XmemError VmicSendTable(XmemTableId tid, long *buf, unsigned long longs,
  *
  * @param tid: table to read from
  * @param buf: buffer to be updated
- * @param longs: number of 'longs' (4 bytes) to transfer
+ * @param elems: number of elements (4 bytes) to transfer
  * @param offset: offset whithin the table
  *
  * @return Appropriate Error code (XmemError)
  */
-XmemError VmicRecvTable(XmemTableId tid, long *buf, unsigned long longs,
-			unsigned long offset)
+XmemError VmicRecvTable(XmemTableId tid, void *buf, int elems,
+			int offset)
 {
 	XmemDrvrSegIoDesc sgio;
 
@@ -542,9 +542,9 @@ XmemError VmicRecvTable(XmemTableId tid, long *buf, unsigned long longs,
 		return XmemErrorCallback(XmemErrorNOT_INITIALIZED, 0);
 	sgio.Module    = 1;
 	sgio.Id        = tid;
-	sgio.Size      = longs * sizeof (long);
-	sgio.Offset    = offset * sizeof(long);
-	sgio.UserArray = (char *)buf;
+	sgio.Size      = elems * sizeof(uint32_t);
+	sgio.Offset    = offset * sizeof(uint32_t);
+	sgio.UserArray = buf;
 	sgio.UpdateFlg = 0;
 	if (ioctl(xmem, XmemDrvrREAD_SEGMENT, &sgio) < 0)
 		return XmemErrorCallback(XmemErrorSYSTEM, errno);

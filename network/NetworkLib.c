@@ -106,7 +106,7 @@ XmemEventMask NetworkPoll() {
 /* Send your buffer to a reflective memory table. A table update event  */
 /* is broadcast automatically.                                          */
 
-XmemError NetworkSendTable(XmemTableId table, char *buf) {
+XmemError NetworkSendTable(XmemTableId table, void *buf) {
 
    return XmemErrorNOT_INITIALIZED;
 }
@@ -114,7 +114,7 @@ XmemError NetworkSendTable(XmemTableId table, char *buf) {
 /* ==================================================================== */
 /* Update your buffer from a reflective memory table.                   */
 
-XmemError NetworkRecvTable(XmemTableId table, char *buf) {
+XmemError NetworkRecvTable(XmemTableId table, void *buf) {
 
    return XmemErrorNOT_INITIALIZED;
 }

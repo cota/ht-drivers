@@ -155,10 +155,10 @@ int cc;
 /* is broadcast automatically.                                          */
 
 XmemError ShmemSendTable(XmemTableId   tid,     /* Table to be written to      */
-				 long *buf,     /* Buffer containing table     */
-			unsigned long longs,    /* Number of longs to transfer */
-			unsigned long offset,   /* Offset of transfer          */
-			unsigned long upflag) { /* Update message flag         */
+				 void *buf,     /* Buffer containing table     */
+				 int elems, /* Nr of double words to transfer */
+				 int offset,   /* Offset of transfer          */
+				 int upflag) { /* Update message flag         */
 
 XmemMessage mess;
 
@@ -173,7 +173,7 @@ XmemMessage mess;
 /* ==================================================================== */
 /* Update your buffer from a reflective memory table.                   */
 
-XmemError ShmemRecvTable(XmemTableId table, char *buf) {
+XmemError ShmemRecvTable(XmemTableId table, void *buf) {
 
    return XmemErrorSUCCESS;
 }
