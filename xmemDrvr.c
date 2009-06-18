@@ -2472,7 +2472,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 	XmemDrvrSegTable                *stab;
 	XmemDrvrSegIoDesc               *siod;
 	void				*argp = (void *)arg;
-	int i, j, size, pid;
+	int i, j, size;
 	int cnum;                 /* Client number */
 	int32_t lav, *lap;           /* Long Value pointed to by Arg */
 	unsigned short sav;       /* Short argument and for Jtag IO */
@@ -2544,10 +2544,9 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 	 * Only the PID that opened the driver is allowed to call IOCTLs
 	 */
 
-	pid = getpid();
-	if (pid != ccon->Pid) {
+	if (getpid() != ccon->Pid) {
 		cprintf("xmemDrvrIoctl: Spurious IOCTL:%d by PID:%d for PID:%d on FD:%d\n",
-			(int)cm, (int)pid, (int)ccon->Pid, (int)cnum);
+			cm, (int)getpid(), (int)ccon->Pid, (int)cnum);
 		pseterr(EBADF);           /* Bad file number */
 		return SYSERR;
 	}
