@@ -103,48 +103,67 @@ typedef struct {
 /* Maximum number of dmachain elements that dmachain can handle */
 #define XmemDrvrMAX_DMA_CHAIN ((XmemDrvrMAX_SEGMENT_SIZE)/((PAGESIZE)+1))
 
-/*! Module context
+/**
+ * \brief Module context
+ * @InUse: Module context in use
+ * @Handle: Handle from DRM
+ * @IVector: Resulting interrupt vector
+ * @LocalOpen: Plx9656 local conig open
+ * @ConfigOpen: Plx9656 configuration open
+ * @RfmOpen: VMIC RFM register space
+ * @RawOpen: VMIC SDRAM space
+ * @PciSlot: Module geographic ID PCI Slot
+ * @ModuleIndex: Which module we're working on
+ * @NodeId: Node 1..256
+ * @RdDmaSemaphore: DMA 0 engine sem, used for reading
+ * @WrDmaSemaphore: DMA 1 engine sem, used for writing
+ * @BusySemaphore: module mutex
+ * @RdTimer: Read DMA timer
+ * @WrTimer: Write DMA timer
+ * @BusyTimer: Module busy timer
+ * @Map: Pointer to the real hardware
+ * @SDRam: Direct access to VMIC SD Ram
+ * @Local: Local PLX register space
+ * @Command: Command bits settings
+ * @InterruptEnable: Enabled interrupts mask
+ * @Clients: Clients' interrupts
+ * @DmaOp: DMA mapping info
+ * @Dma: for CDCM internal use only
+ * @dmachain: stores the return value from mmchain. Protected by @BusySemaphore
+ * @Tempbuf: temp buffer, allocated during the installation
+ * @TempbufSemaphore: protect Tempbuf
+ * @TempbufTimer: Tempbuf timer
  */
 typedef struct {
-	unsigned long InUse;			//!< Module context in use
-	struct drm_node_s *Handle;    	//!< Handle from DRM
-	unsigned long IVector;		//!< Resulting interrupt vector
-	unsigned long LocalOpen;		//!< Plx9656 local conig open
-	unsigned long ConfigOpen;		//!< Plx9656 configuration open
-	unsigned long RfmOpen;		//!< VMIC RFM register space
-	unsigned long RawOpen;		//!< VMIC SDRAM space
-	unsigned long PciSlot;		//!< Module geographic ID PCI Slot
-	unsigned long ModuleIndex;		//!< Which module we are
-	unsigned long NodeId;			//!< Node 1..256
-
-	int		RdDmaSemaphore;		//!< DMA 0 engine sem, used for reading
-	int		WrDmaSemaphore;		//!< DMA 1 engine sem, used for writing
-
-	int		BusySemaphore;		//!< mutex: Module is busy
-	int		TempbufSemaphore;	//!< mutex: Tempbuf is being used
-
-	int     	RdTimer;		//!< Read DMA timer
-	int     	WrTimer;		//!< Write DMA timer
-	int    	BusyTimer;		//!< Module busy timer
-	int     	TempbufTimer;		//!< Temp buffer timer
-	VmicRfmMap  	*Map;			//!< Pointer to the real hardware
-	unsigned char	*SDRam;			//!< Direct access to VMIC SD Ram
-	PlxLocalMap	*Local;			//!< Local Plx register space
-	XmemDrvrScr	Command;		//!< Command bits settings
-	VmicLier	InterruptEnable;	//!< Enabled interrupts mask
-
-	XmemDrvrIntr	Clients[XmemDrvrCLIENT_CONTEXTS];
-	//!< Clients interrupts
-
-	XmemDmaOp	DmaOp;			//!< DMA mapping info
-	struct cdcm_dmabuf Dma;		//!< For CDCM internal use only
+	unsigned long		InUse;
+	struct drm_node_s	*Handle;
+	unsigned long		IVector;
+	unsigned long		LocalOpen;
+	unsigned long		ConfigOpen;
+	unsigned long		RfmOpen;
+	unsigned long		RawOpen;
+	unsigned long		PciSlot;
+	unsigned long		ModuleIndex;
+	unsigned long		NodeId;
+	int			RdDmaSemaphore;
+	int			WrDmaSemaphore;
+	int			BusySemaphore;
+	int			RdTimer;
+	int			WrTimer;
+	int			BusyTimer;
+	VmicRfmMap		*Map;
+	unsigned char		*SDRam;
+	PlxLocalMap		*Local;
+	XmemDrvrScr		Command;
+	VmicLier		InterruptEnable;
+	XmemDrvrIntr		Clients[XmemDrvrCLIENT_CONTEXTS];
+	XmemDmaOp		DmaOp;
+	struct cdcm_dmabuf	Dma;
 	struct dmachain		dmachain[XmemDrvrMAX_DMA_CHAIN];
-
-	void *Tempbuf;
-	//!< temporary buffer, allocated during the installation of the driver
+	void			*Tempbuf;
+	int			TempbufSemaphore;
+	int			TempbufTimer;
 } XmemDrvrModuleContext;
-//@}
-
 
 /*! @name Driver's Working Area
  *
