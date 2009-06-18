@@ -1225,17 +1225,6 @@ nomapping:
 	return SYSERR;
 }
 
-#define MAX_DMA_CHAIN XmemDrvrMAX_SEGMENT_SIZE/PAGESIZE+1
-//!< Maximum number of dmachain elements that dmac can handle
-
-/*! array to store the returned value from mmchain
- * 
- * We set a global variable for this, so that the stack is not filled up.
- * since the region that operates on dmachain is protected by
- * mcon->BusySemaphore, we're safe.
- */
-struct dmachain dmac[MAX_DMA_CHAIN];
-
 /**
  * SegmentCopy - copies a segment to/from the VMIC's SDRAM.
  *
@@ -1277,7 +1266,7 @@ static int SegmentCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
 		/* |--> then siod->UserArray is a pointer to user space. */
 		/* Map and lock the pages of the user's buffer. */
 		pgs = cdcm_pci_mmchain_lock(mcon->Handle, &mcon->Dma, iod == XmemDrvrWRITE,
-					ccon->Pid, siod->UserArray, siod->Size, dmac);
+					ccon->Pid, siod->UserArray, siod->Size, mcon->dmachain);
 		if (ccon->Debug)
 			cprintf("xmemDrvr: Page count from cdcm_pci_mmchain_lock: %d.\n", pgs);
 		if (pgs <= 0 || pgs > MAX_DMA_CHAIN) goto badchain;
@@ -1287,8 +1276,8 @@ static int SegmentCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
 
 		for (pg = 0; pg < pgs; pg++) {
 
-			mcon->DmaOp.Dma = dmac[pg].address; /* this is a portable type */
-			mcon->DmaOp.Len = dmac[pg].count;
+			mcon->DmaOp.Dma = mcon->dmachain[pg].address; /* this is a portable type */
+			mcon->DmaOp.Len = mcon->dmachain[pg].count;
 
 			if (ccon->Debug) {
 				cprintf("xmemDrvr:SegmentCopy:%d Addr:0x%X Size:%d Offset:0x%x\n",
@@ -1300,7 +1289,7 @@ static int SegmentCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
 
 			if (err < 0)
 				break;
-			sio.Offset += dmac[pg].count;
+			sio.Offset += mcon->dmachain[pg].count;
 		}
 		/* clear SG mapping (which also unlocks the pages) */
 		cdcm_pci_mem_unlock(mcon->Handle, &mcon->Dma, ccon->Pid, 0);
