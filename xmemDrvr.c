@@ -2471,7 +2471,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 	XmemDrvrRamAddress              *radr;
 	XmemDrvrSegTable                *stab;
 	XmemDrvrSegIoDesc               *siod;
-	XmemDrvrWorkingArea *wa = (XmemDrvrWorkingArea*)s;
 	int i, j, size, pid;
 	int cnum;                 /* Client number */
 	int32_t lav, *lap;           /* Long Value pointed to by Arg */
@@ -2532,7 +2531,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 
 	/* We can't control a file which is not open. */
 
-	ccon = &wa->ClientContexts[cnum];
+	ccon = &Wa->ClientContexts[cnum];
 	if (ccon->InUse == 0) {
 		cprintf("xmemDrvrIoctl: DEVICE %2d IS NOT OPEN\n",cnum + 1);
 		pseterr(EBADF); /* Bad file number */
@@ -2553,7 +2552,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 	}
 
 	/* Set up some useful module pointers */
-	mcon = &wa->ModuleContexts[ccon->ModuleIndex]; /* Default module selected */
+	mcon = &Wa->ModuleContexts[ccon->ModuleIndex]; /* Default module selected */
 
 	TraceIoctl(cm,arg,ccon);   /* Print debug message */
 
@@ -2708,7 +2707,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 	case XmemDrvrSET_MODULE_BY_SLOT: /* Select the module to work with by ID */
 		if (lap) {
 			for (i = 0; i < Wa->Modules; i++) {
-				mcon = &wa->ModuleContexts[i];
+				mcon = &Wa->ModuleContexts[i];
 				if (mcon->PciSlot == lav) {
 					ccon->ModuleIndex = i;
 					return OK;
@@ -2762,7 +2761,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 			bzero((void *)cls, sizeof(XmemDrvrClientList));
 
 			for (i = 0; i < XmemDrvrCLIENT_CONTEXTS; i++) {
-				ccon = &wa->ClientContexts[i];
+				ccon = &Wa->ClientContexts[i];
 				if (ccon->InUse)
 					cls->Pid[cls->Size++] = ccon->Pid;
 			}
@@ -2806,7 +2805,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 			ccn->Size = 0;
 			size = 0;
 			for (i = 0; i < XmemDrvrCLIENT_CONTEXTS; i++) {
-				ccon = &wa->ClientContexts[i];
+				ccon = &Wa->ClientContexts[i];
 				if (ccon->InUse && ccon->Pid == ccn->Pid) {
 					for (j = 0; j < Wa->Modules; j++) {
 						mcon = &Wa->ModuleContexts[j];
@@ -3368,7 +3367,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 	case XmemDrvrSET_DMA_THRESHOLD: /* Set Drivers DMA threshold */
 		if (lap) {
 			if (lav < PAGESIZE)
-				wa->DmaThreshold = lav;
+				Wa->DmaThreshold = lav;
 			else
 				cprintf("xmemDrvr: DMA_THRESHOLD should be less than PAGESIZE=%ld\n",
 					PAGESIZE);
@@ -3379,7 +3378,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 
 	case XmemDrvrGET_DMA_THRESHOLD: /* Get Drivers DMA threshold */
 		if (lap) {
-			*lap = wa->DmaThreshold;
+			*lap = Wa->DmaThreshold;
 			return OK;
 		}
 		pseterr(EINVAL);
