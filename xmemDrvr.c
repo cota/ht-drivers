@@ -2565,320 +2565,203 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 	switch (cm) {
 
 	case XmemDrvrSET_SW_DEBUG: /* Set driver debug mode */
-		if (lap) {
-			ccon->Debug = (XmemDrvrDebug) lav;
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		ccon->Debug = (XmemDrvrDebug) lav;
+		return OK;
 
 	case XmemDrvrGET_SW_DEBUG:
-		if (lap) {
-			*lap = (long)ccon->Debug;
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		*lap = (long)ccon->Debug;
+		return OK;
 
 	case XmemDrvrGET_VERSION: /* Get version date */
-		if (wcnt >= sizeof(XmemDrvrVersion)) {
-			ver = argp;
-			return GetVersion(mcon,ver);
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		ver = argp;
+		return GetVersion(mcon,ver);
 
 	case XmemDrvrSET_TIMEOUT: /* Set the read timeout value */
-		if (lap) {
-			if (lav < XmemDrvrMINIMUM_TIMEOUT && lav) {
-				lav = XmemDrvrMINIMUM_TIMEOUT;
-			}
-			ccon->Timeout = lav; /* Note that if (!lav), this is properly handled */
-			if (ccon->Debug) {
-				if (lav)
-					cprintf("xmemDrvr: TicksPerSec:%d Timeout:%d\n", (int)tickspersec,
-						(int)lav);
-				else
-					cprintf("xmemDrvr: Disabled Client's Timeout.\n");
-			}
-			return OK;
+		if (lav < XmemDrvrMINIMUM_TIMEOUT && lav) {
+			lav = XmemDrvrMINIMUM_TIMEOUT;
 		}
-		pseterr(EINVAL);
-		return SYSERR;
+		ccon->Timeout = lav; /* Note that if (!lav), this is properly handled */
+		if (ccon->Debug) {
+			if (lav)
+				cprintf("xmemDrvr: TicksPerSec:%d Timeout:%d\n", (int)tickspersec,
+					(int)lav);
+			else
+				cprintf("xmemDrvr: Disabled Client's Timeout.\n");
+		}
+		return OK;
 
 	case XmemDrvrGET_TIMEOUT: /* Get the read timeout value */
-		if (lap) {
-			*lap = ccon->Timeout;
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		*lap = ccon->Timeout;
+		return OK;
 
 	case XmemDrvrSET_QUEUE_FLAG: /* Set queueing capabilities on/off */
-		if (lap) {
-			if (lav)
-				ccon->Queue.QueueOff = 1;
-			else
-				ccon->Queue.QueueOff = 0;
+		if (lav)
+			ccon->Queue.QueueOff = 1;
+		else
+			ccon->Queue.QueueOff = 0;
 
-			disable(ps);
-			{
-				ccon->Queue.Size   = 0;
-				ccon->Queue.Missed = 0;
-				sreset(&ccon->Semaphore);
-			}
-			restore(ps);
-			return OK;
+		disable(ps);
+		{
+			ccon->Queue.Size   = 0;
+			ccon->Queue.Missed = 0;
+			sreset(&ccon->Semaphore);
 		}
-		pseterr(EINVAL);
-		return SYSERR;
+		restore(ps);
+		return OK;
 
 	case XmemDrvrGET_QUEUE_FLAG: /* 1-->Q_off, 0-->Q_on */
-		if (lap) {
-			*lap = ccon->Queue.QueueOff;
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		*lap = ccon->Queue.QueueOff;
+		return OK;
 
 	case XmemDrvrGET_QUEUE_SIZE: /* Number of events on queue */
-		if (lap) {
-			*lap = ccon->Queue.Size;
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		*lap = ccon->Queue.Size;
+		return OK;
 
 	case XmemDrvrGET_QUEUE_OVERFLOW: /* Number of missed events */
-		if (lap) {
+		disable(ps);
+		*lap = ccon->Queue.Missed;
+		ccon->Queue.Missed = 0;
+		restore(ps);
 
-			disable(ps);
-			*lap = ccon->Queue.Missed;
-			ccon->Queue.Missed = 0;
-			restore(ps);
-
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		return OK;
 
 	case XmemDrvrGET_MODULE_DESCRIPTOR:
-		if (wcnt >= sizeof(XmemDrvrModuleDescriptor)) {
+		mdesc = argp;
+		mdesc->Module  = mcon->ModuleIndex + 1;
+		mdesc->PciSlot = mcon->PciSlot;
+		mdesc->NodeId  = mcon->NodeId;
+		mdesc->Map     = (unsigned char *)mcon->Map;
+		mdesc->SDRam   = mcon->SDRam;
 
-			mdesc = argp;
-			mdesc->Module  = mcon->ModuleIndex + 1;
-			mdesc->PciSlot = mcon->PciSlot;
-			mdesc->NodeId  = mcon->NodeId;
-			mdesc->Map     = (unsigned char *)mcon->Map;
-			mdesc->SDRam   = mcon->SDRam;
-
-			return OK;
-
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		return OK;
 
 	case XmemDrvrSET_MODULE: /* Select the module to work with */
-		if (lap) {
-			if (lav >= 1 &&  lav <= Wa->Modules) {
-				ccon->ModuleIndex = lav - 1;
-				return OK;
-			}
+		if (lav >= 1 &&  lav <= Wa->Modules) {
+			ccon->ModuleIndex = lav - 1;
+			return OK;
 		}
-		pseterr(EINVAL);
+		pseterr(ENODEV);
 		return SYSERR;
 
 	case XmemDrvrGET_MODULE: /* Which module am I working with */
-		if (lap) {
-			*lap = ccon->ModuleIndex + 1;
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		*lap = ccon->ModuleIndex + 1;
+		return OK;
 
 	case XmemDrvrGET_MODULE_COUNT: /* The number of installed modules */
-		if (lap) {
-			*lap = Wa->Modules;
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		*lap = Wa->Modules;
+		return OK;
 
 	case XmemDrvrSET_MODULE_BY_SLOT: /* Select the module to work with by ID */
-		if (lap) {
-			for (i = 0; i < Wa->Modules; i++) {
-				mcon = &Wa->ModuleContexts[i];
-				if (mcon->PciSlot == lav) {
-					ccon->ModuleIndex = i;
-					return OK;
-				}
+		for (i = 0; i < Wa->Modules; i++) {
+			mcon = &Wa->ModuleContexts[i];
+			if (mcon->PciSlot == lav) {
+				ccon->ModuleIndex = i;
+				return OK;
 			}
-			pseterr(ENODEV);
-			return SYSERR;
 		}
-		pseterr(EINVAL);
+		pseterr(ENODEV);
 		return SYSERR;
 
 	case XmemDrvrGET_MODULE_SLOT: /* Get the ID of the selected module */
-		if (lap) {
-			*lap = mcon->PciSlot;
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		*lap = mcon->PciSlot;
+		return OK;
 
 	case XmemDrvrRESET: /* Reset the module, re-establish connections */
 		return Reset(mcon);
 
 	case XmemDrvrSET_COMMAND: /* Send a command to the VMIC module */
-		if (lap) {
-			GetSetStatus(mcon, (XmemDrvrScr)lav, XmemDrvrWRITE);
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		GetSetStatus(mcon, (XmemDrvrScr)lav, XmemDrvrWRITE);
+		return OK;
 
 	case XmemDrvrGET_STATUS: /* Read module status */
-		if (lap) {
-			*lap = (unsigned long)GetSetStatus(mcon, mcon->Command, XmemDrvrREAD);
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		*lap = (unsigned long)GetSetStatus(mcon, mcon->Command, XmemDrvrREAD);
+		return OK;
 
 	case XmemDrvrGET_NODES:
-		if (lap) {
-			*lap = Wa->Nodes;
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		*lap = Wa->Nodes;
+		return OK;
 
 	case XmemDrvrGET_CLIENT_LIST: /* Get the list of driver clients */
-		if (wcnt >= sizeof(XmemDrvrClientList)) {
+		cls = argp;
+		bzero((void *)cls, sizeof(XmemDrvrClientList));
 
-			cls = argp;
-			bzero((void *)cls, sizeof(XmemDrvrClientList));
-
-			for (i = 0; i < XmemDrvrCLIENT_CONTEXTS; i++) {
-				ccon = &Wa->ClientContexts[i];
-				if (ccon->InUse)
-					cls->Pid[cls->Size++] = ccon->Pid;
-			}
-
-			return OK;
-
+		for (i = 0; i < XmemDrvrCLIENT_CONTEXTS; i++) {
+			ccon = &Wa->ClientContexts[i];
+			if (ccon->InUse)
+				cls->Pid[cls->Size++] = ccon->Pid;
 		}
-		pseterr(EINVAL);
-		return SYSERR;
+
+		return OK;
 
 	case XmemDrvrCONNECT: /* Connect to an object interrupt */
 		conx = argp;
-		if (rcnt >= sizeof(XmemDrvrConnection))
-			return Connect(conx,ccon);
-		pseterr(EINVAL);
-		return SYSERR;
+		return Connect(conx,ccon);
 
 	case XmemDrvrDISCONNECT: /* Disconnect from an object interrupt */
 		conx = argp;
-		if (rcnt >= sizeof(XmemDrvrConnection)) {
 
-			if (conx->Mask)
-				return DisConnect(conx,ccon);
-			else {
-				DisConnectAll(ccon);
-				return OK;
-			}
-
+		if (conx->Mask)
+			return DisConnect(conx,ccon);
+		else {
+			DisConnectAll(ccon);
+			return OK;
 		}
-		pseterr(EINVAL);
-		return SYSERR;
 
 	case XmemDrvrGET_CLIENT_CONNECTIONS:
 		/* Get the list of a client connections on module */
+		ccn = argp;
+		temptr = ccn->Connections; /* store the address */
 
-		if (wcnt >= sizeof(XmemDrvrClientConnections)) {
-
-			ccn = argp;
-			temptr = ccn->Connections; /* store the address */
-
-			ccn->Size = 0;
-			size = 0;
-			for (i = 0; i < XmemDrvrCLIENT_CONTEXTS; i++) {
-				ccon = &Wa->ClientContexts[i];
-				if (ccon->InUse && ccon->Pid == ccn->Pid) {
-					for (j = 0; j < Wa->Modules; j++) {
-						mcon = &Wa->ModuleContexts[j];
-						if (mcon->Clients[i]) {
-							tempcon[size].Module = j + 1;
-							tempcon[size].Mask   = mcon->Clients[i];
-							ccn->Size = ++size;
-						}
+		ccn->Size = 0;
+		size = 0;
+		for (i = 0; i < XmemDrvrCLIENT_CONTEXTS; i++) {
+			ccon = &Wa->ClientContexts[i];
+			if (ccon->InUse && ccon->Pid == ccn->Pid) {
+				for (j = 0; j < Wa->Modules; j++) {
+					mcon = &Wa->ModuleContexts[j];
+					if (mcon->Clients[i]) {
+						tempcon[size].Module = j + 1;
+						tempcon[size].Mask   = mcon->Clients[i];
+						ccn->Size = ++size;
 					}
 				}
 			}
-			if (!cdcm_copy_to_user(temptr, tempcon, ccn->Size))
-				return OK;
-			else pseterr(EFAULT);
-			return SYSERR;
 		}
-		pseterr(EINVAL);
+		if (!cdcm_copy_to_user(temptr, tempcon, ccn->Size))
+			return OK;
+		else pseterr(EFAULT);
 		return SYSERR;
 
 	case XmemDrvrSEND_INTERRUPT: /* Send an interrupt to other nodes */
-		if (rcnt >= sizeof(XmemDrvrSendBuf)) {
-			sbuf = argp;
-			return SendInterrupt(sbuf);
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		sbuf = argp;
+		return SendInterrupt(sbuf);
 
 	case XmemDrvrGET_XMEM_ADDRESS:
 		/* Get physical address of reflective memory SDRAM */
-
-		if (wcnt >= sizeof(XmemDrvrRamAddress)) {
-			radr = argp;
-			i = radr->Module - 1;
-			if (i >= 0 && i < Wa->Modules) {
-				mcon = &Wa->ModuleContexts[i];
-				radr->Address = mcon->SDRam;
-				return OK;
-			}
-			pseterr(ENODEV);
-			return SYSERR;
+		radr = argp;
+		i = radr->Module - 1;
+		if (i >= 0 && i < Wa->Modules) {
+			mcon = &Wa->ModuleContexts[i];
+			radr->Address = mcon->SDRam;
+			return OK;
 		}
-		pseterr(EINVAL);
+		pseterr(ENODEV);
 		return SYSERR;
 
 	case XmemDrvrSET_SEGMENT_TABLE:
 		/* Set the list of all defined xmem memory segments */
-
-		if (rcnt >= sizeof(XmemDrvrSegTable)) {
-			stab = argp;
-			LongCopy((unsigned long *)&Wa->SegTable, (unsigned long *)stab,
-				sizeof(XmemDrvrSegTable));
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		stab = argp;
+		LongCopy((unsigned long *)&Wa->SegTable, (unsigned long *)stab,
+			sizeof(XmemDrvrSegTable));
+		return OK;
 
 	case XmemDrvrGET_SEGMENT_TABLE: /* List of all defined xmem memory segments */
-		if (wcnt >= sizeof(XmemDrvrSegTable)) {
-			stab = argp;
-			LongCopy((unsigned long *)stab, (unsigned long *)&Wa->SegTable,
-				sizeof(XmemDrvrSegTable));
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		stab = argp;
+		LongCopy((unsigned long *)stab, (unsigned long *)&Wa->SegTable,
+			sizeof(XmemDrvrSegTable));
+		return OK;
 
 	case XmemDrvrREAD_SEGMENT:   /* Copy from xmem segment to local memory */
-
-
-		if (wcnt < sizeof(XmemDrvrSegIoDesc)) {
-			pseterr(EINVAL);
-			return SYSERR;
-		}
 		siod = argp;
 		if (siod->UserArray == NULL) {
 			cprintf("xmemDrvr: UserArray is NULL!\n");
@@ -2939,12 +2822,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 
 
 	case XmemDrvrWRITE_SEGMENT:  /* Update the segment with new contents */
-
-
-		if (rcnt < sizeof(XmemDrvrSegIoDesc)) {
-			pseterr(EINVAL);
-			return SYSERR;
-		}
 		siod = argp;
 		if (siod->UserArray == NULL) {
 			cprintf("xmemDrvr: UserArray is NULL!\n");
@@ -2995,25 +2872,15 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 
 	case XmemDrvrCHECK_SEGMENT:
 		/* Check to see if a segment has been updated since last read */
-
-		if (lap) {
-			disable(ps);
-			*lap = ccon->UpdatedSegments;
-			ccon->UpdatedSegments = 0;
-			restore(ps);
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		disable(ps);
+		*lap = ccon->UpdatedSegments;
+		ccon->UpdatedSegments = 0;
+		restore(ps);
+		return OK;
 
 	case XmemDrvrFLUSH_SEGMENTS:
 		/* Flush segments out to other nodes after PendingInit */
-
-		if (lap) {
-			return FlushSegments(mcon, *lap);
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		return FlushSegments(mcon, *lap);
 
 	case XmemDrvrCONFIG_OPEN: /* Open the PLX9656 configuration */
 		mcon->ConfigOpen = 1;
@@ -3032,11 +2899,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 		return OK;
 
 	case XmemDrvrCONFIG_READ: /* Read the PLX9656 configuration registers */
-
-		if (wcnt < sizeof(XmemDrvrRawIoBlock)) {
-			pseterr(EINVAL);
-			return SYSERR;
-		}
 		if (mcon->ConfigOpen) {
 
 			riob = argp;
@@ -3078,10 +2940,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 		return SYSERR;
 
 	case XmemDrvrLOCAL_READ:  /* Read the PLX9656 local configuration registers */
-		if (wcnt < sizeof(XmemDrvrRawIoBlock)) {
-			pseterr(EINVAL);
-			return SYSERR;
-		}
 		if (mcon->LocalOpen) {
 
 			riob = argp;
@@ -3123,96 +2981,78 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 		return SYSERR;
 
 	case XmemDrvrRFM_READ: /* Read from VMIC 5565 FPGA Register block RFM */
-
-		if (wcnt >= sizeof(XmemDrvrRawIoBlock)) {
-
-			riob = argp;
-			if (riob->UserArray == NULL) {
-				cprintf("xmemDrvr: UserArray is NULL!\n");
-				pseterr(EINVAL);
-				return SYSERR;
-			}
-
-
-			temptr = riob->UserArray; /* Save the user space address */
-			err = cdcm_copy_from_user(lptr, riob->UserArray,
-						sizeof(long) * riob->Items);
-			if (err) {
-				cprintf("xmemDrvr: Copy from user failed. returned error: %d.\n", err);
-				pseterr(EFAULT);
-				return SYSERR;
-			}
-
-			riob->UserArray = lptr; /* fill with the kernel address */
-			err = RfmIo(mcon, riob, XmemDrvrREAD);
-			riob->UserArray = temptr; /* Restore user space address */
-
-			if (err != OK) {
-				pseterr(EIO);
-				return SYSERR;
-			}
-
-			err = cdcm_copy_to_user(riob->UserArray, lptr,
-						sizeof(long) * riob->Items);
-			if (err) {
-				pseterr(EFAULT);
-				return SYSERR;
-			}
-			return OK;
-
-		}
-		pseterr(EINVAL);
-		return SYSERR;
-
-	case XmemDrvrRAW_READ: /* Read from VMIC 5565 SDRAM */
-		if (wcnt >= sizeof(XmemDrvrRawIoBlock)) {
-			riob = argp;
-			if (riob->UserArray == NULL) {
-				cprintf("xmemDrvr: UserArray is NULL!\n");
-				pseterr(EINVAL);
-				return SYSERR;
-			}
-
-			temptr = riob->UserArray; /* Store the user space address */
-			err = cdcm_copy_from_user(lptr, riob->UserArray,
-						sizeof(long) * riob->Items);
-			if (err) {
-				cprintf("xmemDrvr: Copy from user failed. returned error: %d.\n", err);
-				pseterr(EFAULT);
-				return SYSERR;
-
-			}
-
-			riob->UserArray = lptr; /* fill with the kernel address */
-			err = RawIo(mcon, riob, XmemDrvrREAD);
-			riob->UserArray = temptr; /* Restore user space address */
-
-			if (err != OK) {
-				pseterr(EIO);
-				return SYSERR;
-			}
-
-			err = cdcm_copy_to_user(riob->UserArray, lptr,
-						sizeof(long) * riob->Items);
-			if (err) {
-				pseterr(EFAULT);
-				return SYSERR;
-			}
-
-			return OK;
-
-		}
-		pseterr(EINVAL);
-		return SYSERR;
-
-	case XmemDrvrCONFIG_WRITE:
-		/* Write to PLX9656 configuration registers (Experts only) */
-
-		if (rcnt < sizeof(XmemDrvrRawIoBlock)) {
+		riob = argp;
+		if (riob->UserArray == NULL) {
+			cprintf("xmemDrvr: UserArray is NULL!\n");
 			pseterr(EINVAL);
 			return SYSERR;
 		}
 
+
+		temptr = riob->UserArray; /* Save the user space address */
+		err = cdcm_copy_from_user(lptr, riob->UserArray,
+					sizeof(long) * riob->Items);
+		if (err) {
+			cprintf("xmemDrvr: Copy from user failed. returned error: %d.\n", err);
+			pseterr(EFAULT);
+			return SYSERR;
+		}
+
+		riob->UserArray = lptr; /* fill with the kernel address */
+		err = RfmIo(mcon, riob, XmemDrvrREAD);
+		riob->UserArray = temptr; /* Restore user space address */
+
+		if (err != OK) {
+			pseterr(EIO);
+			return SYSERR;
+		}
+
+		err = cdcm_copy_to_user(riob->UserArray, lptr,
+					sizeof(long) * riob->Items);
+		if (err) {
+			pseterr(EFAULT);
+			return SYSERR;
+		}
+		return OK;
+
+	case XmemDrvrRAW_READ: /* Read from VMIC 5565 SDRAM */
+		riob = argp;
+		if (riob->UserArray == NULL) {
+			cprintf("xmemDrvr: UserArray is NULL!\n");
+			pseterr(EINVAL);
+			return SYSERR;
+		}
+
+		temptr = riob->UserArray; /* Store the user space address */
+		err = cdcm_copy_from_user(lptr, riob->UserArray,
+					sizeof(long) * riob->Items);
+		if (err) {
+			cprintf("xmemDrvr: Copy from user failed. returned error: %d.\n", err);
+			pseterr(EFAULT);
+			return SYSERR;
+
+		}
+
+		riob->UserArray = lptr; /* fill with the kernel address */
+		err = RawIo(mcon, riob, XmemDrvrREAD);
+		riob->UserArray = temptr; /* Restore user space address */
+
+		if (err != OK) {
+			pseterr(EIO);
+			return SYSERR;
+		}
+
+		err = cdcm_copy_to_user(riob->UserArray, lptr,
+					sizeof(long) * riob->Items);
+		if (err) {
+			pseterr(EFAULT);
+			return SYSERR;
+		}
+
+		return OK;
+
+	case XmemDrvrCONFIG_WRITE:
+		/* Write to PLX9656 configuration registers (Experts only) */
 		if (mcon->ConfigOpen) {
 
 			riob = argp;
@@ -3250,10 +3090,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 
 	case XmemDrvrLOCAL_WRITE:
 		/* Write the PLX9656 local configuration registers (Experts only) */
-		if (rcnt >= sizeof(XmemDrvrRawIoBlock)) {
-			pseterr(EINVAL);
-			return SYSERR;
-		}
 		if (mcon->LocalOpen) {
 
 			riob = argp;
@@ -3290,99 +3126,81 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 		return SYSERR;
 
 	case XmemDrvrRFM_WRITE: /* Write to VMIC 5565 FPGA Register block RFM */
-		if (rcnt >= sizeof(XmemDrvrRawIoBlock)) {
-			riob = argp;
-			if (riob->UserArray == NULL) {
-				cprintf("xmemDrvr: UserArray is NULL!\n");
-				pseterr(EINVAL);
-				return SYSERR;
-			}
-
-			temptr = riob->UserArray; /* Store the user space address */
-			err = cdcm_copy_from_user(lptr, riob->UserArray,
-						sizeof(long) * riob->Items);
-
-			if (err) {
-				cprintf("xmemDrvr: Copy from user failed. returned error: %d.\n", err);
-				pseterr(EFAULT);
-				return SYSERR;
-			}
-
-			riob->UserArray = lptr; /* fill with the kernel address */
-			err = RfmIo(mcon, riob, XmemDrvrWRITE);
-			riob->UserArray = temptr; /* Restore user space address */
-
-			if (err != OK) {
-				pseterr(EIO);
-				return SYSERR;
-			}
-
-			/* No copy_to_user here */
-			return OK;
-
+		riob = argp;
+		if (riob->UserArray == NULL) {
+			cprintf("xmemDrvr: UserArray is NULL!\n");
+			pseterr(EINVAL);
+			return SYSERR;
 		}
-		pseterr(EINVAL);
-		return SYSERR;
+
+		temptr = riob->UserArray; /* Store the user space address */
+		err = cdcm_copy_from_user(lptr, riob->UserArray,
+					sizeof(long) * riob->Items);
+
+		if (err) {
+			cprintf("xmemDrvr: Copy from user failed. returned error: %d.\n", err);
+			pseterr(EFAULT);
+			return SYSERR;
+		}
+
+		riob->UserArray = lptr; /* fill with the kernel address */
+		err = RfmIo(mcon, riob, XmemDrvrWRITE);
+		riob->UserArray = temptr; /* Restore user space address */
+
+		if (err != OK) {
+			pseterr(EIO);
+			return SYSERR;
+		}
+
+		/* No copy_to_user here */
+		return OK;
 
 	case XmemDrvrRAW_WRITE: /* Write to VMIC 5565 SDRAM */
-		if (rcnt >= sizeof(XmemDrvrRawIoBlock)) {
-			riob = argp;
-			if (riob->UserArray == NULL) {
-				cprintf("xmemDrvr: UserArray is NULL!\n");
-				pseterr(EINVAL);
-				return SYSERR;
-			}
-
-			temptr = riob->UserArray; /* Store the user space address */
-			err = cdcm_copy_from_user(lptr, riob->UserArray,
-						sizeof(long) * riob->Items);
-			if (err) {
-				cprintf("xmemDrvr: Copy from user failed. returned error: %d.\n", err);
-				pseterr(EFAULT);
-				return SYSERR;
-			}
-
-			riob->UserArray = lptr; /* fill with the kernel address */
-			err = RawIo(mcon, riob, XmemDrvrWRITE);
-			riob->UserArray = temptr; /* Restore user space address */
-
-			if (err != OK) {
-				pseterr(EIO);
-				return SYSERR;
-			}
-
-			err = cdcm_copy_to_user(riob->UserArray, lptr,
-						sizeof(long) * riob->Items);
-			if (err) {
-				pseterr(EFAULT);
-				return SYSERR;
-			}
-
-			return OK;
-
+		riob = argp;
+		if (riob->UserArray == NULL) {
+			cprintf("xmemDrvr: UserArray is NULL!\n");
+			pseterr(EINVAL);
+			return SYSERR;
 		}
-		pseterr(EINVAL);
-		return SYSERR;
+
+		temptr = riob->UserArray; /* Store the user space address */
+		err = cdcm_copy_from_user(lptr, riob->UserArray,
+					sizeof(long) * riob->Items);
+		if (err) {
+			cprintf("xmemDrvr: Copy from user failed. returned error: %d.\n", err);
+			pseterr(EFAULT);
+			return SYSERR;
+		}
+
+		riob->UserArray = lptr; /* fill with the kernel address */
+		err = RawIo(mcon, riob, XmemDrvrWRITE);
+		riob->UserArray = temptr; /* Restore user space address */
+
+		if (err != OK) {
+			pseterr(EIO);
+			return SYSERR;
+		}
+
+		err = cdcm_copy_to_user(riob->UserArray, lptr,
+					sizeof(long) * riob->Items);
+		if (err) {
+			pseterr(EFAULT);
+			return SYSERR;
+		}
+
+		return OK;
 
 	case XmemDrvrSET_DMA_THRESHOLD: /* Set Drivers DMA threshold */
-		if (lap) {
-			if (lav < PAGESIZE)
-				Wa->DmaThreshold = lav;
-			else
-				cprintf("xmemDrvr: DMA_THRESHOLD should be less than PAGESIZE=%ld\n",
-					PAGESIZE);
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		if (lav < PAGESIZE)
+			Wa->DmaThreshold = lav;
+		else
+			cprintf("xmemDrvr: DMA_THRESHOLD should be less than PAGESIZE=%ld\n",
+				PAGESIZE);
+		return OK;
 
 	case XmemDrvrGET_DMA_THRESHOLD: /* Get Drivers DMA threshold */
-		if (lap) {
-			*lap = Wa->DmaThreshold;
-			return OK;
-		}
-		pseterr(EINVAL);
-		return SYSERR;
+		*lap = Wa->DmaThreshold;
+		return OK;
 
 	case XmemDrvrCONFIG_CLOSE: /* Close the PLX9656 configuration */
 		mcon->ConfigOpen = 0;
