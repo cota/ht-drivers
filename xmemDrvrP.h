@@ -101,7 +101,7 @@ typedef struct {
 } XmemDmaOp;
 
 /* Maximum number of dmachain elements that dmachain can handle */
-#define MAX_DMA_CHAIN ((XmemDrvrMAX_SEGMENT_SIZE)/((PAGESIZE)+1))
+#define XmemDrvrMAX_DMA_CHAIN ((XmemDrvrMAX_SEGMENT_SIZE)/((PAGESIZE)+1))
 
 /*! Module context
  */
@@ -138,7 +138,7 @@ typedef struct {
 
 	XmemDmaOp	DmaOp;			//!< DMA mapping info
 	struct cdcm_dmabuf Dma;		//!< For CDCM internal use only
-	struct dmachain		dmachain[MAX_DMA_CHAIN];
+	struct dmachain		dmachain[XmemDrvrMAX_DMA_CHAIN];
 
 	void *Tempbuf;
 	//!< temporary buffer, allocated during the installation of the driver

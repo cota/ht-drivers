@@ -1269,7 +1269,7 @@ static int SegmentCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
 					ccon->Pid, siod->UserArray, siod->Size, mcon->dmachain);
 		if (ccon->Debug)
 			cprintf("xmemDrvr: Page count from cdcm_pci_mmchain_lock: %d.\n", pgs);
-		if (pgs <= 0 || pgs > MAX_DMA_CHAIN) goto badchain;
+		if (pgs <= 0 || pgs > XmemDrvrMAX_DMA_CHAIN) goto badchain;
 
 		mcon->DmaOp.Flag = iod == XmemDrvrWRITE;
 		mcon->DmaOp.Buffer = siod->UserArray;
@@ -1333,7 +1333,7 @@ address_err:
 	return SYSERR;
 badchain:
 	cprintf("xmemDrvr:SegmentCopy:Bad DMA chain list length:%d [1..%lu]\n",
-		pgs, MAX_DMA_CHAIN);
+		pgs, XmemDrvrMAX_DMA_CHAIN);
 	ssignal(&mcon->BusySemaphore);
 	pseterr(ERANGE);
 	return SYSERR;
