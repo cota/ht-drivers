@@ -2452,12 +2452,12 @@ static int rwbounds(int nr, int arg)
  *
  * @param s: working area
  * @param flp: file pointer
- * @param fct: IOCTL command
+ * @param cm: IOCTL command
  * @param arg: data for the IOCTL
  *
  * @return OK on success
  */
-int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
+int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 {
 	XmemDrvrModuleContext           *mcon;   /* Module context */
 	XmemDrvrClientContext           *ccon;   /* Client context */
@@ -2472,9 +2472,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 	XmemDrvrSegTable                *stab;
 	XmemDrvrSegIoDesc               *siod;
 	XmemDrvrWorkingArea *wa = (XmemDrvrWorkingArea*)s;
-
-
-	int cm;
 	int i, j, size, pid;
 	int cnum;                 /* Client number */
 	int32_t lav, *lap;           /* Long Value pointed to by Arg */
@@ -2485,9 +2482,6 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 	unsigned long lptr[50];
 	XmemDrvrConnection tempcon[XmemDrvrMODULE_CONTEXTS];
 	void *temptr;
-
-
-	cm = fct;
 
 	/*
 	 * Check argument contains a valid address for reading or writing.
@@ -3413,7 +3407,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int fct, char * arg)
 
 	pseterr(ENOTTY); /* Inappropriate I/O control operation */
 	cprintf("xmemDrvr: IOCTL Error: request failed.\n");
-	cprintf("xmemDrvr: --> fct provided: %ud, cm provided: %ud. \n", fct, cm);
+	cprintf("xmemDrvr: --> cm provided: %ud. \n", cm);
 	return SYSERR;
 }
 
