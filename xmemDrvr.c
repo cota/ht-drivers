@@ -3404,10 +3404,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 	default: break;
 	}
 
-
-	pseterr(ENOTTY); /* Inappropriate I/O control operation */
-	cprintf("xmemDrvr: IOCTL Error: request failed.\n");
-	cprintf("xmemDrvr: --> cm provided: %ud. \n", cm);
+	pseterr(ENOTTY);
 	return SYSERR;
 }
 
