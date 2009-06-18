@@ -2471,6 +2471,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 	XmemDrvrRamAddress              *radr;
 	XmemDrvrSegTable                *stab;
 	XmemDrvrSegIoDesc               *siod;
+	void				*argp = (void *)arg;
 	int i, j, size, pid;
 	int cnum;                 /* Client number */
 	int32_t lav, *lap;           /* Long Value pointed to by Arg */
@@ -2582,7 +2583,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 
 	case XmemDrvrGET_VERSION: /* Get version date */
 		if (wcnt >= sizeof(XmemDrvrVersion)) {
-			ver = (XmemDrvrVersion *) arg;
+			ver = argp;
 			return GetVersion(mcon,ver);
 		}
 		pseterr(EINVAL);
@@ -2665,7 +2666,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 	case XmemDrvrGET_MODULE_DESCRIPTOR:
 		if (wcnt >= sizeof(XmemDrvrModuleDescriptor)) {
 
-			mdesc = (XmemDrvrModuleDescriptor *)arg;
+			mdesc = argp;
 			mdesc->Module  = mcon->ModuleIndex + 1;
 			mdesc->PciSlot = mcon->PciSlot;
 			mdesc->NodeId  = mcon->NodeId;
@@ -2757,7 +2758,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 	case XmemDrvrGET_CLIENT_LIST: /* Get the list of driver clients */
 		if (wcnt >= sizeof(XmemDrvrClientList)) {
 
-			cls = (XmemDrvrClientList *)arg;
+			cls = argp;
 			bzero((void *)cls, sizeof(XmemDrvrClientList));
 
 			for (i = 0; i < XmemDrvrCLIENT_CONTEXTS; i++) {
@@ -2773,14 +2774,14 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 		return SYSERR;
 
 	case XmemDrvrCONNECT: /* Connect to an object interrupt */
-		conx = (XmemDrvrConnection *)arg;
+		conx = argp;
 		if (rcnt >= sizeof(XmemDrvrConnection))
 			return Connect(conx,ccon);
 		pseterr(EINVAL);
 		return SYSERR;
 
 	case XmemDrvrDISCONNECT: /* Disconnect from an object interrupt */
-		conx = (XmemDrvrConnection *)arg;
+		conx = argp;
 		if (rcnt >= sizeof(XmemDrvrConnection)) {
 
 			if (conx->Mask)
@@ -2799,7 +2800,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 
 		if (wcnt >= sizeof(XmemDrvrClientConnections)) {
 
-			ccn = (XmemDrvrClientConnections *)arg;
+			ccn = argp;
 			temptr = ccn->Connections; /* store the address */
 
 			ccn->Size = 0;
@@ -2827,7 +2828,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 
 	case XmemDrvrSEND_INTERRUPT: /* Send an interrupt to other nodes */
 		if (rcnt >= sizeof(XmemDrvrSendBuf)) {
-			sbuf = (XmemDrvrSendBuf *)arg;
+			sbuf = argp;
 			return SendInterrupt(sbuf);
 		}
 		pseterr(EINVAL);
@@ -2837,7 +2838,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 		/* Get physical address of reflective memory SDRAM */
 
 		if (wcnt >= sizeof(XmemDrvrRamAddress)) {
-			radr = (XmemDrvrRamAddress *)arg;
+			radr = argp;
 			i = radr->Module - 1;
 			if (i >= 0 && i < Wa->Modules) {
 				mcon = &Wa->ModuleContexts[i];
@@ -2854,7 +2855,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 		/* Set the list of all defined xmem memory segments */
 
 		if (rcnt >= sizeof(XmemDrvrSegTable)) {
-			stab = (XmemDrvrSegTable *)arg;
+			stab = argp;
 			LongCopy((unsigned long *)&Wa->SegTable, (unsigned long *)stab,
 				sizeof(XmemDrvrSegTable));
 			return OK;
@@ -2864,7 +2865,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 
 	case XmemDrvrGET_SEGMENT_TABLE: /* List of all defined xmem memory segments */
 		if (wcnt >= sizeof(XmemDrvrSegTable)) {
-			stab = (XmemDrvrSegTable *) arg;
+			stab = argp;
 			LongCopy((unsigned long *)stab, (unsigned long *)&Wa->SegTable,
 				sizeof(XmemDrvrSegTable));
 			return OK;
@@ -2879,7 +2880,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 			pseterr(EINVAL);
 			return SYSERR;
 		}
-		siod = (XmemDrvrSegIoDesc *)arg;
+		siod = argp;
 		if (siod->UserArray == NULL) {
 			cprintf("xmemDrvr: UserArray is NULL!\n");
 			pseterr(EINVAL);
@@ -2945,7 +2946,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 			pseterr(EINVAL);
 			return SYSERR;
 		}
-		siod = (XmemDrvrSegIoDesc *)arg;
+		siod = argp;
 		if (siod->UserArray == NULL) {
 			cprintf("xmemDrvr: UserArray is NULL!\n");
 			pseterr(EINVAL);
@@ -3039,7 +3040,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 		}
 		if (mcon->ConfigOpen) {
 
-			riob = (XmemDrvrRawIoBlock *)arg;
+			riob = argp;
 			if (riob->UserArray == NULL) {
 				cprintf("xmemDrvr: UserArray is NULL!\n");
 				pseterr(EINVAL);
@@ -3084,7 +3085,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 		}
 		if (mcon->LocalOpen) {
 
-			riob = (XmemDrvrRawIoBlock *)arg;
+			riob = argp;
 			if (riob->UserArray == NULL) {
 				cprintf("xmemDrvr: UserArray is NULL!\n");
 				pseterr(EINVAL);
@@ -3126,7 +3127,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 
 		if (wcnt >= sizeof(XmemDrvrRawIoBlock)) {
 
-			riob = (XmemDrvrRawIoBlock *)arg;
+			riob = argp;
 			if (riob->UserArray == NULL) {
 				cprintf("xmemDrvr: UserArray is NULL!\n");
 				pseterr(EINVAL);
@@ -3166,7 +3167,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 
 	case XmemDrvrRAW_READ: /* Read from VMIC 5565 SDRAM */
 		if (wcnt >= sizeof(XmemDrvrRawIoBlock)) {
-			riob = (XmemDrvrRawIoBlock *)arg;
+			riob = argp;
 			if (riob->UserArray == NULL) {
 				cprintf("xmemDrvr: UserArray is NULL!\n");
 				pseterr(EINVAL);
@@ -3215,7 +3216,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 
 		if (mcon->ConfigOpen) {
 
-			riob = (XmemDrvrRawIoBlock *)arg;
+			riob = argp;
 			if (riob->UserArray == NULL) {
 				cprintf("xmemDrvr: UserArray is NULL!\n");
 				pseterr(EINVAL);
@@ -3256,7 +3257,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 		}
 		if (mcon->LocalOpen) {
 
-			riob = (XmemDrvrRawIoBlock *)arg;
+			riob = argp;
 			if (riob->UserArray == NULL) {
 				cprintf("xmemDrvr: UserArray is NULL!\n");
 				pseterr(EINVAL);
@@ -3291,7 +3292,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 
 	case XmemDrvrRFM_WRITE: /* Write to VMIC 5565 FPGA Register block RFM */
 		if (rcnt >= sizeof(XmemDrvrRawIoBlock)) {
-			riob = (XmemDrvrRawIoBlock *) arg;
+			riob = argp;
 			if (riob->UserArray == NULL) {
 				cprintf("xmemDrvr: UserArray is NULL!\n");
 				pseterr(EINVAL);
@@ -3326,7 +3327,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 
 	case XmemDrvrRAW_WRITE: /* Write to VMIC 5565 SDRAM */
 		if (rcnt >= sizeof(XmemDrvrRawIoBlock)) {
-			riob = (XmemDrvrRawIoBlock *) arg;
+			riob = argp;
 			if (riob->UserArray == NULL) {
 				cprintf("xmemDrvr: UserArray is NULL!\n");
 				pseterr(EINVAL);
