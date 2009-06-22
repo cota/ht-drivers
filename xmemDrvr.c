@@ -1292,7 +1292,7 @@ static int SegmentCopy(XmemDrvrSegIoDesc *siod, XmemDrvrIoDir iod,
 			sio.Offset += mcon->dmachain[pg].count;
 		}
 		/* clear SG mapping (which also unlocks the pages) */
-		cdcm_pci_mem_unlock(mcon->Handle, &mcon->Dma, ccon->Pid, 0);
+		cdcm_pci_mem_unlock(mcon->Handle, &mcon->Dma, ccon->Pid, iod == XmemDrvrREAD);
 	}
 	else { /* siod->Size < Wa->DmaThreshold */
 		/* Here, siod->UserArray is a pointer to kernel space. */
