@@ -238,7 +238,7 @@ static long process_cdcm_srv_ioctl(struct inode *inode, struct file *file,
 	int ret = 0; /* return code. OK by default */
 
 	switch (cmd) {
-	case _GIOCTL_DR_INSTALL: /* cdv_install() */
+	case _GIOCTL_CDV_INSTALL: /* cdv_install() */
 	{
 		char itp[128] = { 0 }; /* info table path */
 		ulong *addr = NULL; /* user space info table address */
@@ -274,7 +274,7 @@ static long process_cdcm_srv_ioctl(struct inode *inode, struct file *file,
 		if (addr) sysfree((char*)addr, 0/*not used*/);
 		return cdcmStatT.cdcm_major; /* return major number */
 	}
-	case _GIOCTL_DR_UNINSTALL: /* cdv_uninstall() */
+	case _GIOCTL_CDV_UNINSTALL: /* cdv_uninstall() */
 	{
 		int cid = 0;	/* device ID */
 		int rc;
