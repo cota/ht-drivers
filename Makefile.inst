@@ -8,8 +8,8 @@
 # @date Created on 13/02/2009
 ###############################################################################
 
-include ../Makefile.specific
-include ../../makefiles/Makefile.base
+-include ../Makefile.specific
+-include ../../makefiles/Makefile.base
 
 INSTDIR    = $(addsuffix /$(DLVRYPLS)/$(CPU), $(EXECINSTDIR))
 ADDCFLAGS  = $(STDFLAGS) -DCPU=\"$(CPU)\" -DKVER=\"$(KVER)\"
@@ -24,7 +24,7 @@ vpath %.c ./  ../../utils/user ../../utils/install
 SRCFILES = $(wildcard *.c) inst_utils.c
 
 ifeq ($(CPU), ppc4)
-# something to include? As for now - nothing.
+# nothing to include for Lynx
 else
 SRCFILES    += inst_linux.c
 endif
