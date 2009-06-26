@@ -10,7 +10,7 @@
  * It's included in the driver in case of Linux compilation.
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
  *
- * @version 
+ * @version
  */
 #ifndef _CDCM_LYNX_API_H_INCLUDE_
 #define _CDCM_LYNX_API_H_INCLUDE_
@@ -40,13 +40,13 @@
 
 /* To mimic disable() in an SMP machine, we have to use spin_lock_irqsave.
  * This disables interrupts and pre-emption on the local CPU, but not on
- * the others. Also, if any of the other CPUs tries to access the region 
- * protected by lynxos_cpu_lock, it'll busy-wait. 
+ * the others. Also, if any of the other CPUs tries to access the region
+ * protected by lynxos_cpu_lock, it'll busy-wait.
  * It is obvious that having a global 'lock' (lynxos_cpu_lock) hidden inside
- * CDCM is not such a good idea, since when held, _any_ other concurrent 
- * attempt to access any other protected region (i.e. from any other CPU) 
+ * CDCM is not such a good idea, since when held, _any_ other concurrent
+ * attempt to access any other protected region (i.e. from any other CPU)
  * will busy-wait.
- * To avoid this problem we'd need to improve the CDCM API 
+ * To avoid this problem we'd need to improve the CDCM API
  * to include a way of defining a lock -- it would be defined for every
  * particular region to be protected against concurrent access.
  */
@@ -54,7 +54,7 @@ extern spinlock_t lynxos_cpu_lock;
 #define disable(x) spin_lock_irqsave(&lynxos_cpu_lock, x)
 #define restore(x) spin_unlock_irqrestore(&lynxos_cpu_lock, x)
 
-/* Trying to combine 'struct file' from Linux and Lynx. For now only one 
+/* Trying to combine 'struct file' from Linux and Lynx. For now only one
    field is used. It's one that contains major/minor dev numbers. Note
    that we stick to the Lynx interface.
    See (sys/file.h) for Lynx and (linux/fs.h) for Linux */
