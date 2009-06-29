@@ -19,6 +19,7 @@
 #include <sys/ioctl.h>
 #include <stdio.h>
 #include <mqueue.h>
+#include <ctype.h>
 #include <time.h>
 #include <sys/shm.h>
 
@@ -140,8 +141,8 @@ static char *estr[XmemErrorCOUNT] = {
 static XmemError XmemReadNodeTableFile()
 {
 	int 	i;
-	int 	fc;
 	FILE 	*fp;
+	char	c;
 
 	nodecnt = 0;
 	umask(0);
@@ -150,18 +151,42 @@ static XmemError XmemReadNodeTableFile()
 		return XmemErrorCallback(XmemErrorNODE_TABLE_READ, 0);
 
 	node_tab.Used = 0;
-	for (i = 0; i < XmemDrvrNODES; i++) {
-		fc = fscanf(fp,"{ %s 0x%x }\n",
-			(char *)&node_tab.Descriptors[i].Name[0],
-			(int  *)&node_tab.Descriptors[i].Id);
-		if (EOF == fc)
-			break;
-		if (2 != fc)
-			return XmemErrorCallback(XmemErrorNODE_TABLE_SYNTAX, 0);
-		node_tab.Used |= node_tab.Descriptors[i].Id;
-		nodecnt++;
+	for (i = 0; i < XmemDrvrNODES;) {
+		if (fscanf(fp, "{ %s 0x%lx }\n", node_tab.Descriptors[i].Name,
+				&node_tab.Descriptors[i].Id) == 2) {
+			node_tab.Used |= node_tab.Descriptors[i].Id;
+			nodecnt++;
+			i++;
+		} else if (fscanf(fp, "%c", &c) == 1) {
+			/*
+			 * Empty lines, lines with only blank characters and
+			 * lines starting with a hash (#) are ignored.
+			 */
+			if (c == '\n') {
+				continue;
+			} else if (c == '#') {
+				while (fscanf(fp, "%c", &c) != EOF) {
+					if (c == '\n')
+						break;
+				}
+			} else if (isspace(c)) {
+				while (fscanf(fp, "%c", &c) != EOF) {
+					if (c == '\n')
+						break;
+					if (!isspace(c))
+						goto out_err;
+				}
+			} else {
+				goto out_err;
+			}
+		} else {
+			goto out;
+		}
 	}
+out:
 	return XmemErrorSUCCESS;
+out_err:
+	return XmemErrorCallback(XmemErrorNODE_TABLE_SYNTAX, 0);
 }
 
 
@@ -177,8 +202,8 @@ static XmemError XmemReadNodeTableFile()
 static XmemError XmemReadSegTableFile()
 {
 	int 	i;
-	int 	fc;
 	FILE 	*fp;
+	char	c;
 
 	segcnt = 0;
 	umask(0);
@@ -186,22 +211,47 @@ static XmemError XmemReadSegTableFile()
 	if (NULL == fp)
 		return XmemErrorCallback(XmemErrorSEG_TABLE_READ, 0);
 	seg_tab.Used = 0;
-	for (i = 0; i < XmemDrvrSEGMENTS; i++) {
-		fc = fscanf(fp,"{ %s 0x%x 0x%x 0x%x 0x%x 0x%x }\n",
-			(char *)&seg_tab.Descriptors[i].Name[0],
-			(int  *)&seg_tab.Descriptors[i].Id,
-			(int  *)&seg_tab.Descriptors[i].Size,
-			(int  *)&seg_tab.Descriptors[i].Address,
-			(int  *)&seg_tab.Descriptors[i].Nodes,
-			(int  *)&seg_tab.Descriptors[i].User);
-		if (fc == EOF)
-			break;
-		if (fc != 6)
-			return XmemErrorCallback(XmemErrorSEG_TABLE_SYNTAX, 0);
-		seg_tab.Used |= seg_tab.Descriptors[i].Id;
-		segcnt++;
+	for (i = 0; i < XmemDrvrSEGMENTS;) {
+		if (fscanf(fp, "{ %s 0x%lx 0x%lx 0x%x 0x%lx 0x%lx }\n",
+				seg_tab.Descriptors[i].Name,
+				&seg_tab.Descriptors[i].Id,
+				&seg_tab.Descriptors[i].Size,
+				(unsigned int *)&seg_tab.Descriptors[i].Address,
+				&seg_tab.Descriptors[i].Nodes,
+				&seg_tab.Descriptors[i].User) == 6) {
+			seg_tab.Used |= seg_tab.Descriptors[i].Id;
+			segcnt++;
+			i++;
+		} else if (fscanf(fp, "%c", &c) == 1) {
+			/*
+			 * Empty lines, lines with only blank characters and
+			 * lines starting with a hash (#) are ignored.
+			 */
+			if (c == '\n') {
+				continue;
+			} else if (c == '#') {
+				while (fscanf(fp, "%c", &c) != EOF) {
+					if (c == '\n')
+						break;
+				}
+			} else if (isspace(c)) {
+				while (fscanf(fp, "%c", &c) != EOF) {
+					if (c == '\n')
+						break;
+					if (!isspace(c))
+						goto out_err;
+				}
+			} else {
+				goto out_err;
+			}
+		} else {
+			goto out;
+		}
 	}
+out:
 	return XmemErrorSUCCESS;
+out_err:
+	return XmemErrorCallback(XmemErrorSEG_TABLE_SYNTAX, 0);
 }
 
 
