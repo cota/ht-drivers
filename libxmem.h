@@ -77,6 +77,7 @@ typedef enum {
 	XmemErrorNO_SUCH_MESSAGE,   //!< Illegal message
 	XmemErrorIO,                //!< An XmemDrvr IO error, see errno
 	XmemErrorSYSTEM,            //!< System error
+	XmemErrorINCOHERENT_MARKERS,//!< Incoherent data: header/footer mismatch
 
 	XmemErrorCOUNT
 } XmemError;
@@ -296,6 +297,17 @@ typedef struct {
 } XmemMessage;
 //@}
 
+/**
+ * \brief Xmem Markers -- used for checking data coherency
+ * @XmemMarkersDISABLE: Disable all coherency checks
+ * @XmemMarkersENABLE: Enable basic (non-atomic) checks
+ */
+typedef enum {
+	XmemMarkersDISABLE =	0x1,
+	XmemMarkersENABLE =	0x2,
+
+	XmemMarkersALL =	0x3
+} XmemMarkersMask;
 
 
 
@@ -739,5 +751,17 @@ XmemError XmemWriteTableFile(XmemTableId tid);
  * @return Appropriate error code (XmemError)
  */
 XmemError XmemSendSoftWakeup(uint32_t nodeid, uint32_t data);
+
+/**
+ * @brief Set the markers' mask for the current process
+ *
+ * @param mask - desired mask to be set
+ *
+ * If @mask is 0, the current mask is not modified.
+ * If conflicting masks are given (e.g. DISABLE|ENABLE), only DISABLE remains.
+ *
+ * @return previous value of the mask
+ */
+XmemMarkersMask XmemSetMarkersMask(XmemMarkersMask mask);
 
 #endif

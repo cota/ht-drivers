@@ -19,6 +19,7 @@
 #include <sys/ioctl.h>
 #include <stdio.h>
 #include <mqueue.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include <time.h>
 #include <sys/shm.h>
@@ -43,6 +44,8 @@ static int 		nodecnt = 0;
 static XmemNodeId 	my_nid = 0;	//!< My node ID
 static int        	warm_start = 0; //!< Warm vs Cold start
 /* see description in function XmemCheckForWarmStart for further info on this */
+
+static XmemMarkersMask	markers_mask = XmemMarkersDISABLE;
 //@}
 
 static char gbConfigPath[LN] = "";
@@ -125,9 +128,76 @@ static char *estr[XmemErrorCOUNT] = {
 	"That node is not defined in: " NODE_TABLE_NAME,
 	"Illegal message ID",
 	"A run time hardware IO error has occured, see: IOError",
-	"System error, see: errno"
+	"System error, see: errno",
+	"Incoherent markers: header/footer mismatch"
 };
 
+/*
+ * Marker's (header/footer) implementation
+ *
+ * Tables may or may not be wrapped by markers (header/footer).
+ * This is enabled via a configurable parameter and has to be transparent
+ * to the users of the library.
+ * If markers are enabled, the resulting available space on a given
+ * table is smaller (but not by much, check the structs below).
+ * To take account of this size/offset mangling, we refer to the real (i.e.
+ * physical XMEM addresses) as private (priv), and the addresses that users
+ * operate with as public (pub).
+ * NOTE: The current implementation is not atomic with regard to the accesses
+ * to the XMEM, since one access is done to receive the header, another
+ * access for the footer, and then an eventual access to transfer the data.
+ */
+
+/*
+ * Note. For the time being only the 'val' field is used.
+ */
+struct header {
+	uint32_t	val;
+	uint32_t	checksum;
+	uint32_t	size;
+} __attribute__((__packed__));
+
+struct footer {
+	uint32_t	val;
+};
+
+#define XMEM_H_SIZE	sizeof(struct header)
+#define XMEM_F_SIZE	sizeof(struct footer)
+#define XMEM_HF_SIZE	((XMEM_H_SIZE)+(XMEM_F_SIZE))
+
+#define XMEM_H_ELEMS	((XMEM_H_SIZE)/sizeof(uint32_t))
+#define XMEM_F_ELEMS	((XMEM_F_SIZE)/sizeof(uint32_t))
+#define XMEM_HF_ELEMS	((XMEM_HF_SIZE)/sizeof(uint32_t))
+
+/*
+ * header's element offset
+ * Note. We call 'element offset' an offset whose unit is 4 bytes.
+ */
+static int __h_eloff(int pub_eloff)
+{
+	return pub_eloff;
+}
+
+/* physical's element offset of a given address */
+static int phys_eloff(int pub_eloff)
+{
+	if (markers_mask & XmemMarkersENABLE)
+		return pub_eloff + XMEM_H_ELEMS;
+	return pub_eloff;
+}
+
+/* footer's offset */
+static int __f_eloff(int pub_elems, int pub_eloff)
+{
+	return phys_eloff(pub_eloff) + pub_elems;
+}
+
+static int priv_to_pub_elems(int priv_elems)
+{
+	if (markers_mask & XmemMarkersENABLE)
+		return priv_elems - XMEM_HF_ELEMS;
+	return priv_elems;
+}
 
 /**
  * XmemReadNodeTableFile - Reads the node table
@@ -310,6 +380,81 @@ static XmemError InitDevice(XmemDevice device)
 	}
 	return XmemErrorNOT_INITIALIZED;
 }
+
+static XmemError evaluate_hf(struct header *header, struct footer *footer)
+{
+	if (header->val != footer->val)
+		return XmemErrorINCOHERENT_MARKERS;
+	return XmemErrorSUCCESS;
+}
+
+static XmemError check_markers(XmemTableId table, int pub_elems, int pub_eloff)
+{
+	struct header	header;
+	struct footer	footer;
+	XmemError	err;
+
+	if (markers_mask & XmemMarkersDISABLE)
+		return XmemErrorSUCCESS;
+
+	/* read header */
+	err = routines.RecvTable(table, &header, XMEM_H_ELEMS,
+				__h_eloff(pub_eloff));
+	if (err != XmemErrorSUCCESS)
+		return err;
+
+	/* read footer */
+	err = routines.RecvTable(table, &footer, XMEM_F_ELEMS,
+				__f_eloff(pub_elems, pub_eloff));
+	if (err != XmemErrorSUCCESS)
+		return err;
+
+	/* check markers */
+	err = evaluate_hf(&header, &footer);
+	if (err != XmemErrorSUCCESS)
+		return err;
+
+	return XmemErrorSUCCESS;
+}
+
+static void fill_hf(struct header *header, struct footer *footer, int pub_elems)
+{
+	uint32_t randval = rand();
+
+	header->val = randval;
+	header->size = pub_elems * sizeof(uint32_t);
+	footer->val = randval;
+}
+
+static XmemError send_table(XmemTableId table, void *buf, int pub_elems,
+			    int pub_eloff, int upflag)
+{
+	struct header	header;
+	struct footer	footer;
+	XmemError	err;
+
+	fill_hf(&header, &footer, pub_elems);
+
+	/* write header, do not send SEGMENT_UPDATE */
+	err = routines.SendTable(table, &header, XMEM_H_ELEMS,
+				__h_eloff(pub_eloff), 0);
+	if (err != XmemErrorSUCCESS)
+		return err;
+
+	/* write footer, do not send SEGMENT_UPDATE */
+	err = routines.SendTable(table, &footer, XMEM_F_ELEMS,
+				__f_eloff(pub_elems, pub_eloff), 0);
+	if (err != XmemErrorSUCCESS)
+		return err;
+
+	/* write the table itself, send SEGMENT_UPDATE if requested */
+	err = routines.SendTable(table, buf, pub_elems, phys_eloff(pub_eloff),
+				upflag);
+	if (err != XmemErrorSUCCESS)
+		return err;
+
+	return XmemErrorSUCCESS;
+}
 //@}
 
 
@@ -443,18 +588,30 @@ XmemEventMask XmemPoll()
 XmemError XmemSendTable(XmemTableId table, void *buf, int elems,
 			int offset, int upflag)
 {
-	if (libinitialized)
-		return routines.SendTable(table, buf, elems, offset, upflag);
-	return XmemErrorNOT_INITIALIZED;
+	if (!libinitialized)
+		return XmemErrorNOT_INITIALIZED;
+
+	if (markers_mask & XmemMarkersDISABLE) {
+		return routines.SendTable(table, buf, elems, phys_eloff(offset),
+					upflag);
+	}
+	return send_table(table, buf, elems, offset, upflag);
 }
 
 
 XmemError XmemRecvTable(XmemTableId table, void *buf, int elems,
 			int offset)
 {
-	if (libinitialized)
-		return routines.RecvTable(table, buf, elems, offset);
-	return XmemErrorNOT_INITIALIZED;
+	XmemError err;
+
+	if (!libinitialized)
+		return XmemErrorNOT_INITIALIZED;
+
+	err = check_markers(table, elems, offset);
+	if (err != XmemErrorSUCCESS)
+		return err;
+
+	return routines.RecvTable(table, buf, elems, phys_eloff(offset));
 }
 
 
@@ -694,7 +851,8 @@ XmemError XmemGetTableDesc(XmemTableId table, int *elems,
 	for (i = 0; i < XmemMAX_TABLES; i++) {
 		msk = 1 << i;
 		if (seg_tab.Used & msk && table == seg_tab.Descriptors[i].Id) {
-			*elems = seg_tab.Descriptors[i].Size / sizeof(long);
+			*elems = priv_to_pub_elems(seg_tab.Descriptors[i].Size /
+					sizeof(uint32_t));
 			*nodes = seg_tab.Descriptors[i].Nodes;
 			*user  = seg_tab.Descriptors[i].User;
 			return XmemErrorSUCCESS;
@@ -818,4 +976,24 @@ void XmemLibUsleep(int dly)
 	rqtp.tv_sec = 0;
 	rqtp.tv_nsec = dly * 1000;
 	nanosleep(&rqtp, &rmtp);
+}
+
+XmemMarkersMask XmemSetMarkersMask(XmemMarkersMask mask)
+{
+	XmemMarkersMask omask = markers_mask;
+
+	/*
+	 * mask clean-up: enforce single ENABLE/DISABLE. Require one of them.
+	 */
+	if (mask & XmemMarkersENABLE) {
+		if (mask & XmemMarkersDISABLE)
+			mask = XmemMarkersDISABLE;
+	} else {
+		mask = XmemMarkersDISABLE;
+	}
+	mask &= XmemMarkersALL;
+
+	if (mask != 0)
+		markers_mask = mask;
+	return omask;
 }
