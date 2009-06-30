@@ -26,6 +26,7 @@
 
 #include <xmemDrvr.h>
 #include <libxmem.h>
+#include <adler32.h>
 
 /*! @name device specific backend code
  *
@@ -129,7 +130,9 @@ static char *estr[XmemErrorCOUNT] = {
 	"Illegal message ID",
 	"A run time hardware IO error has occured, see: IOError",
 	"System error, see: errno",
-	"Incoherent markers: header/footer mismatch"
+	"Incoherent markers: header/footer mismatch",
+	"Not enough memory",
+	"Checksum error"
 };
 
 /*
@@ -143,14 +146,11 @@ static char *estr[XmemErrorCOUNT] = {
  * To take account of this size/offset mangling, we refer to the real (i.e.
  * physical XMEM addresses) as private (priv), and the addresses that users
  * operate with as public (pub).
- * NOTE: The current implementation is not atomic with regard to the accesses
- * to the XMEM, since one access is done to receive the header, another
- * access for the footer, and then an eventual access to transfer the data.
+ * NOTE: The simple markers implementation is not atomic; use the flag
+ * XmemMarkersATOMIC if you really need to ensure atomicity, at the price of
+ * using a bounce buffer for each access.
  */
 
-/*
- * Note. For the time being only the 'val' field is used.
- */
 struct header {
 	uint32_t	val;
 	uint32_t	checksum;
@@ -381,10 +381,23 @@ static XmemError InitDevice(XmemDevice device)
 	return XmemErrorNOT_INITIALIZED;
 }
 
-static XmemError evaluate_hf(struct header *header, struct footer *footer)
+static unsigned long calc_adler32(void *pub_buf, int pub_elems)
+{
+	unsigned long adler = zlib_adler32(0L, NULL, 0);
+
+	return zlib_adler32(adler, pub_buf, pub_elems * sizeof(uint32_t));
+}
+
+static XmemError evaluate_hf(struct header *header, struct footer *footer,
+			     int pub_elems, void *pub_buf)
 {
 	if (header->val != footer->val)
 		return XmemErrorINCOHERENT_MARKERS;
+
+	if (pub_buf != NULL && markers_mask & XmemMarkersCHECKSUM) {
+		if (header->checksum != calc_adler32(pub_buf, pub_elems))
+			return XmemErrorCHECKSUM;
+	}
 	return XmemErrorSUCCESS;
 }
 
@@ -410,20 +423,69 @@ static XmemError check_markers(XmemTableId table, int pub_elems, int pub_eloff)
 		return err;
 
 	/* check markers */
-	err = evaluate_hf(&header, &footer);
+	err = evaluate_hf(&header, &footer, pub_elems, NULL);
 	if (err != XmemErrorSUCCESS)
 		return err;
 
 	return XmemErrorSUCCESS;
 }
 
-static void fill_hf(struct header *header, struct footer *footer, int pub_elems)
+static void fill_hf(struct header *header, struct footer *footer, int pub_elems,
+		    void *pub_buf)
 {
 	uint32_t randval = rand();
 
 	header->val = randval;
 	header->size = pub_elems * sizeof(uint32_t);
 	footer->val = randval;
+
+	if (pub_buf != NULL && markers_mask & XmemMarkersCHECKSUM)
+		header->checksum = calc_adler32(pub_buf, pub_elems);
+}
+
+/*
+ * When XmemMarkersATOMIC is set, a bounce buffer is allocated when reading
+ * any table. The table is copied atomically to the bounce buffer, and the
+ * data coherency is evaluated on that local bounce buffer.
+ * If the data are coherent, they're copied to the user's buffer from
+ * the bounce buffer. We proceed in a similar fashion for writes.
+ * We may want to implement this on a per-segment basis, but for the time
+ * being as a per-process parameter seems enough for our needs.
+ */
+static XmemError send_table_atomic(XmemTableId table, void *buf, int pub_elems,
+				   int pub_eloff, int upflag)
+{
+	size_t		priv_elems = pub_elems + XMEM_HF_ELEMS;
+	uint32_t	*bounce = NULL;
+	struct header	*header;
+	struct footer	*footer;
+	XmemError	err;
+
+	bounce = malloc(priv_elems * sizeof(uint32_t));
+	if (bounce == NULL)
+		return XmemErrorENOMEM;
+
+	/* copy the public data to the bounce buffer */
+	memcpy(bounce + XMEM_H_ELEMS, buf, pub_elems * sizeof(uint32_t));
+
+	/* fill in the markers */
+	header = (void *)bounce;
+	footer = (void *)(bounce + __f_eloff(pub_elems, pub_eloff));
+	fill_hf(header, footer, pub_elems, bounce + XMEM_H_ELEMS);
+
+	/* copy the table to XMEM */
+	err = routines.SendTable(table, bounce, priv_elems,
+				__h_eloff(pub_eloff), upflag);
+	if (err != XmemErrorSUCCESS)
+		goto out_err;
+
+	free(bounce);
+	return XmemErrorSUCCESS;
+
+out_err:
+	if (bounce)
+		free(bounce);
+	return err;
 }
 
 static XmemError send_table(XmemTableId table, void *buf, int pub_elems,
@@ -433,7 +495,7 @@ static XmemError send_table(XmemTableId table, void *buf, int pub_elems,
 	struct footer	footer;
 	XmemError	err;
 
-	fill_hf(&header, &footer, pub_elems);
+	fill_hf(&header, &footer, pub_elems, NULL);
 
 	/* write header, do not send SEGMENT_UPDATE */
 	err = routines.SendTable(table, &header, XMEM_H_ELEMS,
@@ -454,6 +516,43 @@ static XmemError send_table(XmemTableId table, void *buf, int pub_elems,
 		return err;
 
 	return XmemErrorSUCCESS;
+}
+
+static XmemError receive_table_atomic(XmemTableId table, void *buf,
+				      int pub_elems, int pub_eloff)
+{
+	size_t		priv_elems = pub_elems + XMEM_HF_ELEMS;
+	uint32_t	*bounce = NULL;
+	struct header	*header;
+	struct footer	*footer;
+	XmemError	err;
+
+	bounce = malloc(priv_elems * sizeof(uint32_t));
+	if (bounce == NULL)
+		return XmemErrorENOMEM;
+
+	err = routines.RecvTable(table, bounce, priv_elems,
+				__h_eloff(pub_eloff));
+	if (err != XmemErrorSUCCESS)
+		goto out_err;
+
+	/* check markers */
+	header = (void *)bounce;
+	footer = (void *)(bounce + __f_eloff(pub_elems, pub_eloff));
+	err = evaluate_hf(header, footer, pub_elems, bounce + XMEM_H_ELEMS);
+	if (err != XmemErrorSUCCESS)
+		goto out_err;
+
+	/* copy from the bounce buffer to the user's buffer */
+	memcpy(buf, bounce + XMEM_H_ELEMS, pub_elems * sizeof(uint32_t));
+
+	free(bounce);
+	return XmemErrorSUCCESS;
+
+out_err:
+	if (bounce)
+		free(bounce);
+	return err;
 }
 //@}
 
@@ -595,6 +694,10 @@ XmemError XmemSendTable(XmemTableId table, void *buf, int elems,
 		return routines.SendTable(table, buf, elems, phys_eloff(offset),
 					upflag);
 	}
+
+	if (markers_mask & XmemMarkersATOMIC)
+		return send_table_atomic(table, buf, elems, offset, upflag);
+
 	return send_table(table, buf, elems, offset, upflag);
 }
 
@@ -606,6 +709,9 @@ XmemError XmemRecvTable(XmemTableId table, void *buf, int elems,
 
 	if (!libinitialized)
 		return XmemErrorNOT_INITIALIZED;
+
+	if (markers_mask & XmemMarkersATOMIC)
+		return receive_table_atomic(table, buf, elems, offset);
 
 	err = check_markers(table, elems, offset);
 	if (err != XmemErrorSUCCESS)
@@ -992,6 +1098,9 @@ XmemMarkersMask XmemSetMarkersMask(XmemMarkersMask mask)
 		mask = XmemMarkersDISABLE;
 	}
 	mask &= XmemMarkersALL;
+
+	if (mask & XmemMarkersCHECKSUM && !(mask & XmemMarkersATOMIC))
+		mask &= ~XmemMarkersCHECKSUM;
 
 	if (mask != 0)
 		markers_mask = mask;

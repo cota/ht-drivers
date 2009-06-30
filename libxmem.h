@@ -78,6 +78,8 @@ typedef enum {
 	XmemErrorIO,                //!< An XmemDrvr IO error, see errno
 	XmemErrorSYSTEM,            //!< System error
 	XmemErrorINCOHERENT_MARKERS,//!< Incoherent data: header/footer mismatch
+	XmemErrorENOMEM,	    //!< Not enough memory
+	XmemErrorCHECKSUM,	    //!< Checksum error
 
 	XmemErrorCOUNT
 } XmemError;
@@ -301,12 +303,19 @@ typedef struct {
  * \brief Xmem Markers -- used for checking data coherency
  * @XmemMarkersDISABLE: Disable all coherency checks
  * @XmemMarkersENABLE: Enable basic (non-atomic) checks
+ * @XmemMarkersATOMIC: Enable bounce buffers to ensure atomicity
+ * @XmemMarkersCHECKSUM: Enable checksum validation of the transferred data
+ *
+ * Note that CHECKSUM depends on ATOMIC, and ATOMIC depends on the markers
+ * being enabled.
  */
 typedef enum {
 	XmemMarkersDISABLE =	0x1,
 	XmemMarkersENABLE =	0x2,
+	XmemMarkersATOMIC =	0x4,
+	XmemMarkersCHECKSUM =	0x8,
 
-	XmemMarkersALL =	0x3
+	XmemMarkersALL =	0xF
 } XmemMarkersMask;
 
 
