@@ -1754,11 +1754,6 @@ void IntrHandler(void *m)
 
 		} /* gone through all the interrupt sources */
 
-		/*
-		 * Update enabled interrupts -- this is done using Connect(), I think this
-		 * is unnecessary here.
-		 */
-		cdcm_iowrite32le(mcon->InterruptEnable, vmap + VmicRfmLIER);
 	}
 
 	if (intcsr & PlxIntcsrSTATUS_DMA_CHAN_0) {   /* DMA Channel 0 for reading */
