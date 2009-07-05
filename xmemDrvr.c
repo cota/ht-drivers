@@ -1608,198 +1608,165 @@ static void DisConnectAll(XmemDrvrClientContext *ccon) {
  */
 void IntrHandler(void *m)
 {
-	unsigned long isrc, msk, i;
-	void *vmap;
-	XmemDrvrQueue         *queue;
-	XmemDrvrClientContext *ccon;
-	XmemDrvrReadBuf        rbf;
-	XmemDrvrSendBuf        sbuf __attribute__((__unused__));
-	unsigned long          intcsr, usegs, node, data, dma;
-	XmemDrvrModuleContext *mcon = (XmemDrvrModuleContext*)m;
+	uint32_t		isrc, msk, i;
+	XmemDrvrModuleContext	*mcon = (XmemDrvrModuleContext*)m;
+	XmemDrvrQueue		*queue;
+	XmemDrvrClientContext	*ccon;
+	XmemDrvrReadBuf		rbf;
+	XmemDrvrSendBuf		sbuf __attribute__((__unused__));
+	unsigned long		intcsr, usegs, node, data, dma;
+	void			*vmap = mcon->Map;
 
 	DrmLocalReadWrite(mcon, PlxLocalINTCSR, &intcsr, 4, XmemDrvrREAD);
 
 	if (intcsr & PlxIntcsrSTATUS_LOCAL) {
-
-		vmap = mcon->Map;
-
 		/* read the interrupt status register (LISR) */
 		isrc = cdcm_ioread32le(vmap + VmicRfmLISR);
-		/*
-		 * After reading LISR, Interrupt Global Enable is cleared.
-		 * Therefore we re-enable interrupts, but note that
-		 * this is not done atomically --> it's dangerous.
-		 */
-		cdcm_iowrite32le(VmicLisrENABLE, vmap + VmicRfmLISR);
-
 		isrc &= VmicLisrSOURCE_MASK; /* clean the bitmask */
+		if (!isrc)
+			goto out;
 
+		bzero((void *) &rbf, sizeof(XmemDrvrReadBuf));
+		rbf.Module = mcon->ModuleIndex + 1;
+		usegs = 0;
 
-		while (isrc) { /* While pending interrupts */
+		for (i = 0; i < VmicLisrSOURCES; i++) {
+			msk = 1 << i;
 
-			bzero((void *) &rbf, sizeof(XmemDrvrReadBuf));
-			rbf.Module = mcon->ModuleIndex + 1;
-			usegs = 0;
+			if (! (msk & isrc))
+				continue;
 
-			for (i = 0; i < VmicLisrSOURCES; i++) {
-				msk = 1 << i;
+			rbf.Mask |= msk;
 
-				if (! (msk & isrc))
-					continue;
+			switch (msk) {
+			case VmicLisrPARITY_ERROR:
+			case VmicLisrWRITE_ERROR:
+			case VmicLisrLOST_SYNC:
+			case VmicLisrRX_OVERFLOW:
+			case VmicLisrRX_ALMOST_FULL:
+			case VmicLisrDATA_ERROR:
+			case VmicLisrROGUE_CLOBBER:
+			case VmicLisrRESET_RQ:
+				/* do nothing */
+				break;
 
-				rbf.Mask |= msk;
+				/*
+				 * When a node comes up it sends out a pending-init interrupt
+				 * with a non zero data field. Any client on a node connected
+				 * to the pending-init interrupt will send back another init
+				 * interrupt but with a zero data field. In this way, we will
+				 * establish a node map of nodes connected to pending-init,
+				 * and hence an algorithm on the client side to handle these
+				 * interrupts can be established based on a knowledge of all
+				 * nodes present and interested in pending-init interrupts.
+				 */
+			case VmicLisrPENDING_INIT:
 
-				switch (msk) {
-					/*
-					 * VmicLisrPARITY_ERROR: Parity error
-					 * VmicLisrWRITE_ERROR: Cant write a short or byte if parity on
-					 * VmicLisrLOST_SYNC: PLL unlocked, data was lost, or signal lost
-					 * VmicLisrRX_OVERFLOW: Receiver buffer overflow
-					 * VmicLisrRX_ALMOST_FULL: Receive buffer almost full
-					 * VmicLisrDATA_ERROR: Bad data received, error
-					 * VmicLisrROGUE_CLOBBER: This rogue master has clobbered a rogue packet 
-					 * VmicLisrRESET_RQ: Reset me request from some other node
-					 */
-				case VmicLisrPARITY_ERROR:
-				case VmicLisrWRITE_ERROR:
-				case VmicLisrLOST_SYNC:
-				case VmicLisrRX_OVERFLOW:
-				case VmicLisrRX_ALMOST_FULL:
-				case VmicLisrDATA_ERROR:
-				case VmicLisrROGUE_CLOBBER:
-				case VmicLisrRESET_RQ:
+				data = cdcm_ioread32le(vmap + VmicRfmINITD);
+				rbf.NdData[XmemDrvrIntIdxPENDING_INIT] = data;
 
-					/* do nothing */
+				node = GetRfmReg(mcon, VmicRfmINITN, 1);
+				rbf.NodeId[XmemDrvrIntIdxPENDING_INIT] = node;
 
+				Wa->Nodes |= (1 << (node - 1)); /* update known nodes */
+
+				/*
+				 * If someone needs initializing, I broadcast back a pending init
+				 * with zero data. Proceeding this way all nodes will know who is
+				 * on-line. Everyone else will do the same, so eventually all the
+				 * nodes will have introduced themselves.
+				 * Note that 'data' is tested to be not zero -- otherwise the
+				 * protocol would never end.
+				 */
+
+				if (! data)
 					break;
 
-
-					/*
-					 * When a node comes up it sends out a pending-init interrupt
-					 * with a non zero data field. Any client on a node connected
-					 * to the pending-init interrupt will send back another init
-					 * interrupt but with a zero data field. In this way, we will
-					 * establish a node map of nodes connected to pending-init,
-					 * and hence an algorithm on the client side to handle these
-					 * interrupts can be established based on a knowledge of all
-					 * nodes present and interested in pending-init interrupts.
-					 */
-				case VmicLisrPENDING_INIT:
-
-					data = cdcm_ioread32le(vmap + VmicRfmINITD);
-					rbf.NdData[XmemDrvrIntIdxPENDING_INIT] = data;
-
-					node = GetRfmReg(mcon, VmicRfmINITN, 1);
-					rbf.NodeId[XmemDrvrIntIdxPENDING_INIT] = node;
-
-					Wa->Nodes |= (1 << (node - 1)); /* update known nodes */
-
-					/*
-					 * If someone needs initializing, I broadcast back a pending init
-					 * with zero data. Proceeding this way all nodes will know who is
-					 * on-line. Everyone else will do the same, so eventually all the
-					 * nodes will have introduced themselves.
-					 * Note that 'data' is tested to be not zero -- otherwise the
-					 * protocol would never end.
-					 */
-
-					if (! data)
-						break;
-
-					/* reset known nodes to the only two I know for the time being */
-					Wa->Nodes = (1 << (mcon->NodeId - 1)) | (1 << (node - 1));
+				/* reset known nodes to the only two I know for the time being */
+				Wa->Nodes = (1 << (mcon->NodeId - 1)) | (1 << (node - 1));
 
 #if 0     /*
 	   * commented out:
 	   * it corresponds to the daemons to apply a particular policy.
 	   */
-					sbuf.Module = mcon->ModuleIndex + 1;
-					sbuf.UnicastNodeId = 0;
-					sbuf.MulticastMask = 0;
-					sbuf.Data          = 0; /* Send zero data */
-					sbuf.InterruptType = XmemDrvrNicINITIALIZED | XmemDrvrNicBROADCAST;
+				sbuf.Module = mcon->ModuleIndex + 1;
+				sbuf.UnicastNodeId = 0;
+				sbuf.MulticastMask = 0;
+				sbuf.Data          = 0; /* Send zero data */
+				sbuf.InterruptType = XmemDrvrNicINITIALIZED | XmemDrvrNicBROADCAST;
 #endif
 
-					break;
+				break;
 
 
-					/* INT3 is SEGMENT_UPDATE, it's not for general use. */
-				case VmicLisrINT3:
+				/* INT3 is SEGMENT_UPDATE, it's not for general use. */
+			case VmicLisrINT3:
 
-					rbf.NdData[XmemDrvrIntIdxSEGMENT_UPDATE] =
-						cdcm_ioread32le(vmap + VmicRfmISD3);
+				rbf.NdData[XmemDrvrIntIdxSEGMENT_UPDATE] =
+					cdcm_ioread32le(vmap + VmicRfmISD3);
 
-					node = GetRfmReg(mcon, VmicRfmSID3, 1);
-					rbf.NodeId[XmemDrvrIntIdxSEGMENT_UPDATE] = node;
+				node = GetRfmReg(mcon, VmicRfmSID3, 1);
+				rbf.NodeId[XmemDrvrIntIdxSEGMENT_UPDATE] = node;
 
-					/* pick up updated segments */
-					usegs = rbf.NdData[XmemDrvrIntIdxSEGMENT_UPDATE];
+				/* pick up updated segments */
+				usegs = rbf.NdData[XmemDrvrIntIdxSEGMENT_UPDATE];
 
-					Wa->Nodes |= 1 << (node - 1); /* update known nodes */
+				Wa->Nodes |= 1 << (node - 1); /* update known nodes */
 
-					break;
+				break;
 
 
-				case VmicLisrINT2:
+			case VmicLisrINT2:
 
-					rbf.NdData[XmemDrvrIntIdxINT_2] =
-						cdcm_ioread32le(vmap + VmicRfmISD2);
+				rbf.NdData[XmemDrvrIntIdxINT_2] =
+					cdcm_ioread32le(vmap + VmicRfmISD2);
 
-					node = GetRfmReg(mcon, VmicRfmSID2, 1);
-					rbf.NodeId[XmemDrvrIntIdxINT_2] = node;
+				node = GetRfmReg(mcon, VmicRfmSID2, 1);
+				rbf.NodeId[XmemDrvrIntIdxINT_2] = node;
 
-					Wa->Nodes |= 1 << (node - 1); /* update known nodes */
-					break;
+				Wa->Nodes |= 1 << (node - 1); /* update known nodes */
+				break;
 
-				case VmicLisrINT1:
+			case VmicLisrINT1:
 
-					rbf.NdData[XmemDrvrIntIdxINT_1] =
-						cdcm_ioread32le(vmap + VmicRfmISD1);
+				rbf.NdData[XmemDrvrIntIdxINT_1] =
+					cdcm_ioread32le(vmap + VmicRfmISD1);
 
-					node = GetRfmReg(mcon, VmicRfmSID1, 1);
-					rbf.NodeId[XmemDrvrIntIdxINT_1] = node;
+				node = GetRfmReg(mcon, VmicRfmSID1, 1);
+				rbf.NodeId[XmemDrvrIntIdxINT_1] = node;
 
-					Wa->Nodes |= 1 << (node -1); /* update known nodes */
-					break;
+				Wa->Nodes |= 1 << (node -1); /* update known nodes */
+				break;
 
-				default:
-					rbf.Mask = 0;
-					break;
-				}
+			default:
+				rbf.Mask = 0;
+				break;
+			}
+		}
+
+		for (i = 0; i < XmemDrvrCLIENT_CONTEXTS; i++) {
+
+			ccon = &Wa->ClientContexts[i];
+
+			if (usegs) { /* Or in updated segments in clients */
+				ccon->UpdatedSegments |= usegs;
 			}
 
-			for (i = 0; i < XmemDrvrCLIENT_CONTEXTS; i++) {
+			msk = mcon->Clients[i];
 
-				ccon = &Wa->ClientContexts[i];
+			if (!(msk & isrc))
+				continue;
 
-				if (usegs) { /* Or in updated segments in clients */
-					ccon->UpdatedSegments |= usegs;
-				}
+			queue = &ccon->Queue;
+			if (queue->Size < XmemDrvrQUEUE_SIZE) {
+				queue->Entries[queue->Size++] = rbf;
+				ssignal(&ccon->Semaphore); /* Wakeup client */
+			} else {
+				queue->Size = XmemDrvrQUEUE_SIZE;
+				queue->Missed++;
+			}
 
-				msk = mcon->Clients[i];
-
-				if (!(msk & isrc))
-					continue;
-
-				queue = &ccon->Queue;
-				if (queue->Size < XmemDrvrQUEUE_SIZE) {
-					queue->Entries[queue->Size++] = rbf;
-					ssignal(&ccon->Semaphore); /* Wakeup client */
-				} else {
-					queue->Size = XmemDrvrQUEUE_SIZE;
-					queue->Missed++;
-				}
-
-			} /* gone through all the interrupt sources */
-
-			/*
-			 * Read the interrupt status register (LISR) + re-enable interrupts.
-			 * As said before, this is non-atomic --> dangerous!
-			 */
-			isrc = cdcm_ioread32le(vmap + VmicRfmLISR);
-			cdcm_iowrite32le(VmicLisrENABLE, vmap + VmicRfmLISR);
-			isrc &= VmicLisrSOURCE_MASK; /* re-evaluated in the while() */
-		}
+		} /* gone through all the interrupt sources */
 
 		/*
 		 * Update enabled interrupts -- this is done using Connect(), I think this
@@ -1825,10 +1792,13 @@ void IntrHandler(void *m)
 		ssignal(&mcon->WrDmaSemaphore); /* wake up caller */
 	}
 
+out:
 	/* under Lynx + PowerPC, this is necessary to trigger the interrupts */
 #if (!defined(__linux__) && defined(__powerpc__))
 	iointunmask(mcon->IVector);
 #endif
+	/* re-enable interrupts */
+	cdcm_iowrite32le(VmicLisrENABLE, vmap + VmicRfmLISR);
 }
 
 
