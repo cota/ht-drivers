@@ -1613,7 +1613,6 @@ void IntrHandler(void *m)
 	XmemDrvrQueue		*queue;
 	XmemDrvrClientContext	*ccon;
 	XmemDrvrReadBuf		rbf;
-	XmemDrvrSendBuf		sbuf __attribute__((__unused__));
 	unsigned long		intcsr, usegs, node, data, dma;
 	void			*vmap = mcon->Map;
 
@@ -1684,20 +1683,7 @@ void IntrHandler(void *m)
 
 				/* reset known nodes to the only two I know for the time being */
 				Wa->Nodes = (1 << (mcon->NodeId - 1)) | (1 << (node - 1));
-
-#if 0     /*
-	   * commented out:
-	   * it corresponds to the daemons to apply a particular policy.
-	   */
-				sbuf.Module = mcon->ModuleIndex + 1;
-				sbuf.UnicastNodeId = 0;
-				sbuf.MulticastMask = 0;
-				sbuf.Data          = 0; /* Send zero data */
-				sbuf.InterruptType = XmemDrvrNicINITIALIZED | XmemDrvrNicBROADCAST;
-#endif
-
 				break;
-
 
 				/* INT3 is SEGMENT_UPDATE, it's not for general use. */
 			case VmicLisrINT3:
