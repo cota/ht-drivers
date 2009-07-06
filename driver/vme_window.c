@@ -52,12 +52,17 @@ struct window window_table[TSI148_NUM_OUT_WINDOWS];
 
 /**
  * struct mapping_taskinfo - Store information about a mapping's user
+ *
  * @pid: pid number
  * @name: name of the process
+ *
+ * @note on the name length.
+ *       As it's not only the process name that is stored here, but also
+ *       module name -- lengths should be MAX allowed for the module name
  */
 struct vme_taskinfo {
 	pid_t	pid_nr;
-	char	name[TASK_COMM_LEN];
+	char	name[MODULE_NAME_LEN];
 };
 
 /**
