@@ -177,6 +177,7 @@ typedef struct _cdcmStatics {
 	cdcmt_t cdcm_timer[MAX_CDCM_TIMERS]; /* timers */
 	struct list_head cdcm_sem_list_head; /* semaphore list */
 	cdcmflg_t cdcm_flags;	       /* bitset flags */
+	int cdcm_isdg;		       /* this is a driverGen driver */
 } cdcmStatics_t;
 
 /* TODO. Initialize cdcmStatT */

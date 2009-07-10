@@ -10,8 +10,6 @@
  * Encapsulates user-written LynxOS driver. Consider it like a wrapper of the
  * user Lynx driver.
  * Many thanks to Julian Lewis and Nicolas de Metz-Noblat.
- *
- * @version
  */
 #include "cdcmDrvr.h"
 #include "cdcmLynxAPI.h"
@@ -23,15 +21,20 @@
 #include "general_ioctl.h"
 #include "list_extra.h" /* for extra handy list operations */
 #include "driver/libinstkernel.h" /* intall library to get/parse info tables */
+#include "cdcm-driver-gen.h"
 
 MODULE_DESCRIPTION("Common Driver Code Manager (CDCM) Driver");
 MODULE_AUTHOR("Yury Georgievskiy, CERN BE/CO");
 MODULE_LICENSE("GPL");
 
-/* driver parameter */
+/* driver parameters */
 static char cdcm_d_nm[64] = { 0 };
 module_param_string(dname, cdcm_d_nm, sizeof(cdcm_d_nm), 0);
 MODULE_PARM_DESC(dname, "Driver name");
+
+static int drivergen = 0;
+module_param(drivergen, bool, S_IRUGO);
+MODULE_PARM_DESC(drivergen, "If this is a DriverGen driver?");
 
 /* to avoid struct file to be treated as struct cdcm_file */
 #ifdef file
@@ -46,12 +49,13 @@ extern char* read_info_file(char*, int*);
 /* general statics data that holds all information about current groups,
    devices, threads, allocated mem, etc. managed by CDCM */
 cdcmStatics_t cdcmStatT = {
-  .cdcm_dev_list        = LIST_HEAD_INIT(cdcmStatT.cdcm_dev_list),
-  .cdcm_mem_list_head   = LIST_HEAD_INIT(cdcmStatT.cdcm_mem_list_head),
-  .cdcm_ipl             = (IPL_ERROR | IPL_INFO), /* info printout level */
-  .cdcm_thr_list_head   = LIST_HEAD_INIT(cdcmStatT.cdcm_thr_list_head),
-  .cdcm_sem_list_head   = LIST_HEAD_INIT(cdcmStatT.cdcm_sem_list_head),
-  .cdcm_flags           = 0
+	.cdcm_dev_list      = LIST_HEAD_INIT(cdcmStatT.cdcm_dev_list),
+	.cdcm_mem_list_head = LIST_HEAD_INIT(cdcmStatT.cdcm_mem_list_head),
+	.cdcm_ipl           = (IPL_ERROR | IPL_INFO), /* info printout level */
+	.cdcm_thr_list_head = LIST_HEAD_INIT(cdcmStatT.cdcm_thr_list_head),
+	.cdcm_sem_list_head = LIST_HEAD_INIT(cdcmStatT.cdcm_sem_list_head),
+	.cdcm_flags         = 0,
+	.cdcm_isdg          = 0
 };
 
 /* LynxOs system kernel-level errno.
@@ -130,7 +134,7 @@ static ssize_t cdcm_fop_read(struct file *filp, char __user *buf,
 		cdcm_err = -EAGAIN;
 	else {
 		if (__copy_to_user(buf,  iobuf, size))
-			return(-EFAULT);
+			return -EFAULT;
 		*off = lynx_file.position;
 	}
 
@@ -225,10 +229,10 @@ static unsigned int cdcm_fop_poll(struct file* filp, poll_table* wait)
 /**
  * @brief
  *
- * @param inode - inode struct pointer
- * @param file  - file struct pointer
- * @param cmd   - IOCTL command number
- * @param arg   - user args
+ * @param inode -- inode struct pointer
+ * @param file  -- file struct pointer
+ * @param cmd   -- IOCTL command number
+ * @param arg   -- user args
  *
  * @return
  */
@@ -240,18 +244,23 @@ static long process_cdcm_srv_ioctl(struct inode *inode, struct file *file,
 	switch (cmd) {
 	case _GIOCTL_CDV_INSTALL: /* cdv_install() */
 	{
-		char itp[128] = { 0 }; /* info table path */
+		char itp[128] = { 0 }; /* info table file name */
 		ulong *addr = NULL; /* user space info table address */
 
 		/* get info file path */
 		if (strncpy_from_user(itp, (char*)arg, 128) < 0) {
                         ret = -EFAULT;
+			PRNT_ABS_ERR("Can't get info file path from user.");
                         goto exit_dr_install;
                 }
+
+		if (cdcmStatT.cdcm_isdg) /* drivergen will do his job */
+			return dg_cdv_install(itp, &cdcm_fops);
 
 		/* get user-space address to copy info table from */
 		if (!(addr = (ulong*)read_info_file(itp, NULL))) {
 			ret = -EFAULT;
+			PRNT_ABS_ERR("Can't read info file.");
                         goto exit_dr_install;
 		}
 
@@ -268,16 +277,21 @@ static long process_cdcm_srv_ioctl(struct inode *inode, struct file *file,
 			PRNT_ABS_ERR("Install vector failed.");
 			ret = -EAGAIN;
 			goto exit_dr_install;
-		}
+		} else
+			ret = cdcmStatT.cdcm_major;
 
 	exit_dr_install:
 		if (addr) sysfree((char*)addr, 0/*not used*/);
-		return cdcmStatT.cdcm_major; /* return major number */
+
+		return ret; /* return either major number or error */
 	}
 	case _GIOCTL_CDV_UNINSTALL: /* cdv_uninstall() */
 	{
 		int cid = 0;	/* device ID */
 		int rc;
+
+		if (cdcmStatT.cdcm_isdg) /* drivergen will do his job */
+			return dg_cdv_uninstall(file, arg);
 
 		if (list_empty(&cdcmStatT.cdcm_dev_list))
 			/* no device installed */
@@ -299,7 +313,11 @@ static long process_cdcm_srv_ioctl(struct inode *inode, struct file *file,
 		return rc;
 	}
 	case _GIOCTL_GET_MOD_AM: /* how many modules */
+		if (drivergen)
+			return dg_get_mod_am();
 		return list_capacity(&cdcmStatT.cdcm_dev_list);
+	case _GIOCTL_GET_DG_DEV_INFO: /* driver gen info */
+		return dg_get_dev_info(arg);
 	default:
 		return -ENOIOCTLCMD;
 	}
@@ -388,38 +406,49 @@ static long process_mod_spec_ioctl(struct inode *inode, struct file *file,
  * @return -EINVAL, -ENOMEM, -EIO, etc...  - if fails.
  */
 static long cdcm_fop_ioctl(struct file *file, unsigned int cmd,
-			unsigned long arg)
+			   unsigned long arg)
 {
 	struct inode *inode = file->f_dentry->d_inode;
 
-	cdcm_err = 0;
-	return( !(iminor(inode)) ?
-		process_cdcm_srv_ioctl(inode, file, cmd, arg) :
-		process_mod_spec_ioctl(inode, file, cmd, arg) );
+	cdcm_err = 0; /* reset error state */
+
+	if (!iminor(inode))
+		return process_cdcm_srv_ioctl(inode, file, cmd, arg);
+
+	if (cdcmStatT.cdcm_isdg) /* drivergen */
+		  return dg_fop_ioctl(file, cmd, arg);
+
+	return process_mod_spec_ioctl(inode, file, cmd, arg);
 }
 
 
 /**
- * @brief NOT IMPLEMENTED YET.
+ * @brief Device I/O memory mapping to the user space
  *
- * @param file - file struct pointer
- * @param vma  -
+ * @param file -- file struct pointer
+ * @param vma  --
  *
  * @return
  */
 static int cdcm_fop_mmap(struct file *file, struct vm_area_struct *vma)
 {
-	return 0; /* success */
+	if (cdcmStatT.cdcm_isdg)
+		return dg_fop_mmap(file, vma);
+
+	//vma->vm_flags |= VM_IO | VM_RESERVED | VM_DONTCOPY | VM_DONTEXPAND;
+	//vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+
+	return -ENOSYS;
 }
 
 
 /**
  * @brief Open entry point.
  *
- * @param inode - inode pointer
- * @param filp  - file pointer
+ * @param inode -- inode pointer
+ * @param filp  -- file pointer
  *
- * @return 0   - if success.
+ * @return   0 - if success.
  * @return < 0 - if fails.
  */
 static int cdcm_fop_open(struct inode *inode, struct file *filp)
@@ -432,6 +461,8 @@ static int cdcm_fop_open(struct inode *inode, struct file *filp)
 	if (!iminor(inode)) /* service entry point */
 		return 0;
 
+	if (cdcmStatT.cdcm_isdg) /* drivergen */
+		return dg_fop_open(inode, filp);
 
 	/* enforce read-only access to this chrdev */
 	/*
@@ -462,40 +493,40 @@ static int cdcm_fop_open(struct inode *inode, struct file *filp)
  * @param inode - inode pointer
  * @param filp  - file pointer
  *
- * @return 0   - if success.
+ * @return   0 - if success.
  * @return < 0 - if fails.
  */
 static int cdcm_fop_release(struct inode *inode, struct file *filp)
 {
-  struct cdcm_file lynx_file;
+	struct cdcm_file lynx_file;
 
-  cdcm_err = 0;	/* reset */
+	cdcm_err = 0;	/* reset */
 
-  if (!iminor(inode)) /* service entry point. Don't call uep */
-	  return 0;
+	if (!iminor(inode)) /* service entry point. Don't call uep */
+		return 0;
 
-  /* fill in Lynxos file */
-  lynx_file.dev = (int)inode->i_rdev;
-  lynx_file.access_mode = (filp->f_flags & O_ACCMODE);
+	/* fill in Lynxos file */
+	lynx_file.dev = (int)inode->i_rdev;
+	lynx_file.access_mode = (filp->f_flags & O_ACCMODE);
 
-  if (entry_points.dldd_close(cdcmStatT.cdcm_st, &lynx_file) == OK)
-    return(0);			/* we cool */
+	if (entry_points.dldd_close(cdcmStatT.cdcm_st, &lynx_file) == OK)
+		return 0; /* we cool */
 
-  cdcm_err = -ENODEV; /* TODO. What val to return??? */
-  return(cdcm_err); /* failure */
+	cdcm_err = -ENODEV; /* TODO. What val to return??? */
+	return cdcm_err; /* failure */
 }
 
 
 /* CDCM entry points */
 struct file_operations cdcm_fops = {
-  .owner   = THIS_MODULE,
-  .read    = cdcm_fop_read,   /* read   */
-  .write   = cdcm_fop_write,  /* write  */
-  .poll    = cdcm_fop_poll,   /* select - NOT COMPATIBLE! */
-  .unlocked_ioctl = cdcm_fop_ioctl,  /* ioctl  */
-  .mmap    = cdcm_fop_mmap,   /* mmap   */
-  .open    = cdcm_fop_open,   /* open   */
-  .release = cdcm_fop_release /* close  */
+	.owner          = THIS_MODULE,
+	.read           = cdcm_fop_read,   /* read   */
+	.write          = cdcm_fop_write,  /* write  */
+	.poll           = cdcm_fop_poll,   /* select - NOT COMPATIBLE! */
+	.unlocked_ioctl = cdcm_fop_ioctl,  /* ioctl  */
+	.mmap           = cdcm_fop_mmap,   /* mmap   */
+	.open           = cdcm_fop_open,   /* open   */
+	.release        = cdcm_fop_release /* close  */
 };
 
 
@@ -526,9 +557,11 @@ static void __exit cdcm_driver_cleanup(void)
 {
 	int cntr;
 
-	/* call user's uninstall entry point */
-	if (entry_points.dldd_uninstall(cdcmStatT.cdcm_st) != OK)
-	  PRNT_ABS_WARN("device driver did not uninstall cleanly");
+	/* if not driverGen driver call user's uninstall entry point */
+	if (!drivergen)
+		if (entry_points.dldd_uninstall(cdcmStatT.cdcm_st) != OK)
+			PRNT_ABS_WARN("device driver did not"
+				      " uninstall cleanly");
 
 	/* cleanup all captured memory */
 	cdcm_mem_cleanup_all();
@@ -562,6 +595,9 @@ static int __init cdcm_driver_init(void)
 		PRNT_ABS_ERR("Can't register character device");
 		return cdcmStatT.cdcm_major;
 	}
+
+
+	cdcmStatT.cdcm_isdg = drivergen;
 
 	cdcm_mem_init(); /* init memory manager */
 	return 0;
