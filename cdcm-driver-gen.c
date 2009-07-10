@@ -15,6 +15,9 @@
 #include "list_extra.h" /* for extra handy list operations */
 #include "cdcmDrvr.h"
 #include "cdcmLynxAPI.h"
+#include "vmebus.h"
+#define __CDCM__
+#include "dg/ModuleHeader.h"	/* for DevInfo_t */
 
 /* _GIOCTL_GET_DG_DEV_INFO ioctl argument
    Keep syncronized with one from user space! */
@@ -31,7 +34,8 @@ static DECLARE_MUTEX(mmutex);
 extern struct dldd entry_points; /* declared in the user driver part */
 extern char* read_info_file(char*, int*);
 
-/** @brief driverGen devices
+/**
+ * @brief driverGen devices
  *
  * list  -- linked list
  * major -- device major number
@@ -46,7 +50,41 @@ struct dgd {
 	char *name;
 };
 
+
+/**
+ * @brief list of device mapped memory
+ *
+ * list --
+ * addr --
+ */
+struct dgmmap {
+	struct list_head list;
+	DevInfo_t *addr;
+};
+
 static LIST_HEAD(st_list); /* driverGen device linked list */
+static LIST_HEAD(mmap_list); /* mapped memory list */
+
+
+/**
+ * @brief Get device info table from driver statics table.
+ *
+ * @param di -- device info
+ *
+ * @return device info table pointer
+ */
+static DevInfo_t* get_dit_from_statics(void *stat)
+{
+	/* all dg statics tables are of standard layout */
+	struct static_layout {
+		void *topology;
+		DevInfo_t *info;
+		void *usrst;
+	} *lo;
+
+	lo = (struct static_layout*)stat;
+	return lo->info;
+}
 
 /**
  * @brief Add new statics table in the list
@@ -162,6 +200,52 @@ static char* dg_get_st_by_major(uint major)
 }
 
 /**
+ * @brief Tune mapped VME windows info (one you can see in /proc/vme/windows)
+ *
+ * @param st -- statics table
+ *
+ * Tune info bits in order to see useful info about vmebridge mapped memory.
+ *
+ * @e mapping  and @e vme_taskinfo are private && defined in vme_window.c
+ *
+ * Instead of storing pid number and task name, which in our case will always
+ * be one of the @b modinst program, will store LUN and driver name.
+ * This info is of more interest for the user.
+ *
+ * Tuning is done only in case of real driver, as simulator doesn't map any
+ * physical memory.
+ */
+static void tune_vmebridge_proc_info(void *st)
+{
+	int i;
+	DevInfo_t *info = get_dit_from_statics(st);
+	AddrInfo_t *aip = &info->addr1;
+	struct vme_mapping *vmep;
+	struct mapping {
+		struct list_head	list;
+		struct vme_mapping	desc;
+		struct vme_taskinfo {
+			pid_t	pid_nr;
+			char	name[MODULE_NAME_LEN];
+		} client;
+	} *m;
+
+	if (info->mlun < 0)	/* don't do for driver simulator */
+		return;
+
+	/* pass through all possible address spaces */
+	for (i = 0; i < ASA; i++) {
+		vmep = find_vme_mapping_from_addr(aip->baseAddr);
+		if (!vmep)
+			continue;
+		m = container_of(vmep, struct mapping, desc);
+		m->client.pid_nr = info->mlun;
+		strncpy(m->client.name, THIS_MODULE->name, MODULE_NAME_LEN);
+		++aip;
+	}
+}
+
+/**
  * @brief Information about all controlled devices
  *
  * @param arg -- user space buffer to put results.
@@ -243,6 +327,9 @@ int dg_cdv_install(char *name, struct file_operations *fops)
 		cc = -EAGAIN;
 		goto out1;
 	}
+
+	/* tune vmebridge proc info */
+	tune_vmebridge_proc_info(st);
 
 	/* save statics table */
 	cc = dg_add_st(maj, st, dname);
@@ -333,20 +420,56 @@ long dg_fop_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 }
 
-static int get_device_memory_size(char *st)
-{
-	return 1024;		/* TODO */
-}
-
+/**
+ * @brief
+ *
+ * @param filp --
+ * @param vma  --
+ *
+ * Mapping is based on the device block ID. Last user-space mmap() parameter
+ * (offset) should be a block ID or zero - to map all the blocks.
+ *
+ * @return
+ */
 int dg_fop_mmap(struct file *filp, struct vm_area_struct *vma)
 {
+	int retval;
 	char *priv = filp->private_data; /* statics table */
+	DevInfo_t *info = get_dit_from_statics(priv);
+	AddrInfo_t *aip = &info->addr1;
+	struct vme_mapping *vmep;
+	int asi = vma->vm_pgoff; /* address space index */
+
 	unsigned long size = vma->vm_end - vma->vm_start;
 
-	if (size > get_device_memory_size(priv) || (size & (PAGE_SIZE-1)))
-		return -EINVAL;
+	if (info->mlun < 0)
+		return -ENOSYS;	/* not allowed for simulator */
 
-	return -ENOSYS;
+	if (!(WITHIN_RANGE(0, asi, ASA-1))) {
+		PRNT_ABS_ERR("mmap() offset must be within [0 - %d]\n", ASA-1);
+		retval = -EINVAL;
+		goto errout;
+	}
+
+	vmep = find_vme_mapping_from_addr(aip[asi].baseAddr);
+	if (!vmep) {
+		PRNT_ABS_ERR("Can't find mapping table for %d Address Space",
+			     asi+1);
+		retval = -EFAULT;
+		goto errout;
+	}
+
+	vma->vm_flags |= VM_IO | VM_RESERVED | VM_DONTCOPY | VM_DONTEXPAND;
+	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+
+	return io_remap_pfn_range(vma,
+				  vma->vm_start,
+				  vmep->pci_addrl >> PAGE_SHIFT,
+				  size,
+				  vma->vm_page_prot);
+
+ errout:
+	return retval;
 }
 
 /**

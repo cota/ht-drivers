@@ -432,11 +432,11 @@ static long cdcm_fop_ioctl(struct file *file, unsigned int cmd,
  */
 static int cdcm_fop_mmap(struct file *file, struct vm_area_struct *vma)
 {
-	vma->vm_flags |= VM_IO | VM_RESERVED | VM_DONTCOPY | VM_DONTEXPAND;
-	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
-
 	if (cdcmStatT.cdcm_isdg)
 		return dg_fop_mmap(file, vma);
+
+	//vma->vm_flags |= VM_IO | VM_RESERVED | VM_DONTCOPY | VM_DONTEXPAND;
+	//vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 
 	return -ENOSYS;
 }
