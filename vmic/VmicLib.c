@@ -479,7 +479,7 @@ XmemError VmicSendMessage(XmemNodeId nodes, XmemMessage *mess)
  * @param tid: table to be written to
  * @param buf: buffer containing the data
  * @param elems: number of elements (4 bytes) to transfer
- * @param offset: offset whithin the table
+ * @param offset: offset within the table
  * @param upflag: update message flag
  *
  * A table update event is broadcast if the upflag contains a non zero value.
@@ -529,7 +529,7 @@ XmemError VmicSendTable(XmemTableId tid, void *buf, int elems,
  * @param tid: table to read from
  * @param buf: buffer to be updated
  * @param elems: number of elements (4 bytes) to transfer
- * @param offset: offset whithin the table
+ * @param offset: offset within the table
  *
  * @return Appropriate Error code (XmemError)
  */
