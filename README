@@ -11,21 +11,21 @@ $Id: README,v 1.3 2009/01/09 10:26:03 ygeorgie Exp $
 #                       CDCM technical notes.                                 #
 ###############################################################################
 
-First of all - pay in mind, that it's (still) not perfect. 
+First of all - pay in mind, that it's (still) not perfect.
 There are some rules and limitations on HOWTO use CDCM.
 One should take care following this rules and limitations.
 
-Here comes the 'limitation list' 
+Here comes the 'limitation list'
 
-1. 'struct file' that is passed into the common part of the LynxOS-like code 
+1. 'struct file' that is passed into the common part of the LynxOS-like code
     is screwed up in case of Linux!! It's adapted partially.
 
 
 2. Stream task limitatioins.
 ----------------------------
    For now there is no way to emulate LynxOS threads completely.
-   The 'oblitary code demand' concerns a function that is passed as a payload 
-   function to 'ststart' call (firs parameter of ststart). 
+   The 'oblitary code demand' concerns a function that is passed as a payload
+   function to 'ststart' call (firs parameter of ststart).
    Let's examain it in more details:
    Usually, a stream task payload is looped in a cycle, doing it's work.
    The demand for this functions is that
@@ -51,13 +51,13 @@ Here comes the 'limitation list'
 	Normal Lynx thread        |        CDCM adapted Lynx thread
 ----------------------------------+---------------------------------
                                   |
-   void kthread(void param) {     |   void kthread(void param) {     
-	  for (;;) {              |          for (;;) {  
+   void kthread(void param) {     |   void kthread(void param) {
+	  for (;;) {              |          for (;;) {
 	    ....                  |            ...
-	    /* do the job */      |            /* do the job */ 
-	    ...                   |            ... 
+	    /* do the job */      |            /* do the job */
+	    ...                   |            ...
 	  }                       |            CDCM_LOOP_AGAIN;
-	}                         |          } 
+	}                         |          }
                                   |        }
 ----------------------------------+---------------------------------
                                   |
@@ -65,18 +65,18 @@ Here comes the 'limitation list'
 	  do {                    |          do {
 	    ...                   |            ...
 	    /* payload */         |            /* payload */
-	    ...                   |            ... 
-	  } while (1)             |            CDCM_LOOP_AGAIN;  
+	    ...                   |            ...
+	  } while (1)             |            CDCM_LOOP_AGAIN;
 	}                         |          } while (1)
                                   |        }
-----------------------------------+---------------------------------     
+----------------------------------+---------------------------------
                                   |
    void kthread(void param) {     |    void kthread(void param) {
-	tag:                      |         tag: 
+	tag:                      |         tag:
 	...                       |         ...
 	/* do the job here */     |         /* do the job here */
 	...                       |         ...
-	goto tag;                 |         CDCM_LOOP_AGAIN; 
+	goto tag;                 |         CDCM_LOOP_AGAIN;
 	}                         |         goto tag;
                                   |         }
 ----------------------------------+---------------------------------
@@ -108,13 +108,13 @@ Documentation to be written.
 ------------------------------
 Programs that run in user space always see -1 as the error return value.
 They need to access the errno variable to find out what happened; this is
-imposed by the POSIX standard. 
+imposed by the POSIX standard.
 For CDCM-compliant drivers we follow the LynxOs approach:
 * If an error happens, first set pseterr(code), where code is one of the
 POSIX error codes defined in include/errno.h.
 * Once the error code has been set, return SYSERR.
 
-Note that the procedure below refers _only_ to the communication between 
+Note that the procedure below refers _only_ to the communication between
 the kernel and user-space, which is defined by POSIX (i.e. this standard
 does not make requirements on how the kernel operates internally).
 
@@ -127,13 +127,13 @@ The interval passed to the timeout is the number of ticks we want to wait.
 Since all the LynxOS boxes we run have 100 ticks per second (i.e. 1 tick
 every 10ms), we have decided that timeout assumes that value when getting the
 ticks interval from the user. This does _not_ mean that all our machines
-are configured with tickspersec=100 (NB. tickspersec is HZ in Linux); it 
-means that irrespective of the machine you're running on, if you want 
+are configured with tickspersec=100 (NB. tickspersec is HZ in Linux); it
+means that irrespective of the machine you're running on, if you want
 to wait, say 40ms, then you give to timeout() an interval of 4 ticks.
 
 8. I/O operations
 -----------------
-I/O operations to/from hardware must be done using the provided helpers 
+I/O operations to/from hardware must be done using the provided helpers
 cdcm_io{read,write}{8,16,32}(). The address fed to these helpers is a void
 pointer, *not* volatile. The reason is well explained in the Linux kernel
 documentation ('Documentation/volatile-considered-harmful.txt'). Basically
@@ -141,7 +141,7 @@ proceeding this way has two benefits:
 - Code portability
 - No memory barriers needed (since they are included in the helpers)
 
-Bear in mind endianness issues when dealing with hardware: use the 
+Bear in mind endianness issues when dealing with hardware: use the
 provided helpers to swap according to the host machine endianness and that
 of the hardware (cdcm_cpu_to_le{16,32,64},etc.).
 
