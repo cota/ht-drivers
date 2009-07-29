@@ -30,8 +30,12 @@ FINAL_DEST ?= object_$(DRIVER_NAME)
 $(FINAL_DEST):
 	-mkdir -p ../$@
 
+#  Driver source directory
+#+ This name is defined _only_ if user in not alredy define it
+DRVR_DIR ?= driver
+
 # What will be finally created
-DRIVER  = ../$(FINAL_DEST)/$(DRIVER_NAME).$(KVER).ko
+DRIVER  = $(OBJDIR)/$(DRIVER_NAME).ko
 
 # Let's roll
 all: $(OBJDIR) $(FINAL_DEST)
@@ -46,10 +50,10 @@ all: $(OBJDIR) $(FINAL_DEST)
 
 # 3. Move all the compiled stuff in the object directory. Suppress any errors.
 	@-mv -f .tmp_versions/ *.o .*.o.cmd .*.ko.cmd *.mod.c *.symvers \
-	Module.markers modules.order $(OBJDIR) 2>/dev/null; exit 0
+	Module.markers modules.order *.ko $(OBJDIR) 2>/dev/null; exit 0
 
-# 4. Deliver kernel object
-	@mv *.ko $(DRIVER)
+# 4. Link with .ko
+	@ln -sf ../$(DRVR_DIR)/$(DRIVER) ../$(FINAL_DEST)/$(DRIVER_NAME).$(KVER).ko
 
 # CERN delivery
 include $(ROOTDIR)/makefiles/Makefile.deliver

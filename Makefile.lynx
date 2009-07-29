@@ -3,7 +3,7 @@
 #
 # @brief Builds up Lynx driver and installation program.
 #
-# @author Yury GEORGIEVSKIY. CERN BE/CO
+# @author Yury GEORGIEVSKIY, CERN.
 #
 # @b NOTE
 # Don't use this makefile directly!
@@ -18,6 +18,10 @@ include ../../makefiles/Kbuild.lynx
 ADDCFLAGS   = $(STDFLAGS) -DCPU=\"$(CPU)\"
 ADDINCLUDES = $(KERN_INCLUDES)
 
+#  Driver source directory
+#+ This name is defined _only_ if user in not alredy define it
+DRVR_DIR ?= driver
+
 # We need to re-define next 2 variables to compile the drivers...
 # Note, that normally, OUTPUT_OPTION should be declared like this:
 # OUTPUT_OPTION +=; mv $*.$(CPU).o $(OBJDIR)
@@ -30,13 +34,39 @@ ADDINCLUDES = $(KERN_INCLUDES)
 # It's working in this case.
 
 # What will be finally created
-DRIVER   = ../$(FINAL_DEST)/$(DRIVER_NAME).$(KVER).ko
+DRIVER = $(OBJDIR)/$(DRIVER_NAME).ko
 
+# Extremely simplified Quiet/Verbose
+ifdef V
+  ifeq ("$(origin V)", "command line")
+    VERBOSE = $(V)
+  endif
+endif
+ifndef VERBOSE
+  VERBOSE = 0
+endif
+
+ifeq ($(VERBOSE),1)
 $(DRIVER): CC = $(KERN_CC)
+  QLD =
+  QCC =
+  QNM =
+  Q   =
+else
+$(DRIVER): CC = $(QCC); $(KERN_CC)
+  QLD = @echo 'LD [M]  $@'
+  QCC = @echo 'CC [M]  $@'
+  QNM = @echo 'KSYM    $@'
+  Q   = @
+endif
+
+# Redefine
+%.$(CPU).o: %.c
+	$(QCC)
+	$(Q)$(COMPILE.c) $< $(OUTPUT_OPTION)
+
 $(DRIVER): OUTPUT_OPTION +=$(KFLAGS); mv $*.$(CPU).o $(OBJDIR)
 
-# Old implementation. Was working with old make.
-#$(DRIVER): OUTPUT_OPTION +=$@; mv $*.$(CPU).o $(OBJDIR)
 
 # Get all *.c files from current dir. ,*.c will be sorted-out in Makefile.base
 SRCFILES += $(wildcard $(PWD)/*.c)
@@ -62,18 +92,22 @@ all: $(OBJDIR) $(FINAL_DEST) $(DRIVER)
 # And after 'nm' command call, an import files (that holds all unresolved
 # symbols) will be build.
 $(DRIVER_NAME)Drvr.$(CPU).tmp: $(DRVROBJS)
-	$(KERN_LD) -o $(OBJDIR)/$@ -berok -r $(addprefix $(OBJDIR)/, $(notdir $^))
+	$(QLD)
+	$(Q)$(KERN_LD) -o $(OBJDIR)/$@ -berok -r $(addprefix $(OBJDIR)/, $(notdir $^))
 
 # 0x1.
 # This rule will put only undefined symbols (those external to an object
 # file) to the '*.import' file.
 %.import: %.tmp
-	$(NM) -u $(OBJDIR)/$< > $(OBJDIR)/$@
+	$(QNM)
+	$(Q)$(NM) -u $(OBJDIR)/$< > $(OBJDIR)/$@
 # 0x2.
 # This rules will create a driver shared object that imports an undefined
 # symbols.
 $(DRIVER): $(DRIVER_NAME)Drvr.$(CPU).import $(DRVROBJS)
-	$(KERN_LD) -o $(subst .o,.ko,$@) -bM:SRE -bimport:$(addprefix $(OBJDIR)/, $(notdir $^))
+	$(QLD)
+	$(Q)$(KERN_LD) -o $(subst .o,.ko,$@) -bM:SRE -bimport:$(addprefix $(OBJDIR)/, $(notdir $^))
+	$(Q)ln -sf ../$(DRVR_DIR)/$(OBJDIR)/$(DRIVER_NAME).ko ../$(FINAL_DEST)/$(DRIVER_NAME).$(KVER).ko
 
 # CERN delivery
 include $(ROOTDIR)/makefiles/Makefile.deliver
