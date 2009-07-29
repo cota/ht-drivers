@@ -1,19 +1,27 @@
 ###############################################################################
 # @file Makefile
 #
-# @brief Makefile to compile driver bunch
+# @brief Makefile to compile module benchmark.
 #
-# @author Yury GEORGIEVSKIY. CERN BE/CO
+# It includes driver, libraries and test programs.
+#
+# @author Yury GEORGIEVSKIY, CERN.
 #
 # @date Created on 13/01/2009
 ###############################################################################
 
-include ../makefiles/Makefile.base
+# User-specific settings
+include Makefile.specific
+
+# Where everything is nested
+# User can provide it's own, otherwise default will be used
+ROOTDIR := $(if $(ROOTDIR),$(ROOTDIR),/acc/src/dsc/drivers/coht)
 
 # Standart driver directory tree layout
 SUBDIRS = \
-	driver  \
-        include \
-	install \
-        lib     \
-	test
+	lib \
+	driver \
+	test \
+	include
+
+include $(ROOTDIR)/makefiles/Makefile.base
