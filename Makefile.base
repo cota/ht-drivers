@@ -3,7 +3,7 @@
 #
 # @brief Main beast. Incapculates standart CERN make rules.
 #
-# @author Yury GEORGIEVSKIY. CERN BE/CO
+# @author Yury GEORGIEVSKIY, CERN
 #
 # Should be include in the makefile _after_ Makefile.specific
 #
@@ -61,7 +61,7 @@ LIBS = $(join $(addsuffix $(OBJDIR)/,$(dir $(LIBFILES))),$(notdir $(LIBFILES)))
 # Buildup all include pathes
 INCFLAGS = $(addprefix -I,$(INCDIRS)) $(addprefix -I,$($(BLDTYPE).INCDIRS)) $(ADDINCLUDES)
 
-# Compilation date. TODO. Is there is any standart gcc/makefile way???
+# Compilation date
 BASECFLAGS   = -Wall -DCOMPILE_TIME=$(shell date --utc +%s)
 BASECXXFLAGS = -Wall -Wno-reorder
 

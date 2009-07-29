@@ -3,7 +3,7 @@
 #
 # @brief General Kbuild file.
 #
-# @author Yury GEORGIEVSKIY. CERN BE/CO
+# @author Yury GEORGIEVSKIY, CERN.
 #
 # @date Created on 13/01/2009
 #
