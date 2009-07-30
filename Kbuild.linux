@@ -3,7 +3,7 @@
 #
 # @brief Kbuild for compiling linux drivers
 #
-# @author Yury GEORGIEVSKIY. CERN BE/CO
+# @author Yury GEORGIEVSKIY, CERN.
 #
 # @date Created on 08/04/2009
 #
@@ -66,7 +66,9 @@ UTIL_D_REL := $(call abs2rel, $(ROOTDIR)/utils/driver/$(CPU)/$(KVER)/, $(M)/)
 #  Extra CC flags && needed pathes
 #  -I$(ROOTDIR) - This dir is not included directly because user can use it's
 #+ own CDCM version.
-ccflags-y += \
+# Not using [ccflags-y] _ONLY_ to be able to compile with 2.6.9
+# [ccflags-y] should be used when 2.6.9 is not used anymore
+EXTRA_CFLAGS += \
 	-I$(M) \
 	-I$(CDCM_INC_DIR) \
 	-I$(M)/../include \

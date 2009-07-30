@@ -35,5 +35,6 @@ FLTSRCFILES = $(filter-out $(M)/$(comma)%, $(filter $(addprefix %, $(SRCSFXS)),$
 OBJFILES = $(addsuffix $(EXTOBJ),$(notdir $(basename $(FLTSRCFILES))))
 
 # Absolutely needed pathes
-ccflags-y += \
-	-I$(ROOTDIR)/include
+# Not using [ccflags-y] _ONLY_ to be able to compile with 2.6.9
+# [ccflags-y] should be used when 2.6.9 is not used anymore
+EXTRA_CFLAGS += -I$(ROOTDIR)/include

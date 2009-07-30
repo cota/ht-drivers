@@ -3,10 +3,15 @@
 #
 # @brief Driver compilation locomotive
 #
-# @author Yury GEORGIEVSKIY. CERN BE/CO
+# @author Yury GEORGIEVSKIY, CERN.
 #
 # @date Created on 13/01/2009
 ################################################################################
+
+# Kept only for compiling 2.6.9 SHOULD BE REMOVED!!!
+ifneq ($(KERNELRELEASE),)
+include $(M)/Kbuild
+else
 
 # In case if user provided CPU, KVER or ROOTDIR
 # Makefile from current directory supress one from upper level
@@ -64,3 +69,4 @@ FORCE:
 # Declare the contents of the .PHONY variable as phony.  We keep that
 # information in a variable se we can use it in if_changed and friends.
 .PHONY: $(PHONY)
+endif
