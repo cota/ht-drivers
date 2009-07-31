@@ -5,7 +5,7 @@
 #
 # @brief Converts absolute pathes into relative one.
 #
-# @author Yury GEORGIEVSKIY. CERN BE/CO
+# @author Copyright (C) 2009 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
 #
 # Adapted from heindsight @
 # http://ubuntuforums.org/attachment.php?attachmentid=107617&d=1238012714

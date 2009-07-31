@@ -3,7 +3,7 @@
 #
 # @brief TEMPLATE. Specific kbuild for compiling Linux driver
 #
-# @author Yury GEORGIEVSKIY. CERN BE/CO
+# @author Yury GEORGIEVSKIY, CERN.
 #
 # Should be adapted for a specific driver
 #

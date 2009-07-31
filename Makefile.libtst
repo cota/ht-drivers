@@ -3,7 +3,7 @@
 #
 # @brief Builds up test programs.
 #
-# @author Yury GEORGIEVSKIY. CERN BE/CO
+# @author Yury GEORGIEVSKIY, CERN.
 #
 # @date Created on 13/01/2009
 ###############################################################################
