@@ -426,8 +426,9 @@ long dg_fop_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
  * @param filp --
  * @param vma  --
  *
- * Mapping is based on the device block ID. Last user-space mmap() parameter
- * (offset) should be a block ID or zero - to map all the blocks.
+ * Mapping is based on the block index. So last mmap() parameter in user-space
+ * (offset) should be offset in pagesize, multiplied on block index, that
+ * should be mapped.
  *
  * @return
  */
@@ -440,6 +441,7 @@ int dg_fop_mmap(struct file *filp, struct vm_area_struct *vma)
 	struct vme_mapping *vmep;
 	int asi = vma->vm_pgoff; /* address space index */
 
+	/* will map all the size user requested */
 	unsigned long size = vma->vm_end - vma->vm_start;
 
 	if (info->mlun < 0)
