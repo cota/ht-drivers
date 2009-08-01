@@ -13,7 +13,7 @@ DRVTESTDIR=$(shell pwd)/drvrtest
 all: drvr includes lib drvrtest test
 
 drvr:
-	make -C $(KERN_DIR) M=$(DRVDIR) KVER=$(KVER)
+	cd ./driver && $(MAKE)
 
 # We need to copy the vmebus driver symbols file to use its exported symbols
 # because KBUILD_EXTRA_SYMBOLS is not there yet to use in 2.6.24.7-rt21
@@ -32,7 +32,6 @@ includes:
 
 clean:
 	make -C $(KERN_DIR) M=$(DRVDIR) clean
-	make -C driver clean
 	make -C $(KERN_DIR) M=$(DRVTESTDIR) clean
 	make -C drvrtest clean
 	make -C lib clean
@@ -42,7 +41,8 @@ clean:
 
 .PHONY: drvr drvrtest includes lib test clean
 
-install:: driver/vmebus.ko driver/vmebus.h lib/libvmebus.h
+# TODO Deliver .h and libs in a proper place
+install_old:: driver/vmebus.h lib/libvmebus.h
 	for a in $(ACCS);do \
 	    if [ -w /acc/dsc/$$a/$(CPU)/$(KVER)/$(DRVR) ]; then \
 		echo Installing TSI148 VME bridge driver in /acc/dsc/$$a/$(CPU)/$(KVER)/$(DRVR); \
