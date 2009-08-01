@@ -122,9 +122,10 @@ static int vme_window_proc_show_mapping(char *page, int num,
 	struct vme_mapping *desc = &mapping->desc;
 
 /*
-           va       PCI     VME      Size
-    dd: xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx
-        ssssssssssssssss / sss sssss ddddd:ssssssssssssssss
+           va       PCI     VME      Size     Address Modifier   Data   Prefetch
+                                                 Description     Width   Size
+    dd: xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx - ssssssssssssssss /  sss    sssss
+    client: ddddd ssssssssssssssss
 */
 	p += sprintf(p, "    %2d: %p %.8x %.8x %.8x - ",
 		     num,
@@ -244,8 +245,9 @@ int vme_window_proc_show(char *page, char **start, off_t off, int count,
 
 	p += sprintf(p, "\nPCI-VME Windows\n");
 	p += sprintf(p, "===============\n\n");
-	p += sprintf(p, "           va       PCI     VME      Size\n");
-	p += sprintf(p, "--------------------------------------------------\n\n");
+	p += sprintf(p, "        va       PCI      VME      Size      Address Modifier Data  Prefetch\n");
+	p += sprintf(p, "                                             and Description  Width Size\n");
+	p += sprintf(p, "----------------------------------------------------------------------------\n\n");
 
 	for (i = 0; i < TSI148_NUM_OUT_WINDOWS; i++)
 		p += vme_window_proc_show_window(p, i);
