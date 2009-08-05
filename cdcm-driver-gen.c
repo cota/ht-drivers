@@ -388,7 +388,11 @@ int dg_cdv_uninstall(struct file *filp, unsigned long arg)
 
 ssize_t dg_read(struct file *filp, char __user *buf, size_t size, loff_t *off)
 {
-	char *priv = filp->private_data; /* statics table */
+	char *priv; /* statics table */
+
+	/* not checking for NULL as it's done by open() */
+	priv = dg_get_st_by_major(imajor(filp->f_dentry->d_inode));
+
 	return entry_points.dldd_read(priv, (struct cdcm_file *)filp,
 				      buf, size);
 }
@@ -397,14 +401,22 @@ ssize_t dg_read(struct file *filp, char __user *buf, size_t size, loff_t *off)
 ssize_t dg_fop_write(struct file *filp, const char __user *buf,
 		     size_t size, loff_t *off)
 {
-	char *priv = filp->private_data; /* statics table */
+	char *priv; /* statics table */
+
+	/* not checking for NULL as it's done by open() */
+	priv = dg_get_st_by_major(imajor(filp->f_dentry->d_inode));
+
 	return entry_points.dldd_write(priv, (struct cdcm_file *)filp,
 				       (char *)buf, size);
 }
 
 unsigned int dg_fop_poll(struct file* filp, poll_table* wait)
 {
-	char *priv = filp->private_data; /* statics table */
+	char *priv; /* statics table */
+
+	/* not checking for NULL as it's done by open() */
+	priv = dg_get_st_by_major(imajor(filp->f_dentry->d_inode));
+
 	return entry_points.dldd_select(priv, (struct cdcm_file *)filp,
 					0/*not vaild*/,
 					(struct cdcm_sel *)wait);
@@ -413,7 +425,10 @@ unsigned int dg_fop_poll(struct file* filp, poll_table* wait)
 
 long dg_fop_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-	char *priv = filp->private_data; /* statics table */
+	char *priv; /* statics table */
+
+	/* not checking for NULL as it's done by open() */
+	priv = dg_get_st_by_major(imajor(filp->f_dentry->d_inode));
 
 	return entry_points.dldd_ioctl(priv, (struct cdcm_file *)filp,
 				       cmd, (char *)arg);
@@ -423,7 +438,7 @@ long dg_fop_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 /**
  * @brief
  *
- * @param filp --
+ * @param filp -- file pointer
  * @param vma  --
  *
  * Mapping is based on the block index. So last mmap() parameter in user-space
@@ -435,7 +450,9 @@ long dg_fop_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 int dg_fop_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	int retval;
-	char *priv = filp->private_data; /* statics table */
+	/* statics table */
+	/* not checking for NULL as it's done by open() */
+	char *priv = dg_get_st_by_major(imajor(filp->f_dentry->d_inode));
 	DevInfo_t *info = get_dit_from_statics(priv);
 	AddrInfo_t *aip = &info->addr1;
 	struct vme_mapping *vmep;
@@ -484,24 +501,35 @@ int dg_fop_mmap(struct file *filp, struct vm_area_struct *vma)
  */
 int dg_fop_open(struct inode *inode, struct file *filp)
 {
-	char *st;  /* statics table */
+	char *priv;  /* statics table */
 
-	st = dg_get_st_by_major(imajor(filp->f_dentry->d_inode));
-	if (!st)
-		return -ENODEV;
+	priv = dg_get_st_by_major(imajor(filp->f_dentry->d_inode));
+	if (!priv) return -ENODEV;
 
-	filp->private_data = st; /* save it */
+	/* Not using filp->private_data to store priv,
+	   so that Linux users can use it */
 
-	return 0;
+	return entry_points.dldd_open(priv, old_encode_dev(inode->i_rdev),
+				      (struct cdcm_file *)filp);
 }
 
+/**
+ * @brief Close file
+ *
+ * @param inode -- device inode
+ * @param filp  -- file pointer
+ *
+ * <long-description>
+ *
+ * @return <ReturnValue>
+ */
 int dg_fop_release(struct inode *inode, struct file *filp)
 {
-	int cc;
-	char *priv = filp->private_data; /* statics table */
+	char *priv; /* statics table */
 
-	cc = entry_points.dldd_close(priv, (struct cdcm_file *)filp);
-	filp->private_data = NULL;
-	return cc;
+	/* not checking for NULL as it's done by open() */
+	priv = dg_get_st_by_major(imajor(inode));
+
+	return entry_points.dldd_close(priv, (struct cdcm_file *)filp);
 }
 
