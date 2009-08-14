@@ -3,7 +3,7 @@
  *
  * @brief Function declarations
  *
- * @author Copyright (C) 2009 CERN CO/HT Yury GEORGIEVSKIY <ygeorgie@cern.ch>
+ * @author Copyright (C) 2009 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
  *
  * @date Created on 12/06/2009
  *
@@ -13,7 +13,6 @@
 #ifndef _CDCM_DRIVER_GEN_H_INCLUDE_
 #define _CDCM_DRIVER_GEN_H_INCLUDE_
 
-char* dg_get_st(struct file*);
 int dg_get_dev_info(unsigned long);
 int dg_get_mod_am(void);
 int dg_cdv_install(char*, struct file_operations*);

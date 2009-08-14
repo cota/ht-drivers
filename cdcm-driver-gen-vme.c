@@ -1,11 +1,9 @@
 /**
  * @file cdcm-driver-gen.c
  *
- * @brief
+ * @brief VME-specific operations
  *
- * <long description>
- *
- * @author Copyright (C) 2009 CERN CO/HT Yury GEORGIEVSKIY <ygeorgie@cern.ch>
+ * @author Copyright (C) 2009 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
  *
  * @date Created on 08/06/2009
  *
@@ -26,7 +24,6 @@ struct dg_module_info {
 	int major;		/* device major number */
 	char name[DDNMSZ];	/* its name */
 };
-
 
 static DECLARE_MUTEX(mmutex);
 
@@ -50,7 +47,6 @@ struct dgd {
 	char *name;
 };
 
-
 /**
  * @brief list of device mapped memory
  *
@@ -64,7 +60,6 @@ struct dgmmap {
 
 static LIST_HEAD(st_list); /* driverGen device linked list */
 static LIST_HEAD(mmap_list); /* mapped memory list */
-
 
 /**
  * @brief Get device info table from driver statics table.
@@ -386,7 +381,8 @@ int dg_cdv_uninstall(struct file *filp, unsigned long arg)
 	return 0;
 }
 
-ssize_t dg_read(struct file *filp, char __user *buf, size_t size, loff_t *off)
+ssize_t dg_fop_read(struct file *filp, char __user *buf, size_t size,
+		    loff_t *off)
 {
 	char *priv; /* statics table */
 
