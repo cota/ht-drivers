@@ -22,16 +22,18 @@
 #ifdef __linux__
 
 #include "general_drvr.h"
-#include "vmebus.h" /* find_controller, etc */
 #include "cdcmDrvr.h"
 #include "cdcmLynxAPI.h"
 #include "cdcmLynxDefs.h"
 
+#ifdef CONFIG_BUS_VME
+#include "vmebus.h" /* find_controller, etc */
 #define find_controller cdcm_find_controller
 extern unsigned int cdcm_find_controller(unsigned int, unsigned int,
 					 unsigned int, unsigned int,
 					 unsigned int,
 					 struct pdparam_master*);
+#endif
 
 #define sel  cdcm_sel  /* see Lynx <sys/file.h> for more details */
 #define enable restore
