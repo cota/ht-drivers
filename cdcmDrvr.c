@@ -3,7 +3,7 @@
  *
  * @brief CDCM Linux driver
  *
- * @author Georgievskiy Yury, Alain Gagnaire. CERN AB/CO.
+ * @author Georgievskiy Yury, Alain Gagnaire. CERN.
  *
  * @date Created on 02/06/2006
  *
@@ -23,8 +23,8 @@
 #include "driver/libinstkernel.h" /* intall library to get/parse info tables */
 #include "cdcm-driver-gen.h"
 
-MODULE_DESCRIPTION("Common Driver Code Manager (CDCM) Driver");
-MODULE_AUTHOR("Yury Georgievskiy, CERN BE/CO");
+MODULE_DESCRIPTION("Common Driver Code Manager (CDCM)");
+MODULE_AUTHOR("Yury Georgievskiy, CERN");
 MODULE_LICENSE("GPL");
 
 /* driver parameters */
@@ -90,7 +90,6 @@ static void cdcm_cleanup_dev(void)
 	kfree(cdcmStatT.cdcm_mn);
 }
 
-
 /**
  * @brief Lynx read stub.
  *
@@ -112,6 +111,9 @@ static ssize_t cdcm_fop_read(struct file *filp, char __user *buf,
 		.access_mode = (filp->f_flags & O_ACCMODE),
 		.position = *off
 	};
+
+	if (cdcmStatT.cdcm_isdg)
+		return dg_fop_read(filp, buf, size, off);
 
 	PRNT_DBG(cdcmStatT.cdcm_ipl, "Read device with minor = %d",
 		 MINOR(lynx_file.dev));
@@ -166,6 +168,9 @@ static ssize_t cdcm_fop_write(struct file *filp, const char __user *buf,
 		.position = *off
 	};
 
+	if (cdcmStatT.cdcm_isdg)
+		return dg_fop_write(filp, buf, size, off);
+
 	PRNT_DBG(cdcmStatT.cdcm_ipl, "Write device with minor = %d",
 		 MINOR(lynx_file.dev));
 	cdcm_err = 0; /* reset */
@@ -214,6 +219,9 @@ static unsigned int cdcm_fop_poll(struct file* filp, poll_table* wait)
 	int mask = POLLERR;
 	struct cdcm_sel sel;
 	struct cdcm_file lynx_file;
+
+	if (cdcmStatT.cdcm_isdg)
+		return dg_fop_poll(filp, wait);
 
 	/* set Device Number */
 	lynx_file.dev = filp->f_dentry->d_inode->i_rdev;
@@ -315,7 +323,8 @@ static long process_cdcm_srv_ioctl(struct inode *inode, struct file *file,
 	case _GIOCTL_GET_MOD_AM: /* how many modules */
 		if (drivergen)
 			return dg_get_mod_am();
-		return list_capacity(&cdcmStatT.cdcm_dev_list);
+		else
+			return list_capacity(&cdcmStatT.cdcm_dev_list);
 	case _GIOCTL_GET_DG_DEV_INFO: /* driver gen info */
 		return dg_get_dev_info(arg);
 	default:
@@ -499,6 +508,9 @@ static int cdcm_fop_open(struct inode *inode, struct file *filp)
 static int cdcm_fop_release(struct inode *inode, struct file *filp)
 {
 	struct cdcm_file lynx_file;
+
+	if (cdcmStatT.cdcm_isdg)
+		return dg_fop_release(inode, filp);
 
 	cdcm_err = 0;	/* reset */
 
