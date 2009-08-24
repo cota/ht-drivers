@@ -3,50 +3,11 @@
 /* Multi-Tasking CTG (MTT) LynxOs.4 Device Driver                           */
 /* ************************************************************************ */
 
-#include <dldd.h>
-#include <errno.h>
-#include <kernel.h>
-#include <io.h>
-#include <conf.h>
-#include <sys/ioctl.h>
-#include <time.h>
-#include <mem.h>
-#include <sys/file.h>
-#include <signal.h>
-#include <sys/timeout.h>
-#include <string.h>
+#include <cdcm/cdcm.h>
 
 #include <mtthard.h>
 #include <mttdrvr.h>
 #include <mttdrvrP.h>
-
-extern int  kkprintf(char *, ...);
-extern void cprintf             _AP((char *fmt, ...));
-extern int  swait               _AP((int *sem, int flag));
-extern int  ssignal             _AP((int *sem));
-extern int  ssignaln            _AP((int *sem, int count));
-extern int  scount              _AP((int *sem));
-extern int  sreset              _AP((int *sem));
-extern void sysfree             _AP((char *, long));
-extern int  recoset             _AP((void));
-extern void noreco              _AP((void));
-extern int _kill                _AP((int pid, int signal));
-extern int _killpg              _AP((int pgrp, int signal));
-extern pid_t getpid             _AP((void));
-
-extern  char *sysbrk ();
-extern  int  timeout ();
-
-/* references specifics to CES PowerPC Cpus RIO806x for VME memory and VME interrupts mapping */
-
-#include <ces/vmelib.h>
-
-extern unsigned long find_controller();
-extern unsigned long return_controller();
-extern int vme_intset();
-extern int vme_intclr();
-extern void disable_intr();
-extern void enable_intr();
 
 /* Flash the i/o pipe line */
 
@@ -828,7 +789,7 @@ MttDrvrWorkingArea * wa; {     /* Drivers working area pointer */
 int MttDrvrOpen(wa, dnm, flp)
 MttDrvrWorkingArea * wa;       /* Working area */
 int dnm;                        /* Device number */
-struct file * flp; {            /* File pointer */
+struct cdcm_file *flp; {       /* File pointer */
 
 	int cnum;                       /* Client number */
 	MttDrvrClientContext * ccon;   /* Client context */
@@ -869,7 +830,7 @@ struct file * flp; {            /* File pointer */
 
 int MttDrvrClose(wa, flp)
 MttDrvrWorkingArea * wa;         /* Working area */
-struct file * flp; {             /* File pointer */
+struct cdcm_file *flp; {         /* File pointer */
 
 	int cnum;                        /* Client number */
 	MttDrvrClientContext     * ccon; /* Client context */
@@ -901,7 +862,7 @@ struct file * flp; {             /* File pointer */
 
 int MttDrvrIoctl(wa, flp, cm, arg)
 MttDrvrWorkingArea * wa;       /* Working area */
-struct file * flp;             /* File pointer */
+struct cdcm_file *flp;         /* File pointer */
 MttDrvrControlFunction cm;     /* IOCTL command */
 char * arg; {                  /* Data for the IOCTL */
 
@@ -1517,7 +1478,7 @@ char * arg; {                  /* Data for the IOCTL */
 
 int MttDrvrRead(wa, flp, u_buf, cnt)
 MttDrvrWorkingArea * wa;       /* Working area */
-struct file * flp;              /* File pointer */
+struct cdcm_file *flp;         /* File pointer */
 char * u_buf;                   /* Users buffer */
 int cnt; {                      /* Byte count in buffer */
 
@@ -1607,7 +1568,7 @@ int cnt; {                      /* Byte count in buffer */
 
 int MttDrvrWrite(wa, flp, u_buf, cnt)
 MttDrvrWorkingArea * wa;       /* Working area */
-struct file * flp;             /* File pointer */
+struct cdcm_file *flp;         /* File pointer */
 char * u_buf;                  /* Users buffer */
 int cnt; {                     /* Byte count in buffer */
 
@@ -1677,7 +1638,7 @@ int cnt; {                     /* Byte count in buffer */
 
 int MttDrvrSelect(wa, flp, wch, ffs)
 MttDrvrWorkingArea * wa;       /* Working area */
-struct file * flp;              /* File pointer */
+struct cdcm_file *flp;         /* File pointer */
 int wch;                        /* Read/Write direction */
 struct sel * ffs; {             /* Selection structurs */
 
