@@ -475,10 +475,10 @@ int flag; {                        /* Check again */
 
 	/* Now set up the interrupt handler */
 
-	coco = vme_intset((char *) (moad->InterruptVector), /* Vector */
-			IntrHandler,                      /* Address of ISR */
-			mcon,                             /* Parameter to pass */
-			0);                               /* Don't save previous */
+	coco = vme_intset(moad->InterruptVector,	/* Vector */
+			(int (*)(void *))IntrHandler,	/* Address of ISR */
+			(char *)mcon,			/* Parameter to pass */
+			NULL);				/* Don't save previous */
 	if (coco < 0) {
 		cprintf("MttDrvr: vme_intset: ERROR %d, MODULE %d\n",coco,index+1);
 		pseterr(EFAULT);                                 /* Bad address */
