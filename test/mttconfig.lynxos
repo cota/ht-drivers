@@ -1,0 +1,55 @@
+
+;File name            ;Location of File                  ;Comment
+
+;LynxOs
+;Text editors
+
+e                     /usr/local/bin/                    ;RAND Editor
+vi                    /bin/                              ;VI Editor
+nedit                 /usr/bin/X11/                      ;NEDIT X-Window Editor
+emacs                 /usr/local/bin/                    ;EMACS Editor
+
+;Default files used in test program
+
+Mtt.cpp               /dsc/data/Mtt/                     ;Mtt Source for cpp processor
+Mtt.ass               /dsc/data/Mtt/                     ;Mtt Source for assembler
+Mtt.obj               /dsc/data/Mtt/                     ;Object file
+Mtt.lst               /dsc/data/Mtt/                     ;Listing file
+Mtt.tbl               /dsc/data/Mtt/                     ;Mtt event table
+Mtt.sysldr            /dsc/data/Mtt/                     ;Loader data file
+Mtt.hex               /dsc/data/Mtt/                     ;Hex program dump for simulator
+
+Mtt.hostconfig        /dsc/local/data/mtt/               ;DSC identity M, A or B
+MttLog.log            /dsc/local/data/mtt/               ;Mtt logger file
+
+;Files used when compiling an event table
+
+evt.cpp               /dsc/data/Mtt/                     ;Event table template
+mttregs.h             /dsc/data/Mtt/                     ;Register definitions and telegram
+task_events.ass       /dsc/data/Mtt/                     ;Table compiler output
+
+;FPGA Configuration VHDL output stream for MTT
+
+Mtt.xsvf              /usr/local/drivers/mtt/            ;FPGA configuration
+mtt_news              /usr/local/drivers/mtt/            ;News
+
+;Appilcations
+
+asm                   /usr/local/bin/                    ;Mtt assembler
+emu                   /usr/local/bin/                    ;Mtt emulator
+cmt                   /usr/local/bin/                    ;Mtt table compiler
+ldr                   /usr/local/bin/                    ;Mtt task loader
+gtm                   /usr/local/bin/                    ;Mtt include file generator
+cpp                   /bin/                              ;C preprocessor
+mttsvy                /usr/local/bin/                    ;Mtt task survey
+tsksvy                /usr/local/bin/                    ;Command/Response task survey
+tgmsvy                /usr/local/bin/                    ;Command/Response telegram survey
+
+genvid                /usr/local/bin/                    ;Generic telegram display
+ctrtest               /usr/local/bin/                    ;ctrtest hardware test
+timtest               /usr/local/bin/                    ;timtest timlib test
+
+;Reflective memory
+
+xmemtest               /usr/local/bin/                   ;Xmem test program
+xmemdiag               /usr/local/bin/                   ;Xmem daemon test program

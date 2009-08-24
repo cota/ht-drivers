@@ -1,0 +1,40 @@
+
+;File name            ;Location of File         ;Comment
+
+;Linux
+;Text editors
+
+e                     /ps/local/Linux/bin/      ;RAND Editor
+vi                    /bin/                     ;VI Editor
+nedit                 /usr/bin/X11/             ;NEDIT X-Window Editor
+emacs                 /usr/bin/                 ;EMACS Editor
+
+;Default files used in test program
+
+Mtt.cpp               /tmp/                     ;Mtt Source for cpp processor
+Mtt.ass               /tmp/                     ;Mtt Source for assembler
+Mtt.obj               /tmp/                     ;Object file
+Mtt.lst               /tmp/                     ;Listing file
+Mtt.tbl               /tmp/                     ;Mtt event table
+Mtt.ldr               /tmp/                     ;Loader data file
+Mtt.hex               /tmp/                     ;Hex program dump for simulator
+
+;Files used when compiling an event table
+
+evt.cpp               /tmp/                     ;Event table template
+mttregs.h             /tmp/                     ;Register definitions and telegram
+task_events.ass       /tmp/                     ;Table compiler output
+
+;FPGA Configuration VHDL output stream for MTT
+
+Mtt.xsvf              /dsrc/drivers/ctg/test/   ;FPGA configuration
+
+;Appilcations
+
+asm                   /dsrc/drivers/ctg/assembler/  ;Mtt assembler
+emu                   /dsrc/drivers/ctg/assembler/  ;Mtt emulator
+cmt                   /dsrc/drivers/ctg/assembler/  ;Mtt table compiler
+ldr                   /dsrc/drivers/ctg/assembler/  ;Mtt task loader
+gtm                   /dsrc/drivers/ctg/assembler/  ;Mtt include file generator
+cpp                   /bin/                         ;C preprocessor
+

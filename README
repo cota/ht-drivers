@@ -1,0 +1,101 @@
+This file is located at: /dsrc/drivers/mtt/README
+
+Last update: Monday 25st August 2008
+Julian
+
+===============================
+
+All sources are currently kept in /dsrc/drivers/mtt
+The CTF and the LHC versions are kept together as they share most of the code.
+
+/dsrc/drivers/mtt/assembler => MTT assembler, Table compiler, MTT Emulator, Header file generation ...
+/dsrc/drivers/mtt/driver    => MTT driver
+/dsrc/drivers/mtt/lib       => libmtt and libxmem. xmem daemon and diagnostics program
+/dsrc/drivers/mtt/systasks  => LHC and CTF system tasks
+/dsrc/drivers/mtt/rt        => All RT tasks for LHC and CTF timing generators
+/dsrc/drivers/mtt/test      => mtttest, xmemtest, jtag loader, xsvf files and video tools
+/dsrc/drivers/mtt/install   => Driver installer program
+/dsrc/drivers/mtt/events    => Doccumentation for LHC events and telegram (not of much interest, historic)
+/dsrc/drivers/mtt/Ctr.info  => Configuration of LHCA and LHCB ctr modules. PM enable/disable etc
+/dsrc/drivers/xmem          => xmem reflective memory driver, shared with the CBCM
+
+=============================
+
+Remaining problems/status and developements...
+
+Possible clash between server task and RT task updating XMEM tables to send
+out events. This happens in InjectorStatusUpdate RT process and in the server
+processes, the FESA semaphore is not process safe. This must be protected
+against simultaneous access.
+
+Not possible to do efficient LHC fill, we need an event from the CBCM saying
+it has seen the request, then use this event instead of beam-out in the
+StatusUpdate RT task. The CBCM will see the request 3.6S before the first
+PSB cycle starts. This whole mechanism needs seriously thinking about because
+we will only know what to do 1S after beamout. To do this we need 3 zero cycles
+in the SPS to pad out the time.
+
+Compiling a table takes around 5/7 seconds, Delphin should update her program
+to use asynchronous set calls. (By the way this was always the case: We were
+loading crap before (an old table, not the new one). Today the table is sent
+by xldr accross reflective memory via the cmtsrv task. The MttCompileTable
+call now waits for the object file update table in xmem before returning. Then
+the fesa server sends the Load command, and the last object is loaded if its
+arrival time is no older than 1S; otherwise the disk file is used by reading
+the table object file from NFS. Messages are logged on the console in both cases.
+Today the middleware time out is around 10S, so the margin is 3S: This works
+fine for now.
+
+Master crate A/B is not obtained automatically from the LHC event MASTER. This
+is dangerous because on many occasions the Feasa value and actual switch position
+do not coincide.
+
+We need to synchronize the LHC telegram values such as BPNM etc. This can be done
+in various ways...
+
+1) The gateway reads the BPNM from the master telegram and updates the slave.
+2) The MTG crates could do the same thing, the slave knows who is master from
+   the master event, and can update its BPNM. Needs cables to be installed.
+
+===============================
+
+Many changes and bug corrections have been made in
+libmtt and libxmem.
+
+This LHC timing is now working correctly.
+Up time is now over two weeks.
+
+[cfv-ccr-ctmlhca]  /nfs/cs-ccr-nfsdev/vol1/u1/lewis  > uptime
+ 4:34PM  up 17 days,  2:20, load averages: 0.00, 0.00, 0.00
+
+[cfv-ccr-ctmlhcb]  /nfs/cs-ccr-nfsdev/vol1/u1/lewis  > uptime
+ 4:35PM  up 17 days,  2:24, load averages: 0.00, 0.00, 0.00
+
+[cfv-ccr-ctmlhcgw]  /nfs/cs-ccr-nfsdev/vol1/u1/lewis  > uptime
+ 4:35PM  up 15 days,  5:13, load averages: 1.54, 0.84, 0.64
+
+.... cool !!
+
+===============================
+
+Last Fridays sector 7-8 tests.
+
+The middleware crashed on the gateway. As a result the running table lists
+in the 3 DSCs got out of sysnc. It is important that the two functions load
+and unload table work without error even when the table list is inconsistent.
+Load table should work even if the lable is already loaded.
+Unload table should work even if the table is already unloaded.
+
+OMSK on GW
+There were problems with the forward of SPS extraction SEX.FW-1K, no output was
+produced to trigger LHC Injection timing. The declaration of 3 Actions on the
+same counter, more than on of which triggers at the same time isn't a good
+idea. The tests timing will be removed leaving only TI8 and TI2 forwarding.
+
+The new Fesa sources need to be taken back and CVS updated for the two timing
+classes LHCTM and LHCMTG.
+
+Reyes will implement a load/unload table sequence to be sure the mechanism
+is working correctly.
+
+Action: Ioan

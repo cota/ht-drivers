@@ -1,0 +1,17 @@
+   worv ConsNZC_BIT VMEP2    # Wait NZC:0
+   movr VMEP2       LRegTEMP # Clear it
+   wrlv 2          MSFR     # Wait relative
+   movv 0x14330001 EVOUT   # Send event
+   wrlv 7          MSFR     # Wait relative
+   movv 0x14330002 EVOUT   # Send event
+   worv ConsNZC_BIT VMEP2    # Wait NZC:0
+   movr VMEP2       LRegTEMP # Clear it
+   movv 0x14330003 EVOUT   # Send event
+   worv ConsNZC_BIT VMEP2    # Wait NZC:1
+   movr VMEP2       LRegTEMP # Clear it
+   wrlv 1          MSFR     # Wait relative
+   movv 0x14330004 EVOUT   # Send event
+   worv ConsNZC_BIT VMEP2    # Wait NZC:4
+   movr VMEP2       LRegTEMP # Clear it
+   wrlv 4          MSFR     # Wait relative
+   movv 0x14330005 EVOUT   # Send event
