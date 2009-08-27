@@ -253,7 +253,7 @@ extern void SkelUserClientRelease(SkelDrvrClientContext *ccon);
 #define __report_client(___ccon, ___dbflag, format...)			\
 	do {								\
 		if ((___ccon)->Debug & (___dbflag) || !(___dbflag)) {	\
-			kkprintf("%s[%s] ", "<6>", Wa->Drvrd->DrvrName); \
+			kkprintf(SKEL_INFO "[%s] ", Wa->Drvrd->DrvrName); \
 			kkprintf("(%s) client#%d pid=%d -- ",		\
 				GetDebugFlagName((___dbflag)),		\
 				(___ccon)->ClientIndex + 1, (___ccon)->Pid); \
@@ -265,7 +265,7 @@ extern void SkelUserClientRelease(SkelDrvrClientContext *ccon);
 #define __report_module(___mcon, ___dbflag, format...)	    		\
 	do {								\
 		if ((___mcon)->Debug & (___dbflag) || !(___dbflag)) {	\
-			kkprintf("%s[%s] ", "<6>", Wa->Drvrd->DrvrName);\
+			kkprintf(SKEL_INFO "[%s] ", Wa->Drvrd->DrvrName);\
 			kkprintf("(%s) module#%d -- \n",		\
 				GetDebugFlagName((___dbflag)),		\
 				(___mcon)->ModuleNumber);		\
