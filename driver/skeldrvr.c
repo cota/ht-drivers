@@ -85,10 +85,6 @@ static const char *SkelDrvrDebugNames[] = {
 	"EmulationOn"
 };
 
-/* =========================================================== */
-/* Get a debug flag name                                       */
-/* =========================================================== */
-
 const char *GetDebugFlagName(SkelDrvrDebugFlag debf) {
 
 S32 i;
@@ -117,13 +113,6 @@ static int is_user_ioctl(int nr)
 	       _IOC_TYPE(nr) == SKELUSER_IOCTL_MAGIC;
 }
 
-/**
- * @brief look-up the name of an IOCTL
- *
- * @param nr - IOCTL number
- *
- * @return name of the IOCTL
- */
 static const char *GetIoctlName(int nr)
 {
 	static char dtxt[128];
@@ -213,14 +202,6 @@ static int UnLockModule(SkelDrvrModuleContext *mcon)
 	return OK;
 }
 
-/* ======================================================================= */
-/* SetEndian - sets the endianness of the machine in the working area.     */
-/*                                                                         */
-/* This function uses the SKEL_{BIG,LITTLE}_ENDIAN macros, which           */
-/* are platform-independent.                                               */
-/*                                                                         */
-/* ======================================================================= */
-
 static void SetEndian(void) {
 
 #ifdef CDCM_LITTLE_ENDIAN
@@ -261,14 +242,10 @@ static int update_mcon_status(SkelDrvrModuleContext *mcon,
 	return 0;
 }
 
-/* ========================================================== */
-/* GetVersion, also used to check for Bus errors. See Ping    */
-/* ========================================================== */
-
+/* also used to check for Bus Errors */
 static S32 GetVersion(SkelDrvrModuleContext *mcon, SkelDrvrVersion *ver)
 {
-	if (!recoset()) { /* Catch bus errors  */
-
+	if (!recoset()) {
 		ver->DriverVersion = COMPILE_TIME;
 		SkelUserGetModuleVersion(mcon, ver->ModuleVersion);
 
@@ -285,17 +262,12 @@ static S32 GetVersion(SkelDrvrModuleContext *mcon, SkelDrvrVersion *ver)
 	return OK;
 }
 
-/* ====================================================================== */
-/* Raw IO                                                                 */
-/* Read or write one item U8/U16/U32 to or from a hardware address space. */
-/* ====================================================================== */
-
 static S32 RawIo(SkelDrvrModuleContext *mcon,   /* Hardware module context */
 		 SkelDrvrRawIoBlock    *riob,   /* Raw IO descriptor */
 		 U32                    flag) { /* Read=0,Write=1 flag */
 
 
-void                   *mmap  = NULL; /* Module Memory map */
+void                   *mmap  = NULL;
 InsLibModlDesc         *modld = NULL;
 InsLibAnyAddressSpace  *anyas = NULL;
 char *cp;
@@ -309,9 +281,6 @@ char *cp;
 
       cp = (char *) anyas->Mapped;
       mmap = &(cp[riob->Offset]);
-
-      /* ============================================================= */
-      /* Start: recoset/noreco Catch IO bus error block                */
 
       if (!recoset()) { /* Catch bus errors */
 
@@ -388,19 +357,12 @@ char *cp;
 	  return SYSERR;
       }
 
-      /* End: recoset/noreco Catch IO bus error block                  */
-      /* ============================================================= */
-
    }
 
    report_module(mcon, SkelDrvrDebugFlagMODULE, "RawIo:IllegalAddressSpace");
    pseterr(ENXIO);
    return SYSERR;
 }
-
-/* ====================================================================== */
-/* Reset the module                                                       */
-/* ====================================================================== */
 
 static void Reset(SkelDrvrModuleContext *mcon)
 {
@@ -417,10 +379,6 @@ static void Reset(SkelDrvrModuleContext *mcon)
 	sreset(&mcon->Semaphore);
 	ssignal(&mcon->Semaphore);
 }
-
-/* ====================================================================== */
-/* Get status                                                             */
-/* ====================================================================== */
 
 static void GetStatus(SkelDrvrModuleContext *mcon,
 		      SkelDrvrStatus        *ssts) {
@@ -449,11 +407,8 @@ static inline void __q_put(const SkelDrvrReadBuf *rb, SkelDrvrClientContext *cco
 	}
 }
 
-/**
- * @brief put read buffer on the queue of a client
- *
- * @param rb - read buffer that will be put in the queue
- * @param ccon - client context
+/*
+ * put read buffer on the queue of a client
  */
 static inline void q_put(const SkelDrvrReadBuf *rb, SkelDrvrClientContext *ccon)
 {
@@ -609,12 +564,6 @@ static void set_pdparam_defaults(struct pdparam_master *param)
 	param->dum[2] = 0;		/* reserved, _must_ be 0 */
 }
 
-/**
- * @brief perform a VME mapping
- *
- * @param v - VME address space
- * @param pm - pdparam struct
- */
 static void *do_vme_mapping(InsLibVmeAddressSpace *v, struct pdparam_master *pm)
 {
 	unsigned long map;
@@ -716,13 +665,6 @@ static void unmap_vmeas(SkelDrvrModuleContext *mcon, int force)
 	}
 }
 
-/**
- * @brief remove a VME module
- *
- * @param mcon - module context
- *
- * Remove mappings and unregister ISR, if applicable
- */
 static void RemoveVmeModule(SkelDrvrModuleContext *mcon)
 {
 	InsLibIntrDesc *intrd = mcon->Modld->Isr;
@@ -741,10 +683,8 @@ static void RemoveVmeModule(SkelDrvrModuleContext *mcon)
 	unmap_vmeas(mcon, 1);
 }
 
-/**
- * @brief clear mappings of a PCI module
- *
- * @param mcon - module context
+/*
+ * clear mappings of a PCI module
  */
 static void unmap_pcias(SkelDrvrModuleContext *mcon)
 {
@@ -767,13 +707,6 @@ static void unmap_pcias(SkelDrvrModuleContext *mcon)
 	}
 }
 
-/**
- * @brief remove a PCI module
- *
- * @param mcon - module context
- *
- * Remove mappings and unregister ISR, if applicable
- */
 static void RemovePciModule(SkelDrvrModuleContext *mcon)
 {
 	/* check if an ISR was registered */
@@ -785,13 +718,6 @@ static void RemovePciModule(SkelDrvrModuleContext *mcon)
 	unmap_pcias(mcon);
 }
 
-/**
- * @brief remove a carrier module
- *
- * @param mcon - module context
- *
- * Remove mappings and unregister ISR, if applicable
- */
 static void RemoveCarModule(SkelDrvrModuleContext *mcon)
 {
 	InsLibCarModuleAddress *cma;
@@ -1055,9 +981,6 @@ out_err: /* abort installation */
 	return 0;
 }
 
-/* ====================================================================== */
-/* Add a CAR module to the driver, called per module from install         */
-/* ====================================================================== */
 static int AddCarModule(SkelDrvrModuleContext *mcon)
 {
 	return 0;
@@ -1192,11 +1115,6 @@ static void DisConnectAll(SkelDrvrClientContext *ccon) {
 	}
 }
 
-/**
- * @brief initialise a module context to the default values
- *
- * @param mcon - module context
- */
 static inline void set_mcon_defaults(SkelDrvrModuleContext *mcon)
 {
 	/* default timeout */
@@ -1395,14 +1313,6 @@ static void modules_install(void)
 	}
 }
 
-/**
- * @brief Install entry point
- *
- * @param infofile - driver info file
- *
- * @return working area - on success
- * @return SYSERR - on failure
- */
 char *SkelDrvrInstall(void *infofile)
 {
 	InsLibDrvrDesc	**drvrinfo = infofile;
@@ -1457,11 +1367,6 @@ static void __reset_queue(SkelDrvrClientContext *ccon)
 	sreset(&ccon->Semaphore);
 }
 
-/**
- * @brief reset a client's queue
- *
- * @param ccon - client context
- */
 static void reset_queue(SkelDrvrClientContext *ccon)
 {
 	unsigned long flags;
@@ -1503,16 +1408,6 @@ int client_init(SkelDrvrClientContext *ccon, int clientnr)
 /*
  * Driver's open entry point
  */
-/**
- * @brief Driver's open() entry point
- *
- * @param wa - working area
- * @param dnm - device number
- * @param flp - file pointer
- *
- * @return OK - on success
- * @return SYSERR - on failure
- */
 int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 {
 	SkelDrvrClientContext * ccon;   /* Client context */
@@ -1542,10 +1437,6 @@ int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 	SK_DEBUG("Opened Client Number %d for pid %d OK", clientnr, ccon->Pid);
 	return OK;
 }
-
-/* ====================================================================== */
-/* CLOSE                                                                  */
-/* ====================================================================== */
 
 int SkelDrvrClose(void             *wa,    /* Working area */
 		  struct cdcm_file *flp) { /* File pointer */
@@ -1587,14 +1478,6 @@ static void modules_uninstall(void)
 	}
 }
 
-/**
- * @brief Uninstall entry point
- *
- * @param wa - driver's working area
- *
- * @return SYSERR - on failure
- * @return OK - on success
- */
 int SkelDrvrUninstall(void *wa)
 {
 	SkelDrvrClientContext  *ccon;
@@ -1653,17 +1536,6 @@ static void q_get(SkelDrvrReadBuf *rb, SkelDrvrClientContext *ccon)
 	cdcm_write_unlock_irqrestore(&q->rwlock, flags);
 }
 
-/**
- * @brief default read entry point
- *
- * @param wa - working area
- * @param flp - file pointer
- * @param u_buf - user's buffer
- * @param len - buffer length in bytes
- *
- * @return sizeof(SkelDrvrReadBuf) - if something has been read
- * @return 0 - otherwise
- */
 static int SkelDrvrRead(void *wa, struct cdcm_file *flp, char *u_buf, int len)
 {
 	SkelDrvrClientContext *ccon;
@@ -1693,13 +1565,9 @@ static int SkelDrvrRead(void *wa, struct cdcm_file *flp, char *u_buf, int len)
 	return sizeof(SkelDrvrReadBuf);
 }
 
-/**
- * @brief read entry point switch
- *
+/*
+ * read entry point switch
  * Depending on skel's configuration, either the user's or the default
- * read() entry point is called.
- *
- * @return number of characters read
  */
 int skel_read(void *wa, struct cdcm_file *f, char *buf, int len)
 {
@@ -1708,15 +1576,8 @@ int skel_read(void *wa, struct cdcm_file *f, char *buf, int len)
 	return SkelDrvrRead(wa, f, buf, len);
 }
 
-/**
- * @brief default write entry point---simulates interrupts
- *
- * @param wa - working area
- * @param flp - file pointer
- * @param u_buf - user's buffer
- * @param len - length of the buffer in bytes
- *
- * @return sizeof(SkelDrvrConnection)
+/*
+ * default write entry point---simulates interrupts
  */
 static int SkelDrvrWrite(void *wa, struct cdcm_file *flp, char *u_buf, int len)
 {
@@ -1745,13 +1606,10 @@ static int SkelDrvrWrite(void *wa, struct cdcm_file *flp, char *u_buf, int len)
 	return sizeof(SkelDrvrConnection);
 }
 
-/**
- * @brief write entry point switch
- *
+/*
+ * write entry point switch
  * Depending on skel's configuration, either the user's or the default
  * write() entry point is called.
- *
- * @return number of characters written
  */
 int skel_write(void *wa, struct cdcm_file *f, char *buf, int len)
 {
@@ -1759,10 +1617,6 @@ int skel_write(void *wa, struct cdcm_file *f, char *buf, int len)
 		return SkelConf.write(wa, f, buf, len);
 	return SkelDrvrWrite(wa, f, buf, len);
 }
-
-/* ====================================================================== */
-/* SELECT                                                                 */
-/* ====================================================================== */
 
 int SkelDrvrSelect(void        *wa,    /* Working area */
 		   struct cdcm_file *flp,   /* File pointer */
@@ -1784,14 +1638,6 @@ S32                    clientnr;
    return SYSERR;
 }
 
-/**
- * @brief handler for the get module maps IOCTL
- *
- * @param mcon - module context
- * @param arg - SkelDrvrMaps struct to be filled in
- *
- * Obtain all the module's mappings on the system
- */
 static void get_module_maps_ioctl(SkelDrvrModuleContext *mcon, void *arg)
 {
 	InsLibAnyModuleAddress 	*ma;
@@ -1903,10 +1749,6 @@ static void set_queue_flag(SkelDrvrQueue *q, int value)
 	q->QueueOff = !!value;
 	cdcm_write_unlock_irqrestore(&q->rwlock, flags);
 }
-
-/* ====================================================================== */
-/* IOCTL                                                                  */
-/* ====================================================================== */
 
 int SkelDrvrIoctl(void             *wa,    /* Working area */
 		  struct cdcm_file *flp,        /* File pointer */
@@ -2248,10 +2090,6 @@ void *get_vmemap_addr(SkelDrvrModuleContext *mcon, int am, int dw)
 	return NULL;
 
 }
-
-/* ========================================================= */
-/* Dynamic loading information for driver install routine.   */
-/* ========================================================= */
 
 struct dldd entry_points = {
 	SkelDrvrOpen,
