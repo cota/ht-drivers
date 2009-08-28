@@ -48,7 +48,7 @@ void setPort(short p,short val) {
       printf("\n");
    }
 
-   if (ioctl(mtt,MttDrvrJTAG_WRITE_BYTE,&jtag) < 0)
+   if (ioctl(mtt,SkelDrvrIoctlJTAG_WRITE_BYTE,&jtag) < 0)
       IErr("JTAG_WRITE_BYTE",NULL);
 
    if ((dito++ % DITO) == 0) {
@@ -74,7 +74,7 @@ void readByte(unsigned char *data) {
 unsigned char readTDOBit() {
 unsigned long rback;
 
-   if (ioctl(mtt,MttDrvrJTAG_READ_BYTE,&rback) < 0)
+   if (ioctl(mtt,SkelDrvrIoctlJTAG_READ_BYTE,&rback) < 0)
       IErr("JTAG_READ_BYTE",NULL);
 
    if (xsvf_iDebugLevel > 1) {

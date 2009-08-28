@@ -17,7 +17,6 @@
 #include <ctype.h>
 
 #include <mttdrvr.h>
-#include <mttdrvrP.h>
 
 #include <tgm/tgm.h>
 

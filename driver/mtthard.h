@@ -192,4 +192,22 @@ typedef struct {
 
 } MttDrvrMap;
 
+#define MTT_INTSR	0x000
+#define MTT_INTEN	0x004
+#define MTT_INTR	0x008
+#define MTT_VHDL	0x00c
+#define MTT_STATUS	0x010
+#define MTT_COMMAND	0x014
+#define MTT_COMMAND_VAL	0x018
+#define MTT_SEC		0x01c
+#define MTT_MSEC	0x020
+#define MTT_TASKS_START	0x024
+#define MTT_TASKS_STOP	0x028
+#define MTT_TASKS_CURR	0x02c
+#define MTT_TASKS	0x030
+
+#define MTT_MEM_GLOB	0x070
+#define MTT_MEM_LOC	0x3f0
+#define MTT_MEM_PROG	0xbf0
+
 #endif

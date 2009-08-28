@@ -1,11 +1,11 @@
 # Driver name
-DRIVER_NAME = MTT
+DRIVER_NAME = MTTN
 
 # Driver type
 CONFIG_BUS_VME = y
 
 # driver is using skeleton (y/n)
-IS_SKEL = n
+IS_SKEL = y
 
 # CDCM?
 IS_CDCM = y

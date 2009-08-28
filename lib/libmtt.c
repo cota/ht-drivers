@@ -19,6 +19,7 @@
 #include <mqueue.h>
 #include <time.h>
 #include <math.h>
+#include <stdint.h>
 
 #include "libmtt.h"
 
@@ -67,7 +68,7 @@ static int MttOpen() {
 	char fnm[32];
 	int i, fn;
 
-	for (i = 1; i <= MttDrvrCLIENT_CONTEXTS; i++) {
+	for (i = 1; i <= SkelDrvrCLIENT_CONTEXTS; i++) {
 		sprintf(fnm, "/dev/%s.%1d", "mtt", i);
 		if ((fn = open(fnm, O_RDWR, 0)) > 0)
 			return (fn);
@@ -288,7 +289,7 @@ int sysldr = 0;
 
 MttLibError MttLibInit(char *path) {
 
-	unsigned long enb, stat, autc, msk;
+	uint32_t enb, stat, autc, msk;
 	time_t tim;
 	MttDrvrTime t;
 
@@ -311,14 +312,14 @@ MttLibError MttLibInit(char *path) {
 	if (mtt == 0)
 		return MttLibErrorOPEN;
 
-	if (ioctl(mtt, MttDrvrGET_STATUS, &stat) < 0) {
+	if (ioctl(mtt, MTT_IOCGSTATUS, &stat) < 0) {
 		mtt = 0;
 		return MttLibErrorIO;
 	}
 
 	if ((sysldr) || ((stat & MttDrvrStatusENABLED) == 0)) {
 		enb = 1;
-		if (ioctl(mtt, MttDrvrENABLE, &enb) < 0) {
+		if (ioctl(mtt, MTT_IOCSOUT_ENABLE, &enb) < 0) {
 			close(mtt);
 			mtt = 0;
 			return MttLibErrorIO;
@@ -332,7 +333,7 @@ MttLibError MttLibInit(char *path) {
 			if (time(&tim) > 0) {
 				t.Second = tim + 1;
 				t.MilliSecond = 0;
-				if (ioctl(mtt, MttDrvrSET_UTC, &t.Second) < 0) {
+				if (ioctl(mtt, MTT_IOCSUTC, &t.Second) < 0) {
 					close(mtt);
 					mtt = 0;
 					return MttLibErrorIO;
@@ -351,7 +352,7 @@ MttLibError MttLibInit(char *path) {
 
 	if ((sysldr) || ((stat & MttDrvrStatusUTC_SENDING_ON) == 0)) {
 		autc = 1;
-		if (ioctl(mtt, MttDrvrUTC_SENDING, &autc) < 0) {
+		if (ioctl(mtt, MTT_IOCSUTC_SENDING, &autc) < 0) {
 			close(mtt);
 			mtt = 0;
 			return MttLibErrorIO;
@@ -378,7 +379,8 @@ MttLibError MttLibLoadTaskObject(char *name, ProgramBuf *pbf) {
 	int i;
 	MttDrvrTaskBuf tbuf;
 	MttDrvrTaskBlock *tcbp;
-	unsigned long tn, ftn, tmsk, tcnt, tval;
+	unsigned long tn, ftn, tcnt, tval;
+	uint32_t tmsk;
 
 	if (mtt == 0)
 		return MttLibErrorINIT;
@@ -408,7 +410,7 @@ MttLibError MttLibLoadTaskObject(char *name, ProgramBuf *pbf) {
 	for (i = first_task - 1; i < last_task; i++) {
 		tn = i + 1;
 		tbuf.Task = tn;
-		if (ioctl(mtt, MttDrvrGET_TASK_CONTROL_BLOCK, &tbuf) < 0)
+		if (ioctl(mtt, MTT_IOCGTCB, &tbuf) < 0)
 			return MttLibErrorIO;
 		if (strncmp(tbuf.Name, name, MttLibMAX_NAME_SIZE) == 0)
 			return MttLibErrorISLOAD;
@@ -416,11 +418,11 @@ MttLibError MttLibLoadTaskObject(char *name, ProgramBuf *pbf) {
 	for (i = first_task - 1; i < last_task; i++) {
 		tn = i + 1;
 		tbuf.Task = tn;
-		if (ioctl(mtt, MttDrvrGET_TASK_CONTROL_BLOCK, &tbuf) < 0)
+		if (ioctl(mtt, MTT_IOCGTCB, &tbuf) < 0)
 			return MttLibErrorIO;
 		if (strlen(tbuf.Name) == 0) {
 			tmsk = 1 << i;
-			ioctl(mtt, MttDrvrSTOP_TASKS, &tmsk);
+			ioctl(mtt, MTT_IOCSTASKS_STOP, &tmsk);
 			if (tval == 0)
 				ftn = tn;
 			tval++;
@@ -433,7 +435,7 @@ MttLibError MttLibLoadTaskObject(char *name, ProgramBuf *pbf) {
 		return MttLibErrorNOMEM;
 
 	pbf->LoadAddress = max_size * (tn - 1);
-	if (ioctl(mtt, MttDrvrSET_PROGRAM, pbf) < 0)
+	if (ioctl(mtt, MTT_IOCSPROGRAM, pbf) < 0)
 		return MttLibErrorIO;
 
 	for (i = ftn; i < ftn + tval; i++) {
@@ -446,7 +448,7 @@ MttLibError MttLibLoadTaskObject(char *name, ProgramBuf *pbf) {
 		tcbp->PcOffset = tbuf.LoadAddress;
 
 		strncpy(tbuf.Name, name, MttLibMAX_NAME_SIZE);
-		if (ioctl(mtt, MttDrvrSET_TASK_CONTROL_BLOCK, &tbuf) < 0)
+		if (ioctl(mtt, MTT_IOCSTCB, &tbuf) < 0)
 			return MttLibErrorIO;
 	}
 	return MttLibErrorNONE;
@@ -505,7 +507,8 @@ MttLibError MttLibUnloadTask(char *name) {
 	int i, all, err;
 	MttDrvrTaskBuf tbuf;
 	MttDrvrTaskBlock *tcbp;
-	unsigned long tn, tmsk;
+	unsigned long tn;
+	uint32_t tmsk;
 
 	if (mtt == 0)
 		return MttLibErrorINIT;
@@ -521,13 +524,13 @@ MttLibError MttLibUnloadTask(char *name) {
 	for (i = first_task - 1; i < last_task; i++) {
 		tn = i + 1;
 		tbuf.Task = tn;
-		if (ioctl(mtt, MttDrvrGET_TASK_CONTROL_BLOCK, &tbuf) < 0)
+		if (ioctl(mtt, MTT_IOCGTCB, &tbuf) < 0)
 			return MttLibErrorIO;
 		if ((all) || (strcmp(name, tbuf.Name) == 0)) {
 			tmsk = 1 << i;
-			err += ioctl(mtt, MttDrvrSTOP_TASKS, &tmsk);
+			err += ioctl(mtt, MTT_IOCSTASKS_STOP, &tmsk);
 			bzero((void *) tbuf.Name, MttLibMAX_NAME_SIZE);
-			err += ioctl(mtt, MttDrvrSET_TASK_CONTROL_BLOCK, &tbuf);
+			err += ioctl(mtt, MTT_IOCSTCB, &tbuf);
 		}
 	}
 	if ((err < 0) && (all == 0))
@@ -555,7 +558,7 @@ MttLibError MttLibGetLoadedTasks(MttLibName *names) {
 	for (i = first_task - 1; i < last_task; i++) {
 		tn = i + 1;
 		tbuf.Task = tn;
-		if (ioctl(mtt, MttDrvrGET_TASK_CONTROL_BLOCK, &tbuf) < 0)
+		if (ioctl(mtt, MTT_IOCGTCB, &tbuf) < 0)
 			return MttLibErrorIO;
 		if (strlen(tbuf.Name))
 			strncpy(names[i], tbuf.Name, MttLibMAX_NAME_SIZE);
@@ -581,7 +584,7 @@ MttLibError MttLibGetRunningTasks(MttLibName *names) {
 	for (i = first_task - 1; i < last_task; i++) {
 		tn = i + 1;
 		tbuf.Task = tn;
-		if (ioctl(mtt, MttDrvrGET_TASK_CONTROL_BLOCK, &tbuf) < 0)
+		if (ioctl(mtt, MTT_IOCGTCB, &tbuf) < 0)
 			return MttLibErrorIO;
 		if ((strlen(tbuf.Name))
 				&& (tcbp->TaskStatus & MttDrvrTaskStatusRUNNING))
@@ -614,13 +617,13 @@ MttLibError MttLibSetTaskRegister(char *name, MttLibLocalRegister treg,
 	for (i = first_task - 1; i < last_task; i++) {
 		tn = i + 1;
 		tbuf.Task = tn;
-		if (ioctl(mtt, MttDrvrGET_TASK_CONTROL_BLOCK, &tbuf) < 0)
+		if (ioctl(mtt, MTT_IOCGTCB, &tbuf) < 0)
 			return MttLibErrorIO;
 		if (strcmp(name, tbuf.Name) == 0) {
 			lrb.Task = tn;
 			lrb.RegMask = 1 << treg;
 			lrb.RegVals[treg] = val;
-			if (ioctl(mtt, MttDrvrSET_TASK_REG_VALUE, &lrb) < 0)
+			if (ioctl(mtt, MTT_IOCSTRVAL, &lrb) < 0)
 				return MttLibErrorIO;
 			return MttLibErrorNONE;
 		}
@@ -648,12 +651,12 @@ MttLibError MttLibGetTaskRegister(char *name, MttLibLocalRegister treg,
 	for (i = first_task - 1; i < last_task; i++) {
 		tn = i + 1;
 		tbuf.Task = tn;
-		if (ioctl(mtt, MttDrvrGET_TASK_CONTROL_BLOCK, &tbuf) < 0)
+		if (ioctl(mtt, MTT_IOCGTCB, &tbuf) < 0)
 			return MttLibErrorIO;
 		if (strcmp(name, tbuf.Name) == 0) {
 			lrb.Task = tn;
 			lrb.RegMask = 1 << treg;
-			if (ioctl(mtt, MttDrvrGET_TASK_REG_VALUE, &lrb) < 0)
+			if (ioctl(mtt, MTT_IOCGTRVAL, &lrb) < 0)
 				return MttLibErrorIO;
 			*val = lrb.RegVals[treg];
 			return MttLibErrorNONE;
@@ -673,7 +676,8 @@ MttLibError MttLibStartTask(char *name) {
 	int i;
 	MttDrvrTaskBuf tbuf;
 	MttDrvrTaskBlock *tcbp;
-	unsigned long tn, tmsk;
+	unsigned long tn;
+	uint32_t tmsk;
 
 	if (mtt == 0)
 		return MttLibErrorINIT;
@@ -682,11 +686,11 @@ MttLibError MttLibStartTask(char *name) {
 	for (i = first_task - 1; i < last_task; i++) {
 		tn = i + 1;
 		tbuf.Task = tn;
-		if (ioctl(mtt, MttDrvrGET_TASK_CONTROL_BLOCK, &tbuf) < 0)
+		if (ioctl(mtt, MTT_IOCGTCB, &tbuf) < 0)
 			return MttLibErrorIO;
 		if (strcmp(name, tbuf.Name) == 0) {
 			tmsk = 1 << i;
-			if (ioctl(mtt, MttDrvrSTART_TASKS, &tmsk) < 0)
+			if (ioctl(mtt, MTT_IOCSTASKS_START, &tmsk) < 0)
 				return MttLibErrorIO;
 			return MttLibErrorNONE;
 		}
@@ -701,7 +705,8 @@ MttLibError MttLibStopTask(char *name) {
 	int i;
 	MttDrvrTaskBuf tbuf;
 	MttDrvrTaskBlock *tcbp;
-	unsigned long tn, tmsk;
+	unsigned long tn;
+	uint32_t tmsk;
 
 	if (mtt == 0)
 		return MttLibErrorINIT;
@@ -710,11 +715,11 @@ MttLibError MttLibStopTask(char *name) {
 	for (i = first_task - 1; i < last_task; i++) {
 		tn = i + 1;
 		tbuf.Task = tn;
-		if (ioctl(mtt, MttDrvrGET_TASK_CONTROL_BLOCK, &tbuf) < 0)
+		if (ioctl(mtt, MTT_IOCGTCB, &tbuf) < 0)
 			return MttLibErrorIO;
 		if (strcmp(name, tbuf.Name) == 0) {
 			tmsk = 1 << i;
-			if (ioctl(mtt, MttDrvrSTOP_TASKS, &tmsk) < 0)
+			if (ioctl(mtt, MTT_IOCSTASKS_STOP, &tmsk) < 0)
 				return MttLibErrorIO;
 			return MttLibErrorNONE;
 		}
@@ -729,7 +734,8 @@ MttLibError MttLibContinueTask(char *name) {
 	int i;
 	MttDrvrTaskBuf tbuf;
 	MttDrvrTaskBlock *tcbp;
-	unsigned long tn, tmsk;
+	unsigned long tn;
+	uint32_t tmsk;
 
 	if (mtt == 0)
 		return MttLibErrorINIT;
@@ -738,11 +744,11 @@ MttLibError MttLibContinueTask(char *name) {
 	for (i = first_task - 1; i < last_task; i++) {
 		tn = i + 1;
 		tbuf.Task = tn;
-		if (ioctl(mtt, MttDrvrGET_TASK_CONTROL_BLOCK, &tbuf) < 0)
+		if (ioctl(mtt, MTT_IOCGTCB, &tbuf) < 0)
 			return MttLibErrorIO;
 		if (strcmp(name, tbuf.Name) == 0) {
 			tmsk = 1 << i;
-			if (ioctl(mtt, MttDrvrCONTINUE_TASKS, &tmsk) < 0)
+			if (ioctl(mtt, MTT_IOCSTASKS_CONT, &tmsk) < 0)
 				return MttLibErrorIO;
 			return MttLibErrorNONE;
 		}
@@ -770,7 +776,7 @@ MttDrvrTaskStatus MttLibGetTaskStatus(char *name) {
 	for (i = first_task - 1; i < last_task; i++) {
 		tn = i + 1;
 		tbuf.Task = tn;
-		if (ioctl(mtt, MttDrvrGET_TASK_CONTROL_BLOCK, &tbuf) < 0)
+		if (ioctl(mtt, MTT_IOCGTCB, &tbuf) < 0)
 			return MttLibErrorIO;
 		if (strcmp(name, tbuf.Name) == 0)
 			return tcbp->TaskStatus;
@@ -783,10 +789,12 @@ MttDrvrTaskStatus MttLibGetTaskStatus(char *name) {
 
 MttLibError MttLibSendEvent(unsigned long frame) {
 
+	uint32_t sendframe = frame;
+
 	if (mtt == 0)
 		return MttLibErrorINIT;
 
-	if (ioctl(mtt, MttDrvrSEND_EVENT, &frame) < 0)
+	if (ioctl(mtt, MTT_IOCSSEND_EVENT, &sendframe) < 0)
 		return MttLibErrorIO;
 	return MttLibErrorNONE;
 }
@@ -802,8 +810,8 @@ MttLibError MttLibSendEvent(unsigned long frame) {
 
 MttDrvrInt MttLibWait(MttDrvrInt mask, int noqueue, int tmo) {
 
-	MttDrvrConnection con;
-	MttDrvrReadBuf rbf;
+	SkelDrvrConnection con;
+	SkelDrvrReadBuf rbf;
 	int cc;
 
 	if (mtt == 0)
@@ -812,24 +820,24 @@ MttDrvrInt MttLibWait(MttDrvrInt mask, int noqueue, int tmo) {
 	if ((mask & connected) != mask) {
 		con.Module = 1;
 		con.ConMask = mask;
-		if (ioctl(mtt, MttDrvrCONNECT, &con) < 0)
+		if (ioctl(mtt, SkelDrvrIoctlCONNECT, &con) < 0)
 			return 0;
 		connected |= mask;
 	}
 	if (noqueue != noqueueflag) {
-		if (ioctl(mtt, MttDrvrSET_QUEUE_FLAG, &noqueue) < 0)
+		if (ioctl(mtt, SkelDrvrIoctlSET_QUEUE_FLAG, &noqueue) < 0)
 			return MttLibErrorIO;
 		noqueueflag = noqueue;
 	}
 
 	if (tmo != timeout) {
-		if (ioctl(mtt, MttDrvrSET_TIMEOUT, &timeout) < 0)
+		if (ioctl(mtt, SkelDrvrIoctlSET_TIMEOUT, &timeout) < 0)
 			return MttLibErrorIO;
 		timeout = tmo;
 	}
 
 	while (1) {
-		cc = read(mtt, &rbf, sizeof(MttDrvrReadBuf));
+		cc = read(mtt, &rbf, sizeof(SkelDrvrReadBuf));
 		if (cc <= 0)
 			return 0;
 		if (mask == 0)
@@ -846,12 +854,12 @@ MttDrvrInt MttLibWait(MttDrvrInt mask, int noqueue, int tmo) {
 
 MttDrvrStatus MttLibGetStatus() {
 
-	unsigned long stat;
+	uint32_t stat;
 
 	if (mtt == 0)
 		return 0;
 
-	if (ioctl(mtt, MttDrvrGET_STATUS, &stat) < 0)
+	if (ioctl(mtt, MTT_IOCGSTATUS, &stat) < 0)
 		return 0;
 	return (MttDrvrStatus) stat;
 }
@@ -874,7 +882,7 @@ MttLibError MttSetGlobalRegister(MttLibGlobalRegister greg, unsigned long val) {
 
 	grb.RegNum = greg;
 	grb.RegVal = val;
-	if (ioctl(mtt, MttDrvrSET_GLOBAL_REG_VALUE, &grb) < 0)
+	if (ioctl(mtt, MTT_IOCSGRVAL, &grb) < 0)
 		return MttLibErrorIO;
 
 	return MttLibErrorNONE;
@@ -893,7 +901,7 @@ MttLibError MttGetGlobalRegister(MttLibGlobalRegister greg, unsigned long *val) 
 		return MttLibErrorGREG;
 
 	grb.RegNum = greg;
-	if (ioctl(mtt, MttDrvrGET_GLOBAL_REG_VALUE, &grb) < 0)
+	if (ioctl(mtt, MTT_IOCGGRVAL, &grb) < 0)
 		return MttLibErrorIO;
 	*val = grb.RegVal;
 
@@ -954,7 +962,7 @@ int MttLibGetTcbNum(char *name) {
 	for (i = first_task - 1; i < last_task; i++) {
 		tn = i + 1;
 		tbuf.Task = tn;
-		if (ioctl(mtt, MttDrvrGET_TASK_CONTROL_BLOCK, &tbuf) < 0)
+		if (ioctl(mtt, MTT_IOCGTCB, &tbuf) < 0)
 			return MttLibErrorIO;
 		if (strcmp(name, tbuf.Name) == 0)
 			return tn;

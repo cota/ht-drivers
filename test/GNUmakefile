@@ -7,11 +7,12 @@ include /acc/dsc/src/co/Make.auto
 DRV = ../driver
 
 CFLAGS = -g -Wall -fwritable-strings -I. -I$(DRV) -I$(PS) \
-	 -I/acc/local/$(CPU)/include -I./jtag -I../lib -lX11 -I/dsrc/drivers/ctr/src/driver
-LDLIBS = -ltgm -ldscrt -lerr -lerr_dummy -llynx -lX11 -lnetinet -lm -ltgv -lgm
+	 -I/acc/local/$(CPU)/include -I./jtag -I../lib -I/dsrc/drivers/ctr/src/driver \
+	-I../../include -I../driver
+LDLIBS = -ltgm -ldscrt -lerr -lerr_dummy -llynx -lnetinet -lm -ltgv -lgm
 ALL  = mtttest.$(CPU)
 SRCS = mtttest.c MttCmds.c MttOpen.c DoCmd.c GetAtoms.c Cmds.c
-HDRS = Cmds.h $(DRV)/mttdrvr.h $(DRV)/mttdrvrP.h
+HDRS = Cmds.h $(DRV)/mttdrvr.h $(DRV)/mtt_priv.h
 
 all: $(ALL)
 

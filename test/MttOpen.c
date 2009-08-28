@@ -15,7 +15,7 @@ int MttOpen() {
 char fnm[32];
 int  i, fn;
 
-   for (i = 1; i <= MttDrvrCLIENT_CONTEXTS; i++) {
+   for (i = 1; i <= SkelDrvrCLIENT_CONTEXTS; i++) {
       sprintf(fnm,"/dev/%s.%1d","mtt",i);
       if ((fn = open(fnm,O_RDWR,0)) > 0) return(fn);
    };

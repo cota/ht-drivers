@@ -503,7 +503,7 @@ long lrg[LREGS];
 
    while (1) {
       lrb.Task = tasknum;
-      if (ioctl(mtt,MttDrvrGET_TASK_REG_VALUE,&lrb) < 0) {
+      if (ioctl(mtt,MTT_IOCGTRVAL,&lrb) < 0) {
 	 IErr("GET_TASK_REG_VALUE",NULL);
 	 return;
       }
@@ -551,7 +551,7 @@ long lrg[LREGS];
 	 lrb.RegVals[reg] = lrg[reg];
 	 lrb.RegMask = 1 << reg;
 
-	 if (ioctl(mtt,MttDrvrSET_TASK_REG_VALUE,&lrb) < 0) {
+	 if (ioctl(mtt,MTT_IOCSTRVAL,&lrb) < 0) {
 	    IErr("SET_TASK_REG_VALUE",NULL);
 	    return;
 	 }
@@ -572,7 +572,7 @@ MttDrvrGlobalRegBuf grb;
    while (1) {
 
       grb.RegNum = reg;
-      if (ioctl(mtt,MttDrvrGET_GLOBAL_REG_VALUE,&grb) < 0) {
+      if (ioctl(mtt,MTT_IOCGGRVAL,&grb) < 0) {
 	 IErr("GET_GLOBAL_REG_VALUE",NULL);
 	 return;
       }
@@ -612,7 +612,7 @@ MttDrvrGlobalRegBuf grb;
       if (cp != ep) {
 	 grb.RegVal = val;
 	 grb.RegNum = reg;
-	 if (ioctl(mtt,MttDrvrSET_GLOBAL_REG_VALUE,&grb) < 0) {
+	 if (ioctl(mtt,MTT_IOCSGRVAL,&grb) < 0) {
 	    IErr("SET_GLOBAL_REG_VALUE",NULL);
 	    return;
 	 }
@@ -809,7 +809,7 @@ MttDrvrTaskBuf    tbuf;
 MttDrvrTaskBlock *tcbp;
 
    tbuf.Task = tn;
-   if (ioctl(mtt,MttDrvrGET_TASK_CONTROL_BLOCK,&tbuf) < 0) {
+   if (ioctl(mtt,MTT_IOCGTCB,&tbuf) < 0) {
       IErr("GET_TASK_CONTROL_BLOCK",NULL);
       return;
    }
@@ -908,7 +908,7 @@ MttDrvrTaskBlock *tcbp;
 	 }
       }
    }
-   if (ioctl(mtt,MttDrvrSET_TASK_CONTROL_BLOCK,&tbuf) < 0) {
+   if (ioctl(mtt,MTT_IOCSTCB,&tbuf) < 0) {
       IErr("SET_TASK_CONTROL_BLOCK",NULL);
       return;
    }
@@ -1128,7 +1128,7 @@ MttDrvrTime t;
 
    jtag_input = fopen(fname,"r");
    if (jtag_input) {
-      if (ioctl(mtt,MttDrvrJTAG_OPEN,NULL)) {
+      if (ioctl(mtt,SkelDrvrIoctlJTAG_OPEN,NULL)) {
 	 IErr("JTAG_OPEN",NULL);
 	 return 1;
       }
@@ -1141,13 +1141,13 @@ MttDrvrTime t;
 
       sleep(5); /* Wait for hardware to reconfigure */
 
-      if (ioctl(mtt,MttDrvrJTAG_CLOSE,NULL) < 0) {
+      if (ioctl(mtt,SkelDrvrIoctlJTAG_CLOSE,NULL) < 0) {
 	 IErr("JTAG_CLOSE",NULL);
 	 return 1;
       }
 
       bzero((void *) &version, sizeof(MttDrvrVersion));
-      if (ioctl(mtt,MttDrvrGET_VERSION,&version) < 0) {
+      if (ioctl(mtt,MTT_IOCGVERSION,&version) < 0) {
 	 IErr("GET_VERSION",NULL);
 	 return 1;
       }
@@ -1185,7 +1185,7 @@ int n, radix, nadr;
       iob.Offset = addr;
       iob.UserArray = array;
 
-      if (ioctl(mtt,MttDrvrRAW_READ,&iob) < 0) {
+      if (ioctl(mtt,MTT_IOCRAW_READ,&iob) < 0) {
 	 IErr("RAW_READ",NULL);
 	 break;
       }
@@ -1221,7 +1221,7 @@ int n, radix, nadr;
 	 *data = strtoul(str,&cp,radix);
 	 if (cp != str) {
 	    iob.Size = 1;
-	    if (ioctl(mtt,MttDrvrRAW_WRITE,&iob) < 0) {
+	    if (ioctl(mtt,MTT_IOCRAW_WRITE,&iob) < 0) {
 	       IErr("RAW_WRITE",NULL);
 	       break;
 	    }
@@ -1398,29 +1398,32 @@ int n, earg;
 int GetSetSwDeb(int arg) {
 ArgVal   *v;
 AtomType  at;
-unsigned int debug;
+SkelDrvrDebug debug;
+
+   /* configure the debug level for the current process */
+   debug.ClientPid = 0;
 
    arg++;
    v = &(vals[arg]);
    at = v->Type;
    if (at == Numeric) {
       arg++;
-      if (v->Number) debug = v->Number;
-      else           debug = 0;
-      if (ioctl(mtt,MttDrvrSET_SW_DEBUG,&debug) < 0) {
-	 IErr("SET_SW_DEBUG",&debug);
+      if (v->Number) debug.DebugFlag = v->Number;
+      else           debug.DebugFlag = 0;
+      if (ioctl(mtt,SkelDrvrIoctlSET_DEBUG,&debug) < 0) {
+         IErr("SET_DEBUG",(int *)&debug.DebugFlag);
 	 return arg;
       }
    }
-   debug = -1;
-   if (ioctl(mtt,MttDrvrGET_SW_DEBUG,&debug) < 0) {
-      IErr("GET_SW_DEBUG",NULL);
+
+   if (ioctl(mtt,SkelDrvrIoctlGET_DEBUG,&debug) < 0) {
+      IErr("GET_DEBUG",NULL);
       return arg;
    }
-   if (debug > 0)
-      printf("SoftwareDebug: Level:%d Enabled\n",debug);
+   if (debug.DebugFlag)
+      printf("SoftwareDebug: Level:%d Enabled\n",debug.DebugFlag);
    else
-      printf("SoftwareDebug: Level:%d Disabled\n",debug);
+      printf("SoftwareDebug: Level:%d Disabled\n",debug.DebugFlag);
 
    return arg;
 }
@@ -1436,7 +1439,7 @@ MttDrvrTime t;
    arg++;
 
    bzero((void *) &version, sizeof(MttDrvrVersion));
-   if (ioctl(mtt,MttDrvrGET_VERSION,&version) < 0) {
+   if (ioctl(mtt,MTT_IOCGVERSION,&version) < 0) {
       IErr("GET_VERSION",NULL);
       return arg;
    }
@@ -1475,21 +1478,21 @@ long qflag, qsize, qover;
       arg++;
       qflag = v->Number;
 
-      if (ioctl(mtt,MttDrvrSET_QUEUE_FLAG,&qflag) < 0) {
+      if (ioctl(mtt,SkelDrvrIoctlSET_QUEUE_FLAG,&qflag) < 0) {
 	 IErr("SET_QUEUE_FLAG",(int *) &qflag);
 	 return arg;
       }
    }
    qflag = -1;
-   if (ioctl(mtt,MttDrvrGET_QUEUE_FLAG,&qflag) < 0) {
+   if (ioctl(mtt,SkelDrvrIoctlGET_QUEUE_FLAG,&qflag) < 0) {
       IErr("GET_QUEUE_FLAG",NULL);
       return arg;
    }
-   if (ioctl(mtt,MttDrvrGET_QUEUE_SIZE,&qsize) < 0) {
+   if (ioctl(mtt,SkelDrvrIoctlGET_QUEUE_SIZE,&qsize) < 0) {
       IErr("GET_QUEUE_SIZE",NULL);
       return arg;
    }
-   if (ioctl(mtt,MttDrvrGET_QUEUE_OVERFLOW,&qover) < 0) {
+   if (ioctl(mtt,SkelDrvrIoctlGET_QUEUE_OVERFLOW,&qover) < 0) {
       IErr("GET_QUEUE_FLAG",NULL);
       return arg;
    }
@@ -1509,10 +1512,11 @@ int GetSetModule(int arg) {
 ArgVal   *v;
 AtomType  at;
 int mod, cnt, cbl;
-MttDrvrModuleAddress moad;
+SkelDrvrMaps maps;
 TgvName cblnam;
 TgmMachine mch;
 int wrc;
+int i;
 
    arg++;
    v = &(vals[arg]);
@@ -1521,7 +1525,7 @@ int wrc;
       arg++;
       if (v->Number) {
 	 mod = v->Number;
-	 if (ioctl(mtt,MttDrvrSET_MODULE,&mod) < 0) {
+	 if (ioctl(mtt,SkelDrvrIoctlSET_MODULE,&mod) < 0) {
 	    IErr("SET_MODULE",&mod);
 	    return arg;
 	 }
@@ -1529,31 +1533,36 @@ int wrc;
       module = mod;
    }
 
-   if (ioctl(mtt,MttDrvrGET_MODULE_COUNT,&cnt) < 0) {
+   if (ioctl(mtt,SkelDrvrIoctlGET_MODULE_COUNT,&cnt) < 0) {
       IErr("GET_MODULE_COUNT",NULL);
       return arg;
    }
 
    for (mod=1; mod<=cnt; mod++) {
-      if (ioctl(mtt,MttDrvrSET_MODULE,&mod) < 0) {
+      if (ioctl(mtt,SkelDrvrIoctlSET_MODULE,&mod) < 0) {
 	 IErr("SET_MODULE",&mod);
 	 return arg;
       }
-      if (ioctl(mtt,MttDrvrGET_MODULE_ADDRESS,&moad) < 0) {
-	 IErr("GET_MODULE_ADDRESS",NULL);
+      if (ioctl(mtt,SkelDrvrIoctlGET_MODULE_MAPS,&maps) < 0) {
+	 IErr("GET_MODULE_MAPS",NULL);
 	 return arg;
       }
-      if (ioctl(mtt,MttDrvrGET_MODULE_CABLE_ID,&cbl) < 0) {
+      if (ioctl(mtt,MTT_IOCGCABLEID,&cbl) < 0) {
 	 IErr("GET_MODULE_CABLE_ID",NULL);
 	 return arg;
       }
       printf("Mod:%d ",(int) mod);
 
-      printf("VME:0x%08x JTAG:0x%08x Vec:0x%02x Lvl:%1d ",
-	     (int) moad.VMEAddress,
-	     (int) moad.JTGAddress,
-	     (int) moad.InterruptVector,
-	     (int) moad.InterruptLevel);
+	if (!maps.Mappings) {
+		printf("No mappings for module #%d\n", mod);
+		goto out;
+	}
+	printf("\nSpace#\t\tMapped\n"
+		"------\t\t------\n");
+	for (i = 0; i < maps.Mappings; i++) {
+		printf("0x%x\t\t0x%lx\n", maps.Maps[i].SpaceNumber,
+			maps.Maps[i].Mapped);
+	}
 
       wrc = 0;
       if (TgvGetCableName(cbl,&cblnam)) {
@@ -1568,7 +1577,8 @@ int wrc;
 
       if (wrc) printf("ERROR: CONFIGURATION: Cable:%d Incompatible TGM NETWORK setting\n", wrc);
    }
-   ioctl(mtt,MttDrvrSET_MODULE,&module);
+out:
+   ioctl(mtt,SkelDrvrIoctlSET_MODULE,&module);
 
    return arg;
 }
@@ -1581,13 +1591,13 @@ int cnt;
 
    arg++;
 
-   ioctl(mtt,MttDrvrGET_MODULE_COUNT,&cnt);
+   ioctl(mtt,SkelDrvrIoctlGET_MODULE_COUNT,&cnt);
    if (module >= cnt) {
       module = 1;
-      ioctl(mtt,MttDrvrSET_MODULE,&module);
+      ioctl(mtt,SkelDrvrIoctlSET_MODULE,&module);
    } else {
       module ++;
-      ioctl(mtt,MttDrvrSET_MODULE,&module);
+      ioctl(mtt,SkelDrvrIoctlSET_MODULE,&module);
    }
 
    return arg;
@@ -1601,13 +1611,13 @@ int cnt;
 
    arg++;
 
-   ioctl(mtt,MttDrvrGET_MODULE_COUNT,&cnt);
+   ioctl(mtt,SkelDrvrIoctlGET_MODULE_COUNT,&cnt);
    if (module > 1) {
       module --;
-      ioctl(mtt,MttDrvrSET_MODULE,&module);
+      ioctl(mtt,SkelDrvrIoctlSET_MODULE,&module);
    } else {
       module = cnt;
-      ioctl(mtt,MttDrvrSET_MODULE,&module);
+      ioctl(mtt,SkelDrvrIoctlSET_MODULE,&module);
    }
 
    return arg;
@@ -1629,7 +1639,7 @@ int module, id;
       arg++;
       if (v->Number) {
 	 id = v->Number;
-	 if (ioctl(mtt,MttDrvrSET_MODULE_CABLE_ID,&id) < 0) {
+	 if (ioctl(mtt,MTT_IOCSCABLEID,&id) < 0) {
 	    IErr("SET_MODULE_CABLE_ID",&id);
 	    return arg;
 	 }
@@ -1637,13 +1647,13 @@ int module, id;
    }
 
    module = -1;
-   if (ioctl(mtt,MttDrvrGET_MODULE,&module) < 0) {
+   if (ioctl(mtt,SkelDrvrIoctlGET_MODULE,&module) < 0) {
       IErr("GET_MODULE",NULL);
       return arg;
    }
 
    id = -1;
-   if (ioctl(mtt,MttDrvrGET_MODULE_CABLE_ID,&id) < 0) {
+   if (ioctl(mtt,MTT_IOCGCABLEID,&id) < 0) {
       IErr("GET_MODULE_CABLE_ID",NULL);
       return arg;
    }
@@ -1668,13 +1678,13 @@ int timeout;
    if (at == Numeric) {
       arg++;
       timeout = v->Number;
-      if (ioctl(mtt,MttDrvrSET_TIMEOUT,&timeout) < 0) {
+      if (ioctl(mtt,SkelDrvrIoctlSET_TIMEOUT,&timeout) < 0) {
 	 IErr("SET_TIMEOUT",&timeout);
 	 return arg;
       }
    }
    timeout = -1;
-   if (ioctl(mtt,MttDrvrGET_TIMEOUT,&timeout) < 0) {
+   if (ioctl(mtt,SkelDrvrIoctlGET_TIMEOUT,&timeout) < 0) {
       IErr("GET_TIMEOUT",NULL);
       return arg;
    }
@@ -1692,9 +1702,9 @@ int timeout;
 int WaitInterrupt(int arg) {
 ArgVal   *v;
 AtomType  at;
-
-MttDrvrConnection con;
-MttDrvrReadBuf rbf;
+SkelDrvrConnection con;
+SkelDrvrReadBuf rbf;
+MttDrvrTime mtt_time;
 int i, cc, qflag, qsize, interrupt, cnt;
 
    arg++;
@@ -1723,7 +1733,7 @@ int i, cc, qflag, qsize, interrupt, cnt;
 	 interrupt    = v->Number;
 	 con.Module   = module;
 	 con.ConMask  = interrupt;
-	 if (ioctl(mtt,MttDrvrCONNECT,&con) < 0) {
+	 if (ioctl(mtt,SkelDrvrIoctlCONNECT,&con) < 0) {
 	    IErr("CONNECT",&interrupt);
 	    return arg;
 	 }
@@ -1731,7 +1741,7 @@ int i, cc, qflag, qsize, interrupt, cnt;
       } else {
 	 con.Module   = 0;
 	 con.ConMask  = 0;
-	 if (ioctl(mtt,MttDrvrCONNECT,&con) < 0) {
+	 if (ioctl(mtt,SkelDrvrIoctlCONNECT,&con) < 0) {
 	    IErr("CONNECT",&interrupt);
 	    return arg;
 	 }
@@ -1748,7 +1758,7 @@ int i, cc, qflag, qsize, interrupt, cnt;
 
    cnt = 0;
    do {
-      cc = read(mtt,&rbf,sizeof(MttDrvrReadBuf));
+      cc = read(mtt,&rbf,sizeof(SkelDrvrReadBuf));
       if (cc <= 0) {
 	 printf("Time out or Interrupted call\n");
 	 return arg;
@@ -1760,19 +1770,24 @@ int i, cc, qflag, qsize, interrupt, cnt;
       }
    } while (True);
 
-   if (ioctl(mtt,MttDrvrGET_QUEUE_FLAG,&qflag) < 0) {
+   if (ioctl(mtt,SkelDrvrIoctlGET_QUEUE_FLAG,&qflag) < 0) {
       IErr("GET_QUEUE_FLAG",NULL);
       return arg;
    }
-   if (ioctl(mtt,MttDrvrGET_QUEUE_SIZE,&qsize) < 0) {
+   if (ioctl(mtt,SkelDrvrIoctlGET_QUEUE_SIZE,&qsize) < 0) {
       IErr("GET_QUEUE_SIZE",NULL);
       return arg;
    }
 
+   /* convert from SkelTime to MttTime */
+   bzero((void *)&mtt_time, sizeof(MttDrvrTime));
+   mtt_time.Second	= rbf.Time.Second;
+   mtt_time.MilliSecond	= rbf.Time.NanoSecond * 1000;
+
    printf("Mod[%d] Int[0x%06x] Time[%s]",
     (int) rbf.Connection.Module,
     (int) rbf.Connection.ConMask,
-	  TimeToStr(&rbf.Time));
+	  TimeToStr(&mtt_time));
 
    for (i=0; i<MttDrvrINTS; i++) {
       if ((1<<i) & rbf.Connection.ConMask)
@@ -1792,8 +1807,8 @@ int SimulateInterrupt(int arg) { /* msk */
 ArgVal   *v;
 AtomType  at;
 
-MttDrvrConnection con;
-MttDrvrReadBuf wbf;
+SkelDrvrConnection con;
+SkelDrvrReadBuf wbf;
 int i, cc;
 
    arg++;
@@ -1824,7 +1839,7 @@ int i, cc;
       }
    }
    wbf.Connection = con;
-   cc = write(mtt,&wbf,sizeof(MttDrvrReadBuf));
+   cc = write(mtt,&wbf,sizeof(SkelDrvrReadBuf));
    return arg;
 }
 
@@ -1833,16 +1848,16 @@ int i, cc;
 
 int ListClients(int arg) {
 
-MttDrvrClientConnections cons;
-MttDrvrConnection *con;
-MttDrvrClientList clist;
+SkelDrvrClientConnections cons;
+SkelDrvrConnection *con;
+SkelDrvrClientList clist;
 int i, j, k, pid, mypid;
 
    arg++;
 
    mypid = getpid();
 
-   if (ioctl(mtt,MttDrvrGET_CLIENT_LIST,&clist) < 0) {
+   if (ioctl(mtt,SkelDrvrIoctlGET_CLIENT_LIST,&clist) < 0) {
       IErr("GET_CLIENT_LIST",NULL);
       return arg;
    }
@@ -1850,10 +1865,10 @@ int i, j, k, pid, mypid;
    for (i=0; i<clist.Size; i++) {
       pid = clist.Pid[i];
 
-      bzero((void *) &cons, sizeof(MttDrvrClientConnections));
+      bzero((void *) &cons, sizeof(SkelDrvrClientConnections));
       cons.Pid = pid;
 
-      if (ioctl(mtt,MttDrvrGET_CLIENT_CONNECTIONS,&cons) < 0) {
+      if (ioctl(mtt,SkelDrvrIoctlGET_CLIENT_CONNECTIONS,&cons) < 0) {
 	 IErr("GET_CLIENT_CONNECTIONS",NULL);
 	 return arg;
       }
@@ -1891,13 +1906,13 @@ unsigned long enb, stat;
    if (at == Numeric) {
       arg++;
       enb = v->Number;
-      if (ioctl(mtt,MttDrvrENABLE,&enb) < 0) {
+      if (ioctl(mtt,MTT_IOCSOUT_ENABLE,&enb) < 0) {
 	 printf("Error: Cant enable/disable event output\n");
 	 IErr("ENABLE",NULL);
 	 return arg;
       }
    }
-   if (ioctl(mtt,MttDrvrGET_STATUS,&stat) < 0) {
+   if (ioctl(mtt,MTT_IOCGSTATUS,&stat) < 0) {
       printf("Error: Cant read status from module: %d\n",(int) module);
       IErr("GET_STATUS",NULL);
       return arg;
@@ -1918,13 +1933,13 @@ int module;
 
    arg++;
 
-   if (ioctl(mtt,MttDrvrRESET,NULL) < 0) {
+   if (ioctl(mtt,SkelDrvrIoctlRESET,NULL) < 0) {
       IErr("RESET",NULL);
       return arg;
    }
 
    module = -1;
-   if (ioctl(mtt,MttDrvrGET_MODULE,&module) < 0) {
+   if (ioctl(mtt,SkelDrvrIoctlGET_MODULE,&module) < 0) {
       IErr("GET_MODULE",NULL);
       return arg;
    }
@@ -1940,7 +1955,7 @@ int module;
 int GetSetUtcSending(int arg) {
 ArgVal   *v;
 AtomType  at;
-unsigned long autc, stat;
+uint32_t autc, stat;
 
    arg++;
    v = &(vals[arg]);
@@ -1948,13 +1963,13 @@ unsigned long autc, stat;
    if (at == Numeric) {
       arg++;
       autc = v->Number;
-      if (ioctl(mtt,MttDrvrUTC_SENDING,&autc) < 0) {
+      if (ioctl(mtt,MTT_IOCSUTC_SENDING,&autc) < 0) {
 	 printf("Error: Cant set Auto UTC sending\n");
 	 IErr("UTC_SENDING",NULL);
 	 return arg;
       }
    }
-   if (ioctl(mtt,MttDrvrGET_STATUS,&stat) < 0) {
+   if (ioctl(mtt,MTT_IOCGSTATUS,&stat) < 0) {
       printf("Error: Cant read status from module: %d\n",(int) module);
       IErr("GET_STATUS",NULL);
       return arg;
@@ -1972,7 +1987,7 @@ unsigned long autc, stat;
 int GetSetExt1Khz(int arg) {
 ArgVal   *v;
 AtomType  at;
-unsigned long xkhz, stat;
+uint32_t xkhz, stat;
 
    arg++;
    v = &(vals[arg]);
@@ -1980,13 +1995,13 @@ unsigned long xkhz, stat;
    if (at == Numeric) {
       arg++;
       xkhz = v->Number;
-      if (ioctl(mtt,MttDrvrEXTERNAL_1KHZ,&xkhz) < 0) {
+      if (ioctl(mtt,MTT_IOCSEXT_1KHZ,&xkhz) < 0) {
 	 printf("Error: Cant set External 1Khz\n");
 	 IErr("EXTERNAL_1KHZ",NULL);
 	 return arg;
       }
    }
-   if (ioctl(mtt,MttDrvrGET_STATUS,&stat) < 0) {
+   if (ioctl(mtt,MTT_IOCGSTATUS,&stat) < 0) {
       printf("Error: Cant read status from module: %d\n",(int) module);
       IErr("GET_STATUS",NULL);
       return arg;
@@ -2004,7 +2019,7 @@ unsigned long xkhz, stat;
 int GetSetOutDelay(int arg) {
 ArgVal   *v;
 AtomType  at;
-unsigned long outd;
+uint32_t outd;
 
    arg++;
    v = &(vals[arg]);
@@ -2012,13 +2027,13 @@ unsigned long outd;
    if (at == Numeric) {
       arg++;
       outd = v->Number;
-      if (ioctl(mtt,MttDrvrSET_OUTPUT_DELAY,&outd) < 0) {
+      if (ioctl(mtt,MTT_IOCSOUT_DELAY,&outd) < 0) {
 	 printf("Error: Cant set Event Output Delay\n");
 	 IErr("SET_OUTPUT_DELAY",NULL);
 	 return arg;
       }
    }
-   if (ioctl(mtt,MttDrvrGET_OUTPUT_DELAY,&outd) < 0) {
+   if (ioctl(mtt,MTT_IOCGOUT_DELAY,&outd) < 0) {
       printf("Error: Cant get Event Output Delay\n");
       IErr("GET_OUTPUT_DELAY",NULL);
       return arg;
@@ -2037,7 +2052,7 @@ unsigned long outd;
 int GetSetSyncPeriod(int arg) {
 ArgVal   *v;
 AtomType  at;
-unsigned long synp;
+uint32_t synp;
 
    arg++;
    v = &(vals[arg]);
@@ -2045,13 +2060,13 @@ unsigned long synp;
    if (at == Numeric) {
       arg++;
       synp = v->Number;
-      if (ioctl(mtt,MttDrvrSET_SYNC_PERIOD,&synp) < 0) {
+      if (ioctl(mtt,MTT_IOCSSYNC_PERIOD,&synp) < 0) {
 	 printf("Error: Cant set Sync Period\n");
 	 IErr("SET_SYNC_PERIOD",NULL);
 	 return arg;
       }
    }
-   if (ioctl(mtt,MttDrvrGET_SYNC_PERIOD,&synp) < 0) {
+   if (ioctl(mtt,MTT_IOCGSYNC_PERIOD,&synp) < 0) {
       printf("Error: Cant get Sync Period\n");
       IErr("GET_SYNC_PERIOD",NULL);
       return arg;
@@ -2084,7 +2099,7 @@ MttDrvrTime  t;
 	 if (time(&tim) > 0) {
 	    t.Second = tim+1; t.MilliSecond = 0;
 	    printf("UTC: Set time: %s\n",TimeToStr(&t));
-	    if (ioctl(mtt,MttDrvrSET_UTC,&t) < 0) {
+	    if (ioctl(mtt,MTT_IOCSUTC,&t) < 0) {
 	       IErr("SET_UTC",NULL);
 	       return arg;
 	    }
@@ -2093,7 +2108,7 @@ MttDrvrTime  t;
       }
    }
 
-   if (ioctl(mtt,MttDrvrGET_UTC,&t) < 0) {
+   if (ioctl(mtt,MTT_IOCGUTC,&t) < 0) {
       IErr("GET_UTC",NULL);
       return arg;
    }
@@ -2108,10 +2123,10 @@ MttDrvrTime  t;
 
 int GetStatus(int arg) {
 
-unsigned long stat;
+uint32_t stat;
 
    arg++;
-   if (ioctl(mtt,MttDrvrGET_STATUS,&stat) < 0) {
+   if (ioctl(mtt,MTT_IOCGSTATUS,&stat) < 0) {
       IErr("GET_STATUS",NULL);
       return arg;
    }
@@ -2125,7 +2140,7 @@ unsigned long stat;
 int SendEvent(int arg) {
 ArgVal   *v;
 AtomType  at;
-unsigned long frame;
+uint32_t frame;
 
    arg++;
    v = &(vals[arg]);
@@ -2133,7 +2148,7 @@ unsigned long frame;
    if (at == Numeric) {
       arg++;
       frame = v->Number;
-      if (ioctl(mtt,MttDrvrSEND_EVENT,&frame) < 0) {
+      if (ioctl(mtt,MTT_IOCSSEND_EVENT,&frame) < 0) {
 	 printf("Error: Cant send frame: 0x%08X\n",(int) frame);
 	 IErr("SEND_EVENT",(int *) &frame);
 	 return arg;
@@ -2214,7 +2229,7 @@ ArgVal   *v;
 AtomType  at;
 
 int i;
-unsigned long tmsk, rmsk, msk;
+uint32_t tmsk, rmsk, msk;
 
    arg++;
 
@@ -2233,7 +2248,7 @@ unsigned long tmsk, rmsk, msk;
    }
    printf("]\n");
 
-   if (ioctl(mtt,MttDrvrGET_RUNNING_TASKS,&rmsk) < 0) {
+   if (ioctl(mtt,MTT_IOCGTASKS_CURR,&rmsk) < 0) {
       IErr("GET_RUNNING_TASKS",NULL);
       return arg;
    }
@@ -2249,7 +2264,7 @@ unsigned long tmsk, rmsk, msk;
       return arg;
    }
 
-   if (ioctl(mtt,MttDrvrSTART_TASKS,&tmsk) < 0) {
+   if (ioctl(mtt,MTT_IOCSTASKS_START,&tmsk) < 0) {
       IErr("START_TASKS",NULL);
       return arg;
    }
@@ -2266,7 +2281,7 @@ ArgVal   *v;
 AtomType  at;
 
 int i;
-unsigned long tmsk, msk;
+uint32_t tmsk, msk;
 
    arg++;
 
@@ -2285,7 +2300,7 @@ unsigned long tmsk, msk;
    }
    printf("]\n");
 
-   if (ioctl(mtt,MttDrvrSTOP_TASKS,&tmsk) < 0) {
+   if (ioctl(mtt,MTT_IOCSTASKS_STOP,&tmsk) < 0) {
       IErr("STOP_TASKS",NULL);
       return arg;
    }
@@ -2302,7 +2317,7 @@ ArgVal   *v;
 AtomType  at;
 
 int i;
-unsigned long tmsk, msk;
+uint32_t tmsk, msk;
 
    arg++;
 
@@ -2321,7 +2336,7 @@ unsigned long tmsk, msk;
    }
    printf("]\n");
 
-   if (ioctl(mtt,MttDrvrCONTINUE_TASKS,&tmsk) < 0) {
+   if (ioctl(mtt,MTT_IOCSTASKS_CONT,&tmsk) < 0) {
       IErr("CONTINUE_TASKS",NULL);
       return arg;
    }
@@ -2338,12 +2353,12 @@ unsigned long tmsk, msk;
 int GetRunningTasks(int arg) {
 
 int i;
-unsigned long rmsk, msk;
+uint32_t rmsk, msk;
 int cnt;
 
    arg++;
 
-   if (ioctl(mtt,MttDrvrGET_RUNNING_TASKS,&rmsk) < 0) {
+   if (ioctl(mtt,MTT_IOCGTASKS_CURR,&rmsk) < 0) {
       IErr("GET_RUNNING_TASKS",NULL);
       return arg;
    }
@@ -2685,7 +2700,7 @@ FILE *fp;
       return arg;
    }
 
-   if (ioctl(mtt,MttDrvrGET_PROGRAM,&pbf) < 0) {
+   if (ioctl(mtt,MTT_IOCGPROGRAM,&pbf) < 0) {
       IErr("GET_PROGRAM",NULL);
       fclose(fp);
       free(pbf.Program);
@@ -2812,7 +2827,7 @@ int n, earg, laset;
       }
    }
 
-   if (ioctl(mtt,MttDrvrSET_PROGRAM,&pbf) < 0) {
+   if (ioctl(mtt,MTT_IOCSPROGRAM,&pbf) < 0) {
       IErr("SET_PROGRAM",NULL);
       fclose(fp);
       free(pbf.Program);
@@ -2840,7 +2855,7 @@ int n, earg, laset;
       else      tcbp->PcOffset = 0;
       if (strlen(fname) == 0) sprintf(tbuf.Name,"Task-%02d.obj",(int) tn);
       else                    sprintf(tbuf.Name,"%s",GetRootName(fname));
-      if (ioctl(mtt,MttDrvrSET_TASK_CONTROL_BLOCK,&tbuf) < 0) {
+      if (ioctl(mtt,MTT_IOCSTCB,&tbuf) < 0) {
 	 IErr("SET_TASK_CONTROL_BLOCK",NULL);
 	 return earg;
       }
@@ -2898,7 +2913,7 @@ MttDrvrTaskBuf tbuf;
 
    if ((tn >= 1) && (tn <= MttDrvrTASKS)) {
       tbuf.Task = tn;
-      if (ioctl(mtt,MttDrvrGET_TASK_CONTROL_BLOCK,&tbuf) < 0) {
+      if (ioctl(mtt,MTT_IOCGTCB,&tbuf) < 0) {
 	 IErr("GET_TASK_CONTROL_BLOCK",NULL);
 	 return arg;
       }
@@ -2919,7 +2934,7 @@ MttDrvrTaskBuf tbuf;
 	 return arg;
       }
 
-      if (ioctl(mtt,MttDrvrGET_PROGRAM,&pbf) < 0) {
+      if (ioctl(mtt,MTT_IOCGPROGRAM,&pbf) < 0) {
 	 IErr("GET_PROGRAM",NULL);
 	 fclose(fp);
 	 free(pbf.Program);
@@ -3897,7 +3912,8 @@ ArgVal   *v;
 AtomType  at;
 char fname[LN], cmd[LN], *cp;
 int i, j, n, earg;
-unsigned long lr, msk, rmsk;
+unsigned long lr;
+uint32_t msk, rmsk;
 MttDrvrTaskBuf    tbuf;
 MttDrvrTaskRegBuf lrb;
 MttDrvrGlobalRegBuf grb;
@@ -3949,7 +3965,7 @@ FILE *fp;
       return earg;
    }
 
-   if (ioctl(mtt,MttDrvrGET_RUNNING_TASKS,&rmsk) < 0) {
+   if (ioctl(mtt,MTT_IOCGTASKS_CURR,&rmsk) < 0) {
       IErr("GET_RUNNING_TASKS",NULL);
       return earg;
    }
@@ -3958,14 +3974,14 @@ FILE *fp;
       msk = 1 << i;
       if (msk & rmsk) {
 	 tbuf.Task = i+1;
-	 if (ioctl(mtt,MttDrvrGET_TASK_CONTROL_BLOCK,&tbuf) < 0) {
+	 if (ioctl(mtt,MTT_IOCGTCB,&tbuf) < 0) {
 	    IErr("GET_TASK_CONTROL_BLOCK",NULL);
 	    return earg;
 	 }
 
 	 fprintf(fp,"%s",tbuf.Name);
 	 lrb.Task = tbuf.Task;
-	 if (ioctl(mtt,MttDrvrGET_TASK_REG_VALUE,&lrb) < 0) {
+	 if (ioctl(mtt,MTT_IOCGTRVAL,&lrb) < 0) {
 	    IErr("GET_TASK_REG_VALUE",NULL);
 	    return earg;
 	 }
@@ -3976,7 +3992,7 @@ FILE *fp;
 	 if (strcmp(tbuf.Name,"tgm.obj") == 0) {
 	    for (j=0; j<32; j++) {
 	       grb.RegNum = j;
-	       if (ioctl(mtt,MttDrvrGET_GLOBAL_REG_VALUE,&grb) < 0) {
+	       if (ioctl(mtt,MTT_IOCGGRVAL,&grb) < 0) {
 		  IErr("GET_GLOBAL_REG_VALUE",NULL);
 		  break;
 	       }
@@ -4056,7 +4072,7 @@ mqd_t q;
       return earg;
    }
 
-   ql = mq_send(q,mes,MAX_NAME_SIZE,NULL);
+   ql = mq_send(q,mes,MAX_NAME_SIZE,0);
    mq_close(q);
    if (ql == -1) {
       printf("ERROR:Message:%s:Not sent\n",mes);
