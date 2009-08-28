@@ -6,7 +6,7 @@
 
 
 
-HDRS1.COMMON=  libmtt.h  mttdrvr.h mtthard.h
+HDRS1.COMMON=  libmtt.h
 HDRS1.ppc4  = $(HDRS1.COMMON) 
 HDRS1.L864  = $(HDRS1.COMMON) 
 HDRS1.Linux  = $(HDRS1.COMMON) 
@@ -37,7 +37,7 @@ ALL=$(BINS)
 #=============================================================================
 #  LOCAL definitions
 #=============================================================================
-CFLAGS= -g -Wall -I. -I../driver -I/acc/src/dsc/drivers/coht/include
+CFLAGS= -g -Wall -I. -I../driver -I../../include
 LDLIBS=-l
 #=============================================================================
 #  INCLUDES
@@ -56,10 +56,6 @@ all: $(ALL)
 clean:
 	$(RM) $(OBJS) $(ALL) $(BAKS)
 
-mttdrvr.h mtthard.h :
-	@if [ ! -e $@ ]; then \
-		ln -s ../driver/$@;\
-	fi
 
 $(BINS1): $(OBJS1)
 	@- rm -f $@;\

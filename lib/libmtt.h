@@ -15,7 +15,7 @@
 
 #include <stdio.h>
 
-#include "mttdrvr.h"
+#include <mttdrvr.h>
 
 #include "asm.h"
 #include "opcodes.h"
