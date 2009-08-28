@@ -2140,20 +2140,21 @@ uint32_t stat;
 int SendEvent(int arg) {
 ArgVal   *v;
 AtomType  at;
-uint32_t frame;
+MttDrvrEvent event;
 
    arg++;
    v = &(vals[arg]);
    at = v->Type;
    if (at == Numeric) {
       arg++;
-      frame = v->Number;
-      if (ioctl(mtt,MTT_IOCSSEND_EVENT,&frame) < 0) {
-	 printf("Error: Cant send frame: 0x%08X\n",(int) frame);
-	 IErr("SEND_EVENT",(int *) &frame);
+      event.Frame = v->Number;
+      event.Priority = 0;
+      if (ioctl(mtt,MTT_IOCSSEND_EVENT,&event) < 0) {
+	 printf("Error: Cant send frame: 0x%08X\n", event.Frame);
+	 IErr("SEND_EVENT", &event.Frame);
 	 return arg;
       }
-      printf("Sent: 0x%08X\n",(int) frame);
+      printf("Sent: 0x%08X\n", event.Frame);
       return arg;
    }
    printf("No frame to send\n");

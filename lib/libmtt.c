@@ -784,19 +784,33 @@ MttDrvrTaskStatus MttLibGetTaskStatus(char *name) {
 	return 0;
 }
 
-/* ================================================================ */
-/* Calling this routine sends out the specified frame imediatley.   */
-
-MttLibError MttLibSendEvent(unsigned long frame) {
-
-	uint32_t sendframe = frame;
+static MttLibError __send_event(int frame, int priority)
+{
+	MttDrvrEvent event;
 
 	if (mtt == 0)
 		return MttLibErrorINIT;
 
-	if (ioctl(mtt, MTT_IOCSSEND_EVENT, &sendframe) < 0)
+	event.Frame	= frame;
+	event.Priority	= priority;
+	if (ioctl(mtt, MTT_IOCSSEND_EVENT, &event) < 0)
 		return MttLibErrorIO;
+
 	return MttLibErrorNONE;
+}
+
+/* ================================================================ */
+/* Calling this routine sends out the specified frame immediately.  */
+/* The event will be sent in the high priority queue                */
+
+MttLibError MttLibSendEvent(unsigned long frame) {
+
+	return __send_event(frame, 0);
+}
+
+MttLibError MttLibSendEventPrio(unsigned long frame, int priority)
+{
+	return __send_event(frame, priority);
 }
 
 /* ================================================================ */

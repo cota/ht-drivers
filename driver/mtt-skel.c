@@ -532,12 +532,35 @@ mtt_gs_utc_ioctl(SkelDrvrClientContext *ccon, void *arg, int set)
 	return SkelUserReturnOK;
 }
 
+/*
+ * check if the module supports outgoing events' prioritisation
+ * return 1 - if it supports it
+ * return 0 - otherwise
+ */
+static inline int mtt_supports_prio(SkelDrvrModuleContext *mcon)
+{
+	return mtt_readw(mcon, MTT_VHDL) >= MTT_REV_PRIO;
+}
+
 static SkelUserReturn
 mtt_send_event_ioctl(SkelDrvrClientContext *ccon, void *arg)
 {
-	uint32_t *valp = arg;
+	SkelDrvrModuleContext	*mcon = get_mcon(ccon->ModuleNumber);
+	MttDrvrEvent		*event = arg;
+	uint32_t		cmd;
 
-	mtt_cmd(get_mcon(ccon->ModuleNumber), MttDrvrCommandSEND_EVENT, *valp);
+	if (!WITHIN_RANGE(0, event->Priority, 1)) {
+		pseterr(EINVAL);
+		return SkelUserReturnFAILED;
+	}
+
+	/* make sure thats the module supports prioritisation */
+	cmd = MttDrvrCommandSEND_EVENT;
+	if (event->Priority && mtt_supports_prio(mcon))
+		cmd = MttDrvrCommandSEND_EVENT_LOW;
+
+	mtt_cmd(mcon, cmd, event->Frame);
+
 	return SkelUserReturnOK;
 }
 

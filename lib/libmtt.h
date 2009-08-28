@@ -166,6 +166,16 @@ MttDrvrTaskStatus MttLibGetTaskStatus(char *name);
 
 MttLibError MttLibSendEvent(unsigned long frame);
 
+/**
+ * @brief Send out a frame
+ *
+ * @param frame - event frame to send
+ * @param priority - 0 (high priority) or 1 (low)
+ *
+ * @return appropriate MttLibError code
+ */
+MttLibError MttLibSendEventPrio(unsigned long frame, int priority);
+
 /* ================================================================ */
 /* This routine allows you to connect to MTT interrupts and wait    */
 /* for them to arrive. You supply a mask defined in mtthard.h that  */

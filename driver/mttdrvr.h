@@ -36,6 +36,16 @@ typedef struct {
 	unsigned long *UserArray;/* Callers data area for  IO */
 } MttDrvrRawIoBlock;
 
+/**
+ * MttDrvrEvent - event descriptor
+ * @Frame: frame number to send
+ * @Priority: 0 (high) or 1 (low)
+ */
+typedef struct {
+	int	Frame;
+	int	Priority;
+} MttDrvrEvent;
+
 /* ------------------------ */
 /* Program ram and op codes */
 
