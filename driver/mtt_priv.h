@@ -37,6 +37,7 @@ struct mtt_task {
 
 /**
  * struct udata - module's private data, to be hooked onto the module context
+ * @lock: protect the module from concurrent access
  * @EnabledOutput: set to 1 when output enabled
  * @CableId: cable id
  * @External1KHZ: set to 1 when an external 1KHz signal is connected
@@ -50,6 +51,7 @@ struct mtt_task {
  * @jtag: kernel address of the mapped JTAG space
  */
 struct udata {
+	struct cdcm_mutex	lock;
 	int			EnabledOutput;
 	int			CableId;
 	int			External1KHZ;

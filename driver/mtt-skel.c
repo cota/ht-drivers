@@ -412,6 +412,7 @@ SkelUserReturn SkelUserModuleInit(SkelDrvrModuleContext *mcon)
 
 	/* initialise locking fields */
 	cdcm_spin_lock_init(&udata->iolock);
+	cdcm_mutex_init(&udata->lock);
 
 	/* initialise the tasks */
 	mtt_tasks_init(udata);
