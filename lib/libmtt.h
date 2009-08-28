@@ -4,8 +4,8 @@
 /* Julian Lewis AB/CO/HT                                                  */
 /**************************************************************************/
 
-#ifndef MTTLIB
-#define MTTLIB
+#ifndef LIBMTT
+#define LIBMTT
 
 /* ================================================================ */
 /* Some useful definitions have been made in the driver hardware    */
@@ -13,24 +13,14 @@
 /* "mttdrvr.h" below. This defines types for Interupts, Status and  */
 /* module commands.                                                 */
 
-#include <mttdrvr.h>
+#include <stdio.h>
 
-/* ================================================================ */
-/* The assembler is where the MTT instruction set and object layout */
-/* is defined.                                                      */
+#include "mttdrvr.h"
 
-#include <asm.h>
+#include "asm.h"
+#include "opcodes.h"
+#include "mttRegisters.h"
 
-/* ================================================================ */
-/* mttregs.h has been generated automatically by the "gtm" program  */
-/* and is shared by the Mtt assembler tasks and the library so that */
-/* the Mtt tasks and library stay synchronized when definitions are */
-/* changed. The file includes definitions of the telegram groups,   */
-/* and Mtt Global and Local register usage. Because the include is  */
-/* in two languages, "C" and Mtt assembler, the symbol MTTLIB must  */
-/* be defined to trigger the "C" library version.                   */
-
-#include <mttregs.h>
 
 /* ================================================================ */
 /* Event Tables reside in MTT tasks 1..16 and are accessed by name  */
