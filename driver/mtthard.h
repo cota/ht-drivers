@@ -98,7 +98,9 @@ typedef enum {
 	MttDrvrCommandSET_UTC,                 /* Update time to UTC Second at next PPS => UTC       */
 	MttDrvrCommandSET_OUT_DELAY,           /* Update Output Delay in 25ns ticks     => Delay     */
 	MttDrvrCommandSET_SYNC_PERIOD,         /* Update Sync Period in milliseconds    => Period    */
-	MttDrvrCommandSEND_EVENT,              /* Send out the event                    => Frame     */
+	MttDrvrCommandSEND_EVENT,	/* Send out event (High priority) */
+	MttDrvrCommandB1RATE,		/* Set the B1 frame transmission rate */
+	MttDrvrCommandSEND_EVENT_LOW,	/* Send out event (Low priority) */
 
 	MttDrvrCOMMANDS                        /* Total number of control functions */
 
@@ -209,5 +211,8 @@ typedef struct {
 #define MTT_MEM_GLOB	0x070
 #define MTT_MEM_LOC	0x3f0
 #define MTT_MEM_PROG	0xbf0
+
+/* first revision that supports outgoing events' prioritisation */
+#define MTT_REV_PRIO	1251465263
 
 #endif
