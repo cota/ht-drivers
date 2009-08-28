@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+
+if [ ! -e $1.cpp ]; then 
+  echo "File $1.cpp doesn't exist !!!"
+  exit 1;
+fi 
+
+/usr/bin/cpp -I/acc/dsc/tst/data/timing/ctm/OPERLHC/NEXT/mtt $1.cpp $1.ass
+../asm.Linux $1.ass $1.obj 
+echo "./n" | ../emu.Linux $1.obj
+
