@@ -32,6 +32,9 @@
 *.L86
 *.68k
 
+# compilation objects
+object_*
+
 #
 # Top-level generic files
 #
