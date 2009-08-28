@@ -17,6 +17,7 @@
 #define __CDCM__
 #include "dg/ModuleHeader.h"	/* for DevInfo_t */
 
+
 /* _GIOCTL_GET_DG_DEV_INFO ioctl argument
    Keep syncronized with one from user space! */
 #define DDNMSZ    32   /* device/driver name size in bytes. Same as in Lynx */
@@ -505,7 +506,7 @@ int dg_fop_open(struct inode *inode, struct file *filp)
 	/* Not using filp->private_data to store priv,
 	   so that Linux users can use it */
 
-	return entry_points.dldd_open(priv, old_encode_dev(inode->i_rdev),
+	return entry_points.dldd_open(priv, inode->i_rdev,
 				      (struct cdcm_file *)filp);
 }
 
