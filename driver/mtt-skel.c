@@ -565,6 +565,13 @@ mtt_tasks_start_ioctl(SkelDrvrClientContext *ccon, void *arg)
 			MttDrvrMap		*map = get_iomap_ccon(ccon);
 			MttDrvrTaskBlock	*task = &map->Tasks[i];
 
+			/*
+			 * Ensure no one else alters the state of the device
+			 * while we modify the task.
+			 * NOTE: udata->lock is always acquired BEFORE
+			 * task->lock.
+			 */
+			cdcm_mutex_lock(&udata->lock);
 			mtt_writew(mcon, MTT_TASKS_STOP, tmask);
 
 			cdcm_mutex_lock(&localtask->lock);
@@ -572,6 +579,7 @@ mtt_tasks_start_ioctl(SkelDrvrClientContext *ccon, void *arg)
 			cdcm_mutex_unlock(&localtask->lock);
 
 			mtt_writew(mcon, MTT_TASKS_START, tmask);
+			cdcm_mutex_unlock(&udata->lock);
 		}
 	}
 	return SkelUserReturnOK;
@@ -581,6 +589,7 @@ static SkelUserReturn
 mtt_gs_tasks_ioctl(SkelDrvrClientContext *ccon, void *arg, int reg, int set)
 {
 	SkelDrvrModuleContext	*mcon = get_mcon(ccon->ModuleNumber);
+	struct udata		*udata = mcon->UserData;
 	uint32_t		*valp = arg;
 	uint32_t		mask;
 
@@ -590,9 +599,13 @@ mtt_gs_tasks_ioctl(SkelDrvrClientContext *ccon, void *arg, int reg, int set)
 			pseterr(EINVAL);
 			return SkelUserReturnFAILED;
 		}
+		cdcm_mutex_lock(&udata->lock);
 		mtt_writew(mcon, reg, mask);
+		cdcm_mutex_unlock(&udata->lock);
 	} else {
+		cdcm_mutex_lock(&udata->lock);
 		*valp = mtt_readw(mcon, reg) & MttDrvrTASK_MASK;
+		cdcm_mutex_unlock(&udata->lock);
 	}
 	return SkelUserReturnOK;
 }
@@ -692,10 +705,12 @@ mtt_gs_grval_ioctl(SkelDrvrClientContext *ccon, void *arg, int set)
 		return SkelUserReturnFAILED;
 	}
 
+	cdcm_mutex_lock(&udata->lock);
 	if (set)
 		cdcm_iowrite32be(regbuf->RegVal, &map->GlobalMem[regnum]);
 	else
 		regbuf->RegVal = cdcm_ioread32be(&map->GlobalMem[regnum]);
+	cdcm_mutex_unlock(&udata->lock);
 	return SkelUserReturnOK;
 }
 
@@ -722,15 +737,19 @@ mtt_gs_trval_ioctl(SkelDrvrClientContext *ccon, void *arg, int set)
 			regmask = 1 << i;
 			if (!(regmask & trbuf->RegMask))
 				continue;
+			cdcm_mutex_lock(&udata->lock);
 			cdcm_iowrite32be(trbuf->RegVals[i], &mttmem[i]);
+			cdcm_mutex_unlock(&udata->lock);
 			return OK;
 		}
 		pseterr(EINVAL);
 		return SkelUserReturnFAILED;
 	}
 
+	cdcm_mutex_lock(&udata->lock);
 	for (i = 0; i < MttDrvrLRAM_SIZE; i++)
 		trbuf->RegVals[i] = cdcm_ioread32be(&mttmem[i]);
+	cdcm_mutex_unlock(&udata->lock);
 	trbuf->RegMask = 0xffffffff;
 	return OK;
 }
@@ -739,6 +758,7 @@ static SkelUserReturn
 __mtt_io(SkelDrvrModuleContext *mcon, void *u_addr, void *ioaddr, ssize_t size,
 	 int write)
 {
+	struct udata *udata = mcon->UserData;
 	void *bounce;
 
 	bounce = (void *)sysbrk(size);
@@ -754,9 +774,13 @@ __mtt_io(SkelDrvrModuleContext *mcon, void *u_addr, void *ioaddr, ssize_t size,
 			pseterr(EFAULT);
 			goto out_err;
 		}
+		cdcm_mutex_lock(&udata->lock);
 		mtt_iowritew_r(ioaddr, bounce, size);
+		cdcm_mutex_unlock(&udata->lock);
 	} else {
+		cdcm_mutex_lock(&udata->lock);
 		mtt_ioreadw_r(bounce, ioaddr, size);
+		cdcm_mutex_unlock(&udata->lock);
 		if (cdcm_copy_to_user(u_addr, bounce, size)) {
 			pseterr(EFAULT);
 			goto out_err;
