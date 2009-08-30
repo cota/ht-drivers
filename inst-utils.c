@@ -446,6 +446,7 @@ struct drvrd *cmd_line_dd(struct list_head *head, char *dnm)
  * @return -1 -- *.ko filename ambiguity, means that there are names with
  *               'uname -r' part in them, and there are one without it.
  * @return -2 -- can't read a symbolic link
+ * @return -3 -- .ko doesn't exist
  */
 int drvr_pathname(char **path, char *dn)
 {
@@ -473,6 +474,14 @@ int drvr_pathname(char **path, char *dn)
 			++rko;
 	}
 	closedir(dir);
+
+	if (!lko && !rko) {
+		printf("%sCan't file neither %s nor %s\n"
+		       "       .ko doesn't exist\n",
+		       ERR_MSG, kof, kosl);
+		rc = -3;
+		goto out;
+	}
 
 	/* we should have at least one of them */
 	if (lko == rko) {
