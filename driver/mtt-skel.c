@@ -378,6 +378,17 @@ SkelUserReturn SkelUserJtagWriteByte(SkelDrvrModuleContext *mcon, uint32_t val)
 	return SkelUserReturnOK;
 }
 
+static inline void mtt_tasks_init(struct udata *udata)
+{
+	int i;
+
+	for (i = 0; i < MttDrvrTASKS; i++) {
+		struct mtt_task *task = &udata->Tasks[i];
+
+		cdcm_mutex_init(&task->lock);
+	}
+}
+
 SkelUserReturn SkelUserModuleInit(SkelDrvrModuleContext *mcon)
 {
 	struct udata *udata;
@@ -401,6 +412,9 @@ SkelUserReturn SkelUserModuleInit(SkelDrvrModuleContext *mcon)
 
 	/* initialise locking fields */
 	cdcm_spin_lock_init(&udata->iolock);
+
+	/* initialise the tasks */
+	mtt_tasks_init(udata);
 
 	/* module software reset */
 	SkelUserHardwareReset(mcon);

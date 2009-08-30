@@ -17,6 +17,7 @@
 
 /**
  * struct mtt_task - keep the state of an MTT task
+ * @lock: protect access to the struct
  * @LoadAddress: Where it is loaded in memory
  * @InstructionCount: size in instructions
  * @PcStart: Start PC value
@@ -25,6 +26,7 @@
  * @Name: Task name
  */
 struct mtt_task {
+	struct cdcm_mutex	lock;
 	unsigned long		LoadAddress;
 	unsigned long		InstructionCount;
 	unsigned long		PcStart;
