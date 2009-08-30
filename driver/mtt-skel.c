@@ -560,11 +560,16 @@ mtt_tasks_start_ioctl(SkelDrvrClientContext *ccon, void *arg)
 		if (!(*valp & tmask)) {
 			continue;
 		} else {
+			struct mtt_task		*localtask = &udata->Tasks[i];
 			MttDrvrMap		*map = get_iomap_ccon(ccon);
 			MttDrvrTaskBlock	*task = &map->Tasks[i];
 
 			mtt_writew(mcon, MTT_TASKS_STOP, tmask);
-			cdcm_iowrite32be(udata->Tasks[i].PcStart, &task->Pc);
+
+			cdcm_mutex_lock(&localtask->lock);
+			cdcm_iowrite32be(localtask->PcStart, &task->Pc);
+			cdcm_mutex_unlock(&localtask->lock);
+
 			mtt_writew(mcon, MTT_TASKS_START, tmask);
 		}
 	}
@@ -591,8 +596,9 @@ mtt_gs_tasks_ioctl(SkelDrvrClientContext *ccon, void *arg, int reg, int set)
 	return SkelUserReturnOK;
 }
 
+/* call with the task's lock held */
 static void
-mtt_set_tcb(struct udata *udata, MttDrvrTaskBuf *taskbuf, uint32_t action)
+__mtt_set_tcb(struct udata *udata, MttDrvrTaskBuf *taskbuf, uint32_t action)
 {
 	MttDrvrMap	*map = udata->iomap;
 	int		i = taskbuf->Task - 1;
@@ -625,7 +631,8 @@ mtt_set_tcb(struct udata *udata, MttDrvrTaskBuf *taskbuf, uint32_t action)
 
 }
 
-static void mtt_get_tcb(struct udata *udata, MttDrvrTaskBuf *taskbuf)
+/* call with the task's lock held */
+static void __mtt_get_tcb(struct udata *udata, MttDrvrTaskBuf *taskbuf)
 {
 	MttDrvrMap	*map = udata->iomap;
 	int		i = taskbuf->Task - 1;
@@ -645,6 +652,7 @@ mtt_gs_tcb_ioctl(SkelDrvrClientContext *ccon, void *arg, int set)
 {
 	struct udata	*udata = get_udata_ccon(ccon);
 	MttDrvrTaskBuf	*taskbuf = arg;
+	struct mtt_task	*localtask = &udata->Tasks[taskbuf->Task - 1];
 	uint32_t	mask;
 	int		i;
 
@@ -654,16 +662,18 @@ mtt_gs_tcb_ioctl(SkelDrvrClientContext *ccon, void *arg, int set)
 		return SkelUserReturnFAILED;
 	}
 
+	cdcm_mutex_lock(&localtask->lock);
 	if (set) {
 		for (i = 0; i < MttDrvrTBFbits; i++) {
 			mask = 1 << i;
 			if (!(mask & taskbuf->Fields))
 				continue;
-			mtt_set_tcb(udata, taskbuf, mask);
+			__mtt_set_tcb(udata, taskbuf, mask);
 		}
 	} else {
-		mtt_get_tcb(udata, taskbuf);
+		__mtt_get_tcb(udata, taskbuf);
 	}
+	cdcm_mutex_unlock(&localtask->lock);
 
 	return SkelUserReturnOK;
 }
