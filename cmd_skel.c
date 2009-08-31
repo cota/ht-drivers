@@ -190,12 +190,6 @@ int hndl_module(struct cmd_desc *cmdd, struct atom *atoms)
 			cmdd->name);
 		goto out;
 	}
-	if (_DNFD == F_CLOSED) {
-		if ((_DNFD = get_free_user_handle(-1)) == -1) {
-			mperr("Can't open driver node\n");
-			goto out;
-		}
-	}
 	if (ioctl(_DNFD, SkelDrvrIoctlGET_MODULE_COUNT, &tst_glob_d.ma) < 0) {
 		mperr("Can't get module count. %s ioctl fails\n",
 			"GET_MODULE_COUNT");
@@ -424,10 +418,6 @@ int hndl_maps(struct cmd_desc *cmdd, struct atom *atoms)
 		printf("%s takes no parameters\n"
 			"\tjust select a module before issuing %s\n",
 			cmdd->name, cmdd->name);
-		goto out;
-	}
-	if (!tst_glob_d.mod) {
-		printf("Not working on a particular module\n");
 		goto out;
 	}
 	if (ioctl(_DNFD, SkelDrvrIoctlGET_MODULE_MAPS, &maps) < 0) {
@@ -738,10 +728,6 @@ int hndl_reset(struct cmd_desc* cmdd, struct atom *atoms)
 	if (atoms == (struct atom*)VERBOSE_HELP) {
 		printf("%s - reset current module\n", cmdd->name);
 		goto out;
-	}
-	if (!tst_glob_d.mod) {
-		printf("Not controlling any module\n");
-		return -TST_ERR_NO_MODULE;
 	}
 	if (!do_yes_no("Reset the current module. Are you sure", NULL))
 		goto out;

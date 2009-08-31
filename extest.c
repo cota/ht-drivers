@@ -21,6 +21,7 @@
  * @section license_sec License
  * Released under the GPL v2. (and only v2, not any later version)
  */
+#include <sys/ioctl.h>
 #include <curses.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -1215,6 +1216,28 @@ int is_last_atom(struct atom *atom)
 	return 0;
 }
 
+#ifdef __SKEL_EXTEST
+static int extest_open_fd(void)
+{
+	if (_DNFD == F_CLOSED) {
+		if ((_DNFD = get_free_user_handle(-1)) == -1) {
+			mperr("Can't open driver node\n");
+			return -1;
+		}
+	}
+	if (ioctl(_DNFD, SkelDrvrIoctlGET_MODULE, &tst_glob_d.mod) < 0) {
+		mperr("Get module failed\n");
+		return -1;
+	}
+	return 0;
+}
+#else
+static int extest_open_fd(void)
+{
+	return 0;
+}
+#endif /* __SKEL_EXTEST */
+
 /**
  * extest_init - Initialise extest
  *
@@ -1239,6 +1262,8 @@ int extest_init(int argc, char *argv[])
 	build_cmd_list(user_cmds, 1); /* add specific commands */
 	gethostname(host, 32);
 	init_keyboard(); /* lsh interface */
+	if (extest_open_fd())
+		goto out_err;
 	while(1) {
 		bzero(prompt, sizeof(prompt));
 		if (tst_glob_d.mod)
@@ -1254,6 +1279,7 @@ int extest_init(int argc, char *argv[])
 		get_atoms(cmd, cmd_atoms); /* split cmd into atoms */
 		do_cmd(0, cmd_atoms); /* execute atoms */
 	}
+out_err:
 	/* error occurs */
 	extest_cleanup();
 	fprintf(stderr, "Unexpected error!\n");
