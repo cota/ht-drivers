@@ -1392,6 +1392,10 @@ int client_init(SkelDrvrClientContext *ccon, int clientnr)
 	ccon->InUse       = 1;
 	ccon->Pid         = getpid();
 
+	/* select by default the first installed module */
+	if (Wa->InstalledModules)
+		ccon->ModuleNumber = Wa->Modules[0].ModuleNumber;
+
 	cdcm_spin_lock_init(&ccon->lock);
 
 	cdcm_rwlock_init(&ccon->Queue.rwlock);
