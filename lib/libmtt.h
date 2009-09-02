@@ -13,9 +13,8 @@
 /* "mttdrvr.h" below. This defines types for Interupts, Status and  */
 /* module commands.                                                 */
 
+#include <stdint.h>
 #include <stdio.h>
-
-#include <mttdrvr.h>
 
 #include "asm.h"
 #include "opcodes.h"
@@ -29,9 +28,9 @@
 /* each task.                                                       */
 
 #define MttLibMIN_NAME_SIZE 3
-#define MttLibMAX_NAME_SIZE MttDrvrNameSIZE
-#define MttLibTASKS MttDrvrTASKS
-#define MttLibTASK_SIZE (MttDrvrINSTRUCTIONS / MttDrvrTASKS)
+#define MttLibMAX_NAME_SIZE 32
+#define MttLibTASKS		16
+#define MttLibTASK_SIZE		(4096 / (MttLibTASKS))
 
 #ifdef __linux__
 #define MttLibDEFAULT_OBJECT_PATH "/tmp/"
@@ -159,7 +158,7 @@ MttLibError MttLibContinueTask(char *name);
 /* this hardware description file MtttDrvrTaskStatus is defined.    */
 /* The task status has values like Running, Stopped, Waiting etc    */
 
-MttDrvrTaskStatus MttLibGetTaskStatus(char *name);
+uint32_t MttLibGetTaskStatus(char *name);
 
 /* ================================================================ */
 /* Calling this routine sends out the specified frame imediatley.   */
@@ -185,13 +184,12 @@ MttLibError MttLibSendEventPrio(unsigned long frame, int priority);
 /* if it has a non zero value. Tmo is the timeout in 10ms units.    */
 /* A tmo value of zero means no timeout, hence wait indefinatley.   */
 
-MttDrvrInt MttLibWait(MttDrvrInt mask, int noqueue, int tmo);
+uint32_t MttLibWait(uint32_t mask, int noqueue, int tmo);
 
 /* ================================================================ */
 /* The Mtt module status can be read to check its functioning.      */
-/* MttDrvrStatus is defined in mtthard.h.                           */
 
-MttDrvrStatus MttLibGetStatus();
+uint32_t MttLibGetStatus();
 
 /* ================================================================ */
 /* Global Mtt module registers contain stuff like telegrams, UTC    */
@@ -213,8 +211,8 @@ int MttLibGetHandle();
 
 /* ================================================================ */
 /* Get/Set task range.                                              */
-/* first: First task number 1..MttDrvrTASKS                         */
-/* last : Last  task number 1..MttDrvrTASKS                         */
+/* first: First task number 1..MttLibTASKS			    */
+/* last : Last  task number 1..MttLibTASKS			    */
 /* isize: Number of instructions per task                           */
 
 MttLibError MttLibSetTaskRange(unsigned int first,

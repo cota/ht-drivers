@@ -21,6 +21,7 @@
 #include <math.h>
 #include <stdint.h>
 
+#include <mttdrvr.h>
 #include "libmtt.h"
 
 /* ================================================================ */
