@@ -60,6 +60,20 @@ $(BINS1): $(OBJS1)
 	@- rm -f $@;\
 	$(AR) $(ARFLAGS) $@ $^;\
 	$(RANLIB) $@
+
+INSTALL_FILES=$(BINS1) $(HDRS1)
+INSTALL_DIR=mttn
+install: $(INSTALL_FILES)
+	@p=/ps/local/$(CPU)/$(INSTALL_DIR);\
+	echo "===============================";\
+	echo "Installing in $$p :";\
+	for f in $^; do \
+		echo "        - $$f";\
+	done;\
+    echo "===============================";\
+	for f in $^; do \
+		dsc_install $$f $$p;\
+	done;
 	
 #=============================================================================
 #  DEPENDANCIES
