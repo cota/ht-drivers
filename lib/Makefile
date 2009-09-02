@@ -8,7 +8,6 @@
 
 HDRS1.COMMON=  libmtt.h asm.h mttRegisters.h opcodes.h
 HDRS1.ppc4  = $(HDRS1.COMMON) 
-HDRS1.L864  = $(HDRS1.COMMON) 
 HDRS1.Linux  = $(HDRS1.COMMON) 
 HDRS1=$(HDRS1.$(CPU))
 
