@@ -25,10 +25,18 @@ mtttest.$(CPU).o: $(SRCS) $(HDRS)
 
 mtttest.$(CPU): mtttest.$(CPU).o
 
-install: mtttest.$(CPU)
-	dsc_install mtttest.$(CPU) /acc/dsc/lab/$(CPU)/ces/mtt
-	dsc_install Mtt.xsvf /acc/dsc/lab/$(CPU)/ces/mtt
-	dsc_install mtttest.$(CPU) /acc/dsc/oper/$(CPU)/ces/mtt
-	dsc_install Mtt.xsvf /acc/dsc/oper/$(CPU)/ces/mtt
-	dsc_install mtttest.$(CPU) /acc/dsc/oplhc/$(CPU)/ces/mtt
-	dsc_install Mtt.xsvf /acc/dsc/oplhc/$(CPU)/ces/mtt
+INSTALL_FILES=mtttest.$(CPU) Mtt.xsvf
+INSTALL_DIR=mttn
+install: $(INSTALL_FILES)
+	@for a in $(ACCS); do \
+		p=/acc/dsc/$$a/$(CPU)/ces/$(INSTALL_DIR);\
+		echo "===============================";\
+		echo "Installing in $$p :";\
+		for f in $^; do \
+			echo "        - $$f";\
+		done;\
+	    echo "===============================";\
+		for f in $^; do \
+			dsc_install $$f $$p;\
+		done;\
+	done
