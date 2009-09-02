@@ -56,6 +56,22 @@ all: $(ALL)
 clean:
 	$(RM) $(OBJS) $(ALL) $(BAKS)
 
+INSTALL_FILES=$(BINS)
+INSTALL_DIR=mttn
+install: $(INSTALL_FILES)
+	@for a in $(ACCS); do \
+		p=/acc/dsc/$$a/$(CPU)/ces/$(INSTALL_DIR);\
+		echo "===============================";\
+		echo "Installing in $$p :";\
+		for f in $^; do \
+			echo "        - $$f";\
+		done;\
+	    echo "===============================";\
+		for f in $^; do \
+			dsc_install $$f $$p;\
+		done;\
+	done
+
 #=============================================================================
 #  DEPENDANCIES
 #=============================================================================
