@@ -15,6 +15,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <mtt.h>
 
 #include "asm.h"
 #include "opcodes.h"

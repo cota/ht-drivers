@@ -19,6 +19,7 @@ extern CfgGetTgmXXX *_TgmCfgGetTgmXXX(void);
 #include <lenval.h>
 #include <micro.h>
 #include <ports.h>
+#include <libmtt.h>
 
 #define LN 128
 
@@ -37,7 +38,6 @@ extern CfgGetTgmXXX *_TgmCfgGetTgmXXX(void);
 /* Static memory declarations and initialization                            */
 /* ======================================================================== */
 
-#include <opcodes.c>
 
 static int module = 1;
 
