@@ -381,6 +381,7 @@ char *default_xml_config_file(void)
 {
 	char *xmlnm;
 	struct utsname buf;
+
 	uname(&buf);
 	asprintf(&xmlnm, "%s.xml", buf.nodename);
 	return xmlnm;
