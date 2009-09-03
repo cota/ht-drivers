@@ -295,7 +295,7 @@ static void __mtt_reset(SkelDrvrModuleContext *mcon)
 
 	/* reset the module */
 	__mtt_cmd(mcon, MttDrvrCommandRESET, 1);
-	usec_sleep(5);
+	usec_sleep(100);
 
 	/*
 	 * re-configure the interrupt level
