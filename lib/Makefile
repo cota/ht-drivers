@@ -15,7 +15,6 @@ HDRS  = $(HDRS1)
 
 SRCS1.ppc4 = libmtt.c opcodes.c
 SRCS1.L864 = opcodes.c
-SRCS1.Linux = opcodes.c
 SRCS1=$(SRCS1.$(CPU))
 
 SRCS  = $(SRCS1)
@@ -27,7 +26,6 @@ OBJS  = $(OBJS1)
 # Bins
 LIB_MTT.ppc4=libmtt.$(CPU).a
 LIB_MTT.L864=libmtt.$(CPU).a
-LIB_MTT.Linux=libmtt.$(CPU).a
 BINS1 = $(LIB_MTT.$(CPU))
 BINS  = $(BINS1) 
 
