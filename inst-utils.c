@@ -371,7 +371,10 @@ __attribute__ ((unused)) char *create_usr_option_string(int argc,
  *
  * @param none
  *
- * Naming convention for default config file is `uname -n`.xml
+ * Naming convention for default config file is "/etc/drivers.xml"
+ * This comes from the Makefile for building DSCs from the database,
+ * available at:
+ * /acc/src/dsc/co/Make.dsc
  *
  * @b NOTE Name should be freed by the caller afterwards.
  *
@@ -380,10 +383,8 @@ __attribute__ ((unused)) char *create_usr_option_string(int argc,
 char *default_xml_config_file(void)
 {
 	char *xmlnm;
-	struct utsname buf;
 
-	uname(&buf);
-	asprintf(&xmlnm, "%s.xml", buf.nodename);
+	asprintf(&xmlnm, "/etc/drivers.xml");
 	return xmlnm;
 }
 
