@@ -22,10 +22,10 @@
 
 #define SKELUSER_IOCTL_MAGIC 'U' //!< USER magic number (chosen arbitrarily)
 
-#define USER_IO(nr)	   _IO(SKELUSER_IOCTL_MAGIC, nr)
-#define USER_IOR(nr,sz)   _IOR(SKELUSER_IOCTL_MAGIC, nr, sz)
-#define USER_IOW(nr,sz)   _IOW(SKELUSER_IOCTL_MAGIC, nr, sz)
-#define USER_IOWR(nr,sz) _IOWR(SKELUSER_IOCTL_MAGIC, nr, sz)
+#define USER_IO(nr)		_IO(SKELUSER_IOCTL_MAGIC, nr)
+#define USER_IOR(nr, sz)	_IOR(SKELUSER_IOCTL_MAGIC, nr, sz)
+#define USER_IOW(nr, sz)	_IOW(SKELUSER_IOCTL_MAGIC, nr, sz)
+#define USER_IOWR(nr, sz)	 _IOWR(SKELUSER_IOCTL_MAGIC, nr, sz)
 
 #define SkelUserIoctlFIRST	USER_IO(0)
 #define MY_IOCTL_NAME_1		USER_IO(1)
