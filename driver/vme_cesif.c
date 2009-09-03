@@ -76,6 +76,7 @@ unsigned long find_controller(unsigned long vmeaddr, unsigned long len,
 	default:
 		printk(KERN_ERR PFX "%s - Unsupported data width %ld\n",
 		       __func__, size);
+		rc = -1;
 		goto out_free;
 		break;
 	}
