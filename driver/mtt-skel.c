@@ -406,9 +406,17 @@ SkelUserReturn SkelUserModuleInit(SkelDrvrModuleContext *mcon)
 
 	/* initialise the iomap address */
 	udata->iomap = get_vmemap_addr(mcon, 0x39, 32);
+	if (!udata->iomap) {
+		SK_WARN("Could not find VME address space (0x39, 32)");
+		goto out_free;
+	}
 
 	/* initialise the jtag address */
 	udata->jtag = get_vmemap_addr(mcon, 0x29, 16);
+	if (!udata->jtag) {
+		SK_WARN("Could not find VME address space (0x29, 16)");
+		goto out_free;
+	}
 
 	/* initialise locking fields */
 	cdcm_spin_lock_init(&udata->iolock);
@@ -421,6 +429,9 @@ SkelUserReturn SkelUserModuleInit(SkelDrvrModuleContext *mcon)
 	SkelUserHardwareReset(mcon);
 
 	return SkelUserReturnOK;
+out_free:
+	sysfree((void*)udata, sizeof(struct udata));
+	return SkelUserReturnFAILED;
 }
 
 void SkelUserModuleRelease(SkelDrvrModuleContext *mcon)
