@@ -286,15 +286,20 @@ static inline uint32_t mtt_shift_intr_level(uint32_t level)
 	return level == 3 ? MttDrvrIrqLevel_3 : MttDrvrIrqLevel_2;
 }
 
-static void __mtt_reset(SkelDrvrModuleContext *mcon)
+static void mtt_reset(SkelDrvrModuleContext *mcon)
 {
 	InsLibIntrDesc *isr = mcon->Modld->Isr;
+	struct udata	*udata = mcon->UserData;
+	unsigned long	flags;
 
+	cdcm_spin_lock_irqsave(&udata->iolock, flags);
 	/* quiesce the module */
 	__mtt_quiesce(mcon);
 
 	/* reset the module */
 	__mtt_cmd(mcon, MttDrvrCommandRESET, 1);
+	cdcm_spin_unlock_irqrestore(&udata->iolock, flags);
+
 	usec_sleep(100);
 
 	/*
@@ -329,12 +334,7 @@ static void udata_set_defaults(SkelDrvrModuleContext *mcon)
 
 SkelUserReturn SkelUserHardwareReset(SkelDrvrModuleContext *mcon)
 {
-	struct udata	*udata = mcon->UserData;
-	unsigned long	flags;
-
-	cdcm_spin_lock_irqsave(&udata->iolock, flags);
-	__mtt_reset(mcon);
-	cdcm_spin_unlock_irqrestore(&udata->iolock, flags);
+	mtt_reset(mcon);
 
 	udata_set_defaults(mcon);
 	return SkelUserReturnOK;
