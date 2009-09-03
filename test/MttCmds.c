@@ -1505,6 +1505,24 @@ long qflag, qsize, qover;
    return arg;
 }
 
+static void print_interrupt_config(void)
+{
+	MttDrvrRawIoBlock	ioblock;
+	unsigned long		val;
+
+	ioblock.UserArray	= &val;
+	ioblock.Offset		= MTT_INTR / sizeof(uint32_t);
+	ioblock.Size		= 1;
+
+	if (ioctl(mtt, MTT_IOCRAW_READ, &ioblock) < 0) {
+		IErr("RAW_READ", NULL);
+		return;
+	}
+
+	printf("Intr. Vector:\t0x%02lx\n", val & 0xff);
+	printf("Intr. Level: \t%ld\n", (val >> 8) & 0x1f);
+}
+
 /* ======================================= */
 /* Select the working module               */
 
@@ -1563,6 +1581,7 @@ int i;
 		printf("0x%x\t\t0x%lx\n", maps.Maps[i].SpaceNumber,
 			maps.Maps[i].Mapped);
 	}
+	print_interrupt_config();
 
       wrc = 0;
       if (TgvGetCableName(cbl,&cblnam)) {
