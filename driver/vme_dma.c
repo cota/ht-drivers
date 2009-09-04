@@ -225,22 +225,22 @@ int vme_do_dma(struct vme_dma *desc)
 
 	/* First check the transfer length */
 	if (!desc->length) {
-		printk(KERN_ERR PFX "vme_do_dma: Wrong length %d\n",
-		       desc->length);
+		printk(KERN_ERR PFX "%s: Wrong length %d\n",
+		       __func__, desc->length);
 		return -EINVAL;
 	}
 
 	/* Check the transfer direction validity */
 	if ((desc->dir != VME_DMA_FROM_DEVICE) &&
 	    (desc->dir != VME_DMA_TO_DEVICE)) {
-		printk(KERN_ERR PFX "vme_do_dma: Wrong direction %d\n",
-		       desc->dir);
+		printk(KERN_ERR PFX "%s: Wrong direction %d\n",
+		       __func__, desc->dir);
 		return -EINVAL;
 	}
 
 	/* Check we're within a 32-bit address space */
 	if (desc->src.addru || desc->dst.addru) {
-		printk(KERN_ERR PFX "vme_do_dma: Addresses are not 32-bit\n");
+		printk(KERN_ERR PFX "%s: Addresses are not 32-bit\n", __func__);
 		return -EINVAL;
 	}
 
@@ -251,7 +251,7 @@ int vme_do_dma(struct vme_dma *desc)
 	    ((desc->dir == VME_DMA_TO_DEVICE) &&
 	     (desc->src.addrl & (PAGE_SIZE - 1)))) {
 		printk(KERN_ERR PFX
-		       "vme_do_dma: Userspace buffer is not page aligned\n");
+		       "%s: Userspace buffer is not page aligned\n", __func__);
 		return -EINVAL;
 	}
 */
@@ -398,7 +398,7 @@ void __devexit vme_dma_exit(void)
 		channels[i].busy = 1;
 		mutex_unlock(&channels[0].lock);
 	}
-	
+
 	tsi148_dma_exit();
 }
 

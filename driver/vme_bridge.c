@@ -234,7 +234,7 @@ static int vme_open(struct inode *inode, struct file *file)
 
 	return rc;
 }
-	
+
 static int vme_release(struct inode *inode, struct file *file)
 {
 	unsigned int minor = iminor(inode);
@@ -533,7 +533,7 @@ static int __devinit vme_bridge_map_crg(void)
 out_destroy_window:
 	if (vme_destroy_window(crg_desc.window_num) != 0)
 		printk(KERN_ERR PFX
-		       "vme_bridge_map_crg - Failed to destroy window\n");
+		       "%s - Failed to destroy window\n", __func__);
 
 	return rc;
 }
@@ -570,7 +570,7 @@ static int __devinit vme_bridge_init_interrupts(void)
 		   TSI148_LCSR_INT_MB3  | TSI148_LCSR_INT_MB2  |
 		   TSI148_LCSR_INT_MB1  | TSI148_LCSR_INT_MB0  |
 		   TSI148_LCSR_INT_PERR);
-		
+
 	if (vme_bridge->syscon)
 		intmask |= (TSI148_LCSR_INT_IRQ7 | TSI148_LCSR_INT_IRQ6 |
 			    TSI148_LCSR_INT_IRQ5 | TSI148_LCSR_INT_IRQ4 |

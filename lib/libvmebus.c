@@ -119,19 +119,19 @@ unsigned long find_controller(unsigned long vmeaddr, unsigned long len,
 		desc->data_width = VME_D32;
 		break;
 	default:
-		printf("libvmebus: find_controller - "
-		       "Unsupported data width %ld\n", size);
+		printf("libvmebus: %s - "
+		       "Unsupported data width %ld\n", __func__, size);
 		goto out_free;
 		break;
 	}
-			
+
 	desc->bcast_select = 0;
 
 	if (len & 0xffff) {
-		printf("libvmebus: find_controller - "
+		printf("libvmebus: %s - "
 		       "Mapping size %lx is not 64k aligned, "
 		       "aligning it to %lx.\n",
-		       len, (len + 0x10000) & ~0xffff);
+		       __func__, len, (len + 0x10000) & ~0xffff);
 		len &= ~0xffff;
 	}
 
@@ -139,10 +139,10 @@ unsigned long find_controller(unsigned long vmeaddr, unsigned long len,
 	desc->sizeu = 0;
 
 	if (vmeaddr & 0xffff) {
-		printf("libvmebus: find_controller - "
+		printf("libvmebus: %s - "
 		       "VME address %lx is not 64k aligned, "
 		       "aligning it to %lx.\n",
-		       vmeaddr, vmeaddr & ~0xffff);
+		       __func__, vmeaddr, vmeaddr & ~0xffff);
 		vmeaddr &= ~0xffff;
 	}
 
@@ -229,35 +229,35 @@ unsigned long return_controller(struct vme_mapping *desc)
 	}
 
 	if (munmap(desc->user_va, desc->sizel)) {
-		printf("libvmebus: return_controller - failed to munmap\n");
+		printf("libvmebus: %s - failed to munmap\n", __func__);
 		ret = -1;
 	}
 
 	/* Save the force destroy flag */
 	if (ioctl(desc->fd, VME_IOCTL_GET_DESTROY_ON_REMOVE,
 		  &org_force_destroy) < 0) {
-		printf("libvmebus: return_controller - "
-		       "Failed to get the force destroy flag\n");
+		printf("libvmebus: %s - "
+		       "Failed to get the force destroy flag\n", __func__);
 	}
 
 	/* Set the force destroy flag */
 	if (ioctl(desc->fd, VME_IOCTL_SET_DESTROY_ON_REMOVE,
 		  &force_destroy) < 0) {
-		printf("libvmebus: return_controller - "
-		       "Failed to set the force destroy flag\n");
+		printf("libvmebus: %s - "
+		       "Failed to set the force destroy flag\n", __func__);
 	}
 
 	if (ioctl(desc->fd, VME_IOCTL_RELEASE_MAPPING, desc) < 0) {
-		printf("libvmebus: return_controller - "
-		       "failed to release mapping\n");
+		printf("libvmebus: %s - "
+		       "failed to release mapping\n", __func__);
 		ret = -1;
 	}
 
 	/* Restore the force destroy flag */
 	if (ioctl(desc->fd, VME_IOCTL_SET_DESTROY_ON_REMOVE,
 		  &org_force_destroy) < 0)
-		printf("libvmebus: return_controller - "
-		       "Failed to restore force destroy flag\n");
+		printf("libvmebus: %s - "
+		       "Failed to restore force destroy flag\n", __func__);
 
 	close(desc->fd);
 
@@ -352,7 +352,7 @@ int vme_unmap(struct vme_mapping *desc, int force)
 	}
 
 	if (munmap(desc->user_va, desc->sizel)) {
-		printf("libvmebus: vme_unmap - failed to munmap\n");
+		printf("libvmebus: %s - failed to munmap\n", __func__);
 		ret = -1;
 	}
 
@@ -360,21 +360,24 @@ int vme_unmap(struct vme_mapping *desc, int force)
 		/* Save the force destroy flag */
 		if (ioctl(desc->fd, VME_IOCTL_GET_DESTROY_ON_REMOVE,
 			  &org_force_destroy) < 0) {
-			printf("libvmebus: vme_unmap - "
-			       "Failed to get the force destroy flag\n");
+			printf("libvmebus: %s - "
+			       "Failed to get the force destroy flag\n",
+			       __func__);
 		}
 
 		/* Set the force destroy flag */
 		if (ioctl(desc->fd, VME_IOCTL_SET_DESTROY_ON_REMOVE,
 			  &force) < 0) {
-			printf("libvmebus: vme_unmap - "
-			       "Failed to set the force destroy flag\n");
+			printf("libvmebus: %s - "
+			       "Failed to set the force destroy flag\n",
+			       __func__);
 		}
 	}
 
 	if (ioctl(desc->fd, VME_IOCTL_RELEASE_MAPPING, desc) < 0) {
-		printf("libvmebus: vme_unmap - "
-		       "failed to release mapping\n");
+		printf("libvmebus: %s - "
+		       "failed to release mapping\n",
+		       __func__);
 		ret = -1;
 	}
 
@@ -382,8 +385,9 @@ int vme_unmap(struct vme_mapping *desc, int force)
 		/* Restore the force destroy flag */
 		if (ioctl(desc->fd, VME_IOCTL_SET_DESTROY_ON_REMOVE,
 			  &org_force_destroy) < 0)
-			printf("libvmebus: vme_unmap - "
-			       "Failed to restore force destroy flag\n");
+			printf("libvmebus: %s - "
+			       "Failed to restore force destroy flag\n",
+			       __func__);
 	}
 
 	close(desc->fd);

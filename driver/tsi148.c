@@ -133,7 +133,7 @@ static int tsi148_proc_lcsr_show(char *page, char **start, off_t off, int count,
 	p += sprintf(p, "\tvmctrl  0x%08x\n", ioread32be(&chip->lcsr.vmctrl));
 	p += sprintf(p, "\tvctrl   0x%08x\n", ioread32be(&chip->lcsr.vctrl));
 	p += sprintf(p, "\tvstat   0x%08x\n", ioread32be(&chip->lcsr.vstat));
-    
+
 	p += sprintf(p, "PCI Status:\n");
 	p += sprintf(p, "\tpcsr    0x%08x\n", ioread32be(&chip->lcsr.pstat));
 
@@ -171,7 +171,7 @@ static int tsi148_proc_lcsr_show(char *page, char **start, off_t off, int count,
         p += sprintf(p, "\tbpgtr   0x%08x\n", ioread32be(&chip->lcsr.bpgtr));
         p += sprintf(p, "\tbpctr   0x%08x\n", ioread32be(&chip->lcsr.bpctr));
 	p += sprintf(p, "\tvicr    0x%08x\n", ioread32be(&chip->lcsr.vicr));
-    
+
 	p += sprintf(p, "RMW Register Group:\n");
 	p += sprintf(p, "\trmwau  0x%08x\n", ioread32be(&chip->lcsr.rmwau));
 	p += sprintf(p, "\trmwal  0x%08x\n", ioread32be(&chip->lcsr.rmwal));
@@ -602,7 +602,7 @@ static int am_to_attr(enum vme_address_modifier am,
  *
  */
 static void attr_to_am(unsigned int addr_size, unsigned int transfer_mode,
-		      unsigned int user_access, unsigned int data_access, 
+		      unsigned int user_access, unsigned int data_access,
 		      int *am)
 {
 
@@ -761,8 +761,8 @@ static int tsi148_setup_dma_attributes(enum vme_2esst_mode v2esst_mode,
 		break;
 	default:
 		printk(KERN_ERR
-		       "tsi148_setup_dma_attributes: invalid v2esst_mode %d\n",
-		       v2esst_mode);
+		       "%s: invalid v2esst_mode %d\n",
+		       __func__, v2esst_mode);
 		return -EINVAL;
 	}
 
@@ -777,16 +777,16 @@ static int tsi148_setup_dma_attributes(enum vme_2esst_mode v2esst_mode,
 		break;
 	default:
                 printk(KERN_ERR
-                       "tsi148_setup_dma_attributes: invalid data_width %d\n",
-		       data_width);
+                       "%s: invalid data_width %d\n",
+		       __func__, data_width);
 		return -EINVAL;
 	}
 
 	if (am_to_attr(am, &addr_size, &transfer_mode, &user_access,
 		       &data_access)) {
 		printk(KERN_ERR
-                       "tsi148_setup_dma_attributes: invalid am %x\n",
-		       am);
+                       "%s: invalid am %x\n",
+		       __func__, am);
 		return -EINVAL;
 	}
 
@@ -802,8 +802,8 @@ static int tsi148_setup_dma_attributes(enum vme_2esst_mode v2esst_mode,
 		break;
 	default:
 		printk(KERN_ERR
-                       "tsi148_setup_dma_attributes: invalid transfer_mode %d\n",
-		       transfer_mode);
+                       "%s: invalid transfer_mode %d\n",
+		       __func__, transfer_mode);
 		return -EINVAL;
 	}
 
@@ -815,8 +815,8 @@ static int tsi148_setup_dma_attributes(enum vme_2esst_mode v2esst_mode,
 		break;
 	default:
 		printk(KERN_ERR
-                       "tsi148_setup_dma_attributes: invalid user_access %d\n",
-		       user_access);
+                       "%s: invalid user_access %d\n",
+		       __func__, user_access);
 		return -EINVAL;
 	}
 
@@ -828,8 +828,8 @@ static int tsi148_setup_dma_attributes(enum vme_2esst_mode v2esst_mode,
 		break;
 	default:
 		printk(KERN_ERR
-                       "tsi148_setup_dma_attributes: invalid data_access %d\n",
-		       data_access);
+                       "%s: invalid data_access %d\n",
+		       __func__, data_access);
 		return -EINVAL;
 	}
 
@@ -848,8 +848,8 @@ static int tsi148_setup_dma_attributes(enum vme_2esst_mode v2esst_mode,
 		break;
 	default:
 		printk(KERN_ERR
-                       "tsi148_setup_dma_attributes: invalid addr_size %d\n",
-		       addr_size);
+                       "%s: invalid addr_size %d\n",
+		       __func__, addr_size);
 		return -EINVAL;
 	}
 
@@ -880,8 +880,8 @@ static int tsi148_dma_setup_src(struct vme_dma *desc)
 		break;
 	default:
 		printk(KERN_ERR
-                       "tsi148_dma_setup_src: invalid direction %d\n",
-		       desc->dir);
+                       "%s: invalid direction %d\n",
+		       __func__, desc->dir);
 		rc = -EINVAL;
 	}
 
@@ -912,8 +912,8 @@ static int tsi148_dma_setup_dst(struct vme_dma *desc)
 		break;
 	default:
 		printk(KERN_ERR
-                       "tsi148_dma_setup_dst: invalid direction %d\n",
-		       desc->dir);
+                       "%s: invalid direction %d\n",
+		       __func__, desc->dir);
 		rc = -EINVAL;
 	}
 
@@ -993,7 +993,7 @@ static int tsi148_dma_setup_direct(struct dma_channel *chan,
 				   unsigned int ddat)
 {
 	struct vme_dma *desc = &chan->desc;
-	
+
 	struct tsi148_dma_desc *hw_desc = &chip->lcsr.dma[chan->num].dma_desc;
 	struct scatterlist *sg = chan->sgl;
 
@@ -1221,7 +1221,7 @@ static int tsi148_dma_setup_chain(struct dma_channel *chan,
 out_free:
 	tsi148_dma_free_chain(chan);
 
-	
+
 	return rc;
 }
 
@@ -1240,7 +1240,7 @@ int tsi148_dma_setup(struct dma_channel *chan)
 
 	/* Setup DMA source attributes */
 	if ((rc = tsi148_dma_setup_src(desc)) < 0) {
-		printk(KERN_ERR "tsi148_dma_setup: src setup failed\n");
+		printk(KERN_ERR "%s: src setup failed\n", __func__);
 		return rc;
 	}
 
@@ -1248,7 +1248,7 @@ int tsi148_dma_setup(struct dma_channel *chan)
 
 	/* Setup DMA destination attributes */
 	if ((rc = tsi148_dma_setup_dst(desc)) < 0) {
-		printk(KERN_ERR "tsi148_dma_setup: dst setup failed\n");
+		printk(KERN_ERR "%s: dst setup failed\n", __func__);
 		return rc;
 	}
 
@@ -1256,7 +1256,7 @@ int tsi148_dma_setup(struct dma_channel *chan)
 
 	/* Setup DMA control */
 	if ((rc = tsi148_dma_setup_ctl(desc)) < 0) {
-		printk(KERN_ERR "tsi148_dma_setup: ctl setup failed\n");
+		printk(KERN_ERR "%s: ctl setup failed\n", __func__);
 		return rc;
 	}
 
@@ -1524,9 +1524,9 @@ void tsi148_get_window_attr(struct vme_mapping *desc)
 
 	if (am == -1)
 		printk(KERN_WARNING PFX
-		       "tsi148_get_window_attr - unsupported AM:\n"
+		       "%s - unsupported AM:\n"
 		       "\taddr size: %x TM: %x usr/sup: %d data/prg:%d\n",
-		       addr_size, transfer_mode, user_access,
+		       __func__, addr_size, transfer_mode, user_access,
 		       data_access);
 
 	desc->am = am;

@@ -55,8 +55,8 @@ unsigned long find_controller(unsigned long vmeaddr, unsigned long len,
 
 	/* Allocate our mapping descriptor */
 	if ((desc = kzalloc(sizeof(struct vme_mapping), GFP_KERNEL)) == NULL) {
-		printk(KERN_ERR PFX "find_controller - "
-		       "Failed to allocate mapping descriptor\n");
+		printk(KERN_ERR PFX "%s - "
+		       "Failed to allocate mapping descriptor\n", __func__);
 		return -1;
 	}
 
@@ -74,8 +74,8 @@ unsigned long find_controller(unsigned long vmeaddr, unsigned long len,
 		desc->data_width = VME_D32;
 		break;
 	default:
-		printk(KERN_ERR PFX
-		       "find_controller - Unsupported data width %ld\n", size);
+		printk(KERN_ERR PFX "%s - Unsupported data width %ld\n",
+		       __func__, size);
 		goto out_free;
 		break;
 	}
@@ -106,10 +106,10 @@ unsigned long find_controller(unsigned long vmeaddr, unsigned long len,
 		goto out_free;
 	}
 
-	printk(KERN_DEBUG PFX "find_controller - "
+	printk(KERN_DEBUG PFX "%s - "
 	       "Mapping found, VME addr: %.8lx "
 	       "Size:%.8lx AM: %.2lx mapped at %p\n",
-		vmeaddr, len, am, desc->kernel_va);
+	       __func__, vmeaddr, len, am, desc->kernel_va);
 
 	return (unsigned long)desc->kernel_va;
 

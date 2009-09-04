@@ -310,8 +310,8 @@ static int add_mapping(struct window *window, struct vme_mapping *desc)
 
 		/* Create a logical mapping for this hardware window */
 	if ((mapping = kmalloc(sizeof(struct mapping), GFP_KERNEL)) == NULL) {
-		printk(KERN_ERR PFX "add_mapping - "
-		       "Failed to allocate mapping\n");
+		printk(KERN_ERR PFX "%s - "
+		       "Failed to allocate mapping\n", __func__);
 		return -ENOMEM;
 	}
 
@@ -503,8 +503,8 @@ int vme_create_window(struct vme_mapping *desc)
 
 	if (!window->rsrc.name)
 		/* Not fatal, we can live with a nameless resource */
-		printk(KERN_WARNING PFX "vme_create_window - "
-		       "failed to allocate resource name\n");
+		printk(KERN_WARNING PFX "%s - "
+		       "failed to allocate resource name\n", __func__);
 	else
 		sprintf((char *)window->rsrc.name, "VME Window %d", window_num);
 
@@ -521,10 +521,10 @@ int vme_create_window(struct vme_mapping *desc)
 				    PCIBIOS_MIN_MEM, 0, NULL, NULL);
 
 	if (rc) {
-		printk(KERN_ERR PFX "vme_create_window - "
+		printk(KERN_ERR PFX "%s - "
 		       "Failed to allocate bus resource for window %d "
 		       "start 0x%lx size 0x%.8x\n",
-		       window_num, (unsigned long)window->rsrc.start,
+		       __func__, window_num, (unsigned long)window->rsrc.start,
 		       desc->sizel);
 
 		goto out_free;
@@ -533,9 +533,9 @@ int vme_create_window(struct vme_mapping *desc)
 	desc->kernel_va = ioremap(window->rsrc.start, desc->sizel);
 
 	if (desc->kernel_va == NULL) {
-		printk(KERN_ERR PFX "vme_create_window - "
+		printk(KERN_ERR PFX "%s - "
 		       "failed to map window %d start 0x%lx size 0x%.8x\n",
-		       window_num, (unsigned long)window->rsrc.start,
+		       __func__, window_num, (unsigned long)window->rsrc.start,
 		       desc->sizel);
 
 		rc = -ENOMEM;
@@ -632,9 +632,9 @@ int vme_destroy_window(int window_num)
 	}
 
 	if (window->users)
-		printk(KERN_ERR "vme_destroy_window: %d mappings still alive "
+		printk(KERN_ERR "%s: %d mappings still alive "
 		       "on window %d\n",
-		       window->users, window_num);
+		       __func__, window->users, window_num);
 
 	/* Mark the window as unused */
 	window->active = 0;
