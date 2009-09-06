@@ -287,7 +287,7 @@ int mem_lock(int tjob, char *start, unsigned long size)
  */
 char *get1page()
 {
-	return (char *)get_zeroed_page(GFP_KERNEL);
+	return (char *)get_zeroed_page(GFP_KERNEL | GFP_DMA);
 }
 
 /**
