@@ -162,6 +162,7 @@ char *get_phys(long);
 int mem_lock(int, char *, unsigned long);
 int mem_unlock(int, char *, long, int);
 char *get1page(void);
+void free1page(void *addr);
 
 
 #endif /* _CDCM_LYNX_API_H_INCLUDE_ */

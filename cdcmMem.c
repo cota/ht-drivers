@@ -289,3 +289,13 @@ char *get1page()
 {
 	return (char *)get_zeroed_page(GFP_KERNEL);
 }
+
+/**
+ * @brief free a page allocated with get1page()
+ *
+ * @param addr - address of the page
+ */
+void free1page(void *addr)
+{
+	return free_page((unsigned long)addr);
+}
