@@ -35,11 +35,5 @@ xmemtest.$(CPU).o: $(TEST) $(HDRS)
 install: xmemtest.$(CPU)
 	@for f in $(ACCS); do \
 	    dsc_install xmemtest.$(CPU) /acc/dsc/$$f/$(CPU)/$(BSP)/$(DDIR); \
-	    rm -f /acc/dsc/$$f/$(CPU)/$(BSP)/$(DDIR)/Xmem.segs; \
-	    rm -f /acc/dsc/$$f/data/$(DDIR)/Xmem.segs; \
-	    cp Xmem.segs /acc/dsc/$$f/$(CPU)/$(BSP)/$(DDIR); \
-	    chmod 444 /acc/dsc/$$f/$(CPU)/$(BSP)/$(DDIR)/Xmem.segs; \
-	    cp Xmem.segs /acc/dsc/$$f/data/$(DDIR); \
-	    chmod 664 /acc/dsc/$$f/data/$(DDIR)/Xmem.segs; \
 	done;
 
