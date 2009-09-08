@@ -10,7 +10,7 @@ DDIR = xmemn
 
 ACCS=oplhc
 
-CFLAGS= -g -Wall -I. -I/dsrc/drivers/xmem/src/driver -I../../include
+CFLAGS= -g -Wall -I. -I../driver -I../../include
 
 LDLIBS = -ltgm -lerr -lnc
 
