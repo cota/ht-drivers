@@ -6,7 +6,7 @@ CPU=ppc4
 
 include /acc/dsc/src/co/Make.auto
 
-DDIR = xmem
+DDIR = xmemn
 
 ACCS=oplhc
 
