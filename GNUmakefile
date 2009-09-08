@@ -2,6 +2,8 @@
 # Makefile to produce timing library
 #================================================================
 
+INSTALL_DIR=xmemn
+
 include /ps/dsc/src/co/Make.auto
 
 CFLAGS= -g -Wall -I. -I/acc/src/dsc/drivers/coht/xmem/driver \
@@ -29,7 +31,7 @@ clean:
 	rm -f libxmem.$(CPU).a
 
 install: $(INSTFILES)
-	rm -f /ps/local/$(CPU)/xmem/libxmem.a
-	cp libxmem.$(CPU).a /ps/local/$(CPU)/xmem/libxmem.a
-	rm -f /ps/local/$(CPU)/xmem/libxmem.h
-	cp libxmem.h /ps/local/$(CPU)/xmem/libxmem.h
+	rm -f /ps/local/$(CPU)/$(INSTALL_DIR)/libxmem.a
+	cp libxmem.$(CPU).a /ps/local/$(CPU)/$(INSTALL_DIR)/libxmem.a
+	rm -f /ps/local/$(CPU)/$(INSTALL_DIR)/libxmem.h
+	cp libxmem.h /ps/local/$(CPU)/$(INSTALL_DIR)/libxmem.h
