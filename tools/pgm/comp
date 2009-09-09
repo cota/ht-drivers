@@ -7,6 +7,6 @@ if [ ! -e $1.cpp ]; then
 fi 
 
 /usr/bin/cpp -I/acc/dsc/tst/data/timing/ctm/OPERLHC/NEXT/mtt $1.cpp $1.ass
-../asm.Linux $1.ass $1.obj 
-echo "./n" | ../emu.Linux $1.obj
+../asm.L864 $1.ass $1.obj 
+echo "./n" | ../emu.L864 $1.obj
 
