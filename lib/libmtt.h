@@ -45,6 +45,10 @@
 typedef char MttLibName[MttLibMAX_NAME_SIZE];
 
 /* ================================================================ */
+/* Task registers                                                   */
+typedef MttDrvrTaskRegBuf MttLibTaskRegisters;
+
+/* ================================================================ */
 /* The MttLibrary returns error codes as follows..                  */
 
 typedef enum {
@@ -124,6 +128,7 @@ MttLibError MttLibSetTaskRegister(char *name,
 MttLibError MttLibGetTaskRegister(char *name,
 				  MttLibLocalRegister treg,
 				  unsigned long *val);
+MttLibError MttLibGetTaskRegisters(char *name, MttLibTaskRegisters *phLRegs);
 
 /* ================================================================ */
 /* Convert register names to and from register numbers.             */

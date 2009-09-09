@@ -667,6 +667,40 @@ MttLibError MttLibGetTaskRegister(char *name, MttLibLocalRegister treg,
 }
 
 /* ================================================================ */
+
+MttLibError MttLibGetTaskRegisters(char *name, MttLibTaskRegisters *phLRegs) {
+	int i;
+	MttDrvrTaskBuf tbuf;
+	MttDrvrTaskBlock *tcbp;
+	unsigned long tn;
+	MttDrvrTaskRegBuf lreg;
+
+	if (mtt == 0)
+		return MttLibErrorINIT;
+
+	tcbp = &(tbuf.ControlBlock);
+	for (i = first_task - 1; i < last_task; i++) {
+		tn = i + 1;
+		tbuf.Task = tn;
+		if (ioctl(mtt, MTT_IOCGTCB, &tbuf) < 0)
+			return MttLibErrorIO;
+		if (strcmp(name, tbuf.Name) == 0) {
+			int j;
+			lreg.Task = tn;
+			lreg.RegMask = -1;
+			if (ioctl(mtt, MTT_IOCGTRVAL, &lreg) < 0)
+				return MttLibErrorIO;
+			for (j=0;j<MttDrvrLRAM_SIZE;j++ )
+				phLRegs->RegVals[j]=lreg.RegVals[j];
+			phLRegs->Task=lreg.Task;
+			phLRegs->RegMask=lreg.RegMask;
+			return MttLibErrorNONE;
+		}
+	}
+	return MttLibErrorNOLOAD;
+}
+
+/* ================================================================ */
 /* Tasks running event tables can be started, stopped or continued. */
 /* Starting a task loads its program counter with its start address */
 /* Stopping a task stops it dead, Continuing a task continues from  */
