@@ -34,6 +34,6 @@ xmemtest.$(CPU).o: $(TEST) $(HDRS)
 
 install: xmemtest.$(CPU)
 	@for f in $(ACCS); do \
-	    dsc_install xmemtest.$(CPU) /acc/dsc/$$f/$(CPU)/$(BSP)/$(DDIR); \
+	    dsc_install xmemtest.$(CPU) /acc/dsc/$$f/$(CPU)/$(DDIR); \
 	done;
 
