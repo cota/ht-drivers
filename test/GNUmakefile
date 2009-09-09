@@ -29,7 +29,7 @@ INSTALL_FILES=mtttest.$(CPU) Mtt.xsvf
 INSTALL_DIR=mttn
 install: $(INSTALL_FILES)
 	@for a in $(ACCS); do \
-		p=/acc/dsc/$$a/$(CPU)/ces/$(INSTALL_DIR);\
+		p=/acc/dsc/$$a/$(CPU)/$(INSTALL_DIR);\
 		echo "===============================";\
 		echo "Installing in $$p :";\
 		for f in $^; do \
