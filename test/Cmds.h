@@ -46,7 +46,6 @@ int StopTasks();            /* Stop tasks */
 int ContTask();             /* Continue tasks */
 int GetRunningTasks();      /* Get the list of running tasks */
 int SaveRunningTasks();     /* Save all running tasks and registers */
-int LaunchSurvey();         /* Launch survey task in display mode */
 
 int GetTcb();               /* Get the working tasks TCB */
 int GetSetLa();             /* Get/Set working tasks load address */
@@ -244,7 +243,6 @@ static Cmd cmds[CmdCMDS] = {
    { CmdCONT,    "cont",  "Continue tasks"           ,"T|Msk"              ,ContTask        },
    { CmdRUNING,  "rnt",   "Get list of running tasks",""                   ,GetRunningTasks },
    { CmdSAVERUN, "srnt",  "Save running tasks & regs","FileNmae"           ,SaveRunningTasks},
-   { CmdSURVEY,  "svy",   "Survey tasks on MTG A/B"  ,"A|B"                ,LaunchSurvey    },
 
    { CmdTCB,     "tcb",   "Get the task TCB"         ,"Task"               ,GetTcb   },
    { CmdLA,      "la",    "Get/Set task LoadAddrs"   ,"Address"            ,GetSetLa },
