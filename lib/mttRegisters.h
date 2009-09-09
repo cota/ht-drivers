@@ -530,7 +530,5 @@ typedef enum {
 
 #define MttLibLocalREGISTERS 32
 
-#define ConsNOT_SET 0x80000000
-#define ConsALL_SET 0xFFFFFFFF
 
 #endif
