@@ -70,44 +70,44 @@ typedef enum {
 } KeyWord;
 
 static char *keywords[KEY_WORDS] = {
-   "empty",
-   "install",
-   "host",
-   "driver",
-   "name",
-   "drivergen",
-   "install_debug_level",
-   "emulation_flag",
-   "comment",
-   "module",
-   "bus_type",
-   "logical_module_number",
-   "extra",
-   "pci",
-   "bus_number",
-   "slot_number",
-   "vendor_id",
-   "device_id",
-   "subvendor_id",
-   "subdevice_id",
-   "carrier",
-   "board_number",
-   "board_position",
-   "interrupt",
-   "vector",
-   "level",
-   "pci_space",
-   "bar",
-   "endian",
-   "vme_space",
-   "modifier",
-   "data_width",
-   "window_size",
-   "address",
-   "free_flag",
-   "carrier_space",
-   "vme",
-   "ignore_install_errors"
+	"empty",
+	"install",
+	"host",
+	"driver",
+	"name",
+	"drivergen",
+	"install_debug_level",
+	"emulation_flag",
+	"comment",
+	"module",
+	"bus_type",
+	"logical_module_number",
+	"extra",
+	"pci",
+	"bus_number",
+	"slot_number",
+	"vendor_id",
+	"device_id",
+	"subvendor_id",
+	"subdevice_id",
+	"carrier",
+	"board_number",
+	"board_position",
+	"interrupt",
+	"vector",
+	"level",
+	"pci_space",
+	"bar",
+	"endian",
+	"vme_space",
+	"modifier",
+	"data_width",
+	"window_size",
+	"address",
+	"free_flag",
+	"carrier_space",
+	"vme",
+	"ignore_install_errors"
  };
 
 /* =============================================================== */
@@ -200,8 +200,9 @@ static xmlAttr *GetNextProp(xmlAttr *prop, char **pname, char **pvalu,
 		if (prop->children)
 			*pvalu = (char *)prop->children->content;
 
-		if (pflag) printf("\033[0m[\033[33m%s:\033[32m%s\033[0m]",
-				  *pname, *pvalu);
+		if (pflag)
+			printf("\033[0m[\033[33m%s:\033[32m%s\033[0m]",
+			       *pname, *pvalu);
 
 		return prop->next;
 	}
@@ -250,7 +251,6 @@ static unsigned int GetNumber(char *txt)
 	return val;
 }
 
-
 /**
  * @brief Process elements and build descriptor
  *
@@ -261,16 +261,16 @@ static unsigned int GetNumber(char *txt)
  */
 static InsLibHostDesc *DoElement(xmlNode *a_node, int pflag)
 {
-	static InsLibHostDesc         *hostd = NULL;
-	static InsLibDrvrDesc         *drvrd = NULL, *ndrvrd = NULL;
-	static InsLibModlDesc         *modld = NULL, *nmodld = NULL;
-	static InsLibPciModuleAddress *pcima = NULL;
-	static InsLibPciAddressSpace  *pcias = NULL, *npcias = NULL;
-	static InsLibVmeModuleAddress *vmema = NULL;
+	static InsLibHostDesc         *hostd  = NULL;
+	static InsLibDrvrDesc         *drvrd  = NULL, *ndrvrd = NULL;
+	static InsLibModlDesc         *modld  = NULL, *nmodld = NULL;
+	static InsLibPciModuleAddress *pcima  = NULL;
+	static InsLibPciAddressSpace  *pcias  = NULL, *npcias = NULL;
+	static InsLibVmeModuleAddress *vmema  = NULL;
 	static InsLibVmeAddressSpace  *nvmeas = NULL;
-	static InsLibCarModuleAddress *carma = NULL;
-	static InsLibCarAddressSpace  *caras = NULL, *ncaras = NULL;
-	static InsLibIntrDesc         *isrds = NULL;
+	static InsLibCarModuleAddress *carma  = NULL;
+	static InsLibCarAddressSpace  *caras  = NULL, *ncaras = NULL;
+	static InsLibIntrDesc         *isrds  = NULL;
 	xmlNode *cur_node = NULL;
 	xmlAttr *prop     = NULL;
 
@@ -566,8 +566,9 @@ static InsLibHostDesc *DoElement(xmlNode *a_node, int pflag)
 
 				prop = cur_node->properties;
 				while (prop) {
-					prop = GetNextProp(prop,&pname,&pvalu,pflag);
-					pky = LookUp((char *) pname);
+					prop = GetNextProp(prop, &pname,
+							   &pvalu, pflag);
+					pky = LookUp((char *)pname);
 
 					if (pky == MODIFIER) {
 						nvmeas->AddressModifier = GetNumber(pvalu);
@@ -596,11 +597,14 @@ static InsLibHostDesc *DoElement(xmlNode *a_node, int pflag)
 				}
 
 				if (!nvmeas->AddressModifier)
-					FatalError("Address MODIFIER missing from VME ADDRESS SPACE");
+					FatalError("Address MODIFIER missing"
+						   " from VME ADDRESS SPACE");
 				if (!nvmeas->DataWidth)
-					FatalError("Data WIDTH missing from VME ADDRESS SPACE");
+					FatalError("Data WIDTH missing from"
+						   " VME ADDRESS SPACE");
 				if (!nvmeas->WindowSize)
-					FatalError("WINDOW SIZE  missing from VME ADDRESS SPACE");
+					FatalError("WINDOW SIZE missing from"
+						   " VME ADDRESS SPACE");
 				// if (!nvmeas->BaseAddress) FatalError("VME BASE ADDRESS missing from VME ADDRESS SPACE");
 
 				add_vme_addr_space(vmema, nvmeas);
