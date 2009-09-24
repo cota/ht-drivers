@@ -1,6 +1,6 @@
-<install host>
-	<driver	name [install_debug_level] [emulation_flag] [comment]>
-		[<module bus_type logical_module_number extra [ignore_install_errors] [comment]>
+<install host [comment]>
+	<driver	name [install_debug_level] [emulation_flag] [drivergen] [comment]>
+		[<module name bus_type logical_module_number [extra] [ignore_install_errors] [comment]>
 			[<vme [comment]/>]
 			[<pci bus_number slot_number vendor_id device_id [subvendor_id subdevice_id] [comment]/>]
 			[<carrier board_number board_position [comment]/>]
@@ -30,8 +30,8 @@ So you can omit:
 Module description ([module] tag) can't have more then one module address
 (one of [vme] [pci] or [carrier] tags)
 
-host		string[32]	// host name where driver is being installed
-name:		string[32]	// The driver name
+host:		string[32]	// host name where driver is being installed
+name:		string[32]	// The driver && module name
 comment:	string[128]	// A comment describing the driver
 
 // The debug printing level during the installation of the driver
@@ -42,6 +42,10 @@ install_debug_level:	ASSERTION 	// Assertion violations
 			MODULE  	// Module errors
 			VERBOSE  	// Lots of information printed
 			NONE		// Mininimum printing
+
+// If this driver was generated using driverGen?
+// If not provided -- libinst will set it to [n] (i.e. no)
+drivergen: y/n
 
 // For testing the real hardware may be ansent
 // any one of these can be chosen

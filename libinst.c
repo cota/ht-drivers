@@ -114,14 +114,27 @@ static char *keywords[KEY_WORDS] = {
 /* Private routines used inside library                            */
 /* =============================================================== */
 
-static InsLibPciModuleAddress *parse_pci_address_tag(InsLibModlDesc *,
-						     xmlNode *, int);
-static InsLibVmeModuleAddress *parse_vme_address_tag(InsLibModlDesc *,
-						     xmlNode *,int);
-static InsLibCarModuleAddress *parse_car_address_tag(InsLibModlDesc *,
-						     xmlNode *, int);
-static void add_vme_addr_space(InsLibVmeModuleAddress*, InsLibVmeAddressSpace*);
+static InsLibPciModuleAddress *parse_pci_address_tag(xmlNode *, int,
+						     InsLibModlDesc *);
+static InsLibVmeModuleAddress *parse_vme_address_tag(xmlNode *, int,
+						     InsLibModlDesc *);
+static InsLibCarModuleAddress *parse_car_address_tag(xmlNode *, int,
+						     InsLibModlDesc *);
+static void add_vme_addr_space(InsLibVmeModuleAddress *,
+			       InsLibVmeAddressSpace *);
 
+
+static InsLibHostDesc* handle_install_node(xmlNode *, int);
+
+static void add_driver_node(InsLibHostDesc *, InsLibDrvrDesc *);
+static InsLibDrvrDesc* handle_driver_node(xmlNode *, int, InsLibHostDesc *);
+
+static void add_module_node(InsLibDrvrDesc *, InsLibModlDesc *);
+static InsLibModlDesc* handle_module_node(xmlNode *, int, InsLibDrvrDesc *);
+
+static InsLibVmeAddressSpace* handle_vme_space_node(xmlNode *, int,
+						    InsLibVmeModuleAddress *,
+						    InsLibModlDesc *);
 
 /* ========================================== */
 /* Indenter to print spaces if printing is on */
@@ -211,18 +224,27 @@ static xmlAttr *GetNextProp(xmlAttr *prop, char **pname, char **pvalu,
 }
 
 /**
- * @brief Handle fatal errors
+ * @brief printout errors
  *
- * @param txt  --
- * @param  ... --
+ * @param txt  -- format string
+ *                Special case (0 or 1) is possible
+ *                0 -- printing is turned off
+ *                1 -- do stderr printout
+ * @param  ... -- arguments
  *
  * <long-description>
  */
-static void FatalError(char *txt, ...)
+static void prnterr(char *txt, ...)
 {
+	static int doprnt = 1;
 	va_list ap;
 
 	InsLibErrorCount++;
+
+	if (!doprnt)
+		/* no error printing */
+		return;
+
 	fprintf(stderr, "\n%s", ERR_MSG);
 	va_start(ap, txt);
 	vfprintf(stderr, txt, ap);
@@ -245,9 +267,9 @@ static unsigned int GetNumber(char *txt)
 	unsigned int val;
 
 	cp = &(txt[0]);
-	val = strtoul(cp,&ep,0);
+	val = strtoul(cp, &ep, 0);
 	if (ep == cp)
-		FatalError("Missing value");
+		prnterr("Missing value");
 	return val;
 }
 
@@ -257,25 +279,26 @@ static unsigned int GetNumber(char *txt)
  * @param a_node -- root element
  * @param pflag  -- Debug print flag to print the tree
  *
- * @return
+ * @return host description pointer - if OK
+ * @return NULL                     - if FAILED
  */
 static InsLibHostDesc *DoElement(xmlNode *a_node, int pflag)
 {
-	static InsLibHostDesc         *hostd  = NULL;
-	static InsLibDrvrDesc         *drvrd  = NULL, *ndrvrd = NULL;
-	static InsLibModlDesc         *modld  = NULL, *nmodld = NULL;
-	static InsLibPciModuleAddress *pcima  = NULL;
-	static InsLibPciAddressSpace  *pcias  = NULL, *npcias = NULL;
-	static InsLibVmeModuleAddress *vmema  = NULL;
-	static InsLibVmeAddressSpace  *nvmeas = NULL;
-	static InsLibCarModuleAddress *carma  = NULL;
-	static InsLibCarAddressSpace  *caras  = NULL, *ncaras = NULL;
-	static InsLibIntrDesc         *isrds  = NULL;
+	static InsLibHostDesc         *hostd = NULL;
+	static InsLibDrvrDesc         *drvrd = NULL;
+	static InsLibModlDesc         *modld = NULL;
+	static InsLibPciModuleAddress *pcima = NULL;
+	static InsLibPciAddressSpace  *pcias = NULL, *npcias = NULL;
+	static InsLibVmeModuleAddress *vmema = NULL;
+	static InsLibVmeAddressSpace  *vmeas = NULL;
+	static InsLibCarModuleAddress *carma = NULL;
+	static InsLibCarAddressSpace  *caras = NULL, *ncaras = NULL;
+	static InsLibIntrDesc         *isrds = NULL;
 	xmlNode *cur_node = NULL;
 	xmlAttr *prop     = NULL;
 
 	KeyWord pky;
-	char *ip, *cp, *pname, *pvalu;
+	char *ip, *pname, *pvalu;
 
 	if (pflag)
 		ip = indent(FORWARD);
@@ -284,184 +307,64 @@ static InsLibHostDesc *DoElement(xmlNode *a_node, int pflag)
 		if (cur_node->type == XML_ELEMENT_NODE) {
 			pky = LookUp((char *) cur_node->name);
 			if (pky == EMPTY)
-				FatalError("Crap in XML file");
+				prnterr("Crap in XML file");
 
 			if (pflag)
 				printf("\033[36m%s%s", ip, cur_node->name);
 
 			switch (pky) {
 			case INSTALL:
-				hostd = (InsLibHostDesc *)
-					malloc(sizeof(InsLibHostDesc));
-				if (!hostd) {
-					FatalError("Cant allocate memory");
-					exit(EXIT_FAILURE);
-				}
-
-				bzero((void *) hostd, sizeof(InsLibHostDesc));
-
-				prop = cur_node->properties;
-				while (prop) {
-					prop = GetNextProp(prop, &pname,
-							   &pvalu, pflag);
-					pky = LookUp((char *) pname);
-
-					if (pky == HOST)
-						strncpy(hostd->HostName, pvalu,
-							InsLibNAME_SIZE);
-					else if (pky == COMMENT)
-						strncpy(hostd->Comment, pvalu,
-							InsLibCOMMENT_SIZE);
-					else
-						break;
-				}
-				if (strlen(hostd->HostName) < 1)
-					FatalError("Host NAME missing"
-						   " from INSTALL clause");
-
-				if (pflag)
-					printf("\n");
+				hostd = handle_install_node(cur_node, pflag);
+				if (!hostd)
+					return hostd;
 				break;
 			case DRIVER:
-				if (hostd == NULL)
-					FatalError("Encountered DRIVER clause"
+				if (!hostd) {
+					prnterr("Encountered DRIVER clause"
 						   " with no previous INSTALL"
 						   " clause");
-
-				ndrvrd = (InsLibDrvrDesc *)
-					malloc(sizeof(InsLibDrvrDesc));
-				if (!ndrvrd) {
-					FatalError("Cant allocate memory");
-					exit(EXIT_FAILURE);
+					return NULL;
 				}
 
-				bzero((void *) ndrvrd, sizeof(InsLibDrvrDesc));
-
-				if (hostd->Drivers == NULL)
-					hostd->Drivers = ndrvrd;
-				else
-					drvrd->Next = ndrvrd;
-
-				drvrd = ndrvrd;
-				drvrd->isdg = -1; /* set [if driverGen] flag
-						     to 'not provided' */
-				prop = cur_node->properties;
-				while (prop) {
-					prop = GetNextProp(prop, &pname,
-							   &pvalu, pflag);
-					pky = LookUp((char *) pname);
-
-					if (pky == NAME)
-						strncpy(drvrd->DrvrName, pvalu,
-							InsLibNAME_SIZE);
-					else if (pky == COMMENT)
-						strncpy(drvrd->Comment, pvalu,
-							InsLibCOMMENT_SIZE);
-					else if (pky == INSTALL_DEBUG_LEVEL)
-						drvrd->DebugFlags =
-							GetNumber(pvalu);
-					else if (pky == EMULATION_FLAG)
-						drvrd->EmulationFlags =
-							GetNumber(pvalu);
-					else if (pky == DRIVERGEN)
-						drvrd->isdg = (*pvalu == 'y')?
-							1:0;
-					else
-						break;
+				drvrd = handle_driver_node(cur_node, pflag,
+							   hostd);
+				if (!drvrd) {
+					InsLibFreeHost(hostd);
+					return NULL;
 				}
-				if (strlen(drvrd->DrvrName) < 1)
-					FatalError("Driver name missing"
-						   " from driver clause");
-				if (pflag)
-					printf("\n");
 				break;
 			case MODULE:
-				if (drvrd == NULL)
-					FatalError("Encountered MODULE clause"
+				if (!drvrd) {
+					prnterr("Encountered MODULE clause"
 						   " with no previous DRIVER"
 						   " clause");
-
-				nmodld = (InsLibModlDesc *)
-					malloc(sizeof(InsLibModlDesc));
-				if (!nmodld) {
-					FatalError("Cant allocate memory");
-					exit(EXIT_FAILURE);
+					InsLibFreeHost(hostd);
+					return NULL;
 				}
 
-				bzero((void *) nmodld, sizeof(InsLibModlDesc));
+				modld = handle_module_node(cur_node, pflag,
+							   drvrd);
 
-				if (drvrd->Modules == NULL)
-					drvrd->Modules = nmodld;
-				else
-					modld->Next = nmodld;
-				modld = nmodld;
-
-				drvrd->ModuleCount++;
-
-				prop = cur_node->properties;
-				while (prop) {
-					prop = GetNextProp(prop, &pname,
-							   &pvalu, pflag);
-					pky = LookUp((char *) pname);
-
-					if (pky == BUS_TYPE) {
-						if (!strcmp(pvalu,"VME"))
-							modld->BusType = InsLibBusTypeVME;
-						else if (!strcmp(pvalu,"PCI"))
-							modld->BusType = InsLibBusTypePCI;
-						else if (!strcmp(pvalu,"PMC"))
-							modld->BusType = InsLibBusTypePMC;
-						else if (!strcmp(pvalu,"CAR"))
-							modld->BusType = InsLibBusTypeCARRIER;
-						else
-							FatalError("Bad BUS_TYPE in MODULE clause");
-
-					} else if (pky == LOGICAL_MODULE_NUMBER) {
-						modld->ModuleNumber = GetNumber(pvalu);
-						if ( ((modld->ModuleNumber < 1) || (modld->ModuleNumber > InsLibMAX_MODULES)) && (modld->ModuleNumber != _NOT_DEF_) )
-							FatalError("Bad MODULE_NUMBER [ %d ] in MODULE clause", modld->ModuleNumber);
-
-					} else if (pky == EXTRA) {
-						cp = (char *) malloc(strlen(pvalu));
-						if (!cp) {
-							FatalError("Cant allocate memory");
-							exit(EXIT_FAILURE);
-						}
-
-						strcpy(cp,pvalu);
-						modld->Extra = cp;
-
-					} else if (pky == COMMENT) {
-						strncpy(modld->Comment,pvalu,InsLibCOMMENT_SIZE);
-
-					} else if (pky == IGNORE_INSTALL_ERRORS)
-						modld->IgnoreErrors = 1;
-					else
-						break;
+				if (!modld) {
+					InsLibFreeHost(hostd);
+					return NULL;
 				}
-
-				if (modld->BusType == InsLibBusTypeNOT_SET)
-					FatalError("BUS type missing from"
-						   " MODULE clause");
-				if (modld->ModuleNumber == 0)
-					FatalError("Logical Module Number is"
-						   " missing from MODULE"
-						   " clause");
-
-				if (pflag) printf("\n");
 				break;
-
 			case INTERRUPT:
-				if (modld == NULL)
-					FatalError("Encountered INTERRUPT"
+				if (!modld) {
+					prnterr("Encountered INTERRUPT"
 						   " clause with no previous"
 						   " MODULE clause");
+					InsLibFreeHost(hostd);
+					return NULL;
+				}
 
 				isrds = (InsLibIntrDesc *)
 					malloc(sizeof(InsLibIntrDesc));
 				if (!isrds) {
-					FatalError("Cant allocate memory");
-					exit(EXIT_FAILURE);
+					prnterr("Cant allocate memory");
+					InsLibFreeHost(hostd);
+					return NULL;
 				}
 
 				bzero((void *) isrds, sizeof(InsLibIntrDesc));
@@ -477,12 +380,12 @@ static InsLibHostDesc *DoElement(xmlNode *a_node, int pflag)
 					if (pky == VECTOR) {
 						isrds->Vector = GetNumber(pvalu);
 						if ((isrds->Vector < 1) || (isrds->Vector > 255))
-							FatalError("Bad VECTOR in INTERRUPT clause");
+							prnterr("Bad VECTOR in INTERRUPT clause");
 
 					} else if (pky == LEVEL) {
 						isrds->Level = GetNumber(pvalu);
 						if ((isrds->Level < 1) || (isrds->Level > 8))
-							FatalError("Bad LEVEL in INTERRUPT clause");
+							prnterr("Bad LEVEL in INTERRUPT clause");
 
 					} else if (pky == COMMENT) {
 						strncpy(isrds->Comment,pvalu,InsLibCOMMENT_SIZE);
@@ -493,21 +396,23 @@ static InsLibHostDesc *DoElement(xmlNode *a_node, int pflag)
 				if (pflag) printf("\n");
 				break;
 			case PCI:
-				pcima = parse_pci_address_tag(modld, cur_node,
-							      pflag);
+				pcima = parse_pci_address_tag(cur_node,
+							      pflag, modld);
 				break;
 			case PCI_SPACE:
 				if (!pcima) {
-					FatalError("Encountered PCI space"
+					prnterr("Encountered PCI space"
 						   " clause with no previous"
 						   " PCI clause");
-					break;
+					InsLibFreeHost(hostd);
+					return NULL;
 				}
 
 				npcias = (InsLibPciAddressSpace *) malloc(sizeof(InsLibPciAddressSpace));
 				if (!npcias) {
-					FatalError("Cant allocate memory");
-					exit(EXIT_FAILURE);
+					prnterr("Cant allocate memory");
+					InsLibFreeHost(hostd);
+					return NULL;
 				}
 
 				bzero((void *) npcias, sizeof(InsLibPciAddressSpace));
@@ -526,12 +431,12 @@ static InsLibHostDesc *DoElement(xmlNode *a_node, int pflag)
 
 					if (pky == BAR) {
 						pcias->BaseAddressRegister = GetNumber(pvalu);
-						if (pcias->BaseAddressRegister > 6) FatalError("Bad BASE ADDRESS REGISTER in PCI_SPACE clause");
+						if (pcias->BaseAddressRegister > 6) prnterr("Bad BASE ADDRESS REGISTER in PCI_SPACE clause");
 
 					} else if (pky == ENDIAN) {
 						if      (strcmp(pvalu,"BIG")    == 0) pcias->Endian = InsLibEndianBIG;
 						else if (strcmp(pvalu,"LITTLE") == 0) pcias->Endian = InsLibEndianLITTLE;
-						else FatalError("Bad ENDIAN specification in PCI_SPACE clause");
+						else prnterr("Bad ENDIAN specification in PCI_SPACE clause");
 
 					} else if (pky == COMMENT) {
 						strncpy(pcias->Comment,pvalu,InsLibCOMMENT_SIZE);
@@ -543,91 +448,54 @@ static InsLibHostDesc *DoElement(xmlNode *a_node, int pflag)
 				break;
 
 			case VME:
-				vmema = parse_vme_address_tag(modld, cur_node,
-							      pflag);
+				vmema = parse_vme_address_tag(cur_node,
+							      pflag, modld);
 				break;
 			case VME_SPACE:
 				if (!vmema) {
-					FatalError("Encountered VME space"
+					prnterr("Encountered VME space"
 						   " clause with no previous"
 						   " VME clause");
-					break;
+					InsLibFreeHost(hostd);
+					return NULL;
 				}
 
-				nvmeas = (InsLibVmeAddressSpace *)
-					malloc(sizeof(InsLibVmeAddressSpace));
-				if (!nvmeas) {
-					FatalError("Cant allocate memory");
-					exit(EXIT_FAILURE);
+				if (!modld) {
+					prnterr("Encountered VME SPACE"
+						   " clause with no previous"
+						   " MODULE clause");
+					InsLibFreeHost(hostd);
+					return NULL;
 				}
 
-				bzero((void *) nvmeas,
-				      sizeof(InsLibVmeAddressSpace));
+				vmeas = handle_vme_space_node(cur_node,
+							      pflag,
+							      vmema,
+							      modld);
 
-				prop = cur_node->properties;
-				while (prop) {
-					prop = GetNextProp(prop, &pname,
-							   &pvalu, pflag);
-					pky = LookUp((char *)pname);
-
-					if (pky == MODIFIER) {
-						nvmeas->AddressModifier = GetNumber(pvalu);
-						if (nvmeas->AddressModifier > 0xFF)
-							FatalError("Bad address MODIFIER in VME_SPACE clause");
-
-					} else if (pky == DATA_WIDTH) {
-						nvmeas->DataWidth = GetNumber(pvalu);
-						if ((nvmeas->DataWidth !=16) && (nvmeas->DataWidth !=32))
-							FatalError("Bad DATA_WIDTH in VME_SPACE clause");
-
-
-					} else if (pky == WINDOW_SIZE) {
-						nvmeas->WindowSize = GetNumber(pvalu);
-
-					} else if (pky == ADDRESS) {
-						nvmeas->BaseAddress = GetNumber(pvalu);
-
-					} else if (pky == FREE_FLAG) {
-						nvmeas->FreeModifierFlag = GetNumber(pvalu);
-
-					} else if (pky == COMMENT) {
-						strncpy(nvmeas->Comment,pvalu,InsLibCOMMENT_SIZE);
-
-					} else break;
+				if (!vmeas) {
+					InsLibFreeHost(hostd);
+					return NULL;
 				}
-
-				if (!nvmeas->AddressModifier)
-					FatalError("Address MODIFIER missing"
-						   " from VME ADDRESS SPACE");
-				if (!nvmeas->DataWidth)
-					FatalError("Data WIDTH missing from"
-						   " VME ADDRESS SPACE");
-				if (!nvmeas->WindowSize)
-					FatalError("WINDOW SIZE missing from"
-						   " VME ADDRESS SPACE");
-				// if (!nvmeas->BaseAddress) FatalError("VME BASE ADDRESS missing from VME ADDRESS SPACE");
-
-				add_vme_addr_space(vmema, nvmeas);
-				if (pflag)
-					printf("\n");
 				break;
-
 			case CARRIER:
-				carma = parse_car_address_tag(modld, cur_node,
-							      pflag);
+				carma = parse_car_address_tag(cur_node,
+							      pflag, modld);
 				break;
 			case CARRIER_SPACE:
 				if (!carma) {
-					FatalError("Encountered CARRIER SPACE"
+					prnterr("Encountered CARRIER SPACE"
 						   " clause with no previous"
 						   " CARRIER clause");
-					break;
+					InsLibFreeHost(hostd);
+					return NULL;
 				}
 
 				ncaras = (InsLibCarAddressSpace *) malloc(sizeof(InsLibCarAddressSpace));
 				if (!ncaras) {
-					FatalError("Cant allocate memory");
-					exit(EXIT_FAILURE);
+					prnterr("Cant allocate memory");
+					InsLibFreeHost(hostd);
+					return NULL;
 				}
 
 				bzero((void *) ncaras, sizeof(InsLibCarAddressSpace));
@@ -646,7 +514,7 @@ static InsLibHostDesc *DoElement(xmlNode *a_node, int pflag)
 					if (pky == DATA_WIDTH) {
 						caras->DataWidth = GetNumber(pvalu);
 						if ((caras->DataWidth !=16) && (caras->DataWidth !=32))
-							FatalError("Bad DATA_WIDTH in VME_SPACE clause");
+							prnterr("Bad DATA_WIDTH in VME_SPACE clause");
 
 
 					} else if (pky == WINDOW_SIZE) {
@@ -658,15 +526,15 @@ static InsLibHostDesc *DoElement(xmlNode *a_node, int pflag)
 					} else break;
 				}
 
-				if (caras->DataWidth  == 0) FatalError("Data WIDTH missing from CARRIER ADDRESS SPACE");
-				if (caras->WindowSize == 0) FatalError("WINDOW SIZE  missing from CARRIER ADDRESS SPACE");
+				if (caras->DataWidth  == 0) prnterr("Data WIDTH missing from CARRIER ADDRESS SPACE");
+				if (caras->WindowSize == 0) prnterr("WINDOW SIZE  missing from CARRIER ADDRESS SPACE");
 
 				if (pflag) printf("\n");
 				break;
 
 
 			default:
-				FatalError("Symbol out of context in XML file");
+				prnterr("Symbol out of context in XML file");
 			}
 		}
 		DoElement(cur_node->children, pflag);
@@ -693,14 +561,14 @@ static InsLibHostDesc *DoElement(xmlNode *a_node, int pflag)
  */
 InsLibHostDesc *InsLibParseInstallFile(char *fname, int pflag)
 {
-	xmlDoc *doc = NULL;
-	xmlNode *root_element = NULL;
-	InsLibHostDesc *hostd = NULL;
+	xmlDoc *doc;
+	xmlNode *root_element;
+	InsLibHostDesc *hostd;
 
 	xmlInitParser();
 
 	doc = xmlReadFile(fname, NULL, 0);
-	if (doc == NULL)
+	if (!doc)
 		return NULL;
 
 	root_element = xmlDocGetRootElement(doc);
@@ -979,7 +847,8 @@ void InsLibPrintPci(InsLibPciModuleAddress *pcima)
 void InsLibPrintModule(InsLibModlDesc *modld)
 {
 	if (modld) {
-		printf("[MOD:Bt:%d:Mn:%d",
+		printf("[MOD:%s Bt:%d:Mn:%d",
+		       modld->ModuleName,
 		       modld->BusType,
 		       modld->ModuleNumber);
 		if (modld->Isr) {
@@ -1043,16 +912,16 @@ void InsLibPrintHost(InsLibHostDesc *hostd)
 /**
  * @brief Parse PCI module description
  *
- * @param md       -- module description ptr
  * @param cur_node -- current XML node
  * @param pflag    -- debug print flag to print the tree
+ * @param md       -- module description ptr
  *
  * @return NULL                       - failure
  * @return Pci module address pointer - if OK
  */
-static InsLibPciModuleAddress *parse_pci_address_tag(InsLibModlDesc *md,
-						     xmlNode *cur_node,
-						     int pflag)
+static InsLibPciModuleAddress *parse_pci_address_tag(xmlNode *cur_node,
+						     int pflag,
+						     InsLibModlDesc *md)
 {
 	KeyWord pky;
 	InsLibPciModuleAddress *pcima;
@@ -1060,14 +929,14 @@ static InsLibPciModuleAddress *parse_pci_address_tag(InsLibModlDesc *md,
 	char *pname, *pvalu;
 
 	if (!md) {
-		FatalError("Encountered PCI clause with no previous MODULE"
+		prnterr("Encountered PCI clause with no previous MODULE"
 			   " clause");
 		return NULL;
 	}
 
 	if ( (md->BusType != InsLibBusTypePMC) &&
 	     (md->BusType != InsLibBusTypePCI) ) {
-		FatalError("Encountered PCI/PMC clause on a non PCI/PMC bus");
+		prnterr("Encountered PCI/PMC clause on a non PCI/PMC bus");
 		return NULL;
 	}
 
@@ -1075,7 +944,7 @@ static InsLibPciModuleAddress *parse_pci_address_tag(InsLibModlDesc *md,
 		malloc(sizeof(InsLibPciModuleAddress));
 
 	if (!pcima) {
-		FatalError("Cant allocate memory for PCI");
+		prnterr("Cant allocate memory for PCI");
 		return NULL;
 	}
 
@@ -1084,7 +953,7 @@ static InsLibPciModuleAddress *parse_pci_address_tag(InsLibModlDesc *md,
 	if (!md->ModuleAddress)
 		md->ModuleAddress = pcima;
 	else {
-		FatalError("More than one Module Address description"
+		prnterr("More than one Module Address description"
 			   " Encountered in PCI/PMC module description");
 		free(pcima);
 		return NULL;
@@ -1098,7 +967,7 @@ static InsLibPciModuleAddress *parse_pci_address_tag(InsLibModlDesc *md,
 			pcima->BusNumber = GetNumber(pvalu);
 			if ( (pcima->BusNumber > 16) &&
 			     (pcima->BusNumber != _NOT_DEF_) ) {
-				FatalError("Bad PCI BUS number [%d]",
+				prnterr("Bad PCI BUS number [%d]",
 					   pcima->BusNumber);
 				free(pcima);
 				return NULL;
@@ -1107,7 +976,7 @@ static InsLibPciModuleAddress *parse_pci_address_tag(InsLibModlDesc *md,
 			pcima->SlotNumber = GetNumber(pvalu);
 			if ( (pcima->SlotNumber > 16) &&
 			     (pcima->SlotNumber != _NOT_DEF_) ) {
-				FatalError("Bad PCI SLOT number [%d]",
+				prnterr("Bad PCI SLOT number [%d]",
 					   pcima->SlotNumber);
 				free(pcima);
 				return NULL;
@@ -1127,22 +996,22 @@ static InsLibPciModuleAddress *parse_pci_address_tag(InsLibModlDesc *md,
 	}
 
 	if (!pcima->BusNumber) {
-		FatalError("BUS number missing from PCI clause");
+		prnterr("BUS number missing from PCI clause");
 		free(pcima);
 		return NULL;
 	}
 	if (!pcima->SlotNumber) {
-		FatalError("SLOT number missing from PCI clause");
+		prnterr("SLOT number missing from PCI clause");
 		free(pcima);
 		return NULL;
 	}
 	if (!pcima->VendorId) {
-		FatalError("VENDOR ID missing from PCI clause");
+		prnterr("VENDOR ID missing from PCI clause");
 		free(pcima);
 		return NULL;
 	}
 	if (!pcima->DeviceId) {
-		FatalError("DEVICE ID missing from PCI clause");
+		prnterr("DEVICE ID missing from PCI clause");
 		free(pcima);
 		return NULL;
 	}
@@ -1156,47 +1025,45 @@ static InsLibPciModuleAddress *parse_pci_address_tag(InsLibModlDesc *md,
 /**
  * @brief Parse VME module description
  *
- * @param md       -- module description ptr
  * @param cur_node -- current XML node
  * @param pflag    -- debug print flag to print the tree
+ * @param md       -- module description ptr
  *
  * @return NULL                       - failure
  * @return Pci module address pointer - if OK
  */
-static InsLibVmeModuleAddress *parse_vme_address_tag(InsLibModlDesc *md,
-						     xmlNode *cur_node,
-						     int pflag)
+static InsLibVmeModuleAddress *parse_vme_address_tag(xmlNode *cur_node,
+						     int pflag,
+						     InsLibModlDesc *md)
 {
 	KeyWord pky;
 	InsLibVmeModuleAddress *vmema;
-	xmlAttr *prop = cur_node->properties;
+	xmlAttr *prop;
 	char *pname, *pvalu;
 
 	if (!md) {
-		FatalError("Encountered VME clause with no previous MODULE"
+		prnterr("Encountered VME clause with no previous MODULE"
 			   " clause");
 		return NULL;
 	}
 
 	if (md->BusType != InsLibBusTypeVME) {
-		FatalError("Encountered VME clause on a non VME bus");
+		prnterr("Encountered VME clause on a non VME bus");
 		return NULL;
 	}
 
 	vmema = (InsLibVmeModuleAddress *)
-		malloc(sizeof(InsLibVmeModuleAddress));
+		calloc(1, sizeof(InsLibVmeModuleAddress));
 
 	if (!vmema) {
-		FatalError("Cant allocate memory for VME");
+		prnterr("Cant allocate memory for VME");
 		return NULL;
 	}
-
-	bzero((void *) vmema, sizeof(InsLibVmeModuleAddress));
 
 	if (md->ModuleAddress == NULL)
 		md->ModuleAddress = vmema;
 	else {
-		FatalError("More than one Module Address description"
+		prnterr("More than one Module Address description"
 			   " Encountered in VME module description");
 		free(vmema);
 		return NULL;
@@ -1205,12 +1072,11 @@ static InsLibVmeModuleAddress *parse_vme_address_tag(InsLibModlDesc *md,
 	prop = cur_node->properties;
 	while (prop) {
 		prop = GetNextProp(prop, &pname, &pvalu, pflag);
-		pky = LookUp((char *) pname);
+		pky = LookUp(pname);
 
-		if (pky == COMMENT) {
+		if (pky == COMMENT)
 			strncpy(vmema->Comment, pvalu, InsLibCOMMENT_SIZE);
-
-		} else
+		else
 			return vmema;
 	}
 
@@ -1223,16 +1089,16 @@ static InsLibVmeModuleAddress *parse_vme_address_tag(InsLibModlDesc *md,
 /**
  * @brief Parse CARRIER module description
  *
- * @param md       -- module description ptr
  * @param cur_node -- current XML node
  * @param pflag    -- debug print flag to print the tree
+ * @param md       -- module description ptr
  *
  * @return NULL                       - failure
  * @return Pci module address pointer - if OK
  */
-static InsLibCarModuleAddress *parse_car_address_tag(InsLibModlDesc *md,
-						     xmlNode *cur_node,
-						     int pflag)
+static InsLibCarModuleAddress *parse_car_address_tag(xmlNode *cur_node,
+						     int pflag,
+						     InsLibModlDesc *md)
 {
 	KeyWord pky;
 	InsLibCarModuleAddress *carma;
@@ -1240,16 +1106,16 @@ static InsLibCarModuleAddress *parse_car_address_tag(InsLibModlDesc *md,
 	char *pname, *pvalu;
 
 	if (!md)
-		FatalError("Encountered CARRIER clause with no previous MODULE"
+		prnterr("Encountered CARRIER clause with no previous MODULE"
 			   " clause");
 	if (md->BusType != InsLibBusTypeCARRIER)
-		FatalError("Encountered CARRIER clause on a non CARRIER bus");
+		prnterr("Encountered CARRIER clause on a non CARRIER bus");
 
 	carma = (InsLibCarModuleAddress *)
 		malloc(sizeof(InsLibCarModuleAddress));
 
 	if (!carma) {
-		FatalError("Cant allocate memory for CARRIER");
+		prnterr("Cant allocate memory for CARRIER");
 		return NULL;
 	}
 
@@ -1258,7 +1124,7 @@ static InsLibCarModuleAddress *parse_car_address_tag(InsLibModlDesc *md,
 	if (md->ModuleAddress == NULL)
 		md->ModuleAddress = carma;
 	else {
-		FatalError("More than one Module Address description"
+		prnterr("More than one Module Address description"
 			   " Encountered in CARRIER module description");
 		free(carma);
 		return NULL;
@@ -1272,7 +1138,7 @@ static InsLibCarModuleAddress *parse_car_address_tag(InsLibModlDesc *md,
 			carma->BoardNumber = GetNumber(pvalu);
 			if ( (carma->BoardNumber < 1) ||
 			     (carma->BoardNumber > 16) ) {
-				FatalError("Bad BOARD NUMBER in CARRIER"
+				prnterr("Bad BOARD NUMBER in CARRIER"
 					   " clause");
 				free(carma);
 				return NULL;
@@ -1283,7 +1149,7 @@ static InsLibCarModuleAddress *parse_car_address_tag(InsLibModlDesc *md,
 			carma->BoardPosition = GetNumber(pvalu);
 			if ( (carma->BoardPosition < 1) ||
 			     (carma->BoardPosition > 8) ) {
-				FatalError("Bad BOARD POSITION in CARRIER"
+				prnterr("Bad BOARD POSITION in CARRIER"
 					   " clause");
 				free(carma);
 				return NULL;
@@ -1297,12 +1163,12 @@ static InsLibCarModuleAddress *parse_car_address_tag(InsLibModlDesc *md,
 	}
 
 	if (carma->BoardNumber == 0) {
-		FatalError("BOARD NUMBER missing from CARRIER clause");
+		prnterr("BOARD NUMBER missing from CARRIER clause");
 		free(carma);
 		return NULL;
 	}
 	if (carma->BoardPosition == 0) {
-		FatalError("BOARD POSITION missing from CARRIER clause");
+		prnterr("BOARD POSITION missing from CARRIER clause");
 		free(carma);
 		return NULL;
 	}
@@ -1347,4 +1213,261 @@ static void add_vme_addr_space(InsLibVmeModuleAddress *vmema,
 	nvmeas->Next = vmema->VmeAddressSpace;
 	vmema->VmeAddressSpace = nvmeas;
 	return;
+}
+
+static InsLibHostDesc* handle_install_node(xmlNode *cur_node, int pflag)
+{
+	xmlAttr *prop;
+	char *pname, *pvalu;
+	KeyWord pky;
+	InsLibHostDesc *hostd = (InsLibHostDesc *)
+		calloc(1, sizeof(InsLibHostDesc));
+
+	if (!hostd) {
+		prnterr("Cant allocate memory for Host description");
+		return NULL;
+	}
+
+	prop = cur_node->properties;
+
+	while (prop) {
+		prop = GetNextProp(prop, &pname, &pvalu, pflag);
+		pky = LookUp(pname);
+
+		if (pky == HOST)
+			strncpy(hostd->HostName, pvalu, InsLibNAME_SIZE);
+		else if (pky == COMMENT)
+			strncpy(hostd->Comment, pvalu, InsLibCOMMENT_SIZE);
+		else
+			break;
+	}
+
+	if (!strlen(hostd->HostName))
+		prnterr("Host NAME missing from <install> clause");
+
+	if (pflag)
+		printf("\n");
+
+	return hostd;
+}
+
+static void add_driver_node(InsLibHostDesc *hd, InsLibDrvrDesc *dd)
+{
+	InsLibDrvrDesc *ptr;
+
+	if (!hd->Drivers) {
+		/* first description */
+		hd->Drivers = dd;
+		return;
+	}
+
+	ptr = hd->Drivers;
+	while (ptr->Next)
+		ptr = ptr->Next;
+
+	ptr->Next = dd;
+}
+
+static InsLibDrvrDesc* handle_driver_node(xmlNode *cur_node, int pflag,
+					  InsLibHostDesc *hostd)
+{
+	xmlAttr *prop;
+	char *pname, *pvalu;
+	KeyWord pky;
+	InsLibDrvrDesc *drvrd = (InsLibDrvrDesc *)
+		calloc(1, sizeof(InsLibDrvrDesc));
+
+	if (!drvrd) {
+		prnterr("Cant allocate memory for Driver description");
+		return NULL;
+	}
+
+	drvrd->isdg = -1; /* set default driverGen flag to 'not provided' */
+	prop = cur_node->properties;
+	while (prop) {
+		prop = GetNextProp(prop, &pname, &pvalu, pflag);
+		pky = LookUp(pname);
+
+		if (pky == NAME)
+			strncpy(drvrd->DrvrName, pvalu, InsLibNAME_SIZE);
+		else if (pky == COMMENT)
+			strncpy(drvrd->Comment, pvalu, InsLibCOMMENT_SIZE);
+		else if (pky == INSTALL_DEBUG_LEVEL)
+			drvrd->DebugFlags = GetNumber(pvalu);
+		else if (pky == EMULATION_FLAG)
+			drvrd->EmulationFlags = GetNumber(pvalu);
+		else if (pky == DRIVERGEN)
+			drvrd->isdg = (*pvalu == 'y') ? 1 : 0;
+		else
+			break;
+	}
+	if (strlen(drvrd->DrvrName) < 1)
+		prnterr("Driver name missing from driver clause");
+	if (pflag)
+		printf("\n");
+
+	add_driver_node(hostd, drvrd);
+	return drvrd;
+}
+
+static void add_module_node(InsLibDrvrDesc *dd, InsLibModlDesc *nmd)
+{
+	InsLibModlDesc *ptr;
+
+	if (!dd->Modules) {
+		/* first */
+		dd->Modules = nmd;
+		return;
+	}
+
+	ptr = dd->Modules;
+	while (ptr->Next)
+		ptr = ptr->Next;
+
+	ptr->Next = nmd;
+	dd->ModuleCount++;
+}
+
+static InsLibModlDesc* handle_module_node(xmlNode *cur_node, int pflag,
+					  InsLibDrvrDesc *drvrd)
+{
+	xmlAttr *prop;
+	char *pname, *pvalu;
+	KeyWord pky;
+	InsLibModlDesc *modld = (InsLibModlDesc *)
+		calloc(1, sizeof(InsLibModlDesc));
+
+	if (!modld) {
+		prnterr("Cant allocate memory for Module description");
+		return NULL;
+	}
+
+	prop = cur_node->properties;
+	while (prop) {
+		prop = GetNextProp(prop, &pname, &pvalu, pflag);
+		pky = LookUp(pname);
+
+		if (pky == BUS_TYPE) {
+			if (!strcmp(pvalu,"VME"))
+				modld->BusType = InsLibBusTypeVME;
+			else if (!strcmp(pvalu,"PCI"))
+				modld->BusType = InsLibBusTypePCI;
+			else if (!strcmp(pvalu,"PMC"))
+				modld->BusType = InsLibBusTypePMC;
+			else if (!strcmp(pvalu,"CAR"))
+				modld->BusType = InsLibBusTypeCARRIER;
+			else
+				prnterr("Bad BUS_TYPE in MODULE clause");
+		} else if (pky == LOGICAL_MODULE_NUMBER) {
+			modld->ModuleNumber = GetNumber(pvalu);
+			if ( ((modld->ModuleNumber < 1) ||
+			      (modld->ModuleNumber > InsLibMAX_MODULES)) &&
+			     (modld->ModuleNumber != _NOT_DEF_) )
+				prnterr("Bad MODULE_NUMBER [ %d ] in MODULE"
+					" clause", modld->ModuleNumber);
+
+		} else if (pky == EXTRA) {
+			modld->Extra = (char *) calloc(1, strlen(pvalu));
+			if (!modld->Extra) {
+				prnterr("Cant allocate memory for extra"
+					" Module parameters");
+				free(modld);
+				return NULL;
+			}
+			strcpy(modld->Extra, pvalu);
+		} else if (pky == COMMENT) {
+			strncpy(modld->Comment, pvalu, InsLibCOMMENT_SIZE);
+
+		} else if (pky == IGNORE_INSTALL_ERRORS) {
+			modld->IgnoreErrors = 1;
+		} else if (pky == NAME) {
+			strncpy(modld->ModuleName, pvalu, InsLibNAME_SIZE);
+		} else
+			break;
+	}
+
+	if (modld->BusType == InsLibBusTypeNOT_SET)
+		prnterr("BUS type missing from MODULE clause");
+	if (modld->ModuleNumber == 0)
+		prnterr("Logical Module Number is missing from MODULE clause");
+
+	if (pflag) printf("\n");
+
+	add_module_node(drvrd, modld);
+	return modld;
+}
+
+static InsLibVmeAddressSpace*
+handle_vme_space_node(xmlNode *cur_node,
+		      int pflag,
+		      InsLibVmeModuleAddress *vmema,
+		      InsLibModlDesc *modld)
+{
+	xmlAttr *prop;
+	char *pname, *pvalu;
+	KeyWord pky;
+	InsLibVmeAddressSpace *vmeas = (InsLibVmeAddressSpace *)
+		calloc(1, sizeof(InsLibVmeAddressSpace));
+
+	if (!vmeas) {
+		prnterr("Cant allocate memory for VME Space description");
+		return NULL;
+	}
+
+	prop = cur_node->properties;
+	while (prop) {
+		prop = GetNextProp(prop, &pname, &pvalu, pflag);
+		pky = LookUp(pname);
+
+		if (pky == MODIFIER) {
+			vmeas->AddressModifier = GetNumber(pvalu);
+			if (vmeas->AddressModifier > 0xFF)
+				prnterr("%s: Bad address MODIFIER in "
+					"<vme_space> clause",
+					strlen(modld->ModuleName)?
+					modld->ModuleName:
+					"UNKNOWN MODULE");
+
+		} else if (pky == DATA_WIDTH) {
+			vmeas->DataWidth = GetNumber(pvalu);
+			if ( (vmeas->DataWidth !=16) &&
+			     (vmeas->DataWidth !=32) )
+				prnterr("%s: Bad DATA_WIDTH in <vme_space>"
+					" clause", strlen(modld->ModuleName)?
+					modld->ModuleName:
+					"UNKNOWN MODULE");
+		} else if (pky == WINDOW_SIZE) {
+			vmeas->WindowSize = GetNumber(pvalu);
+		} else if (pky == ADDRESS) {
+			vmeas->BaseAddress = GetNumber(pvalu);
+		} else if (pky == FREE_FLAG) {
+			vmeas->FreeModifierFlag = GetNumber(pvalu);
+		} else if (pky == COMMENT) {
+			strncpy(vmeas->Comment, pvalu, InsLibCOMMENT_SIZE);
+		} else
+			break;
+	}
+
+	if (!vmeas->AddressModifier)
+		prnterr("%s: Address MODIFIER missing from <vme_space>",
+			strlen(modld->ModuleName)?modld->ModuleName:
+			"UNKNOWN MODULE");
+	if (!vmeas->DataWidth)
+		prnterr("%s: Data WIDTH missing from <vme_space>",
+			strlen(modld->ModuleName)?modld->ModuleName:
+			"UNKNOWN MODULE");
+	if (!vmeas->WindowSize)
+		prnterr("%s: WINDOW SIZE missing from <vme_space>",
+			strlen(modld->ModuleName)?modld->ModuleName:
+			"UNKNOWN MODULE");
+	if (!vmeas->BaseAddress)
+		prnterr("%s: VME BASE ADDRESS missing from <vme_space>",
+			strlen(modld->ModuleName)?modld->ModuleName:
+			"UNKNOWN MODULE");
+
+	if (pflag)
+		printf("\n");
+
+	add_vme_addr_space(vmema, vmeas);
+	return vmeas;
 }
