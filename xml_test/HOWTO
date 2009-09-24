@@ -1,0 +1,12 @@
+xmlconfig can be called either with FEC name or driver name.
+Program output is going to stdout. Redirect it if needed.
+
+Examples:
+
+1. xmlconfig cfv-865-mkdev1 > cfv-865-mkdev1.xml
+2. xmlconfig CIBM > CIBM.xml
+
+In second case -- host field in <install> tag will be set to "any"
+You can check if .xml is correct using 'test' programs in this dir.
+
+Yury Georgievskiy, CERN.
