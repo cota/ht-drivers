@@ -66,7 +66,6 @@ spinlock_t lynxos_cpu_lock = SPIN_LOCK_UNLOCKED;
 
 struct file_operations cdcm_fops;
 
-
 /**
  * @brief Cleanup and release claimed devices. Unregister char device.
  *
@@ -93,10 +92,10 @@ static void cdcm_cleanup_dev(void)
 /**
  * @brief Lynx read stub.
  *
- * @param filp - file struct pointer
- * @param buf  - user space
- * @param size - how many bytes to read
- * @param off  - offset
+ * @param filp -- file struct pointer
+ * @param buf  -- user space
+ * @param size -- how many bytes to read
+ * @param off  -- offset
  *
  * @return how many bytes was read - if success.
  * @return negative value          - if error.
@@ -145,14 +144,13 @@ static ssize_t cdcm_fop_read(struct file *filp, char __user *buf,
 	return cdcm_err;
 }
 
-
 /**
  * @brief Lynx write stub.
  *
- * @param filp - file struct pointer
- * @param buf  - user space
- * @param size - how many bytes to write
- * @param off  - offset
+ * @param filp -- file struct pointer
+ * @param buf  -- user space
+ * @param size -- how many bytes to write
+ * @param off  -- offset
  *
  * @return how many bytes was written - if success.
  * @return negative value             - if error.
@@ -199,12 +197,11 @@ static ssize_t cdcm_fop_write(struct file *filp, const char __user *buf,
 	return cdcm_err;
 }
 
-
 /**
  * @brief Lynx select stub. ---------> !NOT IMPLEMENTED! <--------------------
  *
- * @param filp - file struct pointer
- * @param wait -
+ * @param filp -- file struct pointer
+ * @param wait --
  *
  * I see no way to get descriptor set (in, out, except) to pass them as a third
  * parameter (condition to monitor - SREAD, SWRITE, SEXCEPT) to the LynxOS
@@ -232,7 +229,6 @@ static unsigned int cdcm_fop_poll(struct file* filp, poll_table* wait)
 
 	return mask;
 }
-
 
 /**
  * @brief
@@ -332,14 +328,13 @@ static long process_cdcm_srv_ioctl(struct inode *inode, struct file *file,
 	}
 }
 
-
 /**
  * @brief Module-specific Ioctl routine.
  *
- * @param inode - inode struct pointer
- * @param file  - file struct pointer
- * @param cmd   - IOCTL command number
- * @param arg   - user args
+ * @param inode -- inode struct pointer
+ * @param file  -- file struct pointer
+ * @param cmd   -- IOCTL command number
+ * @param arg   -- user args
  *
  * Called in case if major number is not corresponding to the service one.
  * I.e. this device node was created by the user and not by the CDCM.
@@ -399,13 +394,12 @@ static long process_mod_spec_ioctl(struct inode *inode, struct file *file,
 	return rc; /* we cool, return user-set return code */
 }
 
-
 /**
  * @brief CDCM ioctl routine.
  *
- * @param file  - file struct pointer
- * @param cmd   - IOCTL command number
- * @param arg   - user args
+ * @param file -- file struct pointer
+ * @param cmd  -- IOCTL command number
+ * @param arg  -- user args
  *
  * Service ioctl (with CDCM_SRVIO_ prefix) normally are called by the
  * installation program to get all needed information. All the rest considered
@@ -430,7 +424,6 @@ static long cdcm_fop_ioctl(struct file *file, unsigned int cmd,
 	return process_mod_spec_ioctl(inode, file, cmd, arg);
 }
 
-
 /**
  * @brief Device I/O memory mapping to the user space
  *
@@ -449,7 +442,6 @@ static int cdcm_fop_mmap(struct file *file, struct vm_area_struct *vma)
 
 	return -ENOSYS;
 }
-
 
 /**
  * @brief Open entry point.
@@ -495,12 +487,11 @@ static int cdcm_fop_open(struct inode *inode, struct file *filp)
 	return cdcm_err; /* failure */
 }
 
-
 /**
  * @brief Close entry point.
  *
- * @param inode - inode pointer
- * @param filp  - file pointer
+ * @param inode -- inode pointer
+ * @param filp  -- file pointer
  *
  * @return   0 - if success.
  * @return < 0 - if fails.
@@ -528,7 +519,6 @@ static int cdcm_fop_release(struct inode *inode, struct file *filp)
 	return cdcm_err; /* failure */
 }
 
-
 /* CDCM entry points */
 struct file_operations cdcm_fops = {
 	.owner          = THIS_MODULE,
@@ -541,10 +531,9 @@ struct file_operations cdcm_fops = {
 	.release        = cdcm_fop_release /* close  */
 };
 
-
 /**
- * __drvrnm - Driver Debug printout mechanism (drvr_dgb_prnt.h) needs this
- *            function to get driver name.
+ * @brief Debug printout mechanism (drvr_dgb_prnt.h) needs this function to
+ *        get driver name.
  *
  * @param none
  *
@@ -556,7 +545,6 @@ char* __drvrnm(void)
 {
 	return cdcmStatT.cdcm_mn;
 }
-
 
 /**
  * @brief Called when module is unloading from the kernel.
@@ -586,7 +574,6 @@ static void __exit cdcm_driver_cleanup(void)
 	cdcm_sema_cleanup_all(); /* cleanup semaphores */
 	cdcm_cleanup_dev();
 }
-
 
 /**
  * @brief Main driver initialization.
