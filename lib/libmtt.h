@@ -106,6 +106,7 @@ char *MttLibErrorToString(MttLibError err);
 MttLibError MttLibLoadTaskObject(char *name, ProgramBuf *pbf);
 MttLibError MttLibLoadTask(char *name);
 MttLibError MttLibUnloadTask(char *name);
+MttLibError MttLibUnloadTasks(void);
 
 /* ================================================================ */
 /* Here the names pointer should be able to store MttLibTABLES char */

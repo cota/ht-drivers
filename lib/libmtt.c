@@ -540,6 +540,14 @@ MttLibError MttLibUnloadTask(char *name) {
 }
 
 /* ================================================================ */
+/* Unload all tasks                                                 */
+
+MttLibError MttLibUnloadTasks(void)
+{
+	return MttLibUnloadTask("ALL");
+}
+
+/* ================================================================ */
 /* Here the names pointer should be able to store MttLibTABLES char */
 /* pointers. Loaded tasks reside in MTT memory, and are running if  */
 /* they are not stopped. Do not confuse this state with the run and */
