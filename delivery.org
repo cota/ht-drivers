@@ -1,0 +1,102 @@
+>#+TITLE:   Driver delivery schema.
+#+OPTIONS: H:3 num:t toc:t \n:t @:t ::t |:t ^:t -:t f:t *:t TeX:t LaTeX:nil skip:t d:nil tags:not-in-toc
+#+STARTUP: hidestars
+
+* Pathes
+        |      | linux          | lynx           |
+        |------+----------------+----------------|
+        | /    | <              | <              |
+        | CPU  | ppc4           | L864           |
+        |      |                | L865           |
+        |------+----------------+----------------|
+        | ACCS | lab oper oplhc | lab oper oplhc |
+        |------+----------------+----------------|
+        | KVER | 4.0.0          | 2.6.24.7-rt21  |
+        |      |                | 2.6.24.7-rt27  |
+        |      |                | 2.6.29.1-rt7   |
+        |      |                | 2.6.29.4-rt15  |
+        |      |                | 2.6.29.6-rt23  |
+
+
+	$(ACCS) == { lab, oper, oplhc }
+	$(CPU)  == { ppc4, L864, L865 }
+	$(KVER) == { 4.0.0, 2.6.24.7-rt21, 2.6.24.7-rt27, 2.6.29.1-rt7,
+		     2.6.29.4-rt15, 2.6.29.6-rt23 }
+
+* Specific delivery
+1. Driver
+   /acc/dsc/$(ACCS)/$(CPU)/$(KVER)/<DriverName>
+
+   which on FEC corresponds to
+   /usr/local/drivers/<DriverName>
+
+2. Test prog
+   /acc/dsc/$(ACCS)/$(CPU)/bin
+
+   which on FEC corresponds to
+   /usr/local/bin
+
+3. Library
+   /acc/local/$(CPU)/lib/<DriverName>
+
+   which on FEC corresponds to
+   /usr/local/lib/<DriverName>
+
+4. Header files
+   /acc/local/$(CPU)/include/<DriverName>
+
+   which on FEC corresponds to
+   /usr/local/include/<DriverName>
+
+* General programs delivery
+5. instprog
+   /acc/dsc/$(ACCS)/$(CPU)/bin/instprog
+
+   which on FEC corresponds to
+   /usr/local/bin/instprog
+
+6. dgmodinst
+7. dgmoduninst
+   /acc/dsc/$(ACCS)/$(CPU)/bin/dgmod[inst/uninst]
+
+   which on FEC corresponds to
+   /usr/local/bin/dgmod[inst/uninst]
+
+8. libdal.a
+   /acc/local/$(CPU)/lib/libdal.a
+
+   which on FEC corresponds to
+   /usr/local/lib/libdal.a
+
+9. Header files
+   /acc/local/$(CPU)/include/dg
+
+   which on FEC corresponds to
+   /usr/local/include/dg
+
+* DriverGen issues
+
+* CTR issues
+  -- Several CTR modules declared in the DB.
+        | Module | Driver | directory | Inst script |
+        |--------+--------+-----------+-------------|
+        | /      | <      | <         | <           |
+        | CTRI   | CTRP   | ctr       | ctrinstall  |
+        | CTRP   | CTRP   | ctr       | ctrinstall  |
+        | CTRV   | CTRV   | ctr       | ctrvinstall |
+** Examples
+  CTR delivered in
+  /acc/dsc/lab/L865/2.6.24.7-rt27/{ctrp, ctrv}
+
+  Scripts called are in
+  /acc/dsc/lab/L865/2.6.24.7-rt27/ctr/{ctrinstall, ctrvinstall}
+
+  on FEC is
+  /usr/local/drivers/ctr/{ctrinstall, ctrvinstall}
+
+  With the new installation schema, {ctrinstall && ctrvinstall} will
+  host a script to descend into the
+  /usr/local/drivers/{ctrp, ctrv}
+  and call instprog (from /usr/bin) with the parameters:
+  instprog -sCTRV -nctr <-- for CTRV
+  instprog -sCTRP -nctr <-- for CTRP
