@@ -149,7 +149,6 @@ typedef enum {
    CmdCONT,                 /* Continue tasks */
    CmdRUNING,               /* Get the list of running tasks */
    CmdSAVERUN,              /* Save running tasks and registers */
-   CmdSURVEY,               /* Survey tasks */
 
    CmdTCB,                  /* Get the working tasks TCB */
    CmdLA,                   /* Get/Set task LoadAddrs */
