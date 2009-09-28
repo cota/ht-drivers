@@ -31,6 +31,7 @@ static DECLARE_MUTEX(mmutex);
 /* external crap */
 extern struct dldd entry_points; /* declared in the user driver part */
 extern char* read_info_file(char*, int*);
+extern struct class *cdcm_class;
 
 /**
  * @brief driverGen devices

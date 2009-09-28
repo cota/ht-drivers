@@ -519,17 +519,27 @@ static int cdcm_fop_release(struct inode *inode, struct file *filp)
 	return cdcm_err; /* failure */
 }
 
+static struct fasync_struct *cdcm_async_queue;
+
+static int cdcm_fasync(int fd, struct file *filp, int on)
+{
+	return fasync_helper(fd, filp, on, &cdcm_async_queue);
+}
+
 /* CDCM entry points */
 struct file_operations cdcm_fops = {
 	.owner          = THIS_MODULE,
-	.read           = cdcm_fop_read,   /* read   */
-	.write          = cdcm_fop_write,  /* write  */
-	.poll           = cdcm_fop_poll,   /* select - NOT COMPATIBLE! */
-	.unlocked_ioctl = cdcm_fop_ioctl,  /* ioctl  */
-	.mmap           = cdcm_fop_mmap,   /* mmap   */
-	.open           = cdcm_fop_open,   /* open   */
-	.release        = cdcm_fop_release /* close  */
+	.read           = cdcm_fop_read,    /* read   */
+	.write          = cdcm_fop_write,   /* write  */
+	.poll           = cdcm_fop_poll,    /* select - NOT COMPATIBLE! */
+	.unlocked_ioctl = cdcm_fop_ioctl,   /* ioctl  */
+	.mmap           = cdcm_fop_mmap,    /* mmap   */
+	.open           = cdcm_fop_open,    /* open   */
+	.release        = cdcm_fop_release, /* close  */
+	.fasync         = cdcm_fasync	    /* linux-only */
 };
+
+struct class *cdcm_class;
 
 /**
  * @brief Debug printout mechanism (drvr_dgb_prnt.h) needs this function to
@@ -572,6 +582,9 @@ static void __exit cdcm_driver_cleanup(void)
 			del_timer_sync(&cdcmStatT.cdcm_timer[cntr].ct_timer);
 
 	cdcm_sema_cleanup_all(); /* cleanup semaphores */
+
+	device_destroy(cdcm_class, MKDEV(cdcmStatT.cdcm_major, 0));
+	class_destroy(cdcm_class);
 	cdcm_cleanup_dev();
 }
 
@@ -585,21 +598,35 @@ static void __exit cdcm_driver_cleanup(void)
  */
 static int __init cdcm_driver_init(void)
 {
+	int err = 0;
 	if (!(cdcmStatT.cdcm_mn = kasprintf(GFP_KERNEL, "%s", cdcm_d_nm)))
 		return -ENOMEM;
 
 	/* register character device */
-	if ((cdcmStatT.cdcm_major =
-	     register_chrdev(0, cdcm_d_nm, &cdcm_fops)) < 0) {
+	cdcmStatT.cdcm_major = register_chrdev(0, cdcm_d_nm, &cdcm_fops);
+	if (cdcmStatT.cdcm_major < 0) {
 		PRNT_ABS_ERR("Can't register character device");
 		return cdcmStatT.cdcm_major;
 	}
 
+	/* declare ourself in sysfs */
+	cdcm_class = class_create(THIS_MODULE, "cdcm");
+	if (IS_ERR(cdcm_class)) {
+		err = PTR_ERR(cdcm_class);
+		goto out_chrdev;
+	}
+
+	device_create(cdcm_class, NULL, MKDEV(cdcmStatT.cdcm_major, 0), "%s",
+		      cdcm_d_nm);
 
 	cdcmStatT.cdcm_isdg = drivergen;
 
 	cdcm_mem_init(); /* init memory manager */
 	return 0;
+
+ out_chrdev:
+	unregister_chrdev(cdcmStatT.cdcm_major, cdcm_d_nm);
+	return err;
 }
 
 module_init(cdcm_driver_init);
