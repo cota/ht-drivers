@@ -25,18 +25,40 @@ mtttest.$(CPU).o: $(SRCS) $(HDRS)
 
 mtttest.$(CPU): mtttest.$(CPU).o
 
-INSTALL_FILES=mtttest.$(CPU) Mtt.xsvf
+INSTALL_BIN_FILES=mtttest.$(CPU)
+INSTALL_DRV_FILES= Mtt.xsvf
 INSTALL_DIR=mttn
-install: $(INSTALL_FILES)
-	@for a in $(ACCS); do \
-		p=/acc/dsc/$$a/$(CPU)/$(INSTALL_DIR);\
-		echo "===============================";\
-		echo "Installing in $$p :";\
-		for f in $^; do \
-			echo "        - $$f";\
+
+install: install_bin install_drv
+
+install_bin: $(INSTALL_BIN_FILES)
+	@if [ "X$(subst $(space),$(empty),$^)" != "X" ]; then \
+		for a in $(ACCS); do \
+			p=/acc/dsc/$$a/$(CPU)/$(INSTALL_DIR);\
+			echo "===============================";\
+			echo "Installing in $$p :";\
+			for f in $^; do \
+				echo "        - $$f";\
+			done;\
+		    echo "===============================";\
+			for f in $^; do \
+				dsc_install $$f $$p;\
+			done;\
 		done;\
-	    echo "===============================";\
-		for f in $^; do \
-			dsc_install $$f $$p;\
+	fi
+
+install_drv: $(INSTALL_DRV_FILES)
+	@if [ "X$(subst $(space),$(empty),$^)" != "X" ]; then \
+		for a in $(ACCS); do \
+			p=/acc/dsc/$$a/$(CPU)/drivers/$(INSTALL_DIR);\
+			echo "===============================";\
+			echo "Installing in $$p :";\
+			for f in $^; do \
+				echo "        - $$f";\
+			done;\
+		    echo "===============================";\
+			for f in $^; do \
+				dsc_install $$f $$p;\
+			done;\
 		done;\
-	done
+	fi
