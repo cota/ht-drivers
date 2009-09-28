@@ -373,6 +373,62 @@ char *MttLibErrorToString(MttLibError err) {
 }
 
 /* ================================================================ */
+/* Read task program object from MTT program memory                 */
+/* The pointers *instructions must be 'free' after the call.        */
+
+MttLibError
+MttLibReadTaskObject(char *name, ProgramBuf *pbf, Instruction **instructions)
+{
+	MttDrvrTaskBlock *tcbp;
+	MttDrvrTaskBuf tbuf;
+	int i;
+
+	/* sanity checks */
+	if (mtt == 0)
+		return MttLibErrorINIT;
+	if (name == NULL || !strlen(name) ||
+		strlen(name) >= MttLibMAX_NAME_SIZE ||
+		strlen(name) < MttLibMIN_NAME_SIZE ||
+		!strcmp(name, "ALL") || !isalpha((int)name[0])) {
+		return MttLibErrorNAME;
+	}
+	for (i = 1; i < strlen(name); i++) {
+		if (name[i] != '_' && name[i] != '.' && !isalnum((int)name[i]))
+			return MttLibErrorNAME;
+	}
+
+	/* fill in task buffer */
+	tcbp = &tbuf.ControlBlock;
+	for (i = first_task - 1; i < last_task; i++) {
+		tbuf.Task = i + 1;
+		if (ioctl(mtt, MTT_IOCGTCB, &tbuf) < 0)
+			return MttLibErrorIO;
+		if (strncmp(tbuf.Name, name, MttLibMAX_NAME_SIZE) == 0)
+			break;
+	}
+	if (i >= last_task)
+		return MttLibErrorNOLOAD;
+
+	if (tbuf.InstructionCount == 0)
+		return MttLibErrorEMPTY;
+
+	/* fetch the program from hardware */
+	pbf->InstructionCount = tbuf.InstructionCount;
+	pbf->LoadAddress = tbuf.LoadAddress;
+
+	*instructions = malloc(tbuf.InstructionCount * sizeof(Instruction));
+	if (*instructions == NULL)
+		return MttLibErrorNOMEM;
+	pbf->Program = *instructions;
+
+	if (ioctl(mtt, MTT_IOCGPROGRAM, pbf) < 0) {
+		free(*instructions);
+		return MttLibErrorIO;
+	}
+	return MttLibErrorNONE;
+}
+
+/* ================================================================ */
 /* Load task program object into MTT program memory                 */
 
 MttLibError MttLibLoadTaskObject(char *name, ProgramBuf *pbf) {

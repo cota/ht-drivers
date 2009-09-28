@@ -247,6 +247,10 @@ char *MttLibGetFile(char *name);
 MttLibError MttLibReadObject(FILE *objFile, ProgramBuf *code);
 
 /* ================================================================ */
+/* Read object code binary from mtt                                 */
+MttLibError MttLibReadTaskObject(char *name, ProgramBuf *pbf,Instruction **instructions);
+
+/* ================================================================ */
 /* Get host configuration character                                 */
 
 char MttLibGetConfgChar(int n);
