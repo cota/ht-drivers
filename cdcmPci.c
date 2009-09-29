@@ -183,7 +183,7 @@ int drm_device_read(struct drm_node_s *node_h, int resource_id,
     }
     break;
   case PCI_RESID_BUSNO:	    /* 2 */
-    retcode = DRM_EINVALID;
+    *(unsigned int *)buffer = cast->di_pci->bus->number;
     break;
   case PCI_RESID_DEVNO:	    /* 3 */
     *(unsigned int *)buffer = PCI_SLOT(cast->di_pci->devfn);
