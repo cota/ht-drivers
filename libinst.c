@@ -1317,6 +1317,7 @@ static void add_module_node(InsLibDrvrDesc *dd, InsLibModlDesc *nmd)
 	if (!dd->Modules) {
 		/* first */
 		dd->Modules = nmd;
+		dd->ModuleCount++;
 		return;
 	}
 
