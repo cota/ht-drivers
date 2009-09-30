@@ -1332,6 +1332,11 @@ char *SkelDrvrInstall(void *infofile)
 		goto out_err;
 	}
 
+	if (!Wa->Drvrd->ModuleCount) {
+		SK_WARN("BUG in the descriptor tree: ModuleCount is empty");
+		goto out_err;
+	}
+
 	modules_install();
 
 	if (Wa->InstalledModules != Wa->Drvrd->ModuleCount) {
