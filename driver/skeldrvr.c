@@ -280,10 +280,23 @@ RawIo(SkelDrvrModuleContext *mcon, SkelDrvrRawIoBlock *riob, int flag)
 	modld = mcon->Modld;
 	anyas = InsLibGetAddressSpace(modld,riob->SpaceNumber);
 
-	if (!anyas || riob->Offset >= anyas->WindowSize) {
+	if (!anyas) {
 		report_module(mcon, SkelDrvrDebugFlagMODULE,
 			"%s:IllegalAddressSpace", __FUNCTION__);
 		pseterr(ENXIO);
+		return SYSERR;
+	}
+
+	/*
+	 * In some cases (mainly PCI), the size of the mapping is not
+	 * provided in the XML file. In Lynx there's no easy way to
+	 * get the mapping size, so we just leave it up to the user
+	 * not to cause a bus error.
+	 */
+	if (anyas->WindowSize && riob->Offset >= anyas->WindowSize) {
+		report_module(mcon, SkelDrvrDebugFlagMODULE,
+			"%s: Offset out of range", __FUNCTION__);
+		pseterr(EINVAL);
 		return SYSERR;
 	}
 
