@@ -177,6 +177,8 @@ int main(int argc, char *argv[], char *envp[])
 	InsLibDrvrDesc *drvrd = NULL;
 	int rc = EXIT_SUCCESS;
 
+	umask(0000); /* we need _exact_ mode for mknod */
+
 	/* parse command line */
 	rc = parse_prog_args(argc, argv, &flg, &xmlfn, &head);
 

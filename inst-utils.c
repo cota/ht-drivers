@@ -285,10 +285,9 @@ int create_driver_nodes(int dmaj, char *dname, char *slname, int dna)
 		if (mknod(nn, S_IFCHR | 0666, devn) < 0) {
 			printf("mknod() failed! Can't create '%s' device node",
 			      nn);
-		} else {
+		} else
 			++created;
-			chmod(nn, 0666);
-		}
+
 		mas[cntr-1] = nn; /* save node names */
 	}
 

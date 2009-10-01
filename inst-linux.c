@@ -23,6 +23,82 @@ extern long init_module(void *, unsigned long, const char *);
 static void*       grab_file(const char*, unsigned long*);
 static const char* moderror(int);
 static int         find_device_nodes(int, char(*)[32], int);
+static int         disable_kernel_hotplug(char **);
+static int         set_kernel_hotplug(char *);
+
+/**
+ * @brief Disable udev/mdev
+ *
+ * @param ptr -- pointer address will hold disabled hotplug prog name
+ *               (normally mdev/udev)
+ *
+ * If failed (i.e. returned -1) ptr is set to NULL
+ *
+ * @return  0 -- hotplug disabled
+ * @return -1 -- failed to disable hotplug
+ */
+int disable_kernel_hotplug(char **ptr)
+{
+	char buf[32] = { 0 };
+	int fd = open("/proc/sys/kernel/hotplug", O_RDWR);
+
+	*ptr = NULL;
+
+	if (fd == -1) {
+		perror("Can't open /proc/sys/kernel/hotplug");
+		return -1;
+	}
+
+	if (read(fd, buf, sizeof(buf)) == -1) {
+		close(fd);
+		perror("Can't read /proc/sys/kernel/hotplug");
+		return -1;
+	}
+
+	asprintf(ptr, "%s", buf);
+
+	strcpy(buf, ""); /* disable the usermode helper hotplug mechanism */
+	if (write(fd, buf, 2) == -1) {
+		close(fd);
+		free(*ptr);
+		perror("Can't write /proc/sys/kernel/hotplug");
+		*ptr = NULL;
+		return -1;
+	}
+
+	close(fd);
+	return 0;
+}
+
+/**
+ * @brief Enable kernel hotplug helper
+ *
+ * @param hppath -- what to put as a hotplug helper for the kernel
+ *                  (mdev/udev normally)
+ *
+ * <long-description>
+ *
+ * @return  0 -- all OK
+ * @return -1 -- FAILED
+ */
+int set_kernel_hotplug(char *hppath)
+{
+	int fd = open("/proc/sys/kernel/hotplug", O_WRONLY);
+
+	if (fd == -1) {
+		perror("Can't open /proc/sys/kernel/hotplug");
+		return -1;
+	}
+
+	if (write(fd, hppath, strlen(hppath)) == -1) {
+		close(fd);
+		perror("Can't write /proc/sys/kernel/hotplug");
+		return -1;
+	}
+
+	close(fd);
+	return 0;
+}
 
 /**
  * @brief Extract Driver name from the .ko filename
@@ -95,6 +171,7 @@ int dr_install(char *drvr_fn, int type)
 	char buff[32], *bufPtr; /* for string parsing */
 	int major_num = 0;
 	int devn; /* major/minor device number */
+	char *hotplug = NULL;
 
 	drvr_nm = extract_driver_name(drvr_fn);
 	if (!drvr_nm) {
@@ -118,6 +195,8 @@ int dr_install(char *drvr_fn, int type)
 	else {
 		asprintf(&options, "dname=%s", drvr_nm);
 	}
+
+	disable_kernel_hotplug(&hotplug); /* move mdev out-of-the-way */
 
 	/* insert module in the kernel */
 	if ( (ret = init_module(drvrfile, len, options)) != 0 ) {
@@ -160,12 +239,16 @@ int dr_install(char *drvr_fn, int type)
 		rc = -1;
 		goto dr_install_exit;
 	}
-	chmod(node_nm, 0666);
 
 	/* driverID (major num) will be used by the cdv_install() */
 	rc = major_num;
 
  dr_install_exit:
+	if (hotplug) {
+		/* hotplug was disabled -- re-enable it back */
+		set_kernel_hotplug(hotplug);
+		free(hotplug);
+	}
 	if (drvr_nm)  free(drvr_nm);
 	if (options)  free(options);
 	if (drvrfile) free(drvrfile);
@@ -212,7 +295,7 @@ int dr_uninstall(int id)
  * I.e. they _CAN'T_ be used simultaneoulsy!
  *
  * @return major device ID - if successful.
- * @return -1              - if not.
+ * @return negative value  - if not.
  */
 int cdv_install(char *path, int driver_id, int extra)
 {
@@ -221,6 +304,7 @@ int cdv_install(char *path, int driver_id, int extra)
 	int maj_num = -1;
 	int cntr = 0;
 	char nn[32]; /* device node name */
+	char *hp = NULL;
 
 	/* check, if called more then once for this driver */
 	while (hist[cntr]) {
@@ -245,14 +329,16 @@ int cdv_install(char *path, int driver_id, int extra)
 		return -1;
 	}
 
+	disable_kernel_hotplug(&hp); /* move mdev out-of-the-way */
+
 	if ( (maj_num = ioctl(dfd, _GIOCTL_CDV_INSTALL,
 			      (extra)?(void*)extra:path)) < 0) {
 		mperr("_GIOCTL_CDV_INSTALL ioctl fails. Can't get major"
 		      "number");
-		close(dfd);
-		return -1;
+		maj_num = -1;
 	}
 
+	if (hp) { set_kernel_hotplug(hp); free(hp); }
 	close(dfd);
 	return maj_num;
 }

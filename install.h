@@ -91,4 +91,5 @@ char *create_usr_option_string(int, char *[], int);
 void  free_drvrd(struct list_head *);
 struct drvrd *cmd_line_dd(struct list_head *, char *);
 int drvr_pathname(char **, char *);
+
 #endif /* _INSTALL_H_INCLUDE_ */
