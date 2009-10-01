@@ -22,13 +22,15 @@
    Keep syncronized with one from user space! */
 #define DDNMSZ    32   /* device/driver name size in bytes. Same as in Lynx */
 struct dg_module_info {
-	int major;		/* device major number */
+	int dev_major;		/* device major number */
+	int drvr_major;		/* driver major number */
 	char name[DDNMSZ];	/* its name */
 };
 
 static DECLARE_MUTEX(mmutex);
 
 /* external crap */
+extern cdcmStatics_t cdcmStatT; /* CDCM statics table */
 extern struct dldd entry_points; /* declared in the user driver part */
 extern char* read_info_file(char*, int*);
 extern struct class *cdcm_class;
@@ -258,7 +260,8 @@ int dg_get_dev_info(unsigned long arg)
 	struct dg_module_info local;
 
 	list_for_each_entry(ptr, &st_list, list) {
-		local.major = ptr->major;
+		local.dev_major = ptr->major;
+		local.drvr_major = cdcmStatT.cdcm_major;
 		strncpy(local.name, ptr->name, sizeof(local.name));
 		if (copy_to_user(buf, &local, sizeof(local)))
 			return -EFAULT;
@@ -287,19 +290,21 @@ int dg_get_mod_am(void)
  *
  * @param name  -- info table file name
  * @param fops  -- file operations
+ * @param dnm   -- driver name
  *
  * Registers new char device and insert it in driverGen device linked list.
  *
  * @return   major char device number - if success
  * @return < 0                        - failed
  */
-int dg_cdv_install(char *name, struct file_operations *fops)
+int dg_cdv_install(char *name, struct file_operations *fops, char *dnm)
 {
 	unsigned int maj;     /* assigned major number */
 	char *dname;	      /* device name */
 	char *st;	      /* statics table */
-	int cc;
-	char *it;		/* info table */
+	int cc, i;
+	char *it;		/* module-specific info table */
+	DevInfo_t *info = NULL;
 
 	/* get info table */
 	it = read_info_file(name, NULL);
@@ -325,6 +330,23 @@ int dg_cdv_install(char *name, struct file_operations *fops)
 		goto out1;
 	}
 
+	/* we can get info _only_ after it came from dldd_install,
+	   as it is initialized there */
+	info = get_dit_from_statics(st);
+
+	/* declare ourselfs in sysfs */
+	/* NOTE! busubox mkdev will __not__ create /dev nodes with
+	 * dots "." in their names */
+	for (i = 0; i < info->chan; i++) {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
+		device_create(cdcm_class, NULL, MKDEV(maj, i+1),
+			      "%s.l%02d.c%02d", dnm, abs(info->mlun), i);
+#else
+		device_create(cdcm_class, NULL, MKDEV(maj, i+1), NULL,
+			      "%s.l%02d.c%02d", dnm, abs(info->mlun), i);
+#endif	/* 2.6.28 */
+	}
+
 	/* tune vmebridge proc info */
 	tune_vmebridge_proc_info(st);
 
@@ -336,11 +358,16 @@ int dg_cdv_install(char *name, struct file_operations *fops)
 		goto out1;
 	}
 
+
 	/* all OK, return allocated major dev number */
 	cc = maj;
 	goto out2;
 
  out1:
+	/* remove ourselfs from sysfs */
+	for (i = 0; i < info->chan; i++)
+		device_destroy(cdcm_class, MKDEV(maj, i));
+
 	unregister_chrdev(maj, dname);
  out2:
 	kfree(it);
@@ -360,6 +387,8 @@ int dg_cdv_uninstall(struct file *filp, unsigned long arg)
 {
 	uint major; /* device major number */
 	struct dgd *dgd; /* device info */
+	DevInfo_t *info;
+	int i;
 
 	if (copy_from_user(&major, (void __user*)arg, sizeof(major)))
 		return -EFAULT;
@@ -368,11 +397,18 @@ int dg_cdv_uninstall(struct file *filp, unsigned long arg)
 	if (!dgd) /* should not happen */
 		return -ENODEV;
 
+	info = get_dit_from_statics(dgd->addr);
+
+	/* remove ourselfs from sysfs */
+	for (i = 0; i < info->chan; i++)
+		device_destroy(cdcm_class, MKDEV(dgd->major, i+1));
+
 	if (entry_points.dldd_uninstall(dgd->addr)) {
 		PRNT_ABS_ERR("Uninstall vector failed.");
 		return -EAGAIN;
 	}
 
+	/* remove from sysfs */
 	unregister_chrdev(dgd->major, dgd->name);
 
 
