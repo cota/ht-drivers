@@ -269,106 +269,95 @@ static S32 GetVersion(SkelDrvrModuleContext *mcon, SkelDrvrVersion *ver)
 	return OK;
 }
 
-static S32 RawIo(SkelDrvrModuleContext *mcon,   /* Hardware module context */
-		 SkelDrvrRawIoBlock    *riob,   /* Raw IO descriptor */
-		 U32                    flag) { /* Read=0,Write=1 flag */
+static S32
+RawIo(SkelDrvrModuleContext *mcon, SkelDrvrRawIoBlock *riob, U32 flag)
+{
+	InsLibAnyAddressSpace	*anyas = NULL;
+	InsLibModlDesc		*modld = NULL;
+	void			*mmap  = NULL;
+	char			*cp;
 
+	modld = mcon->Modld;
+	anyas = InsLibGetAddressSpace(modld,riob->SpaceNumber);
 
-void                   *mmap  = NULL;
-InsLibModlDesc         *modld = NULL;
-InsLibAnyAddressSpace  *anyas = NULL;
-char *cp;
+	if (!anyas || riob->Offset >= anyas->WindowSize) {
+		report_module(mcon, SkelDrvrDebugFlagMODULE,
+			"%s:IllegalAddressSpace", __FUNCTION__);
+		pseterr(ENXIO);
+		return SYSERR;
+	}
 
-   modld = mcon->Modld;
-   anyas = InsLibGetAddressSpace(modld,riob->SpaceNumber);
+	if (!riob->DataWidth)
+		riob->DataWidth = anyas->DataWidth;
+	cp = anyas->Mapped;
+	mmap = &cp[riob->Offset];
 
-   if ((anyas) && (riob->Offset < anyas->WindowSize)) {
-
-      if (!riob->DataWidth) riob->DataWidth = anyas->DataWidth;
-
-      cp = (char *) anyas->Mapped;
-      mmap = &(cp[riob->Offset]);
-
-      if (!recoset()) { /* Catch bus errors */
-
-	 if (flag) {
-	    switch (riob->DataWidth) {
-	       case 8:
-		  if (anyas->Endian == InsLibEndianBIG)
-		     cdcm_iowrite8((U8) riob->Data, mmap);
-		  else
-		     cdcm_iowrite8((U8) riob->Data, mmap);
-		  noreco();
-		  return OK;
-
-	       case 16:
-		  if (anyas->Endian == InsLibEndianBIG)
-		     cdcm_iowrite16(cdcm_cpu_to_be16((U16) riob->Data), mmap);
-		  else
-		     cdcm_iowrite16(cdcm_cpu_to_le16((U16) riob->Data), mmap);
-		  noreco();
-		  return OK;
-
-	       case 32:
-		  if (anyas->Endian == InsLibEndianBIG)
-		     cdcm_iowrite32(cdcm_cpu_to_be32((U32) riob->Data), mmap);
-		  else
-		     cdcm_iowrite32(cdcm_cpu_to_le32((U32) riob->Data), mmap);
-		  noreco();
-		  return OK;
-
-	       default:
-		  noreco();
-		  return SYSERR;
-	    }
-	 } else {
-	    switch (riob->DataWidth) {
-	       case 8:
-		  if (anyas->Endian == InsLibEndianBIG)
-		     riob->Data = (U32) cdcm_ioread8(mmap);
-		  else
-		     riob->Data = (U32) cdcm_ioread8(mmap);
-		  noreco();
-		  return OK;
-
-	       case 16:
-		  if (anyas->Endian == InsLibEndianBIG)
-		     riob->Data = (U32) cdcm_be16_to_cpu(cdcm_ioread16(mmap));
-		  else
-		     riob->Data = (U32) cdcm_le16_to_cpu(cdcm_ioread16(mmap));
-		  noreco();
-		  return OK;
-
-	       case 32:
-		  if (anyas->Endian == InsLibEndianBIG)
-		     riob->Data = (U32) cdcm_be32_to_cpu(cdcm_ioread32(mmap));
-		  else
-		     riob->Data = (U32) cdcm_le32_to_cpu(cdcm_ioread32(mmap));
-		  noreco();
-		  return OK;
-
-	       default:
-		  noreco();
-		  return SYSERR;
-	    }
-	 }
-      } else {
-	  noreco();
-
-	  SK_ERROR("BUS-ERROR: Module:%d. Addr:0x%x", mcon->ModuleNumber,
-		   (int)mmap);
-	  if (update_mcon_status(mcon, SkelDrvrStandardStatusBUS_FAULT))
-		  return SYSERR;
-
-	  pseterr(ENXIO);
-	  return SYSERR;
-      }
-
-   }
-
-   report_module(mcon, SkelDrvrDebugFlagMODULE, "RawIo:IllegalAddressSpace");
-   pseterr(ENXIO);
-   return SYSERR;
+	/* Catch bus errors */
+	if (!recoset()) {
+		if (flag) {
+			switch (riob->DataWidth) {
+			case 8:
+				if (anyas->Endian == InsLibEndianBIG)
+					cdcm_iowrite8(riob->Data, mmap);
+				else
+					cdcm_iowrite8(riob->Data, mmap);
+				noreco();
+				return OK;
+			case 16:
+				if (anyas->Endian == InsLibEndianBIG)
+					cdcm_iowrite16(cdcm_cpu_to_be16(riob->Data), mmap);
+				else
+					cdcm_iowrite16(cdcm_cpu_to_le16(riob->Data), mmap);
+				noreco();
+				return OK;
+			case 32:
+				if (anyas->Endian == InsLibEndianBIG)
+					cdcm_iowrite32(cdcm_cpu_to_be32(riob->Data), mmap);
+				else
+					cdcm_iowrite32(cdcm_cpu_to_le32(riob->Data), mmap);
+				noreco();
+				return OK;
+			default:
+				noreco();
+				return SYSERR;
+			}
+		} else {
+			switch (riob->DataWidth) {
+			case 8:
+				if (anyas->Endian == InsLibEndianBIG)
+					riob->Data = cdcm_ioread8(mmap);
+				else
+					riob->Data = cdcm_ioread8(mmap);
+				noreco();
+				return OK;
+			case 16:
+				if (anyas->Endian == InsLibEndianBIG)
+					riob->Data = cdcm_be16_to_cpu(cdcm_ioread16(mmap));
+				else
+					riob->Data = cdcm_le16_to_cpu(cdcm_ioread16(mmap));
+				noreco();
+				return OK;
+			case 32:
+				if (anyas->Endian == InsLibEndianBIG)
+					riob->Data = cdcm_be32_to_cpu(cdcm_ioread32(mmap));
+				else
+					riob->Data = cdcm_le32_to_cpu(cdcm_ioread32(mmap));
+				noreco();
+				return OK;
+			default:
+				noreco();
+				return SYSERR;
+			}
+		}
+	} else {
+		noreco();
+		SK_ERROR("BUS-ERROR: Module:%d. Addr:0x%x",
+			mcon->ModuleNumber, (int)mmap);
+		if (update_mcon_status(mcon, SkelDrvrStandardStatusBUS_FAULT))
+			return SYSERR;
+		pseterr(ENXIO);
+		return SYSERR;
+	}
 }
 
 static void Reset(SkelDrvrModuleContext *mcon)
