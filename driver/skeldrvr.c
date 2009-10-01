@@ -305,16 +305,16 @@ RawIo(SkelDrvrModuleContext *mcon, SkelDrvrRawIoBlock *riob, int flag)
 				return OK;
 			case 16:
 				if (anyas->Endian == InsLibEndianBIG)
-					cdcm_iowrite16(cdcm_cpu_to_be16(riob->Data), mmap);
+					cdcm_iowrite16be(riob->Data, mmap);
 				else
-					cdcm_iowrite16(cdcm_cpu_to_le16(riob->Data), mmap);
+					cdcm_iowrite16le(riob->Data, mmap);
 				noreco();
 				return OK;
 			case 32:
 				if (anyas->Endian == InsLibEndianBIG)
-					cdcm_iowrite32(cdcm_cpu_to_be32(riob->Data), mmap);
+					cdcm_iowrite32be(riob->Data, mmap);
 				else
-					cdcm_iowrite32(cdcm_cpu_to_le32(riob->Data), mmap);
+					cdcm_iowrite32le(riob->Data, mmap);
 				noreco();
 				return OK;
 			default:
@@ -332,16 +332,16 @@ RawIo(SkelDrvrModuleContext *mcon, SkelDrvrRawIoBlock *riob, int flag)
 				return OK;
 			case 16:
 				if (anyas->Endian == InsLibEndianBIG)
-					riob->Data = cdcm_be16_to_cpu(cdcm_ioread16(mmap));
+					riob->Data = cdcm_ioread16be(mmap);
 				else
-					riob->Data = cdcm_le16_to_cpu(cdcm_ioread16(mmap));
+					riob->Data = cdcm_ioread16le(mmap);
 				noreco();
 				return OK;
 			case 32:
 				if (anyas->Endian == InsLibEndianBIG)
-					riob->Data = cdcm_be32_to_cpu(cdcm_ioread32(mmap));
+					riob->Data = cdcm_ioread32be(mmap);
 				else
-					riob->Data = cdcm_le32_to_cpu(cdcm_ioread32(mmap));
+					riob->Data = cdcm_ioread32le(mmap);
 				noreco();
 				return OK;
 			default:
