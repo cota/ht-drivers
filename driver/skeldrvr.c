@@ -269,8 +269,8 @@ static S32 GetVersion(SkelDrvrModuleContext *mcon, SkelDrvrVersion *ver)
 	return OK;
 }
 
-static S32
-RawIo(SkelDrvrModuleContext *mcon, SkelDrvrRawIoBlock *riob, U32 flag)
+static unsigned int
+RawIo(SkelDrvrModuleContext *mcon, SkelDrvrRawIoBlock *riob, int flag)
 {
 	InsLibAnyAddressSpace	*anyas = NULL;
 	InsLibModlDesc		*modld = NULL;
