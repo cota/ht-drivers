@@ -855,7 +855,7 @@ static int map_pcias(SkelDrvrModuleContext *mcon, InsLibPciAddressSpace *pas)
 
 	resid = pas->BaseAddressRegister;
 	map = &pas->Mapped;
-	cc = drm_map_resource(mcon->PciHandle, resid, map);
+	cc = drm_map_resource(mcon->PciHandle, resid + PCI_RESID_BAR0, map);
 
 	if (cc) { /* mapping error */
 		pas->Mapped = NULL;
