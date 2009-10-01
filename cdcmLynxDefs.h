@@ -28,7 +28,7 @@
 */
 
 /* Resource ID to perform IO on specific pci register */
- 
+
 #define PCI_RESID_REGS		1
 
 /* Resource ID to get pci bus_no, device_no or function number */
