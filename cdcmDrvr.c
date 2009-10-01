@@ -259,7 +259,7 @@ static long process_cdcm_srv_ioctl(struct inode *inode, struct file *file,
                 }
 
 		if (cdcmStatT.cdcm_isdg) /* drivergen will do his job */
-			return dg_cdv_install(itp, &cdcm_fops);
+			return dg_cdv_install(itp, &cdcm_fops, cdcm_d_nm);
 
 		/* get user-space address to copy info table from */
 		if (!(addr = (ulong*)read_info_file(itp, NULL))) {
@@ -610,14 +610,19 @@ static int __init cdcm_driver_init(void)
 	}
 
 	/* declare ourself in sysfs */
-	cdcm_class = class_create(THIS_MODULE, "cdcm");
+	cdcm_class = class_create(THIS_MODULE, cdcm_d_nm);
 	if (IS_ERR(cdcm_class)) {
 		err = PTR_ERR(cdcm_class);
 		goto out_chrdev;
 	}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
 	device_create(cdcm_class, NULL, MKDEV(cdcmStatT.cdcm_major, 0), "%s",
 		      cdcm_d_nm);
+#else
+	device_create(cdcm_class, NULL, MKDEV(cdcmStatT.cdcm_major, 0), NULL,
+		      "%s", cdcm_d_nm);
+#endif	/* 2.6.28 */
 
 	cdcmStatT.cdcm_isdg = drivergen;
 
