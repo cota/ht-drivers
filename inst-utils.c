@@ -69,6 +69,9 @@ void display_usage(char *name)
 	       "  -fexclude %soptional%s\n"
 	       "            Will install all the drivers, exept one provided\n"
 	       "            in the command line.\n\n"
+	       "  -foptions %soptional [for driverGen only]%s\n"
+	       "            Options from .xml file should be taken instead of\n"
+	       "            one, provided in the command line.\n\n"
 	       " * Examples:\n"
 	       " [1] instprog\n"
 	       "     Will install everything from `uname -n`.xml\n"
@@ -93,7 +96,8 @@ void display_usage(char *name)
 	       "     Pass the option for VD80 driver.\n\n",
 	       basename(name), WHITE_CLR, END_CLR, WHITE_CLR, END_CLR,
 	       WHITE_CLR, END_CLR, WHITE_CLR, END_CLR, WHITE_CLR, END_CLR,
-	       WHITE_CLR, END_CLR, WHITE_CLR, END_CLR, WHITE_CLR, END_CLR);
+	       WHITE_CLR, END_CLR, WHITE_CLR, END_CLR, WHITE_CLR, END_CLR,
+	       WHITE_CLR, END_CLR);
 }
 
 /**
@@ -108,13 +112,14 @@ void display_usage(char *name)
  *                              command line (--exclude option)
  * @param cf   -- .xml config file name goes here. Should be freed by the
  *                caller afterwards.
- * @param head -- list head
+ * @param head -- list head to hold all driver descriptions
+ *                (of type struct drvrd)
  *
  * Returned massive holds driver names that user provded in the command line.
  * @b NOTE
  *    list, struct drvrd.dopt and struct drvrd.dname should be freed afterwards!
  *
- * @return driver description list capacity
+ * @return driver description list capacity (head param)
  * @return -ECANCELD - if just help message was displayed
  * @return -ENOMEM   - can't allocate memory for driver description table
  */

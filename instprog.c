@@ -21,11 +21,21 @@
 
 #define DEF_CLIENT_CTXT_AM 16 	/* default client context amount */
 
+static int driver_gen_installation(InsLibDrvrDesc *drvrd)
+{
+	/* each dg module has its own unique driver -- so we can't
+	   have more then one module types (with different names) in
+	   <driver> tag */
+	return 1;
+}
+
 /**
  * @brief Do actual driver installation
  *
  * @param drvrd -- Driver description from the XML config file
- * @param dd    -- command line driver description. Can be NULL.
+ * @param dd    -- command line driver description.
+ *                 If NULL -- no extra information was provided for the driver
+ *                 in the command line.
  *
  * @return 1 - all OK
  * @return 0 - fails
@@ -40,11 +50,9 @@ int do_install_driver(InsLibDrvrDesc *drvrd, struct drvrd *dd)
 			  special installation mode */
 	char *addropt = NULL;
 
-	if (drvrd->isdg == 1) {	/* can be -1 -- not provided 0 -- no 1 -- yes */
-		/* drivergen will handle it */
-		/* TODO */
-		return 1;
-	}
+	/* can be -1 -- not provided 0 -- no 1 -- yes */
+	if (drvrd->isdg == 1)
+		return driver_gen_installation(drvrd);
 
 	options = strdup("");
 	if (!options) {
@@ -52,7 +60,6 @@ int do_install_driver(InsLibDrvrDesc *drvrd, struct drvrd *dd)
 			__func__, strerror(errno));
 		return 0;
 	}
-
 
 	/* get .ko file name */
 	if (drvr_pathname(&drvrf, drvrd->DrvrName)) {
