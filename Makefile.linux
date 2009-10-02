@@ -40,7 +40,7 @@ DRIVER  = $(OBJDIR)/$(DRIVER_NAME).ko
 # Let's roll
 all: $(OBJDIR) $(FINAL_DEST)
 # 1. compile the driver
-	$(MAKE) -C $(KSRC) M=$(PWD) CPU=$(CPU) KVER=$(KVER) \
+	$(MAKE) -C $(KSRC) M=$(PWD) CPU=$(CPU) \
 	ROOTDIR=$(ROOTDIR) modules
 
 # 2. Remove .tmp_version subdir, if already exists

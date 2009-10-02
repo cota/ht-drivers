@@ -13,8 +13,18 @@
 
 # kernel src dir
 ifdef KSRC
+	# Fall here only on the 1st level of make.
+	# Allow us to compile with local kernels
+	ifeq ($(KSRC), /usr/src/kernels)
+		override KVER := $(KVER)-$(shell uname -m)
+	endif
 	override KSRC := $(KSRC)/$(KVER)
 else
+	ifeq ($(KVER),)
+		# Set default kernel version
+		# TODO. Define default in paramount.mk
+		KVER = 2.6.24.7-rt27
+	endif
 	KSRC := /acc/sys/$(CPU)/usr/src/kernels/$(KVER)
 endif
 
