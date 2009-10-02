@@ -26,7 +26,7 @@ _all: cdcm
 # CDCM only
 cdcm:
 	@-rm -rf ./$(CPU)/$(KVER)
-	$(MAKE) -C $(KSRC) M=$(PWD) CPU=$(CPU) KVER=$(KVER) \
+	$(MAKE) -C $(KSRC) M=$(PWD) CPU=$(CPU) \
 	ROOTDIR=$(ROOTDIR) modules
 	@-rm -r .*.cmd Module.symvers .tmp_versions/
 	@-rm -rf ./Module.markers ./modules.order
@@ -36,7 +36,7 @@ USRC := $(ROOTDIR)/utils/driver
 utils:
 	@-rm -rf $(USRC)/$(CPU)/$(KVER)
 	@$(USRC)/rmdrvr
-	$(MAKE) -C $(KSRC) M=$(USRC) CPU=$(CPU) KVER=$(KVER) \
+	$(MAKE) -C $(KSRC) M=$(USRC) CPU=$(CPU) \
 	ROOTDIR=$(ROOTDIR) modules
 	@-rm -rf $(USRC)/.*.cmd $(USRC)/Module.symvers $(USRC)/.tmp_versions/
 	@-rm -rf $(USRC)/Module.markers $(USRC)/modules.order
