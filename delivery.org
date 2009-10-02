@@ -100,3 +100,50 @@
   and call instprog (from /usr/bin) with the parameters:
   instprog -sCTRV -nctr <-- for CTRV
   instprog -sCTRP -nctr <-- for CTRP
+
+* Compilation notes
+  Several command line options can be provided in the command line during
+  compilation. These are:
+	-- CPU  {L864, L865, ppc4}
+	-- KVER All supported FEC kernels are in /acc/sys/$(CPU)/usr/src/kernels
+		and (if you want to compile for local SLC5 machine) are in
+		/usr/src/kernels.
+	-- KSRC {/acc/sys/$(CPU)/usr/src/kernels, /usr/src/kernels}
+
+  Note, that if you are compiling for FEC -- KSRC should __not__ be provided
+  in the make command line parameters.
+
+  If you are compiling for the local machine -- KSRC __should__ be provided
+
+  I.e. /usr/src/kernels is not a standard kernel path, while
+  /acc/sys/$(CPU)/usr/src/kernels is a standard kernel path for FEC kernels.
+
+  To compile the driver -- cdcm and library (if used )should be compiled first
+  for given kernel:
+	1. cd cdcm
+	2. make (provide CPU, KVER, KSRC if needed)
+	   It will build you CDCM && "library" (in cdcm/utils/driver)
+
+  Then compile your driver:
+	1. cd driver
+	2. make (provide CPU, KVER, KSRC if needed)
+  To compile for SLC4 -- you should be on the SLC4 machine.
+  Won't work from SLC5!
+
+** CTR compilation for local kernel Example:
+   Let's compile CTRP for local SLC5 machine.
+   One should provide KVER of the current machine `uname -r`
+   Kernel src files can be found in [/usr/src/kernels]
+
+   So we should set KVER=2.6.18-164.el5 and KSRC=/usr/src/kernels
+   Now we should compile driver utils library (which is in cdcm/utils/driver)
+   To do this:
+	-> cd coht/cdcm
+	-> make utils CPU=L865 KSRC=/usr/src/kernels KVER=2.6.18-164.el5
+
+   Compile CTRP:
+	-> cd coht/ctr/driver_pci
+	-> make CPU=L865 KSRC=/usr/src/kernels KVER=2.6.18-164.el5
+
+   Deliver it:
+        -> make deliver lab CPU=L865 KSRC=/usr/src/kernels KVER=2.6.18-164.el5
