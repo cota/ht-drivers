@@ -12,7 +12,11 @@
 ###############################################################################
 
 # kernel src dir
-KSRC := /acc/sys/$(CPU)/usr/src/kernels/$(KVER)
+ifdef KSRC
+	override KSRC := $(KSRC)/$(KVER)
+else
+	KSRC := /acc/sys/$(CPU)/usr/src/kernels/$(KVER)
+endif
 
 abs2rel = $(shell $(ROOTDIR)/makefiles/abs2rel.sh $(1) $(2))
 
