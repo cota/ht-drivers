@@ -45,7 +45,8 @@ static void unmap_pcias(SkelDrvrModuleContext *mcon)
 		if (pas->Mapped) {
 			int resid = pas->BaseAddressRegister;
 
-			drm_unmap_resource(mcon->PciHandle, resid);
+			drm_unmap_resource(mcon->PciHandle, resid +
+					PCI_RESID_BAR0);
 			pas->Mapped = NULL;
 		}
 		pas = pas->Next;
