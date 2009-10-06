@@ -94,6 +94,14 @@
 #include <xmemDrvr.h>
 #include <xmemDrvrP.h>
 
+#ifdef __linux__
+#define XMEM_BUG_ON(x)	BUG_ON(x)
+#else
+#define XMEM_BUG_ON(cond)	do { if (cond) {			\
+		XMEM_ERROR(#cond " at %s:%d", __FILE__, __LINE__);	\
+		} } while(0)
+#endif
+
 #ifdef __powerpc__
 extern void iointunmask(); /* needed to register an interrupt */
 #endif
