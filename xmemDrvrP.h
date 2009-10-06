@@ -52,12 +52,14 @@ typedef enum {
 
 #define XmemDrvrQUEUE_SIZE 128 		//!< Maximum queue size
 
-/*! Client's queue
+/*! Client's FIFO
  */
 typedef struct {
 	unsigned short  QueueOff;
 	unsigned short  Missed;
-	unsigned short  Size;
+	int		elems;
+	int		in;
+	int		out;
 	XmemDrvrReadBuf Entries[XmemDrvrQUEUE_SIZE];
 } XmemDrvrQueue;
 

@@ -233,6 +233,45 @@ static void LongCopyFromXmem(void *vmic_from, void *v_to, unsigned long size)
 	} while (--count != 0);
 }
 
+static void __q_put(const XmemDrvrReadBuf *rb, XmemDrvrClientContext *ccon)
+{
+	XmemDrvrQueue *fifo = &ccon->Queue;
+
+	if (fifo->elems >= XmemDrvrQUEUE_SIZE) {
+		fifo->Missed++;
+	} else {
+		fifo->Entries[fifo->in] = *rb;
+		fifo->in = (fifo->in + 1) % XmemDrvrQUEUE_SIZE;
+		++fifo->elems;
+		ssignal(&ccon->Semaphore);
+	}
+}
+
+static int __q_get(XmemDrvrReadBuf *rb, XmemDrvrClientContext *ccon)
+{
+	XmemDrvrQueue *fifo = &ccon->Queue;
+
+	XMEM_BUG_ON(!fifo->elems);
+	if (!fifo->elems)
+		return 0;
+
+	*rb = fifo->Entries[fifo->out];
+	fifo->out = (fifo->out + 1) % XmemDrvrQUEUE_SIZE;
+	--fifo->elems;
+	return 1;
+}
+
+static void __q_reset(XmemDrvrClientContext *ccon)
+{
+	XmemDrvrQueue *fifo = &ccon->Queue;
+
+	fifo->Missed	= 0;
+	fifo->elems	= 0;
+	fifo->out	= 0;
+	fifo->in	= 0;
+	sreset(&ccon->Semaphore);
+}
+
 /**
  * CancelTimeout - cancels a given timeout
  *
@@ -267,10 +306,12 @@ static void CancelTimeout(int *t)
 static int ReadTimeout(void *c)
 {
 	XmemDrvrClientContext *ccon = (XmemDrvrClientContext*)c;
+	unsigned long ps;
+
+	disable(ps);
+	__q_reset(ccon);
 	ccon->Timer = 0;
-	ccon->Queue.Size   = 0;
-	ccon->Queue.Missed = 0;
-	sreset(&ccon->Semaphore);
+	restore(ps);
 	return 0;
 }
 
@@ -821,7 +862,6 @@ static void InterruptSelf(XmemDrvrSendBuf *sbuf, XmemDrvrModuleContext *mcon) {
 	XmemDrvrNic            ntype;
 	XmemDrvrReadBuf        rbf;
 	XmemDrvrClientContext *ccon;
-	XmemDrvrQueue         *queue;
 	unsigned long usegs, msk;
 	int i;
 
@@ -865,15 +905,11 @@ static void InterruptSelf(XmemDrvrSendBuf *sbuf, XmemDrvrModuleContext *mcon) {
 		msk = mcon->Clients[i];
 
 		if (msk & rbf.Mask) {
-			queue = &ccon->Queue;
-			if (queue->Size < XmemDrvrQUEUE_SIZE) {
-				queue->Entries[queue->Size++] = rbf;
-				ssignal(&ccon->Semaphore); /* Wakeup client */
-			}
-			else {
-				queue->Size = XmemDrvrQUEUE_SIZE;
-				queue->Missed++;
-			}
+			unsigned long ps;
+
+			disable(ps);
+			__q_put(&rbf, ccon);
+			restore(ps);
 		}
 
 	}
@@ -1618,7 +1654,6 @@ void IntrHandler(void *m)
 {
 	uint32_t		isrc, msk, i;
 	XmemDrvrModuleContext	*mcon = (XmemDrvrModuleContext*)m;
-	XmemDrvrQueue		*queue;
 	XmemDrvrClientContext	*ccon;
 	XmemDrvrReadBuf		rbf;
 	unsigned long		intcsr, usegs, node, data, dma;
@@ -1739,6 +1774,7 @@ void IntrHandler(void *m)
 		}
 
 		for (i = 0; i < XmemDrvrCLIENT_CONTEXTS; i++) {
+			unsigned long ps;
 
 			ccon = &Wa->ClientContexts[i];
 
@@ -1751,15 +1787,9 @@ void IntrHandler(void *m)
 			if (!(msk & isrc))
 				continue;
 
-			queue = &ccon->Queue;
-			if (queue->Size < XmemDrvrQUEUE_SIZE) {
-				queue->Entries[queue->Size++] = rbf;
-				ssignal(&ccon->Semaphore); /* Wakeup client */
-			} else {
-				queue->Size = XmemDrvrQUEUE_SIZE;
-				queue->Missed++;
-			}
-
+			disable(ps);
+			__q_put(&rbf, ccon);
+			restore(ps);
 		} /* gone through all the interrupt sources */
 
 	}
@@ -1804,7 +1834,7 @@ int XmemDrvrOpen(void *s, int dnm, struct cdcm_file *flp)
 {
 	int cnum;                       /* Client number */
 	XmemDrvrClientContext *ccon;    /* Client context */
-	XmemDrvrQueue         *queue;   /* Client queue */
+	unsigned long ps;
 
 	/*
 	 * We allow one client per minor device, we use the minor device
@@ -1833,10 +1863,9 @@ int XmemDrvrOpen(void *s, int dnm, struct cdcm_file *flp)
 	ccon->UpdatedSegments = 0;
 	ccon->Debug           = XmemDrvrDebugNONE;
 
-	queue = &ccon->Queue;
-	queue->Size   = 0;
-	queue->Missed = 0;
-	sreset(&ccon->Semaphore);
+	disable(ps);
+	__q_reset(ccon);
+	restore(ps);
 
 #if 0
 	cprintf("xmemDrvr:Open:%d ClientSem:0x%X:%d PID:%d\n",
@@ -1917,8 +1946,8 @@ int XmemDrvrRead(void *s, struct cdcm_file *flp, char *u_buf, int cnt)
 	int           cnum; /* Client number */
 	int           wcnt; /* Writable byte counts at arg address */
 	int           pid;
-	unsigned int  iq;
 	unsigned long ps;
+	int ret;
 
 	cnum = minor(flp->dev) - 1;
 
@@ -1955,23 +1984,18 @@ int XmemDrvrRead(void *s, struct cdcm_file *flp, char *u_buf, int cnt)
 
 	queue = &ccon->Queue;
 
-	if (queue->QueueOff) {
-		disable(ps);
-		{
-			queue->Size   = 0;
-			queue->Missed = 0;
-			sreset(&ccon->Semaphore);
-		}
-		restore(ps);
-	}
+	disable(ps);
+	if (queue->QueueOff)
+		__q_reset(ccon);
+	restore(ps);
 
 	if (ccon->Timeout) {
 		ccon->Timer = timeout(ReadTimeout, (char *)ccon, ccon->Timeout);
 		if (ccon->Timer < 0) {
+			disable(ps);
+			__q_reset(ccon);
 			ccon->Timer = 0;
-			queue->Size   = 0;
-			queue->Missed = 0;
-			sreset(&ccon->Semaphore);
+			restore(ps);
 			cprintf("xmemDrvr:Read: No timers available: Context:%d\n", cnum);
 			pseterr(EBUSY); /* No available timers */
 			return 0;
@@ -1979,9 +2003,9 @@ int XmemDrvrRead(void *s, struct cdcm_file *flp, char *u_buf, int cnt)
 	}
 
 	if (swait(&ccon->Semaphore, SEM_SIGABORT)) {
-		queue->Size   = 0;
-		queue->Missed = 0;
-		sreset(&ccon->Semaphore);
+		disable(ps);
+		__q_reset(ccon);
+		restore(ps);
 		if (ccon->Debug)
 			cprintf("xmemDrvr:Read:Error ret from swait:Context:%d\n", cnum);
 		pseterr(EINTR); /* We have been signaled */
@@ -1993,9 +2017,9 @@ int XmemDrvrRead(void *s, struct cdcm_file *flp, char *u_buf, int cnt)
 			CancelTimeout(&ccon->Timer);
 		}
 		else {
-			queue->Size   = 0;
-			queue->Missed = 0;
-			sreset(&ccon->Semaphore);
+			disable(ps);
+			__q_reset(ccon);
+			restore(ps);
 			if (ccon->Debug)
 				cprintf("xmemDrvr:Read: TimeOut: Context:%d\n", cnum);
 			pseterr(ETIME);
@@ -2004,22 +2028,18 @@ int XmemDrvrRead(void *s, struct cdcm_file *flp, char *u_buf, int cnt)
 	}
 
 	rb = (XmemDrvrReadBuf *)u_buf;
-	if (queue->Size) {
-		disable(ps);
-		{
-			iq = --queue->Size;
-			*rb = queue->Entries[iq];
-		}
-		restore(ps);
-		return sizeof(XmemDrvrReadBuf);
+	disable(ps);
+	if (__q_get(rb, ccon)) {
+		ret = sizeof(XmemDrvrReadBuf);
+	} else {
+		__q_reset(ccon);
+		if (ccon->Debug)
+			cprintf("xmemDrvr:Read: Queue Empty: Context:%d\n", cnum);
+		pseterr(EINTR);
+		ret = 0;
 	}
-
-	queue->Size   = 0;
-	queue->Missed = 0;
-	sreset(&ccon->Semaphore);
-	if (ccon->Debug) cprintf("xmemDrvr:Read: Queue Empty: Context:%d\n", cnum);
-	pseterr(EINTR);
-	return 0;
+	restore(ps);
+	return ret;
 }
 
 /**
@@ -2123,16 +2143,7 @@ int XmemDrvrWrite(void *s, struct cdcm_file *flp, char *u_buf, int cnt)
 		/* the client's connected to IntrSOFTWAKEUP --> fill in his queue */
 
 		disable(ps); /* acquire spinlock */
-
-		if (queue->Size < XmemDrvrQUEUE_SIZE) {
-			queue->Entries[queue->Size++] = rbf;
-			ssignal(&ccon->Semaphore); /* Wake-up client */
-		}
-		else {
-			queue->Size = XmemDrvrQUEUE_SIZE;
-			queue->Missed++;
-		}
-
+		__q_put(&rbf, ccon);
 		restore(ps); /* release spinlock */
 
 	}
@@ -2549,11 +2560,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 			ccon->Queue.QueueOff = 0;
 
 		disable(ps);
-		{
-			ccon->Queue.Size   = 0;
-			ccon->Queue.Missed = 0;
-			sreset(&ccon->Semaphore);
-		}
+		__q_reset(ccon);
 		restore(ps);
 		return OK;
 
@@ -2562,7 +2569,7 @@ int XmemDrvrIoctl(void *s, struct cdcm_file * flp, int cm, char * arg)
 		return OK;
 
 	case XmemDrvrGET_QUEUE_SIZE: /* Number of events on queue */
-		*lap = ccon->Queue.Size;
+		*lap = ccon->Queue.elems;
 		return OK;
 
 	case XmemDrvrGET_QUEUE_OVERFLOW: /* Number of missed events */
