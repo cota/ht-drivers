@@ -1030,7 +1030,6 @@ int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 	if (client_init(ccon, clientnr))
 		return SYSERR; /* client_init must set errno */
 
-	SK_DEBUG("Opened Client Number %d for pid %d OK", clientnr, ccon->Pid);
 	return OK;
 }
 
