@@ -4,27 +4,28 @@ Makefiles to build complete driver framework are located in this directory.
 Short file description
 ----------------------
 .
-|-- Kbuild         - general Kbuild, that should be include by the
-|                    driver-specific Kbuild file
-|-- Kbuild.include - Generic definitions, used to build Linux drivers
-|-- Kbuild.linux   - Kbuild for compiling Linux drivers. Included through Kbuild
-|-- Kbuild.lynx    - Kbuild for compiling Lynx drivers. Included through Kbuild
-|-- Makefile       - Makefile to compile driver bunch
-|-- Makefile.base  - holds general rules along with standart CERN rules
-|-- Makefile.drvr  - main driver compilation
-|-- Makefile.inst  - Build up driver installation program
-|-- Makefile.lces  - Builds up Linux driver and installation program for
-|                    CES BSP Linux. SCHEDULED FOR DELETION!
-|-- Makefile.lib   - Driver library compilation
-|-- Makefile.linux - Linux driver compilation. Included through Makeflie.drvr
-|-- Makefile.lynx  - Lynx driver compilation. Included through Makeflie.drvr
-|-- Makefile.tst   - Test programs compilation.
-|-- README.1ST     - this file
-|-- abs2rel.sh     - absolute to relative path converter script
-|-- compiledrvr    - driver compilation script
-|-- compilelib     - library compilation script
-|-- compiletst     - test program compilation script
-|-- examples/      - useful examples on HOWTO do stuff
+|-- Kbuild           - general Kbuild, that should be include by the
+|                      driver-specific Kbuild file
+|-- Kbuild.include   - Generic definitions, used to build Linux drivers
+|-- Kbuild.linux     - Kbuild for compiling Linux drivers. Included through Kbuild
+|-- Kbuild.lynx      - Kbuild for compiling Lynx drivers. Included through Kbuild
+|-- Makefile         - Makefile to compile driver bunch
+|-- Makefile.base    - holds general rules along with standart CERN rules
+|-- Makefile.deliver - driver bench delivery
+|-- Makefile.drvr    - main driver compilation
+|-- Makefile.inst    - Build up driver installation program
+|-- Makefile.lces    - Builds up Linux driver and installation program for
+|                      CES BSP Linux. SCHEDULED FOR DELETION!
+|-- Makefile.lib     - Driver library compilation
+|-- Makefile.linux   - Linux driver compilation. Included through Makeflie.drvr
+|-- Makefile.lynx    - Lynx driver compilation. Included through Makeflie.drvr
+|-- Makefile.tst     - Test programs compilation.
+|-- README.1ST       - this file
+|-- abs2rel.sh       - absolute to relative path converter script
+|-- compiledrvr      - driver compilation script
+|-- compilelib       - library compilation script
+|-- compiletst       - test program compilation script
+|-- examples/        - useful examples on HOWTO do stuff
 |   |
 |   |-- Kbuild            - Kbuild template to use for specific driver
 |   |                       compilation. All possible compilation options
@@ -34,7 +35,7 @@ Short file description
 |   |-- deliver_driver    - howto deliver driver
 |   `-- out-of-tree-cdcm  - howto compile driver with local CDCM copy
 |
-`-- rmdrvr         - driver cleaning up
+`-- rmdrvr           - driver cleaning up
 
 
 
