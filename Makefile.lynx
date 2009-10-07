@@ -1,7 +1,7 @@
 ###############################################################################
 # @file Makeflie.lynx
 #
-# @brief Builds up Lynx driver and installation program.
+# @brief Builds up Lynx driver.
 #
 # @author Yury GEORGIEVSKIY, CERN.
 #
@@ -15,7 +15,7 @@
 include ../../makefiles/Makefile.base
 include ../../makefiles/Kbuild.lynx
 
-ADDCFLAGS   = $(STDFLAGS) -DCPU=\"$(CPU)\"
+ADDCFLAGS  += $(STDFLAGS) -DCPU=\"$(CPU)\"
 ADDINCLUDES = $(KERN_INCLUDES)
 
 #  Driver source directory

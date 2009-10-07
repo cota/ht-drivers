@@ -17,13 +17,14 @@ SKEL_D   = ../../skel/driver
 EXTRA_DRVR_SRC_FILES += \
 	$(CDCM_D)/cdcmBoth.c
 
-ifeq ($(DRIVER_BUS), PCI)
-EXTRA_DRVR_SRC_FILES += \
-	$(CDCM_D)/cdcmPciDmaLynx.c
-else ifeq ($(DRIVER_BUS), VME)
-# add nothing
+ifeq ($(CONFIG_BUS_PCI), y)
+	ADDCFLAGS = -DCONFIG_BUS_PCI
+	EXTRA_DRVR_SRC_FILES += \
+		$(CDCM_D)/cdcmPciDmaLynx.c
+else ifeq ($(CONFIG_BUS_VME), y)
+	ADDCFLAGS = -DCONFIG_BUS_VME
 else
-EXTRA_DRVR_SRC_FILES += $(CDCM_D)/cdcmPciDmaLynx.c
+	EXTRA_DRVR_SRC_FILES += $(CDCM_D)/cdcmPciDmaLynx.c
 endif
 
 ifeq ($(IS_SKEL), y)

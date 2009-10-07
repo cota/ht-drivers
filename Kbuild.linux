@@ -141,8 +141,8 @@ $(addprefix $(obj)/,$(skel:.c=.o)): %.o: %.c
 # 'skel' is CDCM compliant with VME && PCI bus support, using XML library
 USE_XML        := y
 IS_CDCM        := y
-CONFIG_BUS_PCI := y
-CONFIG_BUS_VME := y
+CONFIG_BUS_PCI ?= y
+CONFIG_BUS_VME ?= y
 endif # IS_SKEL
 
 
