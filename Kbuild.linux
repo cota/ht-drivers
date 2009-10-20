@@ -199,7 +199,7 @@ utils-$(USE_UTILS) := $(addprefix $(UTIL_D_REL), drvr_load_file.o drvr_utils.o)
 # Extra driver utilities
 xml-$(USE_XML)         := $(addprefix $(UTIL_D_REL), libinstkernel.o)
 plx9030-$(USE_PLX9030) := $(addprefix $(UTIL_D_REL), plx9030.o)
-plx9656-$(USE_PLX9636) := $(addprefix $(UTIL_D_REL), plx9656.o)
+plx9656-$(USE_PLX9656) := $(addprefix $(UTIL_D_REL), plx9656.o)
 
 # Build-up final version with extra things for the driver
 $(DRIVER_NAME)-y += $(cdcm-y) $(utils-y) $(xml-y) $(plx9030-y) $(plx9656-y)
