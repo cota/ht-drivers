@@ -46,7 +46,21 @@ USE_PLX9656 = n
 #  If you want to compile with CDCM that is _not_ in the ROOTDIR
 #+ (i.e. out-of-standart-tree) - you _SHOULD_ set CDCM_D in the COMMAND LINE!
 #+ See 'out-of-tree-cdcm' file on howto do this.
+# CDCM_D =
 
 #  You can redefine FINAL_DEST to deliver compiled object to other then
 #+ ../object_<drvr_name> dir. Prefix ../ is always added to it.
 # FINAL_DEST =
+
+# To change driver src directory from standart one (drier)
+# DRVR_DIR =
+
+#  To override standard kernel dir location
+#+ Allows ut to compile with local kernels
+# KSRC =
+
+# Compile for kernel other then default one
+# KVER =
+
+# Choose CPU
+# CPU =

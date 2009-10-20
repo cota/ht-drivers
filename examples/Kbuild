@@ -11,7 +11,9 @@
 ###############################################################################
 
 # Use ccflags-y to pass extra driver compilation flags (if any)
+# To compile for 2.6.9 -- EXTRA_CFLAGS should be used instead.
 # ccflags-y =
+# EXTRA_CFLAGS =
 
 #  Use XTRA_DRSC to add driver files to compile from other
 #+ then ./driver directories
