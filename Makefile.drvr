@@ -8,12 +8,11 @@
 # @date Created on 13/01/2009
 ################################################################################
 
-# Kept only for compiling 2.6.9 SHOULD BE REMOVED!!!
+# Kept only for backward compatibility with 2.6.9. will be removed
 ifneq ($(KERNELRELEASE),)
 include $(M)/Kbuild
 else
 
-# In case if user provided CPU, KVER or ROOTDIR
 # Makefile from current directory supress one from upper level
 include $(shell if [ -e ./Makefile.specific ]; then \
 		echo ./Makefile.specific; \
