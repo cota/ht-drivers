@@ -341,7 +341,7 @@ int swait(int *user_sem, int sig)
 	int result = 0;
 	struct cdcm_semaphore *sema = get_sema(user_sem);
 
-	if (get_sema == NULL)
+	if (sema == NULL)
 		return SYSERR;
 
 	switch (sig) {
