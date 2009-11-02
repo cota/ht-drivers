@@ -23,6 +23,12 @@
 
 static char *default_xml_config_file(void);
 
+void display_version(char *name)
+{
+	static char *version = "0.1";
+	printf("Versioin %s\n", version);
+}
+
 /**
  * @brief Guess what
  *
@@ -120,8 +126,8 @@ void display_usage(char *name)
  *    list, struct drvrd.dopt and struct drvrd.dname should be freed afterwards!
  *
  * @return driver description list capacity (head param)
- * @return -ECANCELD - if just help message was displayed
- * @return -ENOMEM   - can't allocate memory for driver description table
+ * @return -ECANCELED -- if just help message or version were displayed
+ * @return -ENOMEM    -- can't allocate memory for driver description table
  */
 int parse_prog_args(int argc, char* argv[], int *flg, char **cf,
 		    struct list_head *head)
@@ -134,7 +140,7 @@ int parse_prog_args(int argc, char* argv[], int *flg, char **cf,
 	*cf = NULL;
 	*flg = 0; /* nothing set yet */
 	/* Scan params of the command line */
-	while ( (opt = getopt(argc, argv, "-s:f:o:n:h")) != EOF) {
+	while ( (opt = getopt(argc, argv, "-s:f:o:n:hv")) != EOF) {
 		switch (opt) {
 		case 's':	/* special installation mode (Linux only)
 				   All driver parameters are passed to the
@@ -167,10 +173,12 @@ int parse_prog_args(int argc, char* argv[], int *flg, char **cf,
 			if (ddp)
 				asprintf(&ddp->slnn, "%s", optarg);
 			break;
+		case 'v': /* current version */
+			display_version(argv[0]);
+			return -ECANCELED; /* Operation canceled */
 		case 'h':	/* help */
 			display_usage(argv[0]);
 			return -ECANCELED; /* Operation canceled */
-		default:
 #ifdef __Lynx__
 		case 0:
 #else /* __linux__ */
@@ -189,6 +197,9 @@ int parse_prog_args(int argc, char* argv[], int *flg, char **cf,
 			list_add_tail(&ddp->list, head);
 			if (!*flg) /* not set yet */
 				*flg = I_CHOSEN;
+			break;
+		default:
+			printf("Unsupported command line argument!\n");
 			break;
 		}
 	}
