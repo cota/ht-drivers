@@ -332,6 +332,7 @@ RawIo(SkelDrvrModuleContext *mcon, SkelDrvrRawIoBlock *riob, int flag)
 				return OK;
 			default:
 				noreco();
+				pseterr(EINVAL);
 				return SYSERR;
 			}
 		} else {
@@ -359,6 +360,7 @@ RawIo(SkelDrvrModuleContext *mcon, SkelDrvrRawIoBlock *riob, int flag)
 				return OK;
 			default:
 				noreco();
+				pseterr(EINVAL);
 				return SYSERR;
 			}
 		}
@@ -921,6 +923,7 @@ char *SkelDrvrInstall(void *infofile)
 
 	if (!Wa->Drvrd->ModuleCount) {
 		SK_WARN("BUG in the descriptor tree: ModuleCount is empty");
+		pseterr(EINVAL);
 		goto out_err;
 	}
 
@@ -1482,8 +1485,10 @@ unsigned long flags;
 
       case SkelDrvrIoctlSET_MODULE:
 	      mcon = get_mcon(lav);
-	      if (mcon == NULL)
+	      if (mcon == NULL) {
+		      pseterr(EINVAL);
 		      return SYSERR;
+	      }
 	      ccon->ModuleNumber = lav;
 	      return OK;
       break;
