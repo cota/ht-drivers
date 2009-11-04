@@ -1486,6 +1486,7 @@ unsigned long flags;
       case SkelDrvrIoctlSET_MODULE:
 	      mcon = get_mcon(lav);
 	      if (mcon == NULL) {
+		      SK_WARN("SET_MODULE: Module %d doesn't exist", lav);
 		      pseterr(EINVAL);
 		      return SYSERR;
 	      }
