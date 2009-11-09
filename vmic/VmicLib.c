@@ -226,6 +226,8 @@ XmemError VmicRegisterCallback(void (*cb)(XmemCallbackStruct *cbs),
 			con.Mask |= XmemDrvrIntrSOFTWAKEUP;
 			callmask |= msk;
 			break;
+		case XmemEventMaskTIMEOUT:
+			callmask |= msk;
 		default:
 			break;
 		}
