@@ -33,5 +33,7 @@ clean:
 install: $(INSTFILES)
 	rm -f /ps/local/$(CPU)/$(INSTALL_DIR)/libxmem.a
 	cp libxmem.$(CPU).a /ps/local/$(CPU)/$(INSTALL_DIR)/libxmem.a
+	chmod 444 /ps/local/$(CPU)/$(INSTALL_DIR)/libxmem.a
 	rm -f /ps/local/$(CPU)/$(INSTALL_DIR)/libxmem.h
 	cp libxmem.h /ps/local/$(CPU)/$(INSTALL_DIR)/libxmem.h
+	chmod 444 /ps/local/$(CPU)/$(INSTALL_DIR)/libxmem.h
