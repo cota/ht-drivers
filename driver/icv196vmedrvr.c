@@ -1,33 +1,17 @@
-/*
-  _________________________________________________________________
- |                                                                 |
- |   file name :          icv196vmedrvr.c                          |
- |                                                                 |
- |   created:     21-mar-1992 Alain Gagnaire, F. Berlin            |
- |   last update: 09-sep-1997 A. gagnaire                          |
- |                                                                 |
- |   Driver for managing of icv196vme module in the DSC providing: |
- |             - 16 interrupting lines                             |
- |                                                                 |
- |_________________________________________________________________|
-
-  updated:
-  =======
- 21-mar-1992 A.G., F.B.: version integrated with the event handler common to
-                         sdvme, and icv196vme driver
- 02-dec-1992 A.G. - correct disconnect: unlink cumul event  in the ring
-                  - manage propely disconnection of cumulative connection
-		    including set up of cumulative event pending
-    standard entries for driver installation:
-                   icv196vmeopen icv196vmeclose,
-                   icv196vmeread, icv196vmewrite,
-                   icv196vmeioctl, icv196vmeselect
-                   icv196vmeinstall,icv196vmeuninstall,
-		   icv196vmeirq
- 16-mar-1994 A.G. : reanable the line supporting connections after a reset
- 10-may-1994 A.G.: update to stand 8 modules
- 09-sep-1997 A:G:  common source for several platform: motorola, PowerPC
-*/
+/**
+ * @file icv196vmedrvr.c
+ *
+ * @brief Driver for managing icv196vme module providing 16 interrupt lines
+ *
+ * Created on 21-mar-1992 Alain Gagnaire, F. Berlin
+ *
+ * @author Copyright (C) 2009 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
+ *
+ * @date Created on 18/11/2009
+ *
+ * @section license_sec License
+ *          Released under the GPL
+ */
 #include <cdcm/cdcm.h>
 #include <vme_am.h>
 #include <skeldrvr.h>
@@ -35,7 +19,6 @@
 #include <skeluser_ioctl.h>
 #include <icv196vme.h>
 #include <icv196vmeP.h>
-
 
 #define USER_VBASE 64
 #define PURGE_CPUPIPELINE asm("eieio") /* purge cpu pipe line */
