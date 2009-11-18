@@ -1,0 +1,27 @@
+Porting driver using skeletation:
+---------------------------------
+1.  -> cd icv196
+2.  -> ln -s ../makefiles/Makefile
+3.  -> cp ../makefiles/examples/Makefile.specific ./
+4.  -> cd driver
+5.  -> ln -s ../../makefiles/Makefile.drvr Makefile
+6.  -> ln -s ../../makefiles/rmdrvr
+7.  -> cp ../makefiles/examples/Kbuild ./
+8.  -> cp ../../skel/template/myDrvr.c icv196-skel.c
+9.  -> cd ../include
+10. -> cp ../../skel/template/skeluser.h ./
+11. -> cp ../../skel/template/skeluser_ioctl.h ./
+
+12. Modify Makefile.specific
+13. Fill in [struct skel_conf] in icv196-skel.c
+14. Get rid of find_controller()/return_controller()
+    and vme_intset()/vme_intclr()
+15. Accosiate existing dldd structure with skel dldd structure:
+    SkelDrvrOpen      --> SkelUserClientInit
+    SkelDrvrClose     --> TODO!
+    skel_read         --> skel_conf.read
+    skel_write        --> skel_conf.write
+    SkelDrvrSelect    --> 
+    SkelDrvrIoctl     -->
+    SkelDrvrInstall   -->
+    SkelDrvrUninstall -->
