@@ -268,15 +268,19 @@ unsigned long return_controller(struct vme_mapping *desc)
 
 /**
  * \brief Map a VME address space into the user address space
- * \param desc a struct vme_mapping descriptor describing the mapping
- * \param force flag indicating whether a new window should be created if
- *              needed
+ *
+ * \param desc  -- a struct vme_mapping descriptor describing the mapping
+ * \param force -- flag indicating whether a new window should be created if
+ *                 needed.
+ *
+ * desc->sizel (window size) and desc->vme_addrl (VME bus start address)
+ * should comply with mmap(2) rules, i.e:
+ * 1. MIN window size allowed is a pagesize as returned by getpagesize(2)
+ * 2. offset (VME bus start address) should be a multiple of the page size
+ *    as returned by getpagesize(2).
  *
  * \return a userspace virtual address for the mapping or NULL on error
  *         (in that case errno is set appropriately).
- *
- * This function maps a VME address space for a user application.
- *
  */
 void *vme_map(struct vme_mapping *desc, int force)
 {
