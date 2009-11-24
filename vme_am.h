@@ -64,39 +64,4 @@ typedef enum {
 } vmeam_t;
 //@}
 
-
-enum vme_address_modifier {
-	VME_A64_MBLT		= 0,	/* 0x00 */
-	VME_A64_SCT,			/* 0x01 */
-	VME_A64_BLT		= 3,	/* 0x03 */
-	VME_A64_LCK,			/* 0x04 */
-	VME_A32_LCK,			/* 0x05 */
-	VME_A32_USER_MBLT	= 8,	/* 0x08 */
-	VME_A32_USER_DATA_SCT,		/* 0x09 */
-	VME_A32_USER_PRG_SCT,		/* 0x0a */
-	VME_A32_USER_BLT,		/* 0x0b */
-	VME_A32_SUP_MBLT,		/* 0x0c */
-	VME_A32_SUP_DATA_SCT,		/* 0x0d */
-	VME_A32_SUP_PRG_SCT,		/* 0x0e */
-	VME_A32_SUP_BLT,		/* 0x0f */
-	VME_2e6U		= 0x20,	/* 0x20 */
-	VME_2e3U,			/* 0x21 */
-	VME_A16_USER		= 0x29,	/* 0x29 */
-	VME_A16_LCK		= 0x2c,	/* 0x2c */
-	VME_A16_SUP		= 0x2d,	/* 0x2d */
-	VME_CR_CSR		= 0x2f,	/* 0x2f */
-	VME_A40_SCT		= 0x34, /* 0x34 */
-	VME_A40_LCK, 			/* 0x35 */
-	VME_A40_BLT		= 0x37, /* 0x37 */
-	VME_A24_USER_MBLT,		/* 0x38 */
-	VME_A24_USER_DATA_SCT,		/* 0x39 */
-	VME_A24_USER_PRG_SCT,		/* 0x3a */
-	VME_A24_USER_BLT,		/* 0x3b */
-	VME_A24_SUP_MBLT,		/* 0x3c */
-	VME_A24_SUP_DATA_SCT,		/* 0x3d */
-	VME_A24_SUP_PRG_SCT,		/* 0x3e */
-	VME_A24_SUP_BLT,		/* 0x3f */
-};
-
-
 #endif /* _VME_AM_H_INCLUDE_ */
