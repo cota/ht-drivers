@@ -194,7 +194,6 @@ int ststart(tpp_t procaddr, int stacksize, int prio, char *name, int nargs, ...)
   return(cdcmthrp->thr_pd->pid);
 }
 
-
 /**
  * @brief Lynx stub. Remove user-defined kernel thread.
  *
@@ -206,11 +205,14 @@ int ststart(tpp_t procaddr, int stacksize, int prio, char *name, int nargs, ...)
  */
 void stremove(int stid)
 {
-	struct task_struct *stpd = find_task_by_pid_ns(stid, &init_pid_ns);
-
+	struct task_struct *stpd;
 	cdcmthr_t *stptr; /* victim data */
 	int cntr;
 	ulong iflags;
+
+	rcu_read_lock();
+	stpd = find_task_by_pid_ns(stid, &init_pid_ns);
+	rcu_read_unlock();
 
 	if (!stpd) { /* bugaga! */
 		PRNT_DBG(cdcmStatT.cdcm_ipl,
@@ -245,10 +247,10 @@ void stremove(int stid)
 	 * This synchronous operation  will wake the kthread if it is
 	 * asleep and will return when thread has terminated.
 	 */
-	printk("\t%s() calling kthread_stop()...\n", __func__);
+	//printk("\t%s() calling kthread_stop()...\n", __func__);
 	kthread_stop(stpd);
 	list_del(&stptr->thr_list); /* exclude me from the list */
-	printk("\t%s(): kthread_stop() return.\n", __func__);
+	//printk("\t%s(): kthread_stop() return.\n", __func__);
 
 	local_irq_restore(iflags);
 }
