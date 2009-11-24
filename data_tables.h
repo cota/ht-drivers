@@ -18,11 +18,20 @@
 #include <general_both.h>	/* _NOT_DEF_ etc defined here */
 
 #if !defined(__KERNEL__)
+
 #include <list.h> /* because user-space doesn't know about struct list_head */
 #define BUS_ID_SIZE 20 /* from linux/device.h */
+
 #else
+
 #include <linux/device.h>	/* for 'BUS_ID_SIZE' */
 #include <list_extra.h>		/* driver needs it */
+
+/* removed from 2.6.31 */
+#ifndef BUS_ID_SIZE
+#define BUS_ID_SIZE 20
+#endif
+
 #endif
 
 #define MAX_VME_SLOT  21 //!< how many slots in the VME crate
