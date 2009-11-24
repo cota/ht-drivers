@@ -68,6 +68,7 @@ ncscope.*
 
 # Storage dirs
 L865/
+L865_64/
 
 # Specific files
 vmebus.h
