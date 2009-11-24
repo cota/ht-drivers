@@ -1,14 +1,14 @@
 /**
  * \file vmebus.h
  * \brief PCI-VME public API
- * \author Sébastien Dugué
+ * \author Sebastien Dugue
  * \date 04/02/2009
  *
  *  This API presents in fact 2 APIs with some common definitions. One for
  * drivers and one for user applications. User applications cannot use the
  * driver specific parts enclosed in \#ifdef __KERNEL__ sections.
  *
- * Copyright (c) 2009 \em Sébastien \em Dugué
+ * Copyright (c) 2009 \em Sebastien \em Dugue
  *
  * \par License:
  *      This program is free software; you can redistribute  it and/or
