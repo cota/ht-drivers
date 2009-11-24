@@ -27,7 +27,7 @@ struct dg_module_info {
 	char name[DDNMSZ];	/* its name */
 };
 
-static DECLARE_MUTEX(mmutex);
+static DEFINE_MUTEX(mmutex);
 
 /* external crap */
 extern cdcmStatics_t cdcmStatT; /* CDCM statics table */
