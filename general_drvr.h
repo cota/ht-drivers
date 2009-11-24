@@ -13,25 +13,6 @@
  */
 #ifndef _GENERAL_DRVR_HEADER_H_INCLUDE_
 #define _GENERAL_DRVR_HEADER_H_INCLUDE_
-#if defined (__linux__) && defined(__KERNEL__)
-/* for kernel only! */
-
-#include <linux/vmalloc.h>
-#include <linux/pci.h>	/* for pci interface */
-#include <data_tables.h> /* for 'bar_rdwr_t' && 'bar_map_t' */
-
-/*! @name PCI BAR offsets
- */
-//@{
-//!< they are in linux/pci_regs.h:83
-//@}
-
-//!< Get bar number [0 - 5] from the BAR offset
-#define PCI_BAR(_bar) ((_bar - PCI_BASE_ADDRESS_0) >> 2)
-
-//!< BAR bitmask (bits [5 4 3 2 1 0])
-#define PCI_BAR_BIT(_bar) (1<<PCI_BAR(_bar))
-
 
 /*! @name Handy size operators
  *
@@ -59,12 +40,30 @@
 #endif
 //@}
 
-#define MEM_BOUND 128*KB //!< what to use kmalloc or vmalloc
-
 #ifndef memzero
 #define memzero(_buf, _len) memset(_buf, 0, _len)
 #endif
 
+#if defined (__linux__) && defined(__KERNEL__)
+/* for Linux kernel only */
+
+#include <linux/vmalloc.h>
+#include <linux/pci.h>	/* for pci interface */
+#include <data_tables.h> /* for 'bar_rdwr_t' && 'bar_map_t' */
+
+/*! @name PCI BAR offsets
+ */
+//@{
+//!< they are in linux/pci_regs.h:83
+//@}
+
+//!< Get bar number [0 - 5] from the BAR offset
+#define PCI_BAR(_bar) ((_bar - PCI_BASE_ADDRESS_0) >> 2)
+
+//!< BAR bitmask (bits [5 4 3 2 1 0])
+#define PCI_BAR_BIT(_bar) (1<<PCI_BAR(_bar))
+
+#define MEM_BOUND 128*KB //!< what to use kmalloc or vmalloc
 
 /*! @name drvr_utils.c functions
  */
