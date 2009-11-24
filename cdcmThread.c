@@ -211,7 +211,8 @@ void stremove(int stid)
 	ulong iflags;
 
 	rcu_read_lock();
-	stpd = find_task_by_pid_ns(stid, &init_pid_ns);
+	/* normally should use find_task_by_pid_ns() -- but it's not exported */
+	stpd = pid_task(find_pid_ns(stid, &init_pid_ns), PIDTYPE_PID);
 	rcu_read_unlock();
 
 	if (!stpd) { /* bugaga! */
