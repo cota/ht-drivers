@@ -130,7 +130,8 @@ struct icv196T_ModuleParam{
                         };
 
 struct icv196T_ConfigInfo {
-                        int ModuleFlag[icv_ModuleNb];
+                        int ModuleFlag[icv_ModuleNb]; /* 0 -- module not declared
+							 1 -- module declared */
 			struct icv196T_ModuleParam ModuleInfo[icv_ModuleNb];
 		        struct icv196T_ModuleParam trailer;
 		      };
