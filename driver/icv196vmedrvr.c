@@ -21,11 +21,17 @@
 #include <icv196vmeP.h>
 
 #define USER_VBASE 64
+
+#ifdef __lynx__
 #define PURGE_CPUPIPELINE asm("eieio") /* purge cpu pipe line */
 #define ISYNC_CPUPIPELINE asm("sync")  /* synchronise instruction  */
-#define IOINTSET(c, v,i,s) c = vme_intset ( v, i, s, 0)
-#define IOINTCLR(v)  vme_intclr(v, 0)
+#else /* __linux__ */
+#define PURGE_CPUPIPELINE
+#define ISYNC_CPUPIPELINE
+#endif
 
+#define IOINTSET(c, v, i, s) c = vme_intset(v, i, s, 0)
+#define IOINTCLR(v)  vme_intclr(v, 0)
 
 #define X_NO_enable_Module  1
 #define X_NO_disable_Module 1
@@ -36,7 +42,6 @@
 #else
 #define DBG(a)
 #endif
-
 
 #ifndef NODBX
 #define DBX(a) cprintf a
@@ -314,9 +319,10 @@ struct icv196T_s {
     ++++++++++
     to come out of waiting event
 */
-static void UserWakeup(struct T_UserHdl *UHdl)
+static int UserWakeup(void *data)
 {
-  int ps;
+	ulong ps;
+	struct T_UserHdl *UHdl = (struct T_UserHdl*)data;
 
   ssignal (&UHdl -> Ring.Evtsem);
   disable(ps);
@@ -325,6 +331,7 @@ static void UserWakeup(struct T_UserHdl *UHdl)
   }
   UHdl -> timid = (-1);
   restore(ps);
+  return 0;
 }
 
 /*	       Management of logical/physical Line mapping
@@ -442,7 +449,7 @@ static struct icvT_RingAtom *PushTo_Ring(struct T_RingBuffer *Ring,
 */
 static unsigned long PullFrom_Ring(struct T_RingBuffer *Ring)
 {
-  int   ps;
+	ulong ps;
   register struct icvT_RingAtom *Atom;
   register struct T_Subscriber *Subs;
   short  I, ix;
@@ -595,7 +602,8 @@ static struct T_Subscriber *LineBooking(struct T_UserHdl *UHdl,
 					struct T_LogLineHdl *LHdl,
 					int mode)
 {
-  int ps, i, ns;
+	ulong ps;
+  int i, ns;
   struct T_Subscriber *Subs, *val ;
   struct T_LineCtxt   *LCtxt;
 
@@ -644,7 +652,8 @@ static struct T_Subscriber *LineBooking(struct T_UserHdl *UHdl,
 static struct T_Subscriber *LineUnBooking(struct T_UserHdl *UHdl,
 					  struct T_LogLineHdl *LHdl)
 {
-  int ps, i, ns;
+	ulong ps;
+  int i, ns;
   struct T_Subscriber *Subs;
   struct T_Subscriber *val;
   register struct T_RingBuffer *UHdlRing;
@@ -681,7 +690,8 @@ static struct T_Subscriber *LineUnBooking(struct T_UserHdl *UHdl,
 static struct T_Subscriber *CheckBooking(struct T_UserHdl *UHdl,
 					 struct T_LogLineHdl *LHdl)
 {
-  int ps, i, ns;
+	ulong ps;
+  int i, ns;
   struct T_Subscriber *Subs;
   struct T_Subscriber *val;
   register struct T_RingBuffer *UHdlRing;
@@ -711,7 +721,8 @@ static struct T_Subscriber *CheckBooking(struct T_UserHdl *UHdl,
 */
 static void enable_Line(struct T_LineCtxt *LCtxt)
 {
-  int ps, locdev;
+	ulong ps;
+  int locdev;
   unsigned char status, dummy, *CtrStat;
   unsigned short mask;
 
@@ -880,7 +891,8 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 */
 static void disable_Line(struct T_LineCtxt *LCtxt)
 {
-  int ps, locdev;
+	ulong ps;
+  int locdev;
   unsigned char status, dummy, *CtrStat;
   unsigned short mask;
 
@@ -1048,8 +1060,8 @@ static void disable_Line(struct T_LineCtxt *LCtxt)
 */
 static void ClrSynchro(struct T_UserHdl *UHdl)
 {
-  int ps;
-  int i,j;
+	ulong ps;
+  int i, j;
   struct icv196T_s   *s;
   struct T_LineCtxt   *LCtxt;
   register struct T_LogLineHdl  *LHdl;
@@ -1057,7 +1069,7 @@ static void ClrSynchro(struct T_UserHdl *UHdl)
   register struct T_Subscriber *Subs;
   unsigned char w;
   char *cptr;
-	/*  */
+
   s =  UHdl -> s;
   UHdlRing = &(UHdl -> Ring);
   if ( UHdl -> timid >= 0)
@@ -1229,7 +1241,8 @@ static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
 int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 {
   unsigned char v, l, dummy, *CtrStat;
-  int m, ps;
+  int m;
+  ulong ps;
 
   m =         MCtxt -> Module;
   v =       MCtxt -> Vect[0];
@@ -1438,7 +1451,7 @@ int icvModule_Startup(struct T_ModuleCtxt *MCtxt)
 */
 static void disable_Module(struct T_ModuleCtxt *MCtxt)
 {
-  int ps;
+	ulong ps;
   unsigned int w1;
   unsigned char msk, status, *CtrStat;
 
@@ -1468,7 +1481,7 @@ static void disable_Module(struct T_ModuleCtxt *MCtxt)
 */
 static void enable_Module(struct T_ModuleCtxt *MCtxt)
 {
-  int ps;
+  long ps;
   unsigned char msk, status, *CtrStat;
 
   CtrStat = MCtxt -> VME_StatusCtrl;
@@ -1728,12 +1741,11 @@ int icv196uninstall(struct icv196T_s *s)
  This routine is called to open a service access point for the user
 
 */
-int icv196open(struct icv196T_s *s, int dev, struct file *f)
+int icv196open(struct icv196T_s *s, int dev, struct cdcm_file *f)
 {
   int   chan;
   short   DevType;
   register struct T_UserHdl *UHdl;
-  /*  */
 
 /*  DBG (("icvvme: Open on device= %lx \n", (long) dev)); */
   chan = minor (dev);
@@ -1755,7 +1767,7 @@ int icv196open(struct icv196T_s *s, int dev, struct file *f)
   else{
     if ((chan >= ICVVME_IcvChan01) && (chan <= ICVVME_MaxChan)) {
       /* DBG (("icvvme:Open:Handle for synchro with ICV lines \n"));*/
-      if (f -> access_mode & FWRITE) {
+      if (f->access_mode & FWRITE) {
 	pseterr (EACCES);
 	return (SYSERR);
       }
@@ -1790,7 +1802,7 @@ int icv196open(struct icv196T_s *s, int dev, struct file *f)
 /*
  This routine is called to close the devices access point
 */
-int icv196close(struct icv196T_s *s, struct file *f)
+int icv196close(struct icv196T_s *s, struct cdcm_file *f)
 {
   int   chan;
   short   DevType;
@@ -1829,7 +1841,7 @@ int icv196close(struct icv196T_s *s, struct file *f)
 }
 
 
-int icv196read(struct icv196T_s *s, struct file *f, char *buff, int bcount)
+int icv196read(struct icv196T_s *s, struct cdcm_file *f, char *buff, int bcount)
 {
 	int   count, Chan;
   struct T_UserHdl  *UHdl;
@@ -1838,7 +1850,7 @@ int icv196read(struct icv196T_s *s, struct file *f, char *buff, int bcount)
   int   i,m;
   long  Evt;
   int bn;
-  int ps;
+  ulong ps;
   int Line;
 
   /* Check parameters and Set up channel environnement */
@@ -1892,7 +1904,7 @@ int icv196read(struct icv196T_s *s, struct file *f, char *buff, int bcount)
 	/* Contro waiting by t.o. */
 	  UHdl -> timid = 0;
 
-	  UHdl -> timid = timeout((int (*)())UserWakeup, (char *)UHdl, (int)UHdl -> WaitingTO);
+	  UHdl -> timid = timeout(UserWakeup, (char *)UHdl, (int)UHdl -> WaitingTO);
 	  swait (&UHdl -> Ring.Evtsem, -1);	/* Wait Lam or Time Out */
 
 	  disable(ps);
@@ -1938,7 +1950,7 @@ int icv196read(struct icv196T_s *s, struct file *f, char *buff, int bcount)
 
 */
 
-int icv196write(struct icv196T_s *s, struct file *f, char *buff,int bcount)
+int icv196write(struct icv196T_s *s, struct cdcm_file *f, char *buff,int bcount)
 {
 /*   DBG (("icvdrvr: write: no such facility available \n"));*/
   return (bcount = s -> usercounter);
@@ -1957,7 +1969,7 @@ int icv196write(struct icv196T_s *s, struct file *f, char *buff,int bcount)
  This routine is called to perform ioctl function
 
 */
-int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
+int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 {
   int   err;
   struct icv196T_ModuleInfo *Infop;
@@ -1989,7 +2001,7 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
 
   err = 0;
   UHdl = NULL;
-  DBG_IOCTL(("icv196:ioctl: function code = %lx \n", fct));
+  DBG_IOCTL(("icv196:ioctl: function code = %x \n", fct));
 
 
   if ( (rbounds((int)arg) == EFAULT) || (wbounds((int)arg) == EFAULT)) {
@@ -2761,10 +2773,10 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
 }
 
 
-int icv196select(struct icv196T_s *s, struct file *f, int which, struct sel *se)
+int icv196select(struct icv196T_s *s, struct cdcm_file *f, int which, struct sel *se)
 {
   int   Chan;
-  register struct T_UserHdl *UHdl;
+  register struct T_UserHdl *UHdl = NULL;
 
   Chan = minordev (f -> dev);
   if (Chan == 0) {			/* no select on channel 0 */
@@ -2812,7 +2824,7 @@ static int icv196vmeisr(void *arg)
     struct icvT_RingAtom *RingAtom;
     int i,j, ns, cs;
     short count;
-    unsigned short Sw1;
+    unsigned short Sw1 = 0;
     unsigned char     *CtrStat;
     unsigned char   mdev, mask, status;
     static unsigned short input[16];
@@ -2825,12 +2837,12 @@ static int icv196vmeisr(void *arg)
 
     if ((m <0) || ( m > icv_ModuleNb)){
 /*	DBG(("icv:isr: Module context pointer mismatch  \n"));*/
-	return;
+	return SYSERR;
     }
 
     if ( !(s -> ModuleCtxtDir[m]) ){
 /*	DBG (( "icv196:isr: Interrupt from a non declared module \n"));*/
-	return;
+	return SYSERR;
     }
 
     if (MCtxt -> startflag == 0) {
@@ -2957,11 +2969,15 @@ static int icv196vmeisr(void *arg)
       PURGE_CPUPIPELINE;
 
     /*DBX (("icv:isr: end\n"));*/
+      return OK;
 }
 
-struct dldd  entry_points = {
+
+#if 0
+struct dldd entry_points = {
 	icv196open, icv196close,
-  icv196read, icv196write,
-  icv196select, icv196ioctl,
-  icv196install, icv196uninstall
+	icv196read, icv196write,
+	icv196select, icv196ioctl,
+	icv196install, icv196uninstall
 };
+#endif
