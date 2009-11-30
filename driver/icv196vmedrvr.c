@@ -385,17 +385,17 @@ static void Init_Ring(struct T_UserHdl *UHdl, struct T_RingBuffer *Ring,
 		      struct icvT_RingAtom *Buf, short mask)
 {
   short   i;
-  struct icvT_RingAtom *L_ptr;
+  struct icvT_RingAtom *ptr;
 
   Ring->UHdl = UHdl;
   Ring->Buffer = Buf;
   Ring->Evtsem =0;
   Ring->mask = mask;
   Ring->reader = Ring->writer = 0;
-  L_ptr = &Buf[mask];
-  for (i = mask; i >= 0; i--, L_ptr--) {
-    L_ptr -> Subscriber = NULL;
-    L_ptr -> Evt.All = 0;
+  ptr = &Buf[mask];
+  for (i = mask; i >= 0; i--, ptr--) {
+    ptr -> Subscriber = NULL;
+    ptr -> Evt.All = 0;
   }
 } /* Init_Ring */
 
@@ -408,32 +408,32 @@ static struct icvT_RingAtom *PushTo_Ring(struct T_RingBuffer *Ring,
 					 struct icvT_RingAtom *atom)
 {
   short  I;
-  struct icvT_RingAtom *L_Atom;
-  struct T_UserHdl *L_UHdl;
+  struct icvT_RingAtom *Atom;
+  struct T_UserHdl *UHdl;
 
   if (Ring -> Evtsem >= Evt_nb){	/* Ring buffer full */
     sreset( &(Ring -> Evtsem));	/* Clear semaphore, awake all process waiting on it */
     Ring -> reader = Ring -> writer = 0;
 			/* push an event to signal purge of buffer */
-    L_Atom = &(Ring -> Buffer[0]);
-    L_Atom -> Subscriber = NULL;
-    L_Atom -> Evt.All= 0;
-    L_Atom -> Evt.Word.w1 = (-1);
+    Atom = &(Ring -> Buffer[0]);
+    Atom -> Subscriber = NULL;
+    Atom -> Evt.All= 0;
+    Atom -> Evt.Word.w1 = (-1);
     Ring -> writer++;
     ssignal( &(Ring -> Evtsem));
-    L_UHdl = Ring -> UHdl;
-/*    DBG (("icv196:isr:purge Ring for Chanel=%d UHdl= $%lx\n", L_UHdl -> chanel, L_UHdl ));*/
+    UHdl = Ring -> UHdl;
+/*    DBG (("icv196:isr:purge Ring for Chanel=%d UHdl= $%lx\n", UHdl -> chanel, UHdl ));*/
   }
 		/* now push the event in the ring  */
   I = Ring -> writer;
-  L_Atom = &(Ring -> Buffer[I]); /* Atom to set up */
-  L_Atom -> Evt.All =     atom -> Evt.All;
-  L_Atom -> Subscriber =  atom -> Subscriber;
+  Atom = &(Ring -> Buffer[I]); /* Atom to set up */
+  Atom -> Evt.All =     atom -> Evt.All;
+  Atom -> Subscriber =  atom -> Subscriber;
   Ring -> writer = ((++I) & (Ring -> mask));
   ssignal(&(Ring -> Evtsem));		/* manage ring  */
-/*  DBG (("icvp:Push Evtsem %lx Writer = %lx Evt= %lx, Subs=$%lx \n",Ring -> Evtsem, Ring -> writer, L_Atom -> Evt.All, L_Atom -> Subscriber ));*/
+/*  DBG (("icvp:Push Evtsem %lx Writer = %lx Evt= %lx, Subs=$%lx \n",Ring -> Evtsem, Ring -> writer, Atom -> Evt.All, Atom -> Subscriber ));*/
 
-  return (L_Atom);
+  return (Atom);
 } /* PushTo_Ring  */
 
 /*  PullFrom_Ring:
@@ -443,37 +443,37 @@ static struct icvT_RingAtom *PushTo_Ring(struct T_RingBuffer *Ring,
 static unsigned long PullFrom_Ring(struct T_RingBuffer *Ring)
 {
   int   ps;
-  register struct icvT_RingAtom *L_Atom;
-  register struct T_Subscriber *L_Subs;
+  register struct icvT_RingAtom *Atom;
+  register struct T_Subscriber *Subs;
   short  I, ix;
-  union icvU_Evt L_Evt;
+  union icvU_Evt Evt;
   /*  */
   /*DBG(("icv:PullFrom: *Ring=$%lx Evtsem=%d \n", Ring, Ring -> Evtsem ));*/
   disable (ps);				/* Protect seq. from isr access */
     ix= I = Ring -> reader;
   if ((Ring -> Evtsem) != 0){	/* Ring non empty */
     swait( &(Ring -> Evtsem), (-1));	/* to manage sem counter */
-    L_Atom = &(Ring -> Buffer[I]); /* point current atom to pull from ring */
+    Atom = &(Ring -> Buffer[I]); /* point current atom to pull from ring */
 	/* extract the event to be read */
-    L_Subs =    L_Atom -> Subscriber;
-    L_Evt.All = L_Atom -> Evt.All;
+    Subs =    Atom -> Subscriber;
+    Evt.All = Atom -> Evt.All;
     Ring -> reader = ((++I) & (Ring -> mask));	/* manage ring buffer */
 		/* build the value to return according to mode */
-    if ((L_Subs != NULL)) {	/* Case cumulative mode */
-      /* DBG(("icv:PullFrom: Subs*=$%lx LHdl=%lx \n", L_Subs, L_Subs -> LHdl));*/
-      L_Evt.Word.w1 = L_Subs -> EvtCounter; /* counter from subscriber*/
+    if ((Subs != NULL)) {	/* Case cumulative mode */
+      /* DBG(("icv:PullFrom: Subs*=$%lx LHdl=%lx \n", Subs, Subs -> LHdl));*/
+      Evt.Word.w1 = Subs -> EvtCounter; /* counter from subscriber*/
 		/* Clear event flag in subscriber context */
-      L_Subs -> CumulEvt = NULL;        /*no more event in ring*/
-      L_Subs -> EvtCounter = (-1);	/*clear event present in the ring */
+      Subs -> CumulEvt = NULL;        /*no more event in ring*/
+      Subs -> EvtCounter = (-1);	/*clear event present in the ring */
     }
-/*    DBG (("icv196:PullRing: buff $%lx Reader= %d Evt= $%lx\n", Ring -> Buffer, ix, L_Evt.All));*/
+/*    DBG (("icv196:PullRing: buff $%lx Reader= %d Evt= $%lx\n", Ring -> Buffer, ix, Evt.All));*/
   }
   else {	/* ring empty  */
-    L_Evt.All = (-1);
+    Evt.All = (-1);
     /* DBG (("icv196:Empty ring: buff * %lx \n", Ring -> Buffer)); */
   }
   restore (ps);
-  return (L_Evt.All);
+  return (Evt.All);
 } /* PullFromRing */
 
 /*                        subroutines to initialise structures
@@ -487,7 +487,7 @@ static void Init_UserHdl(struct T_UserHdl *UHdl, int chanel,
 			 struct icv196T_s *s)
 {
   int i;
-  char *L_cptr;
+  char *cptr;
 
   UHdl -> s = s;
   UHdl -> chanel = chanel;
@@ -496,8 +496,8 @@ static void Init_UserHdl(struct T_UserHdl *UHdl, int chanel,
   UHdl -> sel_sem = NULL;		/* clear the semaphore for the select */
 	/* clear up  bit map of established connection */
 
-  for ( (i = 0, L_cptr = &(UHdl -> Cmap[0])); i < ICV_mapByteSz ; i++)
-    *L_cptr++ = 0;
+  for ( (i = 0, cptr = &(UHdl -> Cmap[0])); i < ICV_mapByteSz ; i++)
+    *cptr++ = 0;
 
   Init_Ring (UHdl, &(UHdl -> Ring), &(UHdl -> Atom[0]), Evt_msk);
 } /* Init_UserHdl */
@@ -509,12 +509,12 @@ static void Init_UserHdl(struct T_UserHdl *UHdl, int chanel,
 
 static void Init_SubscriberHdl(struct T_Subscriber *Subs, int mode)
 {
-  struct icvT_RingAtom *L_Evt;
+  struct icvT_RingAtom *Evt;
 
 			/* clean up  Event in Ring if element active  */
-  if ((L_Evt = Subs -> CumulEvt) != NULL){
-    L_Evt -> Evt.Word.w1 = Subs -> EvtCounter; /* unlink cumulative event */
-    L_Evt -> Subscriber = NULL;
+  if ((Evt = Subs -> CumulEvt) != NULL){
+    Evt -> Evt.Word.w1 = Subs -> EvtCounter; /* unlink cumulative event */
+    Evt -> Subscriber = NULL;
   }
   Subs -> CumulEvt = NULL;	/* no event in the ring */
   Subs -> Ring = NULL;	/* Clear the subscribing link */
@@ -532,7 +532,7 @@ static void Init_SubscriberHdl(struct T_Subscriber *Subs, int mode)
 */
 static void Init_LineSubscribers(struct T_LogLineHdl *LHdl)
 {
-  struct T_Subscriber *L_Subs;
+  struct T_Subscriber *Subs;
   int i, n, mode;
 
   if ( ((LHdl -> LineCtxt) -> Type) == icv_FpiLine)
@@ -540,15 +540,15 @@ static void Init_LineSubscribers(struct T_LogLineHdl *LHdl)
   else
     mode  = icv_queuleuleu ; /*default for fpi line a la queue leuleu */
 
-  L_Subs = &(LHdl -> Subscriber[0]);
-/*  CHK (("icv:LSubs: LSubs add =$%lx   \n",L_Subs ));*/
+  Subs = &(LHdl -> Subscriber[0]);
+/*  CHK (("icv:LSubs: LSubs add =$%lx   \n",Subs ));*/
 
   n = LHdl -> SubscriberMxNb;
-  for (i=0; i < n ; i++, L_Subs ++ ){
-    L_Subs -> LHdl = LHdl;
-    L_Subs -> CumulEvt = NULL;	/* to prevent active event processing */
+  for (i=0; i < n ; i++, Subs ++ ){
+    Subs -> LHdl = LHdl;
+    Subs -> CumulEvt = NULL;	/* to prevent active event processing */
 
-    Init_SubscriberHdl(L_Subs, mode);
+    Init_SubscriberHdl(Subs, mode);
   }
 }
 
@@ -560,28 +560,28 @@ static void Init_LineSubscribers(struct T_LogLineHdl *LHdl)
 static struct T_LogLineHdl *Init_LineHdl(int lli, struct T_LineCtxt *LCtxt)
 {
   struct icv196T_s *s;
-  struct T_LogLineHdl *L_LHdl;
-  union  icv196U_UserLine L_UserLine;
+  struct T_LogLineHdl *LHdl;
+  union  icv196U_UserLine UserLine;
 
   s = LCtxt -> s;
-  L_LHdl = s -> LineHdlDir[lli] = &(s -> LineHdl[lli]);
-  L_LHdl -> s = s;
-  L_LHdl -> LogIndex = lli;
-  L_LHdl -> LineCtxt = LCtxt;	/* Link Line handle and Line context */
-  GetUserLine(lli, (struct icv196T_UserLine *) &L_UserLine); /* Get the user line address pattern */
+  LHdl = s -> LineHdlDir[lli] = &(s -> LineHdl[lli]);
+  LHdl -> s = s;
+  LHdl -> LogIndex = lli;
+  LHdl -> LineCtxt = LCtxt;	/* Link Line handle and Line context */
+  GetUserLine(lli, (struct icv196T_UserLine *) &UserLine); /* Get the user line address pattern */
   /* build the event pattern for that line */
-  L_LHdl -> Event_Pattern.Word.w2 =  L_UserLine.All;
-  L_LHdl -> Event_Pattern.Word.w1 = 0;
+  LHdl -> Event_Pattern.Word.w2 =  UserLine.All;
+  LHdl -> Event_Pattern.Word.w1 = 0;
 
-/*  CHK (("icv:LHdl: s = $%lxLogIndex %d LHdl add= $%lx  \n",L_LHdl -> s, lli, L_LHdl ));*/
+/*  CHK (("icv:LHdl: s = $%lxLogIndex %d LHdl add= $%lx  \n",LHdl -> s, lli, LHdl ));*/
 
-  L_LHdl -> SubscriberCurNb =0;	        /* Current Subscriber nb set to 0  */
+  LHdl -> SubscriberCurNb =0;	        /* Current Subscriber nb set to 0  */
   if (LCtxt -> Type == icv_FpiLine)	/* Fpi line only one subscriber allowed */
-    L_LHdl -> SubscriberMxNb =1;
+    LHdl -> SubscriberMxNb =1;
   else				        /* Icv line multi user to wait  */
-    L_LHdl -> SubscriberMxNb = icv_SubscriberNb;
-  Init_LineSubscribers(L_LHdl);
-  return (L_LHdl);
+    LHdl -> SubscriberMxNb = icv_SubscriberNb;
+  Init_LineSubscribers(LHdl);
+  return (LHdl);
 }
 
 /*			subroutines to manage logical connection
@@ -596,45 +596,45 @@ static struct T_Subscriber *LineBooking(struct T_UserHdl *UHdl,
 					int mode)
 {
   int ps, i, ns;
-  struct T_Subscriber *L_Subs, *L_val ;
-  struct T_LineCtxt   *L_LCtxt;
+  struct T_Subscriber *Subs, *val ;
+  struct T_LineCtxt   *LCtxt;
 
-  L_val = NULL;
-  L_LCtxt = LHdl -> LineCtxt;
+  val = NULL;
+  LCtxt = LHdl -> LineCtxt;
   ns = LHdl -> SubscriberMxNb;
-  L_Subs = &(LHdl -> Subscriber[0]);
+  Subs = &(LHdl -> Subscriber[0]);
   disable(ps);
 
-  for (i=0; i < ns ; i++, L_Subs++){
+  for (i=0; i < ns ; i++, Subs++){
 
-    if ( L_Subs -> Ring != NULL )    /* subscriber occupied, scan on */
+    if ( Subs -> Ring != NULL )    /* subscriber occupied, scan on */
       continue;
 
     /* allocated this element */
     LHdl -> SubscriberCurNb ++;	/* update current subscriber number  */
-    L_val =   L_Subs;		/* found a place */
-    L_Subs -> Ring = &(UHdl -> Ring); /* link to Ring buffer */
-    L_Subs -> CumulEvt = NULL;
+    val =   Subs;		/* found a place */
+    Subs -> Ring = &(UHdl -> Ring); /* link to Ring buffer */
+    Subs -> CumulEvt = NULL;
 		/*  flag booking of the line in the User handle */
     SETBIT(UHdl -> Cmap,LHdl -> LogIndex);
-    L_Subs -> mode = icv_queuleuleu; /* default mode */
-    L_Subs -> EvtCounter = 0;	/* counter for connected line */
+    Subs -> mode = icv_queuleuleu; /* default mode */
+    Subs -> EvtCounter = 0;	/* counter for connected line */
 
     if (mode == 0){		/* no user requirement */
-      if (L_LCtxt -> Type == icv_FpiLine){
-	L_Subs -> mode = icv_cumulative; /*def. cumulative  for Pls Line */
-	L_Subs -> EvtCounter = (-1);
+      if (LCtxt -> Type == icv_FpiLine){
+	Subs -> mode = icv_cumulative; /*def. cumulative  for Pls Line */
+	Subs -> EvtCounter = (-1);
       }
     }
     else if (mode == icv_cumulative){
-      L_Subs -> mode = icv_cumulative;
-      L_Subs -> EvtCounter = (-1);
+      Subs -> mode = icv_cumulative;
+      Subs -> EvtCounter = (-1);
     }
     break;
    }/*end for  */
 
   restore(ps);
-  return(L_val);
+  return(val);
 } /* LineBooking  */
 
 /*  LineUnbooking:
@@ -645,31 +645,31 @@ static struct T_Subscriber *LineUnBooking(struct T_UserHdl *UHdl,
 					  struct T_LogLineHdl *LHdl)
 {
   int ps, i, ns;
-  struct T_Subscriber *L_Subs;
-  struct T_Subscriber *L_val;
-  register struct T_RingBuffer *L_UHdlRing;
+  struct T_Subscriber *Subs;
+  struct T_Subscriber *val;
+  register struct T_RingBuffer *UHdlRing;
 
-  L_val = NULL;
-  L_UHdlRing = &(UHdl -> Ring);
+  val = NULL;
+  UHdlRing = &(UHdl -> Ring);
   disable(ps);
   ns = LHdl -> SubscriberMxNb;
-  L_Subs = &(LHdl -> Subscriber[0]);
-  for (i = 0; i < ns ; i++, L_Subs++){
-    if (   (L_Subs -> Ring == NULL)
-	|| (L_Subs -> Ring != L_UHdlRing))
+  Subs = &(LHdl -> Subscriber[0]);
+  for (i = 0; i < ns ; i++, Subs++){
+    if (   (Subs -> Ring == NULL)
+	|| (Subs -> Ring != UHdlRing))
       continue;			/* ==> scan on */
 
     /* subscriber found: now get rid of connection */
     LHdl -> SubscriberCurNb --;	/* update current subscriber number  */
-    Init_SubscriberHdl(L_Subs, 0); /* init subscriber with default mode */
+    Init_SubscriberHdl(Subs, 0); /* init subscriber with default mode */
 
-    L_val = L_Subs;
+    val = Subs;
 		/*  clear flag of booking of the line in the User handle */
     CLRBIT(UHdl -> Cmap,LHdl -> LogIndex);
     break;
   }
   restore(ps);
-  return(L_val);
+  return(val);
 }
 
 #ifndef X_NO_CheckBooking
@@ -682,25 +682,25 @@ static struct T_Subscriber *CheckBooking(struct T_UserHdl *UHdl,
 					 struct T_LogLineHdl *LHdl)
 {
   int ps, i, ns;
-  struct T_Subscriber *L_Subs;
-  struct T_Subscriber *L_val;
-  register struct T_RingBuffer *L_UHdlRing;
+  struct T_Subscriber *Subs;
+  struct T_Subscriber *val;
+  register struct T_RingBuffer *UHdlRing;
 
-  L_val = NULL;
-  L_UHdlRing = &(UHdl -> Ring);
+  val = NULL;
+  UHdlRing = &(UHdl -> Ring);
   disable(ps);
   ns = LHdl -> SubscriberMxNb;
-  L_Subs = &(LHdl -> Subscriber[0]);
-  for (i = 0; i < ns ; i++, L_Subs++){
-    if (   (L_Subs -> Ring == NULL)
-	|| (L_Subs -> Ring != L_UHdlRing))
+  Subs = &(LHdl -> Subscriber[0]);
+  for (i = 0; i < ns ; i++, Subs++){
+    if (   (Subs -> Ring == NULL)
+	|| (Subs -> Ring != UHdlRing))
       continue;			/* ==> scan on */
 
-    L_val = L_Subs;
+    val = Subs;
     break;
   }
   restore(ps);
-  return(L_val);
+  return(val);
 } /* CheckBooking  */
 #endif
 
@@ -712,10 +712,10 @@ static struct T_Subscriber *CheckBooking(struct T_UserHdl *UHdl,
 static void enable_Line(struct T_LineCtxt *LCtxt)
 {
   int ps, locdev;
-  unsigned char status, dummy, *L_CtrStat;
+  unsigned char status, dummy, *CtrStat;
   unsigned short mask;
 
-  L_CtrStat = LCtxt->MCtxt->VME_StatusCtrl;
+  CtrStat = LCtxt->MCtxt->VME_StatusCtrl;
   locdev = LCtxt->Line;
   /*DBX (("enable line: locdev = %d\n", locdev));*/
 
@@ -729,69 +729,69 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 
     mask = 1 << (locdev - PortA_nln);
 
-    *L_CtrStat = CSt_Breg;
+    *CtrStat = CSt_Breg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = CoSt_ClIpIus;
+    *CtrStat = CoSt_ClIpIus;
       PURGE_CPUPIPELINE;
 
-    *L_CtrStat = PtrPo_Breg;
+    *CtrStat = PtrPo_Breg;
       PURGE_CPUPIPELINE;
-    status = *L_CtrStat;
+    status = *CtrStat;
       PURGE_CPUPIPELINE;
     status = status | mask;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = PtrPo_Breg;
+    *CtrStat = PtrPo_Breg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = status;
+    *CtrStat = status;
       PURGE_CPUPIPELINE;
 
-    *L_CtrStat = PtrTr_Breg;
+    *CtrStat = PtrTr_Breg;
       PURGE_CPUPIPELINE;
-    status = *L_CtrStat;
+    status = *CtrStat;
       PURGE_CPUPIPELINE;
     status = status | mask;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = PtrTr_Breg;
+    *CtrStat = PtrTr_Breg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = status;
+    *CtrStat = status;
       PURGE_CPUPIPELINE;
 
-    *L_CtrStat = PtrMsk_Breg;
+    *CtrStat = PtrMsk_Breg;
       PURGE_CPUPIPELINE;
-    status = *L_CtrStat;
+    status = *CtrStat;
       PURGE_CPUPIPELINE;
     status = status | mask;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = PtrMsk_Breg;
+    *CtrStat = PtrMsk_Breg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = status;
+    *CtrStat = status;
       PURGE_CPUPIPELINE;
 
     /* TEST  !! */
-    *L_CtrStat = PtrMsk_Breg;
+    *CtrStat = PtrMsk_Breg;
       PURGE_CPUPIPELINE;
-    dummy = *L_CtrStat;
+    dummy = *CtrStat;
       PURGE_CPUPIPELINE;
     /*DBX(("enable line: PtrMsk_Breg = 0x%x\n", dummy));*/
 
     /* TEST  !! */
-    *L_CtrStat = PtrPo_Breg;
+    *CtrStat = PtrPo_Breg;
       PURGE_CPUPIPELINE;
-    dummy = *L_CtrStat;
+    dummy = *CtrStat;
       PURGE_CPUPIPELINE;
     /*DBX(("enable line: PtrPo_Breg = 0x%x\n", dummy));*/
 
     /* TEST  !! */
-    *L_CtrStat = PtrTr_Breg;
+    *CtrStat = PtrTr_Breg;
       PURGE_CPUPIPELINE;
-    dummy = *L_CtrStat;
+    dummy = *CtrStat;
       PURGE_CPUPIPELINE;
     /*DBX(("enable line: PtrTr_Breg = 0x%x\n", dummy));*/
 
 
-    *L_CtrStat = CSt_Breg;
+    *CtrStat = CSt_Breg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = CoSt_ClIpIus;
+    *CtrStat = CoSt_ClIpIus;
       PURGE_CPUPIPELINE;
 
     restore(ps);
@@ -803,69 +803,69 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
     LCtxt->MCtxt->int_en_mask |= mask;      /* mask          */
     /*DBX (("enable line: int_en_mask = 0x%x\n", LCtxt->MCtxt->int_en_mask));*/
 
-    *L_CtrStat = CSt_Areg;
+    *CtrStat = CSt_Areg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = CoSt_ClIpIus;
+    *CtrStat = CoSt_ClIpIus;
       PURGE_CPUPIPELINE;
 
-    *L_CtrStat = PtrPo_Areg;
+    *CtrStat = PtrPo_Areg;
       PURGE_CPUPIPELINE;
-    status = *L_CtrStat;
+    status = *CtrStat;
       PURGE_CPUPIPELINE;
     status = status | mask;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = PtrPo_Areg;
+    *CtrStat = PtrPo_Areg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = status;
+    *CtrStat = status;
       PURGE_CPUPIPELINE;
 
-    *L_CtrStat = PtrTr_Areg;
+    *CtrStat = PtrTr_Areg;
       PURGE_CPUPIPELINE;
-    status = *L_CtrStat;
+    status = *CtrStat;
       PURGE_CPUPIPELINE;
     status = status | mask;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = PtrTr_Areg;
+    *CtrStat = PtrTr_Areg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = status;
+    *CtrStat = status;
       PURGE_CPUPIPELINE;
 
-    *L_CtrStat = PtrMsk_Areg;
+    *CtrStat = PtrMsk_Areg;
       PURGE_CPUPIPELINE;
-    status = *L_CtrStat;
+    status = *CtrStat;
       PURGE_CPUPIPELINE;
     status = status | mask;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = PtrMsk_Areg;
+    *CtrStat = PtrMsk_Areg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = status;
+    *CtrStat = status;
       PURGE_CPUPIPELINE;
 
     /* TEST  !! */
-    *L_CtrStat = PtrMsk_Areg;
+    *CtrStat = PtrMsk_Areg;
       PURGE_CPUPIPELINE;
-    dummy = *L_CtrStat;
+    dummy = *CtrStat;
       PURGE_CPUPIPELINE;
     /*DBX(("enable line: PtrMsk_Areg = 0x%x\n", dummy));*/
 
     /* TEST  !! */
-    *L_CtrStat = PtrPo_Areg;
+    *CtrStat = PtrPo_Areg;
       PURGE_CPUPIPELINE;
-    dummy = *L_CtrStat;
+    dummy = *CtrStat;
       PURGE_CPUPIPELINE;
     /*DBX(("enable line: PtrPo_Areg = 0x%x\n", dummy));*/
 
     /* TEST  !! */
-    *L_CtrStat = PtrTr_Areg;
+    *CtrStat = PtrTr_Areg;
       PURGE_CPUPIPELINE;
-    dummy = *L_CtrStat;
+    dummy = *CtrStat;
       PURGE_CPUPIPELINE;
     /*DBX(("enable line: PtrTr_Areg = 0x%x\n", dummy));*/
 
 
-    *L_CtrStat = CSt_Areg;
+    *CtrStat = CSt_Areg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = CoSt_ClIpIus;
+    *CtrStat = CoSt_ClIpIus;
       PURGE_CPUPIPELINE;
 
     restore(ps);
@@ -881,10 +881,10 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 static void disable_Line(struct T_LineCtxt *LCtxt)
 {
   int ps, locdev;
-  unsigned char status, dummy, *L_CtrStat;
+  unsigned char status, dummy, *CtrStat;
   unsigned short mask;
 
-  L_CtrStat = LCtxt->MCtxt->VME_StatusCtrl;
+  CtrStat = LCtxt->MCtxt->VME_StatusCtrl;
   locdev = LCtxt->Line;
   /*DBX (("disable line: locdev = %d\n", locdev));*/
   if (locdev >= PortA_nln) {             /*if locdev is on portB:  */
@@ -897,68 +897,68 @@ static void disable_Line(struct T_LineCtxt *LCtxt)
 
     mask = ~(1 << (locdev - PortA_nln));
 
-    *L_CtrStat = CSt_Breg;
+    *CtrStat = CSt_Breg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = CoSt_ClIpIus;
+    *CtrStat = CoSt_ClIpIus;
       PURGE_CPUPIPELINE;
 
-    *L_CtrStat = PtrPo_Breg;
+    *CtrStat = PtrPo_Breg;
       PURGE_CPUPIPELINE;
-    status = *L_CtrStat;
+    status = *CtrStat;
       PURGE_CPUPIPELINE;
     status = status & mask;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = PtrPo_Breg;
+    *CtrStat = PtrPo_Breg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = status;
+    *CtrStat = status;
       PURGE_CPUPIPELINE;
 
-    *L_CtrStat = PtrTr_Breg;
+    *CtrStat = PtrTr_Breg;
       PURGE_CPUPIPELINE;
-    status = *L_CtrStat;
+    status = *CtrStat;
       PURGE_CPUPIPELINE;
     status = status & mask;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = PtrTr_Breg;
+    *CtrStat = PtrTr_Breg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = status;
+    *CtrStat = status;
       PURGE_CPUPIPELINE;
 
-    *L_CtrStat = PtrMsk_Breg;
+    *CtrStat = PtrMsk_Breg;
       PURGE_CPUPIPELINE;
-    status = *L_CtrStat;
+    status = *CtrStat;
       PURGE_CPUPIPELINE;
     status = status & mask;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = PtrMsk_Breg;
+    *CtrStat = PtrMsk_Breg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = status;
+    *CtrStat = status;
       PURGE_CPUPIPELINE;
 
     /* TEST  !! */
-    *L_CtrStat = PtrMsk_Breg;
+    *CtrStat = PtrMsk_Breg;
       PURGE_CPUPIPELINE;
-    dummy = *L_CtrStat;
+    dummy = *CtrStat;
       PURGE_CPUPIPELINE;
     /*DBX(("disable line: PtrMsk_Breg = 0x%x\n", dummy));*/
 
     /* TEST  !! */
-    *L_CtrStat = PtrPo_Breg;
+    *CtrStat = PtrPo_Breg;
       PURGE_CPUPIPELINE;
-    dummy = *L_CtrStat;
+    dummy = *CtrStat;
       PURGE_CPUPIPELINE;
     /*DBX(("disable line: PtrPo_Breg = 0x%x\n", dummy));*/
 
     /* TEST  !! */
-    *L_CtrStat = PtrTr_Breg;
+    *CtrStat = PtrTr_Breg;
       PURGE_CPUPIPELINE;
-    dummy = *L_CtrStat;
+    dummy = *CtrStat;
       PURGE_CPUPIPELINE;
     /*DBX(("disable line: PtrTr_Breg = 0x%x\n", dummy));*/
 
-    *L_CtrStat = CSt_Breg;
+    *CtrStat = CSt_Breg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = CoSt_ClIpIus;
+    *CtrStat = CoSt_ClIpIus;
       PURGE_CPUPIPELINE;
 
     restore(ps);
@@ -972,68 +972,68 @@ static void disable_Line(struct T_LineCtxt *LCtxt)
     LCtxt->MCtxt->int_en_mask &= mask;      /* mask          */
     /*DBX (("disable line: int_en_mask = 0x%x\n", LCtxt->MCtxt->int_en_mask))*/;
 
-    *L_CtrStat = CSt_Areg;
+    *CtrStat = CSt_Areg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = CoSt_ClIpIus;
+    *CtrStat = CoSt_ClIpIus;
       PURGE_CPUPIPELINE;
 
-    *L_CtrStat = PtrPo_Areg;
+    *CtrStat = PtrPo_Areg;
       PURGE_CPUPIPELINE;
-    status = *L_CtrStat;
+    status = *CtrStat;
       PURGE_CPUPIPELINE;
     status = status & mask;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = PtrPo_Areg;
+    *CtrStat = PtrPo_Areg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = status;
+    *CtrStat = status;
       PURGE_CPUPIPELINE;
 
-    *L_CtrStat = PtrTr_Areg;
+    *CtrStat = PtrTr_Areg;
       PURGE_CPUPIPELINE;
-    status = *L_CtrStat;
+    status = *CtrStat;
       PURGE_CPUPIPELINE;
     status = status & mask;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = PtrTr_Areg;
+    *CtrStat = PtrTr_Areg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = status;
+    *CtrStat = status;
       PURGE_CPUPIPELINE;
 
-    *L_CtrStat = PtrMsk_Areg;
+    *CtrStat = PtrMsk_Areg;
       PURGE_CPUPIPELINE;
-    status = *L_CtrStat;
+    status = *CtrStat;
       PURGE_CPUPIPELINE;
     status = status & mask;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = PtrMsk_Areg;
+    *CtrStat = PtrMsk_Areg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = status;
+    *CtrStat = status;
       PURGE_CPUPIPELINE;
 
     /* TEST  !! */
-    *L_CtrStat = PtrMsk_Areg;
+    *CtrStat = PtrMsk_Areg;
       PURGE_CPUPIPELINE;
-    dummy = *L_CtrStat;
+    dummy = *CtrStat;
       PURGE_CPUPIPELINE;
     /*DBX(("disable line: PtrMsk_Areg = 0x%x\n", dummy));*/
 
     /* TEST  !! */
-    *L_CtrStat = PtrPo_Areg;
+    *CtrStat = PtrPo_Areg;
       PURGE_CPUPIPELINE;
-    dummy = *L_CtrStat;
+    dummy = *CtrStat;
       PURGE_CPUPIPELINE;
     /*DBX(("disable line: PtrPo_Areg = 0x%x\n", dummy));*/
 
     /* TEST  !! */
-    *L_CtrStat = PtrTr_Areg;
+    *CtrStat = PtrTr_Areg;
       PURGE_CPUPIPELINE;
-    dummy = *L_CtrStat;
+    dummy = *CtrStat;
       PURGE_CPUPIPELINE;
     /*DBX(("disable line: PtrTr_Areg = 0x%x\n", dummy));*/
 
-    *L_CtrStat = CSt_Areg;
+    *CtrStat = CSt_Areg;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = CoSt_ClIpIus;
+    *CtrStat = CoSt_ClIpIus;
       PURGE_CPUPIPELINE;
 
     restore(ps);
@@ -1051,36 +1051,36 @@ static void ClrSynchro(struct T_UserHdl *UHdl)
   int ps;
   int i,j;
   struct icv196T_s   *s;
-  struct T_LineCtxt   *L_LCtxt;
-  register struct T_LogLineHdl  *L_LHdl;
-  register struct T_RingBuffer *L_UHdlRing;
-  register struct T_Subscriber *L_Subs;
+  struct T_LineCtxt   *LCtxt;
+  register struct T_LogLineHdl  *LHdl;
+  register struct T_RingBuffer *UHdlRing;
+  register struct T_Subscriber *Subs;
   unsigned char w;
-  char *L_cptr;
+  char *cptr;
 	/*  */
   s =  UHdl -> s;
-  L_UHdlRing = &(UHdl -> Ring);
+  UHdlRing = &(UHdl -> Ring);
   if ( UHdl -> timid >= 0)
     cancel_timeout(UHdl -> timid);
 
-  for ( (i = 0, L_cptr = &(UHdl -> Cmap[0]) ); i < ICV_mapByteSz; i++, L_cptr++ ){ /* scan map byte array  */
-    if ((w = (*L_cptr) & 255) != 0){
-      *L_cptr = 0;	/* Clear bits */
+  for ( (i = 0, cptr = &(UHdl -> Cmap[0]) ); i < ICV_mapByteSz; i++, cptr++ ){ /* scan map byte array  */
+    if ((w = (*cptr) & 255) != 0){
+      *cptr = 0;	/* Clear bits */
       for (j=7; j >=0; j--, w <<= 1 ){ /* scan each bit of the current byte */
 	if (w == 0)
 	  break;
 	if ( ((char) w) < 0 ){	/* line connected */
-	  if ( (L_LHdl  = s -> LineHdlDir[(i*8 + j)]) == NULL){
+	  if ( (LHdl  = s -> LineHdlDir[(i*8 + j)]) == NULL){
 /*	    DBG(("icv196:Clrsynchro: log line not in directory \n"));*/
 	    continue;
 	  }
-	  if ( (L_Subs = LineUnBooking(UHdl, L_LHdl)) == NULL ){
+	  if ( (Subs = LineUnBooking(UHdl, LHdl)) == NULL ){
 /*	    DBG(("icv196:Clrsynchro: inconsistency at unbooking \n"));*/
 	  }
-	  L_LCtxt = L_LHdl -> LineCtxt;
+	  LCtxt = LHdl -> LineCtxt;
 	  disable(ps);
-	  if (L_LHdl -> SubscriberCurNb == 0 )
-	      disable_Line(L_LCtxt);
+	  if (LHdl -> SubscriberCurNb == 0 )
+	      disable_Line(LCtxt);
 
 	  restore(ps);
 	}/* if line connected*/
@@ -1089,8 +1089,8 @@ static void ClrSynchro(struct T_UserHdl *UHdl)
   } /* end for/ Cmap byte scanning  */
   sreset(&(UHdl -> Ring.Evtsem)); /* clear semaphore */
 
-  for ( (i = 0, L_cptr = &(UHdl -> Cmap[0]) ) ; i < ICV_mapByteSz; i++)
-    *L_cptr++ = 0;
+  for ( (i = 0, cptr = &(UHdl -> Cmap[0]) ) ; i < ICV_mapByteSz; i++)
+    *cptr++ = 0;
 
 }
 
@@ -1105,25 +1105,25 @@ static void ClrSynchro(struct T_UserHdl *UHdl)
 */
 static void Init_LineCtxt(int line, int type, struct T_ModuleCtxt *MCtxt)
 {
-  struct T_LineCtxt *L_LCtxt;
+  struct T_LineCtxt *LCtxt;
   int LogIndex,m;
 
-  L_LCtxt = &(MCtxt -> LineCtxt[line]);
+  LCtxt = &(MCtxt -> LineCtxt[line]);
   m = MCtxt -> Module;
   LogIndex =  CnvrtModuleLine(m,line);
-  L_LCtxt -> s = MCtxt -> s;
-  L_LCtxt -> MCtxt = MCtxt;
-  L_LCtxt -> Line = line;
-  L_LCtxt -> Type = type;
-  L_LCtxt -> intmod = icv_ReenableOn;
-  L_LCtxt -> status = icv_Disabled;
-  L_LCtxt -> loc_count = -1;
+  LCtxt -> s = MCtxt -> s;
+  LCtxt -> MCtxt = MCtxt;
+  LCtxt -> Line = line;
+  LCtxt -> Type = type;
+  LCtxt -> intmod = icv_ReenableOn;
+  LCtxt -> status = icv_Disabled;
+  LCtxt -> loc_count = -1;
 
-/*  CHK (("icv:LCtxt:s= $%lx Module %d Line %d Line ctxt add = $%lx, LogIndex %d\n",L_LCtxt -> s ,m, line, L_LCtxt, LogIndex ));*/
+/*  CHK (("icv:LCtxt:s= $%lx Module %d Line %d Line ctxt add = $%lx, LogIndex %d\n",LCtxt -> s ,m, line, LCtxt, LogIndex ));*/
 
 		/* Link physical line to logical line and vise versa */
 
-  L_LCtxt -> LHdl  = Init_LineHdl(LogIndex, L_LCtxt);
+  LCtxt -> LHdl  = Init_LineHdl(LogIndex, LCtxt);
 
 		/* Set up device dependent info */
 
@@ -1142,24 +1142,24 @@ static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
 {
   int   i;
   short n;
-  unsigned long L_base, L_offset, L_sysBase, L_moduleSysBase;
-  struct T_ModuleCtxt *L_MCtxt;
-  int L_type;
-  int L_am;
+  unsigned long base, offset, sysBase, moduleSysBase;
+  struct T_ModuleCtxt *MCtxt;
+  int type;
+  int am;
   struct pdparam_master param; /* CES: structure containing VME access parameters */
 
 			/* declare module in the Module directory */
-  L_MCtxt = &(s -> ModuleCtxt[module]);
+  MCtxt = &(s -> ModuleCtxt[module]);
 
 			/* init context table */
-  L_MCtxt -> s = s;
-  L_MCtxt -> length = sizeof(struct T_ModuleCtxt);
-  L_MCtxt -> sem_module = 1;	/* semaphore for exclusive access */
-  L_MCtxt -> Module = module;
-  L_MCtxt -> dflag = 0;
-  L_MCtxt -> LineMxNb = LinePerModule;
+  MCtxt -> s = s;
+  MCtxt -> length = sizeof(struct T_ModuleCtxt);
+  MCtxt -> sem_module = 1;	/* semaphore for exclusive access */
+  MCtxt -> Module = module;
+  MCtxt -> dflag = 0;
+  MCtxt -> LineMxNb = LinePerModule;
 
-/*  CHK (("icv:MCtxt: s= $%lx Module %d ctxt add = $%lx\n", L_MCtxt ->s, module, L_MCtxt ));*/
+/*  CHK (("icv:MCtxt: s= $%lx Module %d ctxt add = $%lx\n", MCtxt ->s, module, MCtxt ));*/
 
 		/*  set up device dependent info */
 
@@ -1171,13 +1171,13 @@ static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
    through a window created by smem_create.
 */
 
-  L_base = vmeinfo -> base;
+  base = vmeinfo -> base;
 
-  L_MCtxt -> VME_offset =  L_base;
-  L_MCtxt -> VME_size =     vmeinfo -> size;
+  MCtxt -> VME_offset =  base;
+  MCtxt -> VME_size =     vmeinfo -> size;
 
-  L_offset = L_base & (unsigned long)0x00ffffffL;
-  L_am = AM_A24_UDA;
+  offset = base & (unsigned long)0x00ffffffL;
+  am = AM_A24_UDA;
 
 		/* Compute address in system space */
   bzero((char *)&param, sizeof(struct pdparam_master));
@@ -1187,35 +1187,35 @@ static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
   param.wrpost = 0;	/* no VME write posting option */
   param.swap   = 1;	/* VME auto swap option */
   param.dum[0]   = 0;	/* window is sharable */
-  L_sysBase = (unsigned long)find_controller( 0x0, 0x10000, L_am, 0, 0, &param);
-  if (L_sysBase == (unsigned long)(-1)){
+  sysBase = (unsigned long)find_controller( 0x0, 0x10000, am, 0, 0, &param);
+  if (sysBase == (unsigned long)(-1)){
     CPRNT(("icv196vme_drvr:find_controller:cannot map device address space, INSTALLATION IMPOSSIBLE\n"));
     return ((struct T_ModuleCtxt *) (-1));
   }
 
-  L_moduleSysBase = L_sysBase + L_offset;
+  moduleSysBase = sysBase + offset;
   DBG_INSTAL(("icv196vme:install: am 0x%x Standard,  0x%lx base + 0x%lx"
-	      "offset => 0x%lx module sys base\n",  L_am, L_sysBase, L_offset, L_moduleSysBase));
+	      "offset => 0x%lx module sys base\n",  am, sysBase, offset, moduleSysBase));
 /*
                      Set up permanent pointers to access the module
 		     from system mapping to be used from the driver
 */
-  L_MCtxt -> SYSVME_Add = (short *) (L_moduleSysBase);
+  MCtxt -> SYSVME_Add = (short *) (moduleSysBase);
 
-  L_MCtxt -> VME_StatusCtrl =   (unsigned char *)(L_moduleSysBase + CoReg_Z8536);
-  L_MCtxt -> VME_IntLvl =       (unsigned char *)(L_moduleSysBase + CSNIT_ICV);
-  L_MCtxt -> VME_CsDir =        (short *)(L_moduleSysBase + CSDIR_ICV);
+  MCtxt -> VME_StatusCtrl =   (unsigned char *)(moduleSysBase + CoReg_Z8536);
+  MCtxt -> VME_IntLvl =       (unsigned char *)(moduleSysBase + CSNIT_ICV);
+  MCtxt -> VME_CsDir =        (short *)(moduleSysBase + CSDIR_ICV);
 
 		/* Initialise the associated line contexts */
-  L_type = 0; /* to select default line type  */
-  n = L_MCtxt -> LineMxNb;
+  type = 0; /* to select default line type  */
+  n = MCtxt -> LineMxNb;
   for (i = 0 ; i < n; i++) {
-    L_MCtxt -> Vect[i] = vmeinfo -> vector[0];
-    L_MCtxt -> Lvl[i]  = vmeinfo -> level[0];
-    Init_LineCtxt(i,L_type, L_MCtxt);
+    MCtxt -> Vect[i] = vmeinfo -> vector[0];
+    MCtxt -> Lvl[i]  = vmeinfo -> level[0];
+    Init_LineCtxt(i,type, MCtxt);
   }
-  L_MCtxt -> isr[0] = ModuleIsr[module];
-  return (L_MCtxt);
+  MCtxt -> isr[0] = ModuleIsr[module];
+  return (MCtxt);
 
 }
 
@@ -1228,19 +1228,19 @@ static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
 
 int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 {
-  unsigned char L_v, L_l, dummy, *L_CtrStat;
+  unsigned char v, l, dummy, *CtrStat;
   int m, ps;
 
   m =         MCtxt -> Module;
-  L_v =       MCtxt -> Vect[0];
-  L_l =       MCtxt -> Lvl[0];
-  L_CtrStat = MCtxt -> VME_StatusCtrl;
+  v =       MCtxt -> Vect[0];
+  l =       MCtxt -> Lvl[0];
+  CtrStat = MCtxt -> VME_StatusCtrl;
 
 
 		  /* To catch bus error if module does not answer */
   if (recoset()){    /* To prevent system crash in case of bus error*/
     cprintf  ("icv196 install: on Module %d VME offset$%lx,"
-	      " CTrStat address = $%x bus error occured !!!...\n", m, MCtxt -> VME_offset, (uint)L_CtrStat );
+	      " CTrStat address = $%x bus error occured !!!...\n", m, MCtxt -> VME_offset, (uint)CtrStat );
     cprintf("icv196:install: Module %d INSTALLATION IMPOSSIBLE\n", m);
     return (-1);
   }
@@ -1248,22 +1248,22 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 		/* reset hardware of icv196vme module */
   disable(ps);
 
-  dummy = *L_CtrStat;                   /* force the board to state 0     */
+  dummy = *CtrStat;                   /* force the board to state 0     */
   PURGE_CPUPIPELINE;
   ISYNC_CPUPIPELINE;
 
-  *L_CtrStat = MIC_reg;
+  *CtrStat = MIC_reg;
   PURGE_CPUPIPELINE;
-  dummy = *L_CtrStat;
+  dummy = *CtrStat;
   PURGE_CPUPIPELINE;
-  *L_CtrStat = MIC_reg;
+  *CtrStat = MIC_reg;
   PURGE_CPUPIPELINE;
-  *L_CtrStat = b_RESET;                 /* reset the board                */
+  *CtrStat = b_RESET;                 /* reset the board                */
   PURGE_CPUPIPELINE;
-  *L_CtrStat = 0;                    /*go to state 0 (normal operation)*/
+  *CtrStat = 0;                    /*go to state 0 (normal operation)*/
   PURGE_CPUPIPELINE;
 
-  *(MCtxt -> VME_IntLvl)  = ~(L_l);/* set interrupt level for this module */
+  *(MCtxt -> VME_IntLvl)  = ~(l);/* set interrupt level for this module */
   PURGE_CPUPIPELINE;
   *(MCtxt -> VME_CsDir)  =  0;     /* set all I/O ports to input          */
   PURGE_CPUPIPELINE;
@@ -1274,107 +1274,107 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 
 	/*  set up hardware for portA and portB on the icv module  */
 
-  *L_CtrStat = MCC_reg;
+  *CtrStat = MCC_reg;
   PURGE_CPUPIPELINE;
-  *L_CtrStat = (PortA_Enable | PortB_Enable);
+  *CtrStat = (PortA_Enable | PortB_Enable);
   PURGE_CPUPIPELINE;
   /*(portA and portB operate independently)*/
 
-  *L_CtrStat = MSpec_Areg;             /*portA: bitport */
+  *CtrStat = MSpec_Areg;             /*portA: bitport */
   PURGE_CPUPIPELINE;
-  *L_CtrStat = (PtrM_Or | Latch_On_Pat_Match);
-  PURGE_CPUPIPELINE;
-
-  *L_CtrStat = MSpec_Breg;             /*portB: bitport */
-  PURGE_CPUPIPELINE;
-  *L_CtrStat = (PtrM_Or | Latch_On_Pat_Match);
+  *CtrStat = (PtrM_Or | Latch_On_Pat_Match);
   PURGE_CPUPIPELINE;
 
-  *L_CtrStat = CSt_Areg;               /*portA: no interrupt on error */
+  *CtrStat = MSpec_Breg;             /*portB: bitport */
   PURGE_CPUPIPELINE;
-  *L_CtrStat = CoSt_SeIe;              /*interrupts enabled           */
-  PURGE_CPUPIPELINE;
-
-  *L_CtrStat = CSt_Breg;               /*portB: no interrupt on error */
-  PURGE_CPUPIPELINE;
-  *L_CtrStat = CoSt_SeIe;              /*interrupts enabled           */
+  *CtrStat = (PtrM_Or | Latch_On_Pat_Match);
   PURGE_CPUPIPELINE;
 
-  *L_CtrStat = DPPol_Areg;             /*portA: non inverting*/
+  *CtrStat = CSt_Areg;               /*portA: no interrupt on error */
   PURGE_CPUPIPELINE;
-  *L_CtrStat = Non_Invert;
-  PURGE_CPUPIPELINE;
-
-  *L_CtrStat = DPPol_Breg;             /*portB: non inverting*/
-  PURGE_CPUPIPELINE;
-  *L_CtrStat = Non_Invert;
+  *CtrStat = CoSt_SeIe;              /*interrupts enabled           */
   PURGE_CPUPIPELINE;
 
-  *L_CtrStat = DDir_Areg;              /*portA: input port*/
+  *CtrStat = CSt_Breg;               /*portB: no interrupt on error */
   PURGE_CPUPIPELINE;
-  *L_CtrStat = All_Input;
-  PURGE_CPUPIPELINE;
-
-  *L_CtrStat = DDir_Breg;              /*portB: input port*/
-  PURGE_CPUPIPELINE;
-  *L_CtrStat = All_Input;
+  *CtrStat = CoSt_SeIe;              /*interrupts enabled           */
   PURGE_CPUPIPELINE;
 
-  *L_CtrStat = SIO_Areg;               /*portA: normal input*/
+  *CtrStat = DPPol_Areg;             /*portA: non inverting*/
   PURGE_CPUPIPELINE;
-  *L_CtrStat = Norm_Inp;
-  PURGE_CPUPIPELINE;
-
-  *L_CtrStat = SIO_Breg;               /*portB: normal input*/
-  PURGE_CPUPIPELINE;
-  *L_CtrStat = Norm_Inp;
+  *CtrStat = Non_Invert;
   PURGE_CPUPIPELINE;
 
-  *L_CtrStat = PtrMsk_Areg;            /*portA: masked off*/
+  *CtrStat = DPPol_Breg;             /*portB: non inverting*/
   PURGE_CPUPIPELINE;
-  *L_CtrStat = All_Masked;
-  PURGE_CPUPIPELINE;
-
-  *L_CtrStat = PtrTr_Areg;
-  PURGE_CPUPIPELINE;
-  *L_CtrStat = 0;
+  *CtrStat = Non_Invert;
   PURGE_CPUPIPELINE;
 
-  *L_CtrStat = PtrPo_Areg;
+  *CtrStat = DDir_Areg;              /*portA: input port*/
   PURGE_CPUPIPELINE;
-  *L_CtrStat = 0;
-  PURGE_CPUPIPELINE;
-
-  *L_CtrStat = PtrMsk_Breg;            /*portB: masked off*/
-  PURGE_CPUPIPELINE;
-  *L_CtrStat = All_Masked;
+  *CtrStat = All_Input;
   PURGE_CPUPIPELINE;
 
-  *L_CtrStat = PtrTr_Breg;
+  *CtrStat = DDir_Breg;              /*portB: input port*/
   PURGE_CPUPIPELINE;
-  *L_CtrStat = 0;
+  *CtrStat = All_Input;
   PURGE_CPUPIPELINE;
 
-  *L_CtrStat = PtrPo_Breg;
+  *CtrStat = SIO_Areg;               /*portA: normal input*/
   PURGE_CPUPIPELINE;
-  *L_CtrStat = 0;
+  *CtrStat = Norm_Inp;
+  PURGE_CPUPIPELINE;
+
+  *CtrStat = SIO_Breg;               /*portB: normal input*/
+  PURGE_CPUPIPELINE;
+  *CtrStat = Norm_Inp;
+  PURGE_CPUPIPELINE;
+
+  *CtrStat = PtrMsk_Areg;            /*portA: masked off*/
+  PURGE_CPUPIPELINE;
+  *CtrStat = All_Masked;
+  PURGE_CPUPIPELINE;
+
+  *CtrStat = PtrTr_Areg;
+  PURGE_CPUPIPELINE;
+  *CtrStat = 0;
+  PURGE_CPUPIPELINE;
+
+  *CtrStat = PtrPo_Areg;
+  PURGE_CPUPIPELINE;
+  *CtrStat = 0;
+  PURGE_CPUPIPELINE;
+
+  *CtrStat = PtrMsk_Breg;            /*portB: masked off*/
+  PURGE_CPUPIPELINE;
+  *CtrStat = All_Masked;
+  PURGE_CPUPIPELINE;
+
+  *CtrStat = PtrTr_Breg;
+  PURGE_CPUPIPELINE;
+  *CtrStat = 0;
+  PURGE_CPUPIPELINE;
+
+  *CtrStat = PtrPo_Breg;
+  PURGE_CPUPIPELINE;
+  *CtrStat = 0;
   PURGE_CPUPIPELINE;
 
   /* write interrupt vectors for portA and portB */
 
-  *L_CtrStat = ItVct_Areg;
+  *CtrStat = ItVct_Areg;
   PURGE_CPUPIPELINE;
-  *L_CtrStat = L_v;
+  *CtrStat = v;
   PURGE_CPUPIPELINE;
-  *L_CtrStat = ItVct_Breg;
+  *CtrStat = ItVct_Breg;
   PURGE_CPUPIPELINE;
-  *L_CtrStat = L_v;
+  *CtrStat = v;
   PURGE_CPUPIPELINE;
 
 
-  *L_CtrStat = MIC_reg; /* no status in interrupt vector */
+  *CtrStat = MIC_reg; /* no status in interrupt vector */
   PURGE_CPUPIPELINE;
-  *L_CtrStat = b_MIE;          /*master interrupt enable */
+  *CtrStat = b_MIE;          /*master interrupt enable */
   PURGE_CPUPIPELINE;
 
   restore(ps);
@@ -1399,28 +1399,28 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 */
 int icvModule_Startup(struct T_ModuleCtxt *MCtxt)
 {
-    unsigned char        L_v;
+    unsigned char        v;
     struct icv196T_s     *s;
     int                  m,
 			 cc;
 
     s =         MCtxt -> s;
     m =         MCtxt -> Module;
-    L_v =       MCtxt -> Vect[0];
+    v =       MCtxt -> Vect[0];
 
 /*    CHK (("icv:Setup: s =$%lx, Module %d ctxt add = $%lx\n", s, m, MCtxt ));*/
 
     /* Now connect interrupt to system */
-/*    DBG (("icv:Setup: module %d vector %d level %d \n",m,L_v, L_l ));*/
+/*    DBG (("icv:Setup: module %d vector %d level %d \n",m,v, l ));*/
 
     /* Connect interrupt from module  */
-    IOINTSET(cc, L_v, (int (*)(void *))MCtxt->isr[0], (char *)MCtxt);
+    IOINTSET(cc, v, (int (*)(void *))MCtxt->isr[0], (char *)MCtxt);
     if (cc <0){
-	cprintf("icv196:install: iointset for  vector=%d error%d\n", L_v,cc);
+	cprintf("icv196:install: iointset for  vector=%d error%d\n", v,cc);
 	pseterr(EFAULT);
 	return (SYSERR);
     }
-    DBG_INSTAL(("icv196vme_drvr:install: iointset for module %d, vector %d\n", m, L_v));
+    DBG_INSTAL(("icv196vme_drvr:install: iointset for module %d, vector %d\n", m, v));
     cc = icvModule_Init_HW(MCtxt);
     if (cc == 0)
        return (0);
@@ -1439,22 +1439,22 @@ int icvModule_Startup(struct T_ModuleCtxt *MCtxt)
 static void disable_Module(struct T_ModuleCtxt *MCtxt)
 {
   int ps;
-  unsigned int L_w1;
-  unsigned char L_msk, status, *L_CtrStat;
+  unsigned int w1;
+  unsigned char msk, status, *CtrStat;
 
-  L_CtrStat = MCtxt -> VME_StatusCtrl;
-  L_w1 = ~(b_MIE);    /* mask excludes the MIE bit (Master Interrupt Enable) */
-  L_msk = (unsigned char) (L_w1 & 0xff);
+  CtrStat = MCtxt -> VME_StatusCtrl;
+  w1 = ~(b_MIE);    /* mask excludes the MIE bit (Master Interrupt Enable) */
+  msk = (unsigned char) (w1 & 0xff);
   disable(ps);
-  *L_CtrStat = MIC_reg;
+  *CtrStat = MIC_reg;
     PURGE_CPUPIPELINE;
-  status = *L_CtrStat;
+  status = *CtrStat;
     PURGE_CPUPIPELINE;
-  status = status & L_msk;
+  status = status & msk;
     PURGE_CPUPIPELINE;
-  *L_CtrStat = MIC_reg;
+  *CtrStat = MIC_reg;
     PURGE_CPUPIPELINE;
-  *L_CtrStat = status;
+  *CtrStat = status;
     PURGE_CPUPIPELINE;
   restore(ps);
 }
@@ -1469,20 +1469,20 @@ static void disable_Module(struct T_ModuleCtxt *MCtxt)
 static void enable_Module(struct T_ModuleCtxt *MCtxt)
 {
   int ps;
-  unsigned char L_msk, status, *L_CtrStat;
+  unsigned char msk, status, *CtrStat;
 
-  L_CtrStat = MCtxt -> VME_StatusCtrl;
-  L_msk = b_MIE;    /* mask includes the MIE bit (Master Interrupt Enable) */
+  CtrStat = MCtxt -> VME_StatusCtrl;
+  msk = b_MIE;    /* mask includes the MIE bit (Master Interrupt Enable) */
   disable(ps);
-  *L_CtrStat = MIC_reg;
+  *CtrStat = MIC_reg;
     PURGE_CPUPIPELINE;
-  status = *L_CtrStat;
+  status = *CtrStat;
     PURGE_CPUPIPELINE;
-  status = status | L_msk;
+  status = status | msk;
     PURGE_CPUPIPELINE;
-  *L_CtrStat = MIC_reg;
+  *CtrStat = MIC_reg;
     PURGE_CPUPIPELINE;
-  *L_CtrStat = status;
+  *CtrStat = status;
     PURGE_CPUPIPELINE;
   restore(ps);
 }
@@ -1497,58 +1497,58 @@ static void enable_Module(struct T_ModuleCtxt *MCtxt)
 int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 {
   struct icv196T_s     *s;
-  struct T_LineCtxt *L_LCtxt;
-  unsigned char L_v, L_l;
+  struct T_LineCtxt *LCtxt;
+  unsigned char v, l;
   int  i, m, lx, cc;
-  unsigned char L_bw1, *L_CtrStat;
+  unsigned char bw1, *CtrStat;
 
   s = MCtxt -> s;
-  L_LCtxt = &(MCtxt -> LineCtxt[line]);
+  LCtxt = &(MCtxt -> LineCtxt[line]);
 
   m = MCtxt -> Module;
-  L_v = MCtxt -> Vect[line];
+  v = MCtxt -> Vect[line];
 
-  L_l = MCtxt -> Lvl[line];
-  L_CtrStat = MCtxt -> VME_StatusCtrl;
+  l = MCtxt -> Lvl[line];
+  CtrStat = MCtxt -> VME_StatusCtrl;
 
-  *L_CtrStat = MIC_reg;             /* master interrupt disable, permits    */
+  *CtrStat = MIC_reg;             /* master interrupt disable, permits    */
     PURGE_CPUPIPELINE;
-  *L_CtrStat = 0;                   /* reading interrupt vector             */
-    PURGE_CPUPIPELINE;
-
-  *L_CtrStat = ItVct_Areg;
-    PURGE_CPUPIPELINE;
-  L_bw1 = (unsigned char)*L_CtrStat;/* read interrupt vector for this module*/
+  *CtrStat = 0;                   /* reading interrupt vector             */
     PURGE_CPUPIPELINE;
 
-  *L_CtrStat = MIC_reg;
+  *CtrStat = ItVct_Areg;
     PURGE_CPUPIPELINE;
-  *L_CtrStat = b_MIE;               /*master interrupt enable */
+  bw1 = (unsigned char)*CtrStat;/* read interrupt vector for this module*/
+    PURGE_CPUPIPELINE;
+
+  *CtrStat = MIC_reg;
+    PURGE_CPUPIPELINE;
+  *CtrStat = b_MIE;               /*master interrupt enable */
     PURGE_CPUPIPELINE;
 
 		/* Check if setting still well recorded  */
-  if (L_bw1 != L_v)
+  if (bw1 != v)
   {
     /* The module lost its initialisation: redo it */
 
-/*  DBG (("icv: Reinit Module %d line %d !!! corrupted vect= %d instead of %d\n", m, line, L_bw1, L_v )); */
+/*  DBG (("icv: Reinit Module %d line %d !!! corrupted vect= %d instead of %d\n", m, line, bw1, v )); */
 
     lx = MCtxt -> LineMxNb;
     for (i=0; i < lx ; i++){
-      L_LCtxt = &(MCtxt -> LineCtxt[i]);
-      L_LCtxt -> Reset = 1;	/* To manage reenable of line at connect */
+      LCtxt = &(MCtxt -> LineCtxt[i]);
+      LCtxt -> Reset = 1;	/* To manage reenable of line at connect */
     }
     /* reset hardware of icv196vme module */
     cc = icvModule_Init_HW(MCtxt);
 
 				/* %%%(94/03/15 A.G. */
     for (i=0; i < lx ; i++){
-      L_LCtxt = &(MCtxt -> LineCtxt[i]);
-      if (L_LCtxt -> LHdl -> SubscriberCurNb){
-	enable_Line(L_LCtxt);
-    cprintf ("icv196vmedrvr: Reinit: in module %d, reanable the active line %d\n", m, L_LCtxt -> Line);
+      LCtxt = &(MCtxt -> LineCtxt[i]);
+      if (LCtxt -> LHdl -> SubscriberCurNb){
+	enable_Line(LCtxt);
+    cprintf ("icv196vmedrvr: Reinit: in module %d, reanable the active line %d\n", m, LCtxt -> Line);
       }
-      L_LCtxt -> Reset = 1;	/* To manage reenable of line at connect */
+      LCtxt -> Reset = 1;	/* To manage reenable of line at connect */
     }
 				/* )%%%  */
     if (cc == 0)
@@ -1566,11 +1566,11 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 char *icv196install(struct icv196T_ConfigInfo *info)
 {
   register struct icv196T_s  *s; /* static table pointer */
-  struct icv196T_ModuleParam *L_MInfo;
-  struct T_ModuleCtxt      *L_MCtxt;
-  unsigned char L_l;
-  ushort L_v;
-  long L_base;
+  struct icv196T_ModuleParam *MInfo;
+  struct T_ModuleCtxt      *MCtxt;
+  unsigned char l;
+  ushort v;
+  long base;
   int   i, m;
 
   G_dbgflag = 0;
@@ -1618,39 +1618,39 @@ char *icv196install(struct icv196T_ConfigInfo *info)
     if (info -> ModuleFlag[m] == 0) /* this module non present; */
       continue;
 
-    L_MInfo = &(info -> ModuleInfo[m]); /* set up the current Module info */
+    MInfo = &(info -> ModuleInfo[m]); /* set up the current Module info */
 
 /*	Set up of the current module tables
 	-----------------------------------
 */
 		/*  Check info parameters */
 
-    L_base = L_MInfo -> base;
+    base = MInfo -> base;
 		/* check if base address conform to hardware strapping */
-    if (   ((L_base & 0xff000000) != 0)
-	|| ((L_base & 0x000000ff) != 0)
+    if (   ((base & 0xff000000) != 0)
+	|| ((base & 0x000000ff) != 0)
        ){
       cprintf ("\n");
-      cprintf ("icv196:install: base address out of range !.. %lx \n",L_base);
+      cprintf ("icv196:install: base address out of range !.. %lx \n",base);
       cprintf("icv196:install: INSTALLATION IMPOSSIBLE\n");
       pseterr(EFAULT);
       return ((char *) SYSERR);
     };
 	/*  Only one vector and one level for the 8 lines of the module */
-    L_v = L_MInfo -> vector[0];
+    v = MInfo -> vector[0];
 
-    if ((L_v < USER_VBASE) || (L_v > 255)) { /* USER_VBASE from interrupt.h */
+    if ((v < USER_VBASE) || (v > 255)) { /* USER_VBASE from interrupt.h */
       cprintf ("\n");
-      cprintf ("icv196vmeinstall: vector value out of range !.. %d \n",L_v);
+      cprintf ("icv196vmeinstall: vector value out of range !.. %d \n",v);
       cprintf("icv196:install: INSTALLATION IMPOSSIBLE\n");
       pseterr(EFAULT);
       return ((char *) SYSERR);
     }
-    L_l = L_MInfo -> level[0];
+    l = MInfo -> level[0];
 
-    if ((L_l >5) || (L_l <1)){
+    if ((l >5) || (l <1)){
       cprintf ("\n");
-      cprintf ("icv196vmeinstall: Int. level out of range must be in [2..5] !.. %d \n",L_l);
+      cprintf ("icv196vmeinstall: Int. level out of range must be in [2..5] !.. %d \n",l);
       cprintf("icv196:install: INSTALLATION IMPOSSIBLE\n");
       pseterr(EFAULT);
       return ((char *) SYSERR);
@@ -1658,10 +1658,10 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 				/*  */
 		/* Set up the tables of the  current Module */
 
-    L_MCtxt = Init_ModuleCtxt(s, m, L_MInfo);
+    MCtxt = Init_ModuleCtxt(s, m, MInfo);
 
 		/*  Update Module directory */
-    s -> ModuleCtxtDir[m] = L_MCtxt;
+    s -> ModuleCtxtDir[m] = MCtxt;
 
   }
 
@@ -1673,13 +1673,13 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 
   for ( m=0 ; m < icv_ModuleNb; m++) {
 
-    if ( (L_MCtxt = s -> ModuleCtxtDir[m]) == NULL){
+    if ( (MCtxt = s -> ModuleCtxtDir[m]) == NULL){
       continue;
     }
 		/* Startup the hardware for that module context */
 
-    if (icvModule_Startup(L_MCtxt) < 0)
-      L_MCtxt = s -> ModuleCtxtDir[m] = 0;
+    if (icvModule_Startup(MCtxt) < 0)
+      MCtxt = s -> ModuleCtxtDir[m] = 0;
   }
   cprintf("\rDrivOK:\n");
   return ((char *) s);
@@ -1699,18 +1699,18 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 
 int icv196uninstall(struct icv196T_s *s)
 {
-  struct T_ModuleCtxt      *L_MCtxt;
-  unsigned char L_v;
+  struct T_ModuleCtxt      *MCtxt;
+  unsigned char v;
   int m;
 
   for ( m=0 ; m < icv_ModuleNb; m++) {
 
-    if ( (L_MCtxt = s -> ModuleCtxtDir[m]) == NULL){
+    if ( (MCtxt = s -> ModuleCtxtDir[m]) == NULL){
       continue;
     }
-    L_v = L_MCtxt -> Vect[0];
+    v = MCtxt -> Vect[0];
 
-    IOINTCLR(L_v);
+    IOINTCLR(v);
   }
   sysfree ((char *)s, (long) sizeof (s));
   return (OK);
@@ -1730,14 +1730,14 @@ int icv196uninstall(struct icv196T_s *s)
 */
 int icv196open(struct icv196T_s *s, int dev, struct file *f)
 {
-  int   L_chan;
-  short   L_DevType;
-  register struct T_UserHdl *L_UHdl;
+  int   chan;
+  short   DevType;
+  register struct T_UserHdl *UHdl;
   /*  */
 
 /*  DBG (("icvvme: Open on device= %lx \n", (long) dev)); */
-  L_chan = minor (dev);
-/*  DBG (("icv196:Open: on minor device= %d \n", (int) L_chan)); */
+  chan = minor (dev);
+/*  DBG (("icv196:Open: on minor device= %d \n", (int) chan)); */
 
   if ( (s == (struct icv196T_s *) NULL) || ( s == (struct icv196T_s *)(-1))){
 /*    DBG (("icvvme:Install wrong: static pointer is = %lx \n", (int) s));*/
@@ -1745,44 +1745,44 @@ int icv196open(struct icv196T_s *s, int dev, struct file *f)
     return (SYSERR);
   }
 
-  L_UHdl = NULL;
-  L_DevType = 0;
-  if (L_chan == ICVVME_ServiceChan) {
+  UHdl = NULL;
+  DevType = 0;
+  if (chan == ICVVME_ServiceChan) {
     /* DBG (("icvvme:Open:Handle for icv services \n"));*/
-    L_UHdl = &(s -> ServiceHdl);
-    L_DevType = 1;
+    UHdl = &(s -> ServiceHdl);
+    DevType = 1;
   }
   else{
-    if ((L_chan >= ICVVME_IcvChan01) && (L_chan <= ICVVME_MaxChan)) {
+    if ((chan >= ICVVME_IcvChan01) && (chan <= ICVVME_MaxChan)) {
       /* DBG (("icvvme:Open:Handle for synchro with ICV lines \n"));*/
       if (f -> access_mode & FWRITE) {
 	pseterr (EACCES);
 	return (SYSERR);
       }
-      L_UHdl = &s -> ICVHdl[L_chan];
+      UHdl = &s -> ICVHdl[chan];
     }
     else {
       pseterr (EACCES);
       return (SYSERR);
     }
   }
-  if ((L_DevType == 0) && (L_UHdl -> usercount)) { /* synchro channel already open */
+  if ((DevType == 0) && (UHdl -> usercount)) { /* synchro channel already open */
     pseterr (EACCES);
     return (SYSERR);
   }
 		/* Perform the open */
 
   swait(&(s -> sem_drvr), IGNORE_SIG);
-  if (L_DevType == 0) {			/* Case synchro */
-    Init_UserHdl (L_UHdl, L_chan, s);
-    L_UHdl -> UserMode = s -> UserMode;
-    L_UHdl -> WaitingTO = s -> UserTO;
-    L_UHdl -> pid = getpid ();
+  if (DevType == 0) {			/* Case synchro */
+    Init_UserHdl (UHdl, chan, s);
+    UHdl -> UserMode = s -> UserMode;
+    UHdl -> WaitingTO = s -> UserTO;
+    UHdl -> pid = getpid ();
 
-    /* DBG (("icvvme:open: Chanel =%d UHdl=$%lx\n", L_chan, L_UHdl ));*/
+    /* DBG (("icvvme:open: Chanel =%d UHdl=$%lx\n", chan, UHdl ));*/
   }
   ++(s -> usercounter);			/* Update user counter value */
-  L_UHdl -> usercount++;
+  UHdl -> usercount++;
   ssignal( &(s -> sem_drvr) );
   return (OK);
 }
@@ -1792,22 +1792,22 @@ int icv196open(struct icv196T_s *s, int dev, struct file *f)
 */
 int icv196close(struct icv196T_s *s, struct file *f)
 {
-  int   L_chan;
-  short   L_DevType;
-  register struct T_UserHdl *L_UHdl;
+  int   chan;
+  short   DevType;
+  register struct T_UserHdl *UHdl;
 
-  L_chan = minor (f -> dev);
-  L_UHdl = NULL;
-  L_DevType = 0;
-  if (L_chan == ICVVME_ServiceChan) {
+  chan = minor (f -> dev);
+  UHdl = NULL;
+  DevType = 0;
+  if (chan == ICVVME_ServiceChan) {
 /*   DBG (("icvvme:Close:Handle for icv services\n"));*/
-    L_UHdl = &(s -> ServiceHdl);
-    L_DevType = 1;
+    UHdl = &(s -> ServiceHdl);
+    DevType = 1;
   }
   else {
-    if ((L_chan >= ICVVME_IcvChan01) && (L_chan <= ICVVME_MaxChan)) {
+    if ((chan >= ICVVME_IcvChan01) && (chan <= ICVVME_MaxChan)) {
     /* DBG (("icvvme:Close:Handle for synchro with Icv \n"));*/
-      L_UHdl = &(s -> ICVHdl[L_chan]);
+      UHdl = &(s -> ICVHdl[chan]);
     }
     else {
       pseterr (EACCES);
@@ -1817,12 +1817,12 @@ int icv196close(struct icv196T_s *s, struct file *f)
 		/* Perform the close */
 
   swait(&(s -> sem_drvr), IGNORE_SIG);
-  if (L_DevType==0){		/* case of Synchro handle */
-/*    DBG (("icv196:close: Chanel =%d UHdl=%lx \n",L_chan, L_UHdl));*/
-    ClrSynchro(L_UHdl);		/* Clear connection established*/
+  if (DevType==0){		/* case of Synchro handle */
+/*    DBG (("icv196:close: Chanel =%d UHdl=%lx \n",chan, UHdl));*/
+    ClrSynchro(UHdl);		/* Clear connection established*/
   }
   --(s -> usercounter);			/* Update user counter value */
-  --L_UHdl -> usercount;
+  --UHdl -> usercount;
   ssignal( &(s -> sem_drvr) );
 
   return (OK);
@@ -1831,15 +1831,15 @@ int icv196close(struct icv196T_s *s, struct file *f)
 
 int icv196read(struct icv196T_s *s, struct file *f, char *buff, int bcount)
 {
-	int   L_count, L_Chan;
-  struct T_UserHdl  *L_UHdl;
-  long   *L_buffEvt;
-  struct T_ModuleCtxt *L_MCtxt;
+	int   count, Chan;
+  struct T_UserHdl  *UHdl;
+  long   *buffEvt;
+  struct T_ModuleCtxt *MCtxt;
   int   i,m;
-  long  L_Evt;
-  int L_bn;
+  long  Evt;
+  int bn;
   int ps;
-  int L_Line;
+  int Line;
 
   /* Check parameters and Set up channel environnement */
   if (wbounds ((int)buff) == EFAULT) {
@@ -1847,15 +1847,15 @@ int icv196read(struct icv196T_s *s, struct file *f, char *buff, int bcount)
     pseterr (EFAULT);
     return (SYSERR);
   }
-  L_Chan = minordev (f -> dev);
-  if (L_Chan >= ICVVME_IcvChan01 && L_Chan <= ICVVME_MaxChan) {
-    L_UHdl = &(s -> ICVHdl[L_Chan]);	/* ICV event handle */
+  Chan = minordev (f -> dev);
+  if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+    UHdl = &(s -> ICVHdl[Chan]);	/* ICV event handle */
   }
   else {
     pseterr (ENODEV);
     return (SYSERR);
   }
-  if (L_UHdl == NULL) {	   /* Abnormal status system corruption	   !!!! */
+  if (UHdl == NULL) {	   /* Abnormal status system corruption	   !!!! */
 
     pseterr (EWOULDBLOCK);
     return (SYSERR);
@@ -1868,7 +1868,7 @@ int icv196read(struct icv196T_s *s, struct file *f, char *buff, int bcount)
 */
 
   /* Event are long and so count should be multiple of 4 bytes */
-    if ((L_count = (bcount >> 2)) <= 0) {
+    if ((count = (bcount >> 2)) <= 0) {
       pseterr (EINVAL);
       return (SYSERR);
     }
@@ -1877,43 +1877,43 @@ int icv196read(struct icv196T_s *s, struct file *f, char *buff, int bcount)
      alignment constraint for the buffer
       should be satisfied by caller  !!!!!
 */
-    L_buffEvt = (long *)buff;
-    L_bn = 0;
-    i = L_count;			/* Long word count */
-    /* DBG (("icv196:read:Entry Evtsem value= %d\n", scount( &L_UHdl -> Ring.Evtsem) )); */
+    buffEvt = (long *)buff;
+    bn = 0;
+    i = count;			/* Long word count */
+    /* DBG (("icv196:read:Entry Evtsem value= %d\n", scount( &UHdl -> Ring.Evtsem) )); */
     do {
-      if ((L_Evt= PullFrom_Ring ( &(L_UHdl -> Ring))) != (-1)){
+      if ((Evt= PullFrom_Ring ( &(UHdl -> Ring))) != (-1)){
 
-	*L_buffEvt = L_Evt;
-	L_buffEvt++; i--; L_bn +=1;
+	*buffEvt = Evt;
+	buffEvt++; i--; bn +=1;
       }
       else {			/* no event in ring, wait if requested */
-	if ((L_bn==0) && ((L_UHdl -> UserMode & icv_bitwait ))) { /* Wait for Lam */
+	if ((bn==0) && ((UHdl -> UserMode & icv_bitwait ))) { /* Wait for Lam */
 	/* Contro waiting by t.o. */
-	  L_UHdl -> timid = 0;
+	  UHdl -> timid = 0;
 
-	  L_UHdl -> timid = timeout((int (*)())UserWakeup, (char *)L_UHdl, (int)L_UHdl -> WaitingTO);
-	  swait (&L_UHdl -> Ring.Evtsem, -1);	/* Wait Lam or Time Out */
+	  UHdl -> timid = timeout((int (*)())UserWakeup, (char *)UHdl, (int)UHdl -> WaitingTO);
+	  swait (&UHdl -> Ring.Evtsem, -1);	/* Wait Lam or Time Out */
 
 	  disable(ps);
-	  if (L_UHdl -> timid < 0 ) {	/* time Out occured */
+	  if (UHdl -> timid < 0 ) {	/* time Out occured */
 	    restore(ps);
 
 		/* check if any module setting got reset */
 	    for ( m=0 ; m < icv_ModuleNb; m++) {
 		/*  Update Module directory */
-	      L_MCtxt = s -> ModuleCtxtDir[m];
-	      if ( L_MCtxt != NULL) {
-		L_Line=0;
-		icvModule_Reinit(L_MCtxt, L_Line);
+	      MCtxt = s -> ModuleCtxtDir[m];
+	      if ( MCtxt != NULL) {
+		Line=0;
+		icvModule_Reinit(MCtxt, Line);
 	      }
 	    }
 
 	    pseterr(ETIMEDOUT);
 	    return(SYSERR);		             /* RETURN ==>  */
 	  }
-	  cancel_timeout(L_UHdl->timid);
-	  L_UHdl -> Ring.Evtsem += 1;	/* to remind this event for swait by reading */
+	  cancel_timeout(UHdl->timid);
+	  UHdl -> Ring.Evtsem += 1;	/* to remind this event for swait by reading */
 
 	  restore(ps);
 	}
@@ -1922,7 +1922,7 @@ int icv196read(struct icv196T_s *s, struct file *f, char *buff, int bcount)
 	}
       }
     } while (i > 0);		/* while  room in buffer */
-    return ((L_bn) << 2);
+    return ((bn) << 2);
 
  /* end of reading event*/
 }
@@ -1959,36 +1959,36 @@ int icv196write(struct icv196T_s *s, struct file *f, char *buff,int bcount)
 */
 int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
 {
-  int   L_err;
+  int   err;
   struct icv196T_ModuleInfo *Infop;
   register int  Timeout;
   register int  i,j,l;
-  int   L_Chan;
-  short L_group;
-  short L_index;
-  int   L_mode;
-  int   L_SubsMode;
-  struct T_UserHdl  *L_UHdl;
-  struct T_ModuleCtxt *L_MCtxt;
-  struct T_LineCtxt   *L_LCtxt;
-  struct T_LogLineHdl *L_LHdl;
-  struct T_Subscriber *L_Subs;
-  struct icv196T_HandleInfo *L_HanInfo;
-  struct icv196T_HandleLines *L_HanLin;
-  struct icv196T_UserLine L_ULine;
-  long   L_Module;
-  short  L_Line;
-  int    L_Type;
-  int    L_LogIx;
-  int    L_grp;
-  int    L_dir;
-  int    L_group_mask;
-  unsigned long *L_Data;
+  int   Chan;
+  short group;
+  short index;
+  int   mode;
+  int   SubsMode;
+  struct T_UserHdl  *UHdl;
+  struct T_ModuleCtxt *MCtxt;
+  struct T_LineCtxt   *LCtxt;
+  struct T_LogLineHdl *LHdl;
+  struct T_Subscriber *Subs;
+  struct icv196T_HandleInfo *HanInfo;
+  struct icv196T_HandleLines *HanLin;
+  struct icv196T_UserLine ULine;
+  long   Module;
+  short  Line;
+  int    Type;
+  int    LogIx;
+  int    grp;
+  int    dir;
+  int    group_mask;
+  unsigned long *Data;
   int Iw1;
-  int L_Flag;
+  int Flag;
 
-  L_err = 0;
-  L_UHdl = NULL;
+  err = 0;
+  UHdl = NULL;
   DBG_IOCTL(("icv196:ioctl: function code = %lx \n", fct));
 
 
@@ -1996,7 +1996,7 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
     pseterr (EFAULT);
     return (SYSERR);
   }
-  L_Chan = minordev (f -> dev);
+  Chan = minordev (f -> dev);
 
   switch (fct) {
 
@@ -2011,13 +2011,13 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
 	    continue;
 	}
 	else {
-	    L_MCtxt = &(s -> ModuleCtxt[i]);
+	    MCtxt = &(s -> ModuleCtxt[i]);
 	    Infop -> ModuleFlag = 1;
-	    Infop -> ModuleInfo.base = (unsigned long)L_MCtxt -> SYSVME_Add;
-	    Infop -> ModuleInfo.size = L_MCtxt -> VME_size;
+	    Infop -> ModuleInfo.base = (unsigned long)MCtxt -> SYSVME_Add;
+	    Infop -> ModuleInfo.size = MCtxt -> VME_size;
 	    for ( j = 0; j < icv_LineNb; j++) {
-		Infop -> ModuleInfo.vector[j] = L_MCtxt -> Vect[j];
-		Infop -> ModuleInfo.level[j] = L_MCtxt -> Lvl[j];
+		Infop -> ModuleInfo.vector[j] = MCtxt -> Vect[j];
+		Infop -> ModuleInfo.level[j] = MCtxt -> Lvl[j];
 	    }
 	}
     };
@@ -2027,20 +2027,20 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
 
   case ICVVME_gethandleinfo:
 
-    L_HanInfo = (struct icv196T_HandleInfo *)arg;
-    L_UHdl = s -> ICVHdl;           /* point to first user handle */
-    for ( i = 0; i < ICVVME_MaxChan; i++, L_UHdl++) {
-	L_HanLin = &(L_HanInfo -> handle[i]);
+    HanInfo = (struct icv196T_HandleInfo *)arg;
+    UHdl = s -> ICVHdl;           /* point to first user handle */
+    for ( i = 0; i < ICVVME_MaxChan; i++, UHdl++) {
+	HanLin = &(HanInfo -> handle[i]);
 	l = 0;
-	if (L_UHdl -> usercount == 0)
+	if (UHdl -> usercount == 0)
 	    continue;
 	else {
-	    L_HanLin -> pid = L_UHdl -> pid;
+	    HanLin -> pid = UHdl -> pid;
 	    for ( j = 0; j < ICV_LogLineNb; j++) {
-		if (TESTBIT(L_UHdl -> Cmap, j)) {
-		    GetUserLine(j, &L_ULine);
-		    L_HanLin -> lines[l].group = L_ULine.group;
-		    L_HanLin -> lines[l].index = L_ULine.index;
+		if (TESTBIT(UHdl -> Cmap, j)) {
+		    GetUserLine(j, &ULine);
+		    HanLin -> lines[l].group = ULine.group;
+		    HanLin -> lines[l].index = ULine.index;
 		    l++;
 		}
 	    }
@@ -2063,11 +2063,11 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
     Toggle function on debug flag
 */
   case ICVVME_setDbgFlag:
-    L_Flag = G_dbgflag;
+    Flag = G_dbgflag;
     if ( *( (int *) arg) != (-1)){ /* update the flag if value  not = (-1) */
       G_dbgflag = *( (int *) arg);
     }
-    *( (int *) arg) = L_Flag;	/* give back old value */
+    *( (int *) arg) = Flag;	/* give back old value */
     break;
 
 
@@ -2078,61 +2078,61 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
   case ICVVME_setreenable:
 
       /* Check channel number and Set up Handle pointer */
-    if (L_Chan == 0) {		/* no connect on channel 0 */
+    if (Chan == 0) {		/* no connect on channel 0 */
       pseterr (EACCES); return (SYSERR);
     };
-    if (L_Chan >= ICVVME_IcvChan01 && L_Chan <= ICVVME_MaxChan) {
-      L_UHdl = &(s -> ICVHdl[L_Chan]);
+    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+      UHdl = &(s -> ICVHdl[Chan]);
     }
     else {
       pseterr (ENODEV);  return (SYSERR);
     };
-    /* DBG (("icv:clearreenable: Entry:UHdl= %lx \n", (long) L_UHdl));*/
+    /* DBG (("icv:clearreenable: Entry:UHdl= %lx \n", (long) UHdl));*/
 
-    if (L_UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
+    if (UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
       pseterr (EWOULDBLOCK);
       return (SYSERR);
     }
 
 		/* Check parameters and Set up environnement */
 
-    L_group = ((struct icv196T_UserLine *) arg) -> group;
-    L_index = ((struct icv196T_UserLine *) arg) -> index;
+    group = ((struct icv196T_UserLine *) arg) -> group;
+    index = ((struct icv196T_UserLine *) arg) -> index;
 
-    if (s -> ModuleCtxtDir[L_group] == NULL) {
+    if (s -> ModuleCtxtDir[group] == NULL) {
       pseterr (EACCES);
       return (SYSERR);
     }
 
-   if ((L_group < 0) || (L_group > (icv_ModuleNb - 1))) {
-/*      DBG (("icv:connect: module group= %d out of range on channel %d\n",L_group, L_Chan));*/
+   if ((group < 0) || (group > (icv_ModuleNb - 1))) {
+/*      DBG (("icv:connect: module group= %d out of range on channel %d\n",group, Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
-    if ((L_index < 0) || (L_index > (icv_LineNb -1) )) {
-/*      DBG (("icv:setreenable: line index= %d out of range on channel %d\n",L_index,  L_Chan));*/
+    if ((index < 0) || (index > (icv_LineNb -1) )) {
+/*      DBG (("icv:setreenable: line index= %d out of range on channel %d\n",index,  Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
            /* set up Logical line handle pointer */
-    L_LogIx = CnvrtUserLine( (char) L_group,(char) L_index );
+    LogIx = CnvrtUserLine( (char) group,(char) index );
 
-    /* DBG (("icv:setreenable: request on group %d index %d, associated  log line %d\n",L_group, L_index, L_LogIx )); */
+    /* DBG (("icv:setreenable: request on group %d index %d, associated  log line %d\n",group, index, LogIx )); */
 
-    if (L_LogIx < 0 || L_LogIx > ICV_LogLineNb){
-/*      DBG (("icv:setreenable: LogIndex outside [0..%d] for channel %d\n", ICV_LogLineNb, L_Chan ));*/
+    if (LogIx < 0 || LogIx > ICV_LogLineNb){
+/*      DBG (("icv:setreenable: LogIndex outside [0..%d] for channel %d\n", ICV_LogLineNb, Chan ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 
-    if ((L_LHdl = s -> LineHdlDir[L_LogIx]) == NULL){ /* Line not in config*/
-/*      DBG (("icv:setreenable: %d no such log line in config, for channel %d \n", L_LogIx, L_Chan ));*/
+    if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /* Line not in config*/
+/*      DBG (("icv:setreenable: %d no such log line in config, for channel %d \n", LogIx, Chan ));*/
       pseterr (EINVAL); return (SYSERR);
     }
-    L_LCtxt = L_LHdl -> LineCtxt;
-    if ( (L_LCtxt -> LHdl) != L_LHdl){
-/*      DBG (("icv:setreenable: computed LHdl $%lx and LLCtxt -> LHdl $%lx mismatch \n", L_LHdl, (L_LCtxt -> LHdl) ));*/
+    LCtxt = LHdl -> LineCtxt;
+    if ( (LCtxt -> LHdl) != LHdl){
+/*      DBG (("icv:setreenable: computed LHdl $%lx and LLCtxt -> LHdl $%lx mismatch \n", LHdl, (LCtxt -> LHdl) ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 
-    L_LCtxt -> intmod = icv_ReenableOn;
+    LCtxt -> intmod = icv_ReenableOn;
     break;
 
 
@@ -2145,61 +2145,61 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
   case ICVVME_clearreenable:
 
       /* Check channel number and Set up Handle pointer */
-    if (L_Chan == 0) {		/* no connect on channel 0 */
+    if (Chan == 0) {		/* no connect on channel 0 */
       pseterr (EACCES); return (SYSERR);
     };
-    if (L_Chan >= ICVVME_IcvChan01 && L_Chan <= ICVVME_MaxChan) {
-      L_UHdl = &(s -> ICVHdl[L_Chan]);
+    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+      UHdl = &(s -> ICVHdl[Chan]);
     }
     else {
       pseterr (ENODEV);  return (SYSERR);
     };
-    /* DBG (("icv:clearreenable: Entry:UHdl= %lx \n", (long) L_UHdl));*/
+    /* DBG (("icv:clearreenable: Entry:UHdl= %lx \n", (long) UHdl));*/
 
-    if (L_UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
+    if (UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
       pseterr (EWOULDBLOCK);
       return (SYSERR);
     }
 
 		/* Check parameters and Set up environnement */
 
-    L_group = ((struct icv196T_UserLine *) arg) -> group;
-    L_index = ((struct icv196T_UserLine *) arg) -> index;
+    group = ((struct icv196T_UserLine *) arg) -> group;
+    index = ((struct icv196T_UserLine *) arg) -> index;
 
-    if (s -> ModuleCtxtDir[L_group] == NULL) {
+    if (s -> ModuleCtxtDir[group] == NULL) {
       pseterr (EACCES);
       return (SYSERR);
     }
 
-   if ((L_group < 0) || (L_group > (icv_ModuleNb - 1))) {
-/*      DBG (("icv:connect: module group= %d out of range on channel %d\n",L_group, L_Chan));*/
+   if ((group < 0) || (group > (icv_ModuleNb - 1))) {
+/*      DBG (("icv:connect: module group= %d out of range on channel %d\n",group, Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
-    if ((L_index < 0) || (L_index > (icv_LineNb -1) )) {
-/*      DBG (("icv:clearreenable: line index= %d out of range on channel %d\n",L_index,  L_Chan));*/
+    if ((index < 0) || (index > (icv_LineNb -1) )) {
+/*      DBG (("icv:clearreenable: line index= %d out of range on channel %d\n",index,  Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
            /* set up Logical line handle pointer */
-    L_LogIx = CnvrtUserLine( (char) L_group,(char) L_index );
+    LogIx = CnvrtUserLine( (char) group,(char) index );
 
-    /* DBG (("icv:clearreenable: request on group %d index %d, associated  log line %d\n",L_group, L_index, L_LogIx )); */
+    /* DBG (("icv:clearreenable: request on group %d index %d, associated  log line %d\n",group, index, LogIx )); */
 
-    if (L_LogIx < 0 || L_LogIx > ICV_LogLineNb){
-/*      DBG (("icv:clearreenable: LogIndex outside [0..%d] for chanel %d\n", ICV_LogLineNb, L_Chan ));*/
+    if (LogIx < 0 || LogIx > ICV_LogLineNb){
+/*      DBG (("icv:clearreenable: LogIndex outside [0..%d] for chanel %d\n", ICV_LogLineNb, Chan ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 
-    if ((L_LHdl = s -> LineHdlDir[L_LogIx]) == NULL){ /* Line not in config*/
-/*      DBG (("icv:clearreenable: %d no such log line in config, for chanel %d \n", L_LogIx, L_Chan ));*/
+    if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /* Line not in config*/
+/*      DBG (("icv:clearreenable: %d no such log line in config, for chanel %d \n", LogIx, Chan ));*/
       pseterr (EINVAL); return (SYSERR);
     }
-    L_LCtxt = L_LHdl -> LineCtxt;
-    if ( (L_LCtxt -> LHdl) != L_LHdl){
-/*      DBG (("icv:clearreenable: computed LHdl $%lx and LLCtxt -> LHdl $%lx mismatch \n", L_LHdl, (L_LCtxt -> LHdl) ));*/
+    LCtxt = LHdl -> LineCtxt;
+    if ( (LCtxt -> LHdl) != LHdl){
+/*      DBG (("icv:clearreenable: computed LHdl $%lx and LLCtxt -> LHdl $%lx mismatch \n", LHdl, (LCtxt -> LHdl) ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 
-    L_LCtxt -> intmod = icv_ReenableOff;
+    LCtxt -> intmod = icv_ReenableOff;
     break;
 
 
@@ -2210,61 +2210,61 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
   case ICVVME_disable:
 
       /* Check channel number and Set up Handle pointer */
-    if (L_Chan == 0) {		/* no connect on channel 0 */
+    if (Chan == 0) {		/* no connect on channel 0 */
       pseterr (EACCES); return (SYSERR);
     };
-    if (L_Chan >= ICVVME_IcvChan01 && L_Chan <= ICVVME_MaxChan) {
-      L_UHdl = &(s -> ICVHdl[L_Chan]);
+    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+      UHdl = &(s -> ICVHdl[Chan]);
     }
     else {
       pseterr (ENODEV);  return (SYSERR);
     };
-    /* DBG (("icv:disableint: Entry:UHdl= %lx \n", (long) L_UHdl));*/
+    /* DBG (("icv:disableint: Entry:UHdl= %lx \n", (long) UHdl));*/
 
-    if (L_UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
+    if (UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
       pseterr (EWOULDBLOCK);
       return (SYSERR);
     }
 
 		/* Check parameters and Set up environnement */
 
-    L_group = ((struct icv196T_UserLine *) arg) -> group;
-    L_index = ((struct icv196T_UserLine *) arg) -> index;
+    group = ((struct icv196T_UserLine *) arg) -> group;
+    index = ((struct icv196T_UserLine *) arg) -> index;
 
-    if (s -> ModuleCtxtDir[L_group] == NULL) {
+    if (s -> ModuleCtxtDir[group] == NULL) {
       pseterr (EACCES);
       return (SYSERR);
     }
 
-   if ((L_group < 0) || (L_group > (icv_ModuleNb - 1))) {
-/*      DBG (("icv:connect: module group= %d out of range on channel %d\n",L_group, L_Chan));*/
+   if ((group < 0) || (group > (icv_ModuleNb - 1))) {
+/*      DBG (("icv:connect: module group= %d out of range on channel %d\n",group, Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
-    if ((L_index < 0) || (L_index > (icv_LineNb -1) )) {
-/*      DBG (("icv:disableint: line index= %d out of range on channel %d\n",L_index,  L_Chan));*/
+    if ((index < 0) || (index > (icv_LineNb -1) )) {
+/*      DBG (("icv:disableint: line index= %d out of range on channel %d\n",index,  Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
            /* set up Logical line handle pointer */
-    L_LogIx = CnvrtUserLine( (char) L_group,(char) L_index );
+    LogIx = CnvrtUserLine( (char) group,(char) index );
 
-    /* DBG (("icv:disableint: request on group %d index %d, associated  log line %d\n",L_group, L_index, L_LogIx )); */
+    /* DBG (("icv:disableint: request on group %d index %d, associated  log line %d\n",group, index, LogIx )); */
 
-    if (L_LogIx < 0 || L_LogIx > ICV_LogLineNb){
-/*      DBG (("icv:disableint: LogIndex outside [0..%d] for chanel %d\n", ICV_LogLineNb, L_Chan ));*/
+    if (LogIx < 0 || LogIx > ICV_LogLineNb){
+/*      DBG (("icv:disableint: LogIndex outside [0..%d] for chanel %d\n", ICV_LogLineNb, Chan ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 
-    if ((L_LHdl = s -> LineHdlDir[L_LogIx]) == NULL){ /* Line not in config*/
-/*      DBG (("icv:disableint: %d no such log line in config, for chanel %d \n", L_LogIx, L_Chan ));*/
+    if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /* Line not in config*/
+/*      DBG (("icv:disableint: %d no such log line in config, for chanel %d \n", LogIx, Chan ));*/
       pseterr (EINVAL); return (SYSERR);
     }
-    L_LCtxt = L_LHdl -> LineCtxt;
-    if ( (L_LCtxt -> LHdl) != L_LHdl){
-/*      DBG (("icv:disableint: computed LHdl $%lx and LLCtxt -> LHdl $%lx mismatch \n", L_LHdl, (L_LCtxt -> LHdl) ));*/
+    LCtxt = LHdl -> LineCtxt;
+    if ( (LCtxt -> LHdl) != LHdl){
+/*      DBG (("icv:disableint: computed LHdl $%lx and LLCtxt -> LHdl $%lx mismatch \n", LHdl, (LCtxt -> LHdl) ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 
-    disable_Line(L_LCtxt);
+    disable_Line(LCtxt);
     break;
 
 
@@ -2275,61 +2275,61 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
   case ICVVME_enable:
 
       /* Check channel number and Set up Handle pointer */
-    if (L_Chan == 0) {		/* no connect on channel 0 */
+    if (Chan == 0) {		/* no connect on channel 0 */
       pseterr (EACCES); return (SYSERR);
     };
-    if (L_Chan >= ICVVME_IcvChan01 && L_Chan <= ICVVME_MaxChan) {
-      L_UHdl = &(s -> ICVHdl[L_Chan]);
+    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+      UHdl = &(s -> ICVHdl[Chan]);
     }
     else {
       pseterr (ENODEV);  return (SYSERR);
     };
-    /* DBG (("icv:disableint: Entry:UHdl= %lx \n", (long) L_UHdl));*/
+    /* DBG (("icv:disableint: Entry:UHdl= %lx \n", (long) UHdl));*/
 
-    if (L_UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
+    if (UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
       pseterr (EWOULDBLOCK);
       return (SYSERR);
     }
 
 		/* Check parameters and Set up environnement */
 
-    L_group = ((struct icv196T_UserLine *) arg) -> group;
-    L_index = ((struct icv196T_UserLine *) arg) -> index;
+    group = ((struct icv196T_UserLine *) arg) -> group;
+    index = ((struct icv196T_UserLine *) arg) -> index;
 
-    if (s -> ModuleCtxtDir[L_group] == NULL) {
+    if (s -> ModuleCtxtDir[group] == NULL) {
       pseterr (EACCES);
       return (SYSERR);
     }
 
-   if ((L_group < 0) || (L_group > (icv_ModuleNb - 1))) {
-/*      DBG (("icv:connect: module group= %d out of range on channel %d\n",L_group, L_Chan));*/
+   if ((group < 0) || (group > (icv_ModuleNb - 1))) {
+/*      DBG (("icv:connect: module group= %d out of range on channel %d\n",group, Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
-    if ((L_index < 0) || (L_index > (icv_LineNb -1) )) {
-/*      DBG (("icv:disableint: line index= %d out of range on channel %d\n",L_index,  L_Chan));*/
+    if ((index < 0) || (index > (icv_LineNb -1) )) {
+/*      DBG (("icv:disableint: line index= %d out of range on channel %d\n",index,  Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
            /* set up Logical line handle pointer */
-    L_LogIx = CnvrtUserLine( (char) L_group,(char) L_index );
+    LogIx = CnvrtUserLine( (char) group,(char) index );
 
-    /* DBG (("icv:disableint: request on group %d index %d, associated  log line %d\n",L_group, L_index, L_LogIx )); */
+    /* DBG (("icv:disableint: request on group %d index %d, associated  log line %d\n",group, index, LogIx )); */
 
-    if (L_LogIx < 0 || L_LogIx > ICV_LogLineNb){
-/*      DBG (("icv:disableint: LogIndex outside [0..%d] for chanel %d\n", ICV_LogLineNb, L_Chan ));*/
+    if (LogIx < 0 || LogIx > ICV_LogLineNb){
+/*      DBG (("icv:disableint: LogIndex outside [0..%d] for chanel %d\n", ICV_LogLineNb, Chan ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 
-    if ((L_LHdl = s -> LineHdlDir[L_LogIx]) == NULL){ /* Line not in config*/
-/*      DBG (("icv:disableint: %d no such log line in config, for chanel %d \n", L_LogIx, L_Chan ));*/
+    if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /* Line not in config*/
+/*      DBG (("icv:disableint: %d no such log line in config, for chanel %d \n", LogIx, Chan ));*/
       pseterr (EINVAL); return (SYSERR);
     }
-    L_LCtxt = L_LHdl -> LineCtxt;
-    if ( (L_LCtxt -> LHdl) != L_LHdl){
-/*      DBG (("icv:disableint: computed LHdl $%lx and LLCtxt -> LHdl $%lx mismatch \n", L_LHdl, (L_LCtxt -> LHdl) ));*/
+    LCtxt = LHdl -> LineCtxt;
+    if ( (LCtxt -> LHdl) != LHdl){
+/*      DBG (("icv:disableint: computed LHdl $%lx and LLCtxt -> LHdl $%lx mismatch \n", LHdl, (LCtxt -> LHdl) ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 
-    enable_Line(L_LCtxt);
+    enable_Line(LCtxt);
     break;
 
 
@@ -2340,16 +2340,16 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
 */
   case ICVVME_intcount:
 
-    L_Module = (long)((struct icv196T_Service *) arg) -> module;
-    L_Data =   ((struct icv196T_Service *)arg) -> data;
-    if (s -> ModuleCtxtDir[L_Module] == NULL) {
+    Module = (long)((struct icv196T_Service *) arg) -> module;
+    Data =   ((struct icv196T_Service *)arg) -> data;
+    if (s -> ModuleCtxtDir[Module] == NULL) {
       pseterr (EACCES);
       return (SYSERR);
     }
-    L_MCtxt =  &(s -> ModuleCtxt[L_Module]);
-    L_LCtxt =  L_MCtxt -> LineCtxt;
-    for (i = 0; i < icv_LineNb; i++, L_LCtxt++)
-      *L_Data++ = L_LCtxt -> loc_count;
+    MCtxt =  &(s -> ModuleCtxt[Module]);
+    LCtxt =  MCtxt -> LineCtxt;
+    for (i = 0; i < icv_LineNb; i++, LCtxt++)
+      *Data++ = LCtxt -> loc_count;
     break;
 
 
@@ -2360,16 +2360,16 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
 */
   case ICVVME_reenflags:
 
-    L_Module = (long)((struct icv196T_Service *) arg) -> module;
-    L_Data =   ((struct icv196T_Service *)arg) -> data;
-    if (s -> ModuleCtxtDir[L_Module] == NULL) {
+    Module = (long)((struct icv196T_Service *) arg) -> module;
+    Data =   ((struct icv196T_Service *)arg) -> data;
+    if (s -> ModuleCtxtDir[Module] == NULL) {
       pseterr (EACCES);
       return (SYSERR);
     }
-    L_MCtxt =  &(s -> ModuleCtxt[L_Module]);
-    L_LCtxt =  L_MCtxt -> LineCtxt;
-    for (i = 0; i < icv_LineNb; i++, L_LCtxt++)
-      *L_Data++ = L_LCtxt -> intmod;
+    MCtxt =  &(s -> ModuleCtxt[Module]);
+    LCtxt =  MCtxt -> LineCtxt;
+    for (i = 0; i < icv_LineNb; i++, LCtxt++)
+      *Data++ = LCtxt -> intmod;
     break;
 
 
@@ -2381,14 +2381,14 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
 */
   case ICVVME_intenmask:
 
-    L_Module = (long)((struct icv196T_Service *) arg) -> module;
-    L_Data =   ((struct icv196T_Service *)arg) -> data;
-    if (s -> ModuleCtxtDir[L_Module] == NULL) {
+    Module = (long)((struct icv196T_Service *) arg) -> module;
+    Data =   ((struct icv196T_Service *)arg) -> data;
+    if (s -> ModuleCtxtDir[Module] == NULL) {
       pseterr (EACCES);
       return (SYSERR);
     }
-    L_MCtxt =  &(s -> ModuleCtxt[L_Module]);
-    *L_Data = L_MCtxt -> int_en_mask;
+    MCtxt =  &(s -> ModuleCtxt[Module]);
+    *Data = MCtxt -> int_en_mask;
     break;
 
 
@@ -2400,24 +2400,24 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
 */
   case ICVVME_iosem:
 
-    L_Module = (long)((struct icv196T_Service *) arg) -> module;
-    L_Data =   ((struct icv196T_Service *)arg) -> data;
-    if (s -> ModuleCtxtDir[L_Module] == NULL) {
+    Module = (long)((struct icv196T_Service *) arg) -> module;
+    Data =   ((struct icv196T_Service *)arg) -> data;
+    if (s -> ModuleCtxtDir[Module] == NULL) {
       pseterr (EACCES);
       return (SYSERR);
     }
-    L_MCtxt =  &(s -> ModuleCtxt[L_Module]);
-    L_LCtxt =  &(L_MCtxt -> LineCtxt[0]);
-    for (i = 0; i < icv_LineNb; i++, L_LCtxt++) {
-	L_LHdl = L_LCtxt -> LHdl;
-	L_Subs = &(L_LHdl -> Subscriber[0]);
-	for (j = 0; j < L_LHdl -> SubscriberCurNb; j++, L_Subs++) {
-	    if (L_Subs -> Ring != NULL) {
+    MCtxt =  &(s -> ModuleCtxt[Module]);
+    LCtxt =  &(MCtxt -> LineCtxt[0]);
+    for (i = 0; i < icv_LineNb; i++, LCtxt++) {
+	LHdl = LCtxt -> LHdl;
+	Subs = &(LHdl -> Subscriber[0]);
+	for (j = 0; j < LHdl -> SubscriberCurNb; j++, Subs++) {
+	    if (Subs -> Ring != NULL) {
 		if ((j = 0))
-		    L_Data++;
+		    Data++;
 		continue;
 	    }
-	    *L_Data++ = L_Subs -> Ring -> Evtsem;
+	    *Data++ = Subs -> Ring -> Evtsem;
 	}
     }
     break;
@@ -2429,31 +2429,31 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
 */
   case ICVVME_setio:
 
-    L_Module = (long)((struct icv196T_Service *) arg) -> module;
-    L_Data =   ((struct icv196T_Service *)arg) -> data;
-    if (s -> ModuleCtxtDir[L_Module] == NULL) {
+    Module = (long)((struct icv196T_Service *) arg) -> module;
+    Data =   ((struct icv196T_Service *)arg) -> data;
+    if (s -> ModuleCtxtDir[Module] == NULL) {
       pseterr (EACCES);
       return (SYSERR);
     }
-    L_MCtxt =  &(s -> ModuleCtxt[L_Module]);
-    L_grp = *L_Data++;
-    L_dir = *L_Data;
+    MCtxt =  &(s -> ModuleCtxt[Module]);
+    grp = *Data++;
+    dir = *Data;
 
-		if ( L_grp < 0 || L_grp > 11)
+		if ( grp < 0 || grp > 11)
 		    return(SYSERR);
 
-		L_group_mask = 1 << L_grp;
-		if (L_dir) {            /* dir >< 0 : output */
-		    *(L_MCtxt -> VME_CsDir) =
-		    L_MCtxt -> old_CsDir | L_group_mask;
-		    L_MCtxt -> old_CsDir =
-		    L_MCtxt -> old_CsDir | L_group_mask;
+		group_mask = 1 << grp;
+		if (dir) {            /* dir >< 0 : output */
+		    *(MCtxt -> VME_CsDir) =
+		    MCtxt -> old_CsDir | group_mask;
+		    MCtxt -> old_CsDir =
+		    MCtxt -> old_CsDir | group_mask;
 		}
 		else {                     /* dir = 0: input  */
-		    *(L_MCtxt -> VME_CsDir) =
-		    L_MCtxt -> old_CsDir & ~L_group_mask;
-		    L_MCtxt -> old_CsDir =
-		    L_MCtxt -> old_CsDir & ~L_group_mask;
+		    *(MCtxt -> VME_CsDir) =
+		    MCtxt -> old_CsDir & ~group_mask;
+		    MCtxt -> old_CsDir =
+		    MCtxt -> old_CsDir & ~group_mask;
 		}
   break;
 
@@ -2465,14 +2465,14 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
 */
   case ICVVME_readio:
 
-    L_Module = (long)((struct icv196T_Service *) arg) -> module;
-    L_Data =   ((struct icv196T_Service *)arg) -> data;
-    if (s -> ModuleCtxtDir[L_Module] == NULL) {
+    Module = (long)((struct icv196T_Service *) arg) -> module;
+    Data =   ((struct icv196T_Service *)arg) -> data;
+    if (s -> ModuleCtxtDir[Module] == NULL) {
       pseterr (EACCES);
       return (SYSERR);
     }
-    L_MCtxt =  &(s -> ModuleCtxt[L_Module]);
-    *L_Data = L_MCtxt -> old_CsDir;
+    MCtxt =  &(s -> ModuleCtxt[Module]);
+    *Data = MCtxt -> old_CsDir;
   break;
 
 
@@ -2485,24 +2485,24 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
   case ICVVME_nowait:
 
       /* Check channel number and Set up Handle pointer */
-    if (L_Chan == 0) {		/* no such function on channel 0 */
+    if (Chan == 0) {		/* no such function on channel 0 */
       pseterr (EACCES);
       return (SYSERR);
     };
-    if (L_Chan >= ICVVME_IcvChan01 && L_Chan <= ICVVME_MaxChan) {
-      L_UHdl = &(s -> ICVHdl[L_Chan]);
+    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+      UHdl = &(s -> ICVHdl[Chan]);
     }
     else {
       pseterr (ENODEV);
       return (SYSERR);
     }
-    if (L_UHdl == NULL) {		/* system corruption */
+    if (UHdl == NULL) {		/* system corruption */
       pseterr (EWOULDBLOCK);
       return (SYSERR);
     }
-    L_UHdl->UserMode &= (~((short) icv_bitwait)); /* reset flag wait */
+    UHdl->UserMode &= (~((short) icv_bitwait)); /* reset flag wait */
 
-/*     DBG (("icvdrvr:ioctl:reset wait flag UserMode now= %lx \n", L_UHdl -> UserMode ));*/
+/*     DBG (("icvdrvr:ioctl:reset wait flag UserMode now= %lx \n", UHdl -> UserMode ));*/
 
     break;
 /*
@@ -2513,24 +2513,24 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
   case ICVVME_wait:
 
       /* Check channel number and Set up Handle pointer */
-    if (L_Chan == 0) {		/* no such function on channel 0 */
+    if (Chan == 0) {		/* no such function on channel 0 */
       pseterr (EACCES);
       return (SYSERR);
     };
-    if (L_Chan >= ICVVME_IcvChan01 && L_Chan <= ICVVME_MaxChan) {
-      L_UHdl = &(s -> ICVHdl[L_Chan]);/* LAM handle */
+    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+      UHdl = &(s -> ICVHdl[Chan]);/* LAM handle */
     }
     else {
       pseterr (ENODEV);
       return (SYSERR);
     }
-    if (L_UHdl == NULL) {		/* system corruption !!! ...*/
+    if (UHdl == NULL) {		/* system corruption !!! ...*/
       pseterr (EWOULDBLOCK);
       return (SYSERR);
     }
-    L_UHdl->UserMode |= ((short)icv_bitwait); /* set flag wait */
+    UHdl->UserMode |= ((short)icv_bitwait); /* set flag wait */
 
-/*    DBG (("icv196:ioctl:set wait flag UserMode now= %lx \n", L_UHdl -> UserMode ));*/
+/*    DBG (("icv196:ioctl:set wait flag UserMode now= %lx \n", UHdl -> UserMode ));*/
 
     break;
 
@@ -2544,30 +2544,30 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
 
 
       /* Check channel number and Set up Handle pointer */
-      if (L_Chan == 0) {		/* no such function on channel 0 */
+      if (Chan == 0) {		/* no such function on channel 0 */
 	pseterr (EACCES);
 	return (SYSERR);
       };
-    if (L_Chan >= ICVVME_IcvChan01 && L_Chan <= ICVVME_MaxChan) {
-      L_UHdl = &(s -> ICVHdl[L_Chan]);/* LAM handle */
+    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+      UHdl = &(s -> ICVHdl[Chan]);/* LAM handle */
     }
     else {
       pseterr (ENODEV);
       return (SYSERR);
     }
-    if (L_UHdl == NULL) {		/* system corruption */
+    if (UHdl == NULL) {		/* system corruption */
       pseterr (EWOULDBLOCK);
       return (SYSERR);
     }
     if ( ( *( (int *) arg)) < 0 ){
       pseterr (EINVAL); return (SYSERR);
     }
-    Timeout = L_UHdl -> WaitingTO; /* current value     */
+    Timeout = UHdl -> WaitingTO; /* current value     */
     Iw1 = *( (int *) arg);	    /* new value         */
-    L_UHdl -> WaitingTO =  Iw1;    /* set T.O.          */
+    UHdl -> WaitingTO =  Iw1;    /* set T.O.          */
     *( (int *) arg) = Timeout;    /* return old value  */
 
-/*      DBG (("icv196:setTO: for chanel= %d oldTO= %d newTO= %d in 1/100 s\n",L_Chan, Timeout, Iw1 ));*/
+/*      DBG (("icv196:setTO: for chanel= %d oldTO= %d newTO= %d in 1/100 s\n",Chan, Timeout, Iw1 ));*/
 
     break;
 /* ICVVME_setTO */
@@ -2578,105 +2578,105 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
 
   case ICVVME_connect:
 
-    L_err = 0;
+    err = 0;
       /* Check channel number and Set up Handle pointer */
-    if (L_Chan == 0) {		/* no connect on channel 0 */
+    if (Chan == 0) {		/* no connect on channel 0 */
       pseterr (EACCES); return (SYSERR);
     };
-    if (L_Chan >= ICVVME_IcvChan01 && L_Chan <= ICVVME_MaxChan) {
-      L_UHdl = &(s -> ICVHdl[L_Chan]);
+    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+      UHdl = &(s -> ICVHdl[Chan]);
     }
     else {
       pseterr (ENODEV);  return (SYSERR);
     };
-    /* DBG (("icv196:connect: Entry:UHdl= %lx \n", (long) L_UHdl));*/
+    /* DBG (("icv196:connect: Entry:UHdl= %lx \n", (long) UHdl));*/
 
-    if (L_UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
+    if (UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
       pseterr (EWOULDBLOCK);
       return (SYSERR);
     }
 
 		/* Check parameters and Set up environnement */
 
-    L_group = ((struct icv196T_connect *) arg) -> source.field.group;
-    L_index = ((struct icv196T_connect *) arg) -> source.field.index;
-    L_mode = ((struct icv196T_connect *) arg) -> mode;
-   /* DBG (("icv196:connect: param = group = %d Line %d Mode %d \n", L_group, L_index, L_mode));   */
-    if (L_mode & (~(icv_cumul | icv_disable))){
-/*      DBG (("icv:connect: mode out of range on channel %d\n", L_Chan));*/
+    group = ((struct icv196T_connect *) arg) -> source.field.group;
+    index = ((struct icv196T_connect *) arg) -> source.field.index;
+    mode = ((struct icv196T_connect *) arg) -> mode;
+   /* DBG (("icv196:connect: param = group = %d Line %d Mode %d \n", group, index, mode));   */
+    if (mode & (~(icv_cumul | icv_disable))){
+/*      DBG (("icv:connect: mode out of range on channel %d\n", Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
 
-    if (s -> ModuleCtxtDir[L_group] == NULL) {
+    if (s -> ModuleCtxtDir[group] == NULL) {
       pseterr (EACCES);
       return (SYSERR);
     }
 
-   if ((L_group < 0) || (L_group > (icv_ModuleNb - 1))) {
-/*      DBG (("icv:connect: module group= %d out of range on channel %d\n",L_group, L_Chan));*/
+   if ((group < 0) || (group > (icv_ModuleNb - 1))) {
+/*      DBG (("icv:connect: module group= %d out of range on channel %d\n",group, Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
-    if ((L_index < 0) || (L_index > (icv_LineNb -1) )) {
-/*      DBG (("icv:connect: line index= %d out of range on channel %d\n",L_index,  L_Chan));*/
+    if ((index < 0) || (index > (icv_LineNb -1) )) {
+/*      DBG (("icv:connect: line index= %d out of range on channel %d\n",index,  Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
            /* set up Logical line handle pointer */
-    L_LogIx = CnvrtUserLine( (char) L_group,(char) L_index );
+    LogIx = CnvrtUserLine( (char) group,(char) index );
 
-    /* DBG (("icv196:connect: request on group %d index %d, associated  log line %d\n",L_group, L_index, L_LogIx )); */
+    /* DBG (("icv196:connect: request on group %d index %d, associated  log line %d\n",group, index, LogIx )); */
 
-    if (L_LogIx < 0 || L_LogIx > ICV_LogLineNb){
-/*      DBG (("icv196:connect: LogIndex outside [0..%d] for chanel %d\n", ICV_LogLineNb, L_Chan ));*/
+    if (LogIx < 0 || LogIx > ICV_LogLineNb){
+/*      DBG (("icv196:connect: LogIndex outside [0..%d] for chanel %d\n", ICV_LogLineNb, Chan ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
-    if ((L_LHdl = s -> LineHdlDir[L_LogIx]) == NULL){ /* Line not in config*/
-/*      DBG (("icv196:connect: %d no such log line in config, for chanel %d \n", L_LogIx, L_Chan ));*/
+    if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /* Line not in config*/
+/*      DBG (("icv196:connect: %d no such log line in config, for chanel %d \n", LogIx, Chan ));*/
       pseterr (EINVAL); return (SYSERR);
     }
-    L_LCtxt = L_LHdl -> LineCtxt;
-    if ( (L_LCtxt -> LHdl) != L_LHdl){
-/*      DBG (("icv196:connect: computed LHdl $%lx and LLCtxt -> LHdl $%lx mismatch \n", L_LHdl, (L_LCtxt -> LHdl) ));*/
+    LCtxt = LHdl -> LineCtxt;
+    if ( (LCtxt -> LHdl) != LHdl){
+/*      DBG (("icv196:connect: computed LHdl $%lx and LLCtxt -> LHdl $%lx mismatch \n", LHdl, (LCtxt -> LHdl) ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 /*  DBG (("icv196:connect: checking if connection already exists\n")); */
-    if  ( TESTBIT(L_UHdl -> Cmap, L_LogIx) ) {
-      if (L_LCtxt -> Reset) {
-	enable_Line(L_LCtxt);
-/*      DBG (("icv196:connect: line %d enabled\n", L_Chan));            */
+    if  ( TESTBIT(UHdl -> Cmap, LogIx) ) {
+      if (LCtxt -> Reset) {
+	enable_Line(LCtxt);
+/*      DBG (("icv196:connect: line %d enabled\n", Chan));            */
       }
-      L_err = 0;
-/*      DBG (( "icv196:connect: already connected group = %d index = %d Logline =%d\n", L_group, L_index, L_LogIx));*/
+      err = 0;
+/*      DBG (( "icv196:connect: already connected group = %d index = %d Logline =%d\n", group, index, LogIx));*/
       break;			/* already connected ok --->  exit */
     }
-    L_SubsMode = 0;		/* default mode requested */
-    if (L_mode & icv_cumul)
-      L_SubsMode = icv_cumulative;
+    SubsMode = 0;		/* default mode requested */
+    if (mode & icv_cumul)
+      SubsMode = icv_cumulative;
 
-    if (L_mode & icv_disable)
-      L_LCtxt -> intmod = icv_ReenableOff;
+    if (mode & icv_disable)
+      LCtxt -> intmod = icv_ReenableOff;
 
-    L_MCtxt = L_LCtxt -> MCtxt;
+    MCtxt = LCtxt -> MCtxt;
 
-    L_Type = L_LCtxt -> Type;
-    L_Line = L_LCtxt -> Line;
+    Type = LCtxt -> Type;
+    Line = LCtxt -> Line;
 
        /* Reinit module if setting lost !!!!
 	  beware !,  all lines loose their current state */
 
-    icvModule_Reinit(L_MCtxt, L_Line);
+    icvModule_Reinit(MCtxt, Line);
 
-    if ((L_Subs = LineBooking(L_UHdl, L_LHdl, L_SubsMode)) == NULL){
-/*      DBG (("icv196:connect: booking unsuccessfull UHdl $%lx LHdl $%lx\n", L_UHdl, L_LHdl ));*/
+    if ((Subs = LineBooking(UHdl, LHdl, SubsMode)) == NULL){
+/*      DBG (("icv196:connect: booking unsuccessfull UHdl $%lx LHdl $%lx\n", UHdl, LHdl ));*/
       pseterr (EUSERS); return (SYSERR);
     }
 
-/*    DBG(("icv196 connect chanel= %d on group = %d, index = %d, mode %d \n", L_Chan, L_group, L_index, L_mode));*/
+/*    DBG(("icv196 connect chanel= %d on group = %d, index = %d, mode %d \n", Chan, group, index, mode));*/
 
 
       /*  enable line interrupt */
-    if (L_LCtxt -> status == icv_Disabled)
-	enable_Line(L_LCtxt);
-    L_LCtxt -> loc_count = 0;
+    if (LCtxt -> status == icv_Disabled)
+	enable_Line(LCtxt);
+    LCtxt -> loc_count = 0;
 
     break;
 
@@ -2689,58 +2689,58 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
 
   case ICVVME_disconnect:
 
-    L_err = 0;
+    err = 0;
       /* Check channel number and Set up Handle pointer */
-    if (L_Chan == 0) {		/* no disconnect on channel 0 */
+    if (Chan == 0) {		/* no disconnect on channel 0 */
       pseterr (EACCES); return (SYSERR);
     };
-    if (L_Chan >= ICVVME_IcvChan01 && L_Chan <= ICVVME_MaxChan) {
-      L_UHdl = &(s -> ICVHdl[L_Chan]);
+    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+      UHdl = &(s -> ICVHdl[Chan]);
     }
     else {
       pseterr (ENODEV);  return (SYSERR);
     };
-    if (L_UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
+    if (UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
       pseterr (EWOULDBLOCK);
       return (SYSERR);
     };
                  /* Check parameters and Set up environnement */
 
-    L_group = ((struct icv196T_connect *) arg) -> source.field.group;
-    L_index = ((struct icv196T_connect *) arg) -> source.field.index;
+    group = ((struct icv196T_connect *) arg) -> source.field.group;
+    index = ((struct icv196T_connect *) arg) -> source.field.index;
 
-    if (s -> ModuleCtxtDir[L_group] == NULL) {
+    if (s -> ModuleCtxtDir[group] == NULL) {
       pseterr (EACCES);
       return (SYSERR);
     }
 
 
-/*      DBG (("icv196:disconnect:chanel= %d from group = %lx, index = %lx \n", L_Chan,(long) L_group, (long) L_index));*/
+/*      DBG (("icv196:disconnect:chanel= %d from group = %lx, index = %lx \n", Chan,(long) group, (long) index));*/
 
-    if ((L_group < 0) || (L_group >= icv_ModuleNb)) {
+    if ((group < 0) || (group >= icv_ModuleNb)) {
       pseterr (EINVAL); return (SYSERR);
     }
-    if ((L_index < 0) || (L_index >= icv_LineNb)) {
+    if ((index < 0) || (index >= icv_LineNb)) {
       pseterr (EINVAL); return (SYSERR);
     }
-    L_LogIx = CnvrtUserLine( (char) L_group, (char) L_index);
+    LogIx = CnvrtUserLine( (char) group, (char) index);
            /* set up Logical line handle pointer */
-    if ((L_LHdl = s -> LineHdlDir[L_LogIx]) == NULL){ /*log line not affected*/
+    if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /*log line not affected*/
       pseterr (EINVAL); return (SYSERR);
     }
-    if ( !(TESTBIT(L_UHdl -> Cmap, L_LogIx)) ){ /* non connected */
+    if ( !(TESTBIT(UHdl -> Cmap, LogIx)) ){ /* non connected */
       pseterr (ENOTCONN); return (SYSERR);
     }
-    if ((L_Subs = LineUnBooking(L_UHdl, L_LHdl)) == NULL){
+    if ((Subs = LineUnBooking(UHdl, LHdl)) == NULL){
       pseterr (ENOTCONN); return (SYSERR);
     }
 			/* Set up line context */
-    L_LCtxt = L_LHdl -> LineCtxt;
+    LCtxt = LHdl -> LineCtxt;
 
     /* disable the corresponding line */
-    if (L_LHdl -> SubscriberCurNb == 0){
-      disable_Line(L_LCtxt);
-      L_LCtxt -> loc_count = -1;
+    if (LHdl -> SubscriberCurNb == 0){
+      disable_Line(LCtxt);
+      LCtxt -> loc_count = -1;
     }
 
     break;
@@ -2757,28 +2757,28 @@ int icv196ioctl(struct icv196T_s *s, struct file *f, int fct, char *arg)
     return (SYSERR);
 
   }
-  return (L_err);
+  return (err);
 }
 
 
 int icv196select(struct icv196T_s *s, struct file *f, int which, struct sel *se)
 {
-  int   L_Chan;
-  register struct T_UserHdl *L_UHdl;
+  int   Chan;
+  register struct T_UserHdl *UHdl;
 
-  L_Chan = minordev (f -> dev);
-  if (L_Chan == 0) {			/* no select on channel 0 */
+  Chan = minordev (f -> dev);
+  if (Chan == 0) {			/* no select on channel 0 */
     pseterr (EACCES);
     return (SYSERR);
   };
-  if (L_Chan >= ICVVME_IcvChan01 && L_Chan <= ICVVME_MaxChan) {
-    L_UHdl = &s -> ICVHdl[L_Chan];	/* general handle */
+  if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+    UHdl = &s -> ICVHdl[Chan];	/* general handle */
   }
-/*  DBG (("icv196:select:Entry: on channel %lx which = %lx \n", L_Chan, which ));*/
+/*  DBG (("icv196:select:Entry: on channel %lx which = %lx \n", Chan, which ));*/
   switch (which) {
     case SREAD:
-      se -> iosem = &(L_UHdl -> Ring.Evtsem);
-      se -> sel_sem = &(L_UHdl -> sel_sem);
+      se -> iosem = &(UHdl -> Ring.Evtsem);
+      se -> sel_sem = &(UHdl -> sel_sem);
       break;
     case SWRITE:
       pseterr (EACCES);
@@ -2804,23 +2804,23 @@ static int icv196vmeisr(void *arg)
 {
     struct icv196T_s *s;
     int m;
-    struct T_UserHdl    *L_UHdl;
-    struct T_LineCtxt   *L_LCtxt;
-    struct T_LogLineHdl *L_LHdl;
-    struct T_Subscriber *L_Subs;
-    struct icvT_RingAtom L_Atom;
-    struct icvT_RingAtom *L_RingAtom;
+    struct T_UserHdl    *UHdl;
+    struct T_LineCtxt   *LCtxt;
+    struct T_LogLineHdl *LHdl;
+    struct T_Subscriber *Subs;
+    struct icvT_RingAtom Atom;
+    struct icvT_RingAtom *RingAtom;
     int i,j, ns, cs;
-    short L_count;
-    unsigned short L_Sw1;
-    unsigned char     *L_CtrStat;
+    short count;
+    unsigned short Sw1;
+    unsigned char     *CtrStat;
     unsigned char   mdev, mask, status;
     static unsigned short input[16];
     struct T_ModuleCtxt *MCtxt = (struct T_ModuleCtxt *)arg;
 
     s = MCtxt -> s;                       /* common static area */
     m = MCtxt -> Module;
-    L_CtrStat = MCtxt -> VME_StatusCtrl;
+    CtrStat = MCtxt -> VME_StatusCtrl;
     /*DBX (("icv196:isr: s=$%lx MCtxt= $%lx MCtxt.Module= =$%d \n", s, (long)MCtxt,(long)m ));*/
 
     if ((m <0) || ( m > icv_ModuleNb)){
@@ -2838,20 +2838,20 @@ static int icv196vmeisr(void *arg)
 	MCtxt -> startflag = 1;/*reset the input array the first */
     }                              /*time the routine is entered     */
 
-    status = *L_CtrStat;        /*force board to defined state    */
+    status = *CtrStat;        /*force board to defined state    */
       PURGE_CPUPIPELINE;
-    *L_CtrStat = CSt_Areg;
+    *CtrStat = CSt_Areg;
       PURGE_CPUPIPELINE;
-    status = *L_CtrStat;        /*read portA's status register    */
+    status = *CtrStat;        /*read portA's status register    */
       PURGE_CPUPIPELINE;
     /*DBX(("CSt_Areg = 0x%x\n", status));*/
 
     if (status & CoSt_Ius) {     /*did portA cause the interrupt ? */
 
 	mask = 1;
-	*L_CtrStat = Data_Areg;
+	*CtrStat = Data_Areg;
           PURGE_CPUPIPELINE;
-	mdev = *L_CtrStat;      /*read portA's data register      */
+	mdev = *CtrStat;      /*read portA's data register      */
           PURGE_CPUPIPELINE;
 	/*DBG(("Icv196isr:Data_Areg = 0x%x\n", mdev));*/
 
@@ -2863,18 +2863,18 @@ static int icv196vmeisr(void *arg)
 	}
     }
 
-    *L_CtrStat = CSt_Breg;
+    *CtrStat = CSt_Breg;
       PURGE_CPUPIPELINE;
-    status = *L_CtrStat;        /*read portB's status register    */
+    status = *CtrStat;        /*read portB's status register    */
       PURGE_CPUPIPELINE;
     /*DBX(("CSt_Breg = 0x%x\n", status));*/
 
     if (status & CoSt_Ius) {     /*did portB cause the interrupt ? */
 
 	mask = 1;
-	*L_CtrStat = Data_Breg;
+	*CtrStat = Data_Breg;
           PURGE_CPUPIPELINE;
-	mdev = *L_CtrStat;      /*read portB's data register      */
+	mdev = *CtrStat;      /*read portB's data register      */
           PURGE_CPUPIPELINE;
 	/*DBX(("Data_Breg = 0x%x\n", mdev));*/
 
@@ -2890,70 +2890,70 @@ static int icv196vmeisr(void *arg)
 			/* active line */
 	    /*DBX(("icv:isr:mdev = 0x%x\n", i + 1));*/
 	    input[i] = 0;
-	    L_LCtxt = &(MCtxt -> LineCtxt[i]);
-	    L_LCtxt -> loc_count++;
+	    LCtxt = &(MCtxt -> LineCtxt[i]);
+	    LCtxt -> loc_count++;
 
-	    L_LHdl = L_LCtxt -> LHdl;
+	    LHdl = LCtxt -> LHdl;
 		      /* Build the Event */
-	    L_Atom.Evt.All = L_LHdl -> Event_Pattern.All;
+	    Atom.Evt.All = LHdl -> Event_Pattern.All;
 			     /*  scan the subscriber table to send them the event */
-	    ns = L_LHdl -> SubscriberMxNb;
-	    cs = L_LHdl -> SubscriberCurNb;
-	    L_Subs= &(L_LHdl -> Subscriber[0]);
-	    for (j= 0 ; ((j < ns) && (cs >0) ) ; j++, L_Subs++){
+	    ns = LHdl -> SubscriberMxNb;
+	    cs = LHdl -> SubscriberCurNb;
+	    Subs= &(LHdl -> Subscriber[0]);
+	    for (j= 0 ; ((j < ns) && (cs >0) ) ; j++, Subs++){
 
-	      if (L_Subs -> Ring == NULL) /* subscriber passive */
+	      if (Subs -> Ring == NULL) /* subscriber passive */
 		continue;
 	      cs--;   /* nb of subbscribers to find out in Subs table*/
-	      L_UHdl = (L_Subs -> Ring) -> UHdl;
-	      /*DBX(("icv:isr:UHdl=$%x j= %d  Subs=$%x\n", L_UHdl, j, L_Subs));*/
-	      /*DBX(("*Ring$%x Subs->Counter$%x\n",L_Subs->Ring,L_Subs->EvtCounter));*/
+	      UHdl = (Subs -> Ring) -> UHdl;
+	      /*DBX(("icv:isr:UHdl=$%x j= %d  Subs=$%x\n", UHdl, j, Subs));*/
+	      /*DBX(("*Ring$%x Subs->Counter$%x\n",Subs->Ring,Subs->EvtCounter));*/
 
-	      if (( L_count = L_Subs -> EvtCounter) != (-1)){
-		L_Sw1 = (unsigned short) L_count;
-		L_Sw1++;
-		if ( ( (short)L_Sw1 ) <0 )
-		  L_Sw1=1;
+	      if (( count = Subs -> EvtCounter) != (-1)){
+		Sw1 = (unsigned short) count;
+		Sw1++;
+		if ( ( (short)Sw1 ) <0 )
+		  Sw1=1;
 
-		L_Subs -> EvtCounter = L_Sw1; /* keep counter positive */
+		Subs -> EvtCounter = Sw1; /* keep counter positive */
 	      }
 		      /* give the event according to subscriber status  */
-	      if (L_Subs -> mode  == icv_queuleuleu){ /* mode a la queueleuleu*/
+	      if (Subs -> mode  == icv_queuleuleu){ /* mode a la queueleuleu*/
 
-		L_Atom.Subscriber = NULL;
-		L_Atom.Evt.Word.w1  = L_Sw1;     /* set up event counter */
-		L_RingAtom = PushTo_Ring(L_Subs -> Ring, &L_Atom);
+		Atom.Subscriber = NULL;
+		Atom.Evt.Word.w1  = Sw1;     /* set up event counter */
+		RingAtom = PushTo_Ring(Subs -> Ring, &Atom);
 	      }
 	      else{                                     /* cumulative mode */
-		if (L_count <0){      /* no event in Ring */
+		if (count <0){      /* no event in Ring */
 
-		  L_Subs -> EvtCounter = 1; /* init counter of Subscriber */
-		  L_Atom.Subscriber = L_Subs; /* Link event to subscriber */
-		  L_Atom.Evt.Word.w1  = 1;     /* set up event counter */
-		  L_RingAtom = PushTo_Ring(L_Subs -> Ring, &L_Atom);
-		  L_Subs -> CumulEvt = L_RingAtom; /* link to cumulative event, used to disconnect*/
+		  Subs -> EvtCounter = 1; /* init counter of Subscriber */
+		  Atom.Subscriber = Subs; /* Link event to subscriber */
+		  Atom.Evt.Word.w1  = 1;     /* set up event counter */
+		  RingAtom = PushTo_Ring(Subs -> Ring, &Atom);
+		  Subs -> CumulEvt = RingAtom; /* link to cumulative event, used to disconnect*/
 		}
 	      }
 	      /* process case user stuck on select semaphore  */
-	      if (L_UHdl -> sel_sem)
-		ssignal(L_UHdl -> sel_sem);
+	      if (UHdl -> sel_sem)
+		ssignal(UHdl -> sel_sem);
 
 	    } /* for/subscriber */
 	    /* Enable the line before leaving */
 
-	    if (L_LCtxt -> intmod == icv_ReenableOff )
-	      disable_Line(L_LCtxt);
+	    if (LCtxt -> intmod == icv_ReenableOff )
+	      disable_Line(LCtxt);
 	    /*break;  */
 	} /* if line active  */
 
     } /*  for / line */
-    *L_CtrStat = CSt_Breg;       /*clear IP bit on portB  */
+    *CtrStat = CSt_Breg;       /*clear IP bit on portB  */
       PURGE_CPUPIPELINE;
-    *L_CtrStat = CoSt_ClIpIus;
+    *CtrStat = CoSt_ClIpIus;
       PURGE_CPUPIPELINE;
-    *L_CtrStat = CSt_Areg;       /*clear IP bit on portA  */
+    *CtrStat = CSt_Areg;       /*clear IP bit on portA  */
       PURGE_CPUPIPELINE;
-    *L_CtrStat = CoSt_ClIpIus;
+    *CtrStat = CoSt_ClIpIus;
       PURGE_CPUPIPELINE;
 
     /*DBX (("icv:isr: end\n"));*/
