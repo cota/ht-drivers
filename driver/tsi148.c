@@ -1157,22 +1157,6 @@ static int tsi148_dma_setup_chain(struct dma_channel *chan,
 			/* We're at the end of the list */
 			curr->dnlau = 0;
 			curr->dnlal = cpu_to_be32(TSI148_LCSR_DNLAL_LLA);
-#ifdef DEBUG_DMA
-			printk(KERN_DEBUG PFX "descriptor %d @%p\n", i, curr);
-			printk(KERN_DEBUG PFX "  src : %08x:%08x  %08x\n",
-			       be32_to_cpu(curr->dsau), be32_to_cpu(curr->dsal),
-			       be32_to_cpu(curr->dsat));
-			printk(KERN_DEBUG PFX "  dst : %08x:%08x  %08x\n",
-			       be32_to_cpu(curr->ddau), be32_to_cpu(curr->ddal),
-			       be32_to_cpu(curr->ddat));
-			printk(KERN_DEBUG PFX "  cnt : %08x\n",
-			       be32_to_cpu(curr->dcnt));
-			printk(KERN_DEBUG PFX "  nxt : %08x:%08x\n",
-			       be32_to_cpu(curr->dnlau),
-			       be32_to_cpu(curr->dnlal));
-#endif
-
-			break;
 		}
 
 #ifdef DEBUG_DMA
