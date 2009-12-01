@@ -1029,6 +1029,32 @@ static int tsi148_dma_setup_direct(struct dma_channel *chan,
 	return 0;
 }
 
+static int
+hwdesc_init(struct dma_channel *chan, dma_addr_t *phys,
+	    struct tsi148_dma_desc **virt, struct hw_desc_entry **hw_desc)
+{
+	struct hw_desc_entry *entry;
+
+	/* Allocate a HW DMA descriptor from the pool */
+	*virt = pci_pool_alloc(dma_desc_pool, GFP_KERNEL, phys);
+	if (!*virt)
+		return -ENOMEM;
+
+	/* keep the virt. and phys. addresses of the descriptor in a list */
+	*hw_desc = kmalloc(sizeof(struct hw_desc_entry), GFP_KERNEL);
+	if (!*hw_desc) {
+		pci_pool_free(dma_desc_pool, *virt, *phys);
+		return -ENOMEM;
+	}
+
+	entry = *hw_desc;
+	entry->va = *virt;
+	entry->phys = *phys;
+	list_add_tail(&entry->list, &chan->hw_desc_list);
+
+	return 0;
+}
+
 /**
  * tsi148_dma_setup_chain() - Setup the linked list of TSI148 DMA descriptors
  * @chan: DMA channel descriptor
@@ -1045,35 +1071,14 @@ static int tsi148_dma_setup_chain(struct dma_channel *chan,
 	struct vme_dma *desc = &chan->desc;
 	dma_addr_t phys_start;
 	dma_addr_t phys_next;
-	struct tsi148_dma_desc *start;
-	struct tsi148_dma_desc *curr;
-	struct tsi148_dma_desc *next;
-	struct hw_desc_entry *hw_desc;
+	struct tsi148_dma_desc *curr = NULL;
+	struct tsi148_dma_desc *next = NULL;
+	struct hw_desc_entry *hw_desc = NULL;
 	unsigned int vme_addr;
 
-	/* Allocate a HW DMA descriptor from the pool */
-	start = pci_pool_alloc(dma_desc_pool, GFP_KERNEL, &phys_start);
-
-	if (!start)
-		return -ENOMEM;
-
-	curr = start;
-
-	/*
-	 * Save the virtual and physical addresses of the DMA descriptor
-	 * for later freeing.
-	 */
-	hw_desc = kmalloc(sizeof(struct hw_desc_entry), GFP_KERNEL);
-
-	if (!hw_desc) {
-		pci_pool_free(dma_desc_pool, start, phys_start);
-		return -ENOMEM;
-	}
-
-	hw_desc->va = start;
-	hw_desc->phys = phys_start;
-
-	list_add_tail(&hw_desc->list, &chan->hw_desc_list);
+	rc = hwdesc_init(chan, &phys_start, &curr, &hw_desc);
+	if (rc)
+		return rc;
 
 	switch (desc->dir) {
 	case VME_DMA_TO_DEVICE: /* src = PCI - dst = VME */
@@ -1141,37 +1146,13 @@ static int tsi148_dma_setup_chain(struct dma_channel *chan,
 		curr->ddat = cpu_to_be32(ddat);
 
 		if (i < (chan->sg_mapped - 1)) {
-			/*
-			 * Allocate a new descriptor and link it into the list
-			 */
-			next = pci_pool_alloc(dma_desc_pool, GFP_KERNEL,
-					      &phys_next);
-			if (!next) {
-				rc = -ENOMEM;
+			rc = hwdesc_init(chan, &phys_next, &next, &hw_desc);
+			if (rc)
 				goto out_free;
-			}
 
 			curr->dnlau = 0;
 			curr->dnlal = cpu_to_be32(phys_next &
 						  TSI148_LCSR_DNLAL_DNLAL_M);
-
-			/*
-			 * Save the virtual and physical addresses of the DMA
-			 * descriptor for later freeing.
-			 */
-			hw_desc = kmalloc(sizeof(struct hw_desc_entry),
-					  GFP_KERNEL);
-
-			if (!hw_desc) {
-				pci_pool_free(dma_desc_pool, next, phys_next);
-				rc = -ENOMEM;
-				goto out_free;
-			}
-
-			hw_desc->va = next;
-			hw_desc->phys = phys_next;
-
-			list_add_tail(&hw_desc->list, &chan->hw_desc_list);
 		} else {
 			/* We're at the end of the list */
 			curr->dnlau = 0;
