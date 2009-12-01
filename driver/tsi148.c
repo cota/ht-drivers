@@ -1029,6 +1029,20 @@ static int tsi148_dma_setup_direct(struct dma_channel *chan,
 	return 0;
 }
 
+static inline int get_vmeaddr(struct vme_dma *desc, unsigned int *vme_addr)
+{
+	switch (desc->dir) {
+	case VME_DMA_TO_DEVICE: /* src = PCI - dst = VME */
+		*vme_addr = desc->dst.addrl;
+		return 0;
+	case VME_DMA_FROM_DEVICE: /* src = VME - dst = PCI */
+		*vme_addr = desc->src.addrl;
+		return 0;
+	default:
+		return -EINVAL;
+	}
+}
+
 static int
 hwdesc_init(struct dma_channel *chan, dma_addr_t *phys,
 	    struct tsi148_dma_desc **virt, struct hw_desc_entry **hw_desc)
@@ -1080,19 +1094,9 @@ static int tsi148_dma_setup_chain(struct dma_channel *chan,
 	if (rc)
 		return rc;
 
-	switch (desc->dir) {
-	case VME_DMA_TO_DEVICE: /* src = PCI - dst = VME */
-		vme_addr = desc->dst.addrl;
-		break;
-
-	case VME_DMA_FROM_DEVICE: /* src = VME - dst = PCI */
-		vme_addr = desc->src.addrl;
-		break;
-
-	default:
-		rc = -EINVAL;
+	rc = get_vmeaddr(desc, &vme_addr);
+	if (rc)
 		goto out_free;
-	}
 
 	/*
 	 * Setup the hardware descriptors for the link list. Beware that the
@@ -1125,19 +1129,9 @@ static int tsi148_dma_setup_chain(struct dma_channel *chan,
 
 		/* For non incrementing DMA, reset the VME address */
 		if (desc->novmeinc) {
-			switch (desc->dir) {
-			case VME_DMA_TO_DEVICE:
-				vme_addr = desc->dst.addrl;
-				break;
-
-			case VME_DMA_FROM_DEVICE:
-				vme_addr = desc->src.addrl;
-				break;
-
-			default:
-				rc = -EINVAL;
+			rc = get_vmeaddr(desc, &vme_addr);
+			if (rc)
 				goto out_free;
-			}
 		} else {
 			vme_addr += sg_dma_len(sg);
 		}
