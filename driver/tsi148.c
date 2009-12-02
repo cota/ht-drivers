@@ -1112,6 +1112,26 @@ tsi148_fill_dma_desc(struct dma_channel *chan, struct tsi148_dma_desc *tsi,
 	return 0;
 }
 
+#ifdef DEBUG_DMA
+static void tsi148_dma_debug_info(struct tsi148_dma_desc *tsi, int i)
+{
+	printk(KERN_DEBUG PFX "descriptor %d @%p\n", i, tsi);
+	printk(KERN_DEBUG PFX "  src : %08x:%08x  %08x\n",
+		be32_to_cpu(tsi->dsau), be32_to_cpu(tsi->dsal),
+		be32_to_cpu(tsi->dsat));
+	printk(KERN_DEBUG PFX "  dst : %08x:%08x  %08x\n",
+		be32_to_cpu(tsi->ddau), be32_to_cpu(tsi->ddal),
+		be32_to_cpu(tsi->ddat));
+	printk(KERN_DEBUG PFX "  cnt : %08x\n",	be32_to_cpu(tsi->dcnt));
+	printk(KERN_DEBUG PFX "  nxt : %08x:%08x\n",
+		be32_to_cpu(tsi->dnlau), be32_to_cpu(tsi->dnlal));
+}
+#else
+static void tsi148_dma_debug_info(struct tsi148_dma_desc *tsi, int i)
+{
+}
+#endif
+
 /**
  * tsi148_dma_setup_chain() - Setup the linked list of TSI148 DMA descriptors
  * @chan: DMA channel descriptor
@@ -1165,19 +1185,7 @@ static int tsi148_dma_setup_chain(struct dma_channel *chan,
 						  TSI148_LCSR_DNLAL_DNLAL_M);
 		}
 
-#ifdef DEBUG_DMA
-		printk(KERN_DEBUG PFX "descriptor %d @%p\n", i, curr);
-		printk(KERN_DEBUG PFX "  src : %08x:%08x  %08x\n",
-		       be32_to_cpu(curr->dsau), be32_to_cpu(curr->dsal),
-		       be32_to_cpu(curr->dsat));
-		printk(KERN_DEBUG PFX "  dst : %08x:%08x  %08x\n",
-		       be32_to_cpu(curr->ddau), be32_to_cpu(curr->ddal),
-		       be32_to_cpu(curr->ddat));
-		printk(KERN_DEBUG PFX "  cnt : %08x\n",
-		       be32_to_cpu(curr->dcnt));
-		printk(KERN_DEBUG PFX "  nxt : %08x:%08x\n",
-		       be32_to_cpu(curr->dnlau), be32_to_cpu(curr->dnlal));
-#endif
+		tsi148_dma_debug_info(curr, i);
 
 		curr = next;
 	}
