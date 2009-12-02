@@ -1069,6 +1069,49 @@ hwdesc_init(struct dma_channel *chan, dma_addr_t *phys,
 	return 0;
 }
 
+/*
+ * Setup the hardware descriptors for the link list.
+ * Beware that the fields have to be setup in big endian mode.
+ */
+static int
+tsi148_fill_dma_desc(struct dma_channel *chan, struct tsi148_dma_desc *tsi,
+		unsigned int vme_addr, dma_addr_t dma_addr, unsigned int len,
+		unsigned int dsat, unsigned int ddat)
+{
+	struct vme_dma *desc = &chan->desc;
+
+	/* Setup the source and destination addresses */
+	tsi->dsau = 0;
+	tsi->ddau = 0;
+
+	switch (desc->dir) {
+	case VME_DMA_TO_DEVICE: /* src = PCI - dst = VME */
+		tsi->dsal = cpu_to_be32(dma_addr);
+		tsi->ddal = cpu_to_be32(vme_addr);
+		tsi->ddbs = cpu_to_be32(desc->dst.bcast_select);
+		break;
+
+	case VME_DMA_FROM_DEVICE: /* src = VME - dst = PCI */
+		tsi->dsal = cpu_to_be32(vme_addr);
+		tsi->ddal = cpu_to_be32(dma_addr);
+		tsi->ddbs = 0;
+		break;
+
+	default:
+		return -EINVAL;
+	}
+
+	tsi->dcnt = cpu_to_be32(len);
+	tsi->dsat = cpu_to_be32(dsat);
+	tsi->ddat = cpu_to_be32(ddat);
+
+	/* By default behave as if we were at the end of the list */
+	tsi->dnlau = 0;
+	tsi->dnlal = cpu_to_be32(TSI148_LCSR_DNLAL_LLA);
+
+	return 0;
+}
+
 /**
  * tsi148_dma_setup_chain() - Setup the linked list of TSI148 DMA descriptors
  * @chan: DMA channel descriptor
@@ -1098,34 +1141,10 @@ static int tsi148_dma_setup_chain(struct dma_channel *chan,
 	if (rc)
 		goto out_free;
 
-	/*
-	 * Setup the hardware descriptors for the link list. Beware that the
-	 * fields have to be setup in big endian mode.
-	 */
 	for_each_sg(chan->sgl, sg, chan->sg_mapped, i) {
-		/* Setup the source and destination addresses */
-		curr->dsau = 0;
-		curr->ddau = 0;
 
-		switch (desc->dir) {
-		case VME_DMA_TO_DEVICE: /* src = PCI - dst = VME */
-			curr->dsal = cpu_to_be32(sg_dma_address(sg));
-			curr->ddal = cpu_to_be32(vme_addr);
-			curr->ddbs = cpu_to_be32(desc->dst.bcast_select);
-			break;
-
-		case VME_DMA_FROM_DEVICE: /* src = VME - dst = PCI */
-			curr->dsal = cpu_to_be32(vme_addr);
-			curr->ddal = cpu_to_be32(sg_dma_address(sg));
-			curr->ddbs = 0;
-			break;
-
-		default:
-			rc = -EINVAL;
-			goto out_free;
-		}
-
-		curr->dcnt = cpu_to_be32(sg_dma_len(sg));
+		tsi148_fill_dma_desc(chan, curr, vme_addr, sg_dma_address(sg),
+				sg_dma_len(sg), dsat, ddat);
 
 		/* For non incrementing DMA, reset the VME address */
 		if (desc->novmeinc) {
@@ -1136,9 +1155,6 @@ static int tsi148_dma_setup_chain(struct dma_channel *chan,
 			vme_addr += sg_dma_len(sg);
 		}
 
-		curr->dsat = cpu_to_be32(dsat);
-		curr->ddat = cpu_to_be32(ddat);
-
 		if (i < (chan->sg_mapped - 1)) {
 			rc = hwdesc_init(chan, &phys_next, &next, &hw_desc);
 			if (rc)
@@ -1147,10 +1163,6 @@ static int tsi148_dma_setup_chain(struct dma_channel *chan,
 			curr->dnlau = 0;
 			curr->dnlal = cpu_to_be32(phys_next &
 						  TSI148_LCSR_DNLAL_DNLAL_M);
-		} else {
-			/* We're at the end of the list */
-			curr->dnlau = 0;
-			curr->dnlal = cpu_to_be32(TSI148_LCSR_DNLAL_LLA);
 		}
 
 #ifdef DEBUG_DMA
