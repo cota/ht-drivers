@@ -1132,6 +1132,37 @@ static void tsi148_dma_debug_info(struct tsi148_dma_desc *tsi, int i)
 }
 #endif
 
+static int
+tsi148_dma_link_add(struct dma_channel *chan, struct tsi148_dma_desc **virt,
+		unsigned int vme_addr, dma_addr_t dma_addr, unsigned int size,
+		int numpages, int index, unsigned int dsat, unsigned int ddat)
+
+{
+	struct hw_desc_entry *hw_desc = NULL;
+	struct tsi148_dma_desc *curr = *virt;
+	struct tsi148_dma_desc *next = NULL;
+	dma_addr_t phys_next;
+	int rc;
+
+	tsi148_fill_dma_desc(chan, curr, vme_addr, dma_addr, size, dsat, ddat);
+
+	/* all the pages except the last one get this */
+	if (index < numpages - 1) {
+		rc = hwdesc_init(chan, &phys_next, &next, &hw_desc);
+		if (rc)
+			return rc;
+
+		curr->dnlau = 0;
+		curr->dnlal = cpu_to_be32(phys_next &
+					TSI148_LCSR_DNLAL_DNLAL_M);
+	}
+
+	tsi148_dma_debug_info(curr, index);
+
+	*virt = next;
+	return 0;
+}
+
 /**
  * tsi148_dma_setup_chain() - Setup the linked list of TSI148 DMA descriptors
  * @chan: DMA channel descriptor
@@ -1147,11 +1178,11 @@ static int tsi148_dma_setup_chain(struct dma_channel *chan,
 	struct scatterlist *sg;
 	struct vme_dma *desc = &chan->desc;
 	dma_addr_t phys_start;
-	dma_addr_t phys_next;
 	struct tsi148_dma_desc *curr = NULL;
-	struct tsi148_dma_desc *next = NULL;
 	struct hw_desc_entry *hw_desc = NULL;
 	unsigned int vme_addr;
+	dma_addr_t dma_addr;
+	unsigned int len;
 
 	rc = hwdesc_init(chan, &phys_start, &curr, &hw_desc);
 	if (rc)
@@ -1162,32 +1193,16 @@ static int tsi148_dma_setup_chain(struct dma_channel *chan,
 		goto out_free;
 
 	for_each_sg(chan->sgl, sg, chan->sg_mapped, i) {
+		dma_addr = sg_dma_address(sg);
+		len = sg_dma_len(sg);
 
-		tsi148_fill_dma_desc(chan, curr, vme_addr, sg_dma_address(sg),
-				sg_dma_len(sg), dsat, ddat);
-
+		rc = tsi148_dma_link_add(chan, &curr, vme_addr, dma_addr, len,
+					chan->sg_mapped, i, dsat, ddat);
+		if (rc)
+			goto out_free;
 		/* For non incrementing DMA, reset the VME address */
-		if (desc->novmeinc) {
-			rc = get_vmeaddr(desc, &vme_addr);
-			if (rc)
-				goto out_free;
-		} else {
-			vme_addr += sg_dma_len(sg);
-		}
-
-		if (i < (chan->sg_mapped - 1)) {
-			rc = hwdesc_init(chan, &phys_next, &next, &hw_desc);
-			if (rc)
-				goto out_free;
-
-			curr->dnlau = 0;
-			curr->dnlal = cpu_to_be32(phys_next &
-						  TSI148_LCSR_DNLAL_DNLAL_M);
-		}
-
-		tsi148_dma_debug_info(curr, i);
-
-		curr = next;
+		if (!desc->novmeinc)
+			vme_addr += len;
 	}
 
 	/* Now program the DMA registers with the first entry in the list */
