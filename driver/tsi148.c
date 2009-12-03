@@ -1113,9 +1113,9 @@ tsi148_fill_dma_desc(struct dma_channel *chan, struct tsi148_dma_desc *tsi,
 }
 
 #ifdef DEBUG_DMA
-static void tsi148_dma_debug_info(struct tsi148_dma_desc *tsi, int i)
+static void tsi148_dma_debug_info(struct tsi148_dma_desc *tsi, int i, int j)
 {
-	printk(KERN_DEBUG PFX "descriptor %d @%p\n", i, tsi);
+	printk(KERN_DEBUG PFX "descriptor %d-%d @%p\n", i, j, tsi);
 	printk(KERN_DEBUG PFX "  src : %08x:%08x  %08x\n",
 		be32_to_cpu(tsi->dsau), be32_to_cpu(tsi->dsal),
 		be32_to_cpu(tsi->dsat));
@@ -1127,37 +1127,136 @@ static void tsi148_dma_debug_info(struct tsi148_dma_desc *tsi, int i)
 		be32_to_cpu(tsi->dnlau), be32_to_cpu(tsi->dnlal));
 }
 #else
-static void tsi148_dma_debug_info(struct tsi148_dma_desc *tsi, int i)
+static void tsi148_dma_debug_info(struct tsi148_dma_desc *tsi, int i, int j)
 {
 }
 #endif
 
+/*
+ * verbatim from the VME64 standard:
+ * 2.3.7 Block Transfer Capabilities, p. 42.
+ *	RULE 2.12a: D08(EO), D16, D32 and MD32 block transfer cycles
+ *	  (BLT) *MUST NOT* cross any 256 byte boundary.
+ * 	RULE 2.78: MBLT cycles *MUST NOT* cross any 2048 byte boundary.
+ */
+static inline int __tsi148_get_bshift(int am)
+{
+	switch (am) {
+	case VME_A64_MBLT:
+	case VME_A32_USER_MBLT:
+	case VME_A32_SUP_MBLT:
+	case VME_A24_USER_MBLT:
+	case VME_A24_SUP_MBLT:
+		return 11;
+	case VME_A64_BLT:
+	case VME_A32_USER_BLT:
+	case VME_A32_SUP_BLT:
+	case VME_A40_BLT:
+	case VME_A24_USER_BLT:
+	case VME_A24_SUP_BLT:
+		return 8;
+	default:
+		return 0;
+	}
+}
+
+static int tsi148_get_bshift(struct dma_channel *chan)
+{
+	struct vme_dma *desc = &chan->desc;
+	int am;
+
+	if (desc->dir == VME_DMA_FROM_DEVICE)
+		am = desc->src.am;
+	else
+		am = desc->dst.am;
+	return __tsi148_get_bshift(am);
+}
+
+/* Note: block sizes are always powers of 2 */
+static inline unsigned long tsi148_get_bsize(int bshift)
+{
+	return 1 << bshift;
+}
+
+static inline unsigned long tsi148_get_bmask(unsigned long bsize)
+{
+	return bsize - 1;
+}
+
+/*
+ * Add a certain chunk of data to the TSI DMA linked list.
+ * Note that this function deals with physical addresses on the
+ * host CPU and VME addresses on the VME bus.
+ */
 static int
 tsi148_dma_link_add(struct dma_channel *chan, struct tsi148_dma_desc **virt,
 		unsigned int vme_addr, dma_addr_t dma_addr, unsigned int size,
-		int numpages, int index, unsigned int dsat, unsigned int ddat)
+		int numpages, int index, int bshift, unsigned int dsat,
+		unsigned int ddat)
 
 {
 	struct hw_desc_entry *hw_desc = NULL;
 	struct tsi148_dma_desc *curr = *virt;
 	struct tsi148_dma_desc *next = NULL;
+	struct vme_dma *desc = &chan->desc;
 	dma_addr_t phys_next;
+	dma_addr_t dma;
+	dma_addr_t dma_end;
+	unsigned int vme;
+	unsigned int vme_end;
+	unsigned int len;
 	int rc;
+	int i = 0;
 
-	tsi148_fill_dma_desc(chan, curr, vme_addr, dma_addr, size, dsat, ddat);
+	vme = vme_addr;
+	vme_end = vme_addr + size;
 
-	/* all the pages except the last one get this */
-	if (index < numpages - 1) {
-		rc = hwdesc_init(chan, &phys_next, &next, &hw_desc);
-		if (rc)
-			return rc;
+	dma = dma_addr;
+	dma_end = dma_addr + size;
 
-		curr->dnlau = 0;
-		curr->dnlal = cpu_to_be32(phys_next &
-					TSI148_LCSR_DNLAL_DNLAL_M);
+	len = size;
+
+	while (vme < vme_end && dma < dma_end) {
+
+		/* calculate the length up to the next block boundary */
+		if (bshift) {
+			unsigned long bsize = tsi148_get_bsize(bshift);
+			unsigned long bmask = tsi148_get_bmask(bsize);
+			unsigned int unaligned = vme & bmask;
+
+			if (unaligned)
+				len = unaligned;
+			else
+				len = bsize;
+		}
+
+		/* check the VME block won't overflow */
+		if (dma + len > dma_end)
+			len = dma_end - dma;
+
+		tsi148_fill_dma_desc(chan, curr, vme, dma, len, dsat, ddat);
+
+		/* increment the VME address unless novmeinc is set */
+		if (!desc->novmeinc)
+			vme += len;
+		dma += len;
+
+		/* chain consecutive links together */
+		if (index < numpages - 1 || dma < dma_end) {
+			rc = hwdesc_init(chan, &phys_next, &next, &hw_desc);
+			if (rc)
+				return rc;
+
+			curr->dnlau = 0;
+			curr->dnlal = cpu_to_be32(phys_next &
+						TSI148_LCSR_DNLAL_DNLAL_M);
+		}
+
+		tsi148_dma_debug_info(curr, index, i);
+
+		curr = next;
+		i++;
 	}
-
-	tsi148_dma_debug_info(curr, index);
 
 	*virt = next;
 	return 0;
@@ -1183,6 +1282,7 @@ static int tsi148_dma_setup_chain(struct dma_channel *chan,
 	unsigned int vme_addr;
 	dma_addr_t dma_addr;
 	unsigned int len;
+	int bshift = tsi148_get_bshift(chan);
 
 	rc = hwdesc_init(chan, &phys_start, &curr, &hw_desc);
 	if (rc)
@@ -1197,7 +1297,7 @@ static int tsi148_dma_setup_chain(struct dma_channel *chan,
 		len = sg_dma_len(sg);
 
 		rc = tsi148_dma_link_add(chan, &curr, vme_addr, dma_addr, len,
-					chan->sg_mapped, i, dsat, ddat);
+					chan->sg_mapped, i, bshift, dsat, ddat);
 		if (rc)
 			goto out_free;
 		/* For non incrementing DMA, reset the VME address */
