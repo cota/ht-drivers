@@ -1196,7 +1196,7 @@ tsi148_dma_link_add(struct dma_channel *chan, struct tsi148_dma_desc **virt,
 
 {
 	struct hw_desc_entry *hw_desc = NULL;
-	struct tsi148_dma_desc *curr = *virt;
+	struct tsi148_dma_desc *curr;
 	struct tsi148_dma_desc *next = NULL;
 	struct vme_dma *desc = &chan->desc;
 	dma_addr_t phys_next;
@@ -1207,6 +1207,15 @@ tsi148_dma_link_add(struct dma_channel *chan, struct tsi148_dma_desc **virt,
 	unsigned int len;
 	int rc;
 	int i = 0;
+
+	/*
+	 * The function expects **virt to be already initialised.
+	 * When calling this function in a loop, it will always set virt
+	 * to point to the next link in the chain, or to NULL when the
+	 * current link is the last in the chain.
+	 */
+	BUG_ON(virt == NULL || *virt == NULL);
+	curr = *virt;
 
 	vme = vme_addr;
 	vme_end = vme_addr + size;
