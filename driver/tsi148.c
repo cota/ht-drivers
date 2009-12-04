@@ -1057,7 +1057,7 @@ hwdesc_init(struct dma_channel *chan, dma_addr_t *phys,
 	/* keep the virt. and phys. addresses of the descriptor in a list */
 	*hw_desc = kmalloc(sizeof(struct hw_desc_entry), GFP_KERNEL);
 	if (!*hw_desc) {
-		pci_pool_free(dma_desc_pool, virt, *phys);
+		pci_pool_free(dma_desc_pool, *virt, *phys);
 		return -ENOMEM;
 	}
 
