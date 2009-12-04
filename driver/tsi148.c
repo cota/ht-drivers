@@ -980,55 +980,6 @@ void tsi148_dma_free_chain(struct dma_channel *chan)
 	}
 }
 
-
-/**
- * tsi148_dma_setup_direct() - Setup the DMA for direct mode (single transfer)
- * @chan: DMA channel descriptor
- * @dsat: DMA source attributes
- * @ddat: DMA destination attributes
- *
- */
-static int tsi148_dma_setup_direct(struct dma_channel *chan,
-				   unsigned int dsat,
-				   unsigned int ddat)
-{
-	struct vme_dma *desc = &chan->desc;
-
-	struct tsi148_dma_desc *hw_desc = &chip->lcsr.dma[chan->num].dma_desc;
-	struct scatterlist *sg = chan->sgl;
-
-	/* Setup the source and destination addresses */
-	iowrite32be(0, &hw_desc->dsau);
-	iowrite32be(0, &hw_desc->ddau);
-
-	switch (desc->dir) {
-	case VME_DMA_TO_DEVICE: /* src = PCI - dst = VME */
-		iowrite32be(sg_dma_address(sg), &hw_desc->dsal);
-		iowrite32be(desc->dst.addrl, &hw_desc->ddal);
-		iowrite32be(desc->dst.bcast_select, &hw_desc->ddbs);
-		break;
-
-	case VME_DMA_FROM_DEVICE: /* src = VME - dst = PCI */
-		iowrite32be(desc->src.addrl, &hw_desc->dsal);
-		iowrite32be(sg_dma_address(sg), &hw_desc->ddal);
-		iowrite32be(0, &hw_desc->ddbs);
-		break;
-
-	default:
-		return -EINVAL;
-		break;
-	}
-
-	iowrite32be(sg_dma_len(sg), &hw_desc->dcnt);
-	iowrite32be(dsat, &hw_desc->dsat);
-	iowrite32be(ddat, &hw_desc->ddat);
-
-	iowrite32be(0, &hw_desc->dnlau);
-	iowrite32be(0, &hw_desc->dnlal);
-
-	return 0;
-}
-
 static inline int get_vmeaddr(struct vme_dma *desc, unsigned int *vme_addr)
 {
 	switch (desc->dir) {
@@ -1365,22 +1316,11 @@ int tsi148_dma_setup(struct dma_channel *chan)
 
 	dctl = rc;
 
-	/* Setup the MOD bit in dctl (direct or chained DMA transfer) */
-	if (chan->sg_mapped == 1) {
-		/* Go for a direct DMA transfer */
-		chan->chained = 0;
-		dctl |= TSI148_LCSR_DCTL_MOD;
-		iowrite32be(dctl, &chip->lcsr.dma[chan->num].dctl);
-
-		rc = tsi148_dma_setup_direct(chan, dsat, ddat);
-	} else {
-		/* Walk the sg list and setup the DMA chain */
-		chan->chained = 1;
-		dctl &= ~TSI148_LCSR_DCTL_MOD;
-		iowrite32be(dctl, &chip->lcsr.dma[chan->num].dctl);
-
-		rc = tsi148_dma_setup_chain(chan, dsat, ddat);
-	}
+	/* always use the scatter-gather list */
+	chan->chained = 1;
+	dctl &= ~TSI148_LCSR_DCTL_MOD;
+	iowrite32be(dctl, &chip->lcsr.dma[chan->num].dctl);
+	rc = tsi148_dma_setup_chain(chan, dsat, ddat);
 
 	return rc;
 }
