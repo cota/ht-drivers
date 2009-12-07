@@ -244,18 +244,6 @@ int vme_do_dma(struct vme_dma *desc)
 		return -EINVAL;
 	}
 
-	/* Check the userspace buffer is page aligned */
-/*
-	if (((desc->dir == VME_DMA_FROM_DEVICE) &&
-	     (desc->dst.addrl & (PAGE_SIZE - 1))) ||
-	    ((desc->dir == VME_DMA_TO_DEVICE) &&
-	     (desc->src.addrl & (PAGE_SIZE - 1)))) {
-		printk(KERN_ERR PFX
-		       "%s: Userspace buffer is not page aligned\n", __func__);
-		return -EINVAL;
-	}
-*/
-
 	/* Find an available channel */
 	for (i = 0; i < TSI148_NUM_DMA_CHANNELS; i++) {
 		if (mutex_lock_interruptible(&channels[i].lock))
