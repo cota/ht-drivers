@@ -17,7 +17,6 @@
 
 /**
  * struct dma_channel - Internal data structure representing a DMA channel
- * @lock: Lock protecting the busy flag
  * @busy: Busy flag
  * @num: Channel number
  * @desc: DMA transfer descriptor currently used
@@ -28,9 +27,10 @@
  * @hw_desc: List of hardware descriptors
  * @wait: Wait queue for the DMA channel
  *
+ * Note: concurrent access to all the DMA channels is protected by a
+ * per-bridge mutex.
  */
 struct dma_channel {
-	struct mutex		lock;
 	unsigned int		busy;
 	unsigned int		num;
 	struct vme_dma		desc;
