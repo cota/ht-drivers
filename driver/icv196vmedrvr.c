@@ -240,24 +240,21 @@ struct icv196T_UserLine UserLineAdd[ICV_LogLineNb] = {
 };
 
 /*
-  structure of the static table
-  ----------------------------
-
+  static table
   This shows the structure of the static table of the driver dynamically
   allocated  by the install subroutine of the driver.
 */
 struct icv196T_s {
-	int   install;
-	int   usercounter; /* User counter */
-	int   sem_drvr; /* semaphore for exclusive access to
-			   static table */
-	int   dum1;
-	int   timid;				/* Interval timer Identification */
-	int   interval;			/* Timerinterval */
+	int install;
+	int usercounter; /* User counter */
+	int sem_drvr;    /* semaphore for exclusive access to static table */
+	int timid;       /* Interval timer Identification */
+	int interval;    /* Timerinterval */
 
-/* extention to stand interrupt processing */
-	int   UserTO;				/* User time out, by waiting for ICV */
-	short   UserMode;			/* ? */
+	/* extention to stand interrupt processing */
+	int   UserTO;   /* User time out, by waiting for ICV */
+	short UserMode; /* ? */
+
 	/* Sizing : depend  on needs of user interface */
 	short SubscriberMxNb;
 
@@ -273,17 +270,13 @@ struct icv196T_s {
 	/* Hardware table */
 	/* configuration table  */
 	int    ModuleCtxt_Size;
-	struct T_ModuleCtxt *ModuleCtxtDir[icv_ModuleNb]; /*  module directory */
-
+	struct T_ModuleCtxt *ModuleCtxtDir[icv_ModuleNb]; /* module directory */
 	struct T_ModuleCtxt ModuleCtxt[icv_ModuleNb]; /* Modules contexts */
 
 	/* Logical line tables */
 	int LogLine_Size;
-	struct T_LogLineHdl *LineHdlDir[ICV_LogLineNb];    /* Logical line directory */
-
-	struct T_LogLineHdl LineHdl[ICV_LogLineNb];     /* Logical line handles */
-
-	int icv_ends;
+	struct T_LogLineHdl *LineHdlDir[ICV_LogLineNb]; /* Logical line directory */
+	struct T_LogLineHdl LineHdl[ICV_LogLineNb]; /* Logical line handles */
 };
 
 /* to come out of waiting event */
