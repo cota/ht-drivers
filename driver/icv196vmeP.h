@@ -48,11 +48,11 @@
 
  These structures an declaration don't depend on hardware module which
  provides the interrupt.
-
 */
+#ifdndef _ICV_196_VME_P_H_INCLUDE_
+#define  _ICV_196_VME_P_H_INCLUDE_
 
-
-	/* define some macroes to manage bit map of the connection */
+/* define some macroes to manage bit map of the connection */
 /* to operate othe bit given by its number in a byte table map  */
 #define CLRBIT(ar,n) ar[(n) / 8] &= (~(0x1 << ( (n) & 0x7)))
 #define SETBIT(ar,n) ar[(n) / 8] |= ( 0x1  << ( (n) & 0x7))
@@ -73,26 +73,24 @@
 #define GlobEvt_nb (1<<6)	/* 2 time as many as lines number in config */
 #define GlobEvt_msk (GlobEvt_nb - 1) /*  */
 
-		/* these structures  are used to buffer the event */
-
+/* these structures  are used to buffer the event */
 /*
-				Logical logical line handle
-				---------------------------
- A physical line is accessed by a user via a logical line associated to
- a table called logical line handle.
- it is pointed at from the corresponding physical line context in the device
- table. This link is set up at initialisation of the device and will allow to
- translate the line trigger in the logical chanel event.
- it manages the device-independent part of the line
+  Logical logical line handle
+  ---------------------------
+  A physical line is accessed by a user via a logical line associated to
+  a table called logical line handle.
+  it is pointed at from the corresponding physical line context in the device
+  table. This link is set up at initialisation of the device and will allow to
+  translate the line trigger in the logical chanel event.
+  it manages the device-independent part of the line
 */
 
-/*		Subtable in a logical line handle
-		---------------------------------
-*/
+/* Subtable in a logical line handle */
 #define icv_SubscriberNb 8
+
 /*
-                Subscriber management:
-		----------------------
+  Subscriber management:
+  ----------------------
   normal mode :
   each trigger give one event in the ring buffer
 
@@ -103,131 +101,121 @@
   table.
 */
 struct T_Subscriber {
-                 struct T_LogLineHdl * LHdl;
-                 struct T_RingBuffer *Ring; /* Point at the user Handle
-                                          providing the Ring buffer*/
-		 struct icvT_RingAtom *CumulEvt; /* Cumulative event pointer*/
-		 short mode;        /* 0 means normal, 1 means cumulative */
-                 short EvtCounter; /* line event counter for this user */
-                };
+	struct T_LogLineHdl * LHdl;
+	struct T_RingBuffer *Ring; /* Point at the user Handle
+				      providing the Ring buffer*/
+	struct icvT_RingAtom *CumulEvt; /* Cumulative event pointer*/
+	short mode;        /* 0 means normal, 1 means cumulative */
+	short EvtCounter; /* line event counter for this user */
+};
 
 
 /* Ring buffer manager  */
 struct T_RingBuffer {
-                    struct T_UserHdl *UHdl; /* owner of the ring buffer */
-                    struct icvT_RingAtom *Buffer; /* Buffer of atom */
-                    int Evtsem;	  /* semaphore to synchronise and count evt */
-		    short   mask; /* mask to manage buffer wrapping */
-		    short reader; /* current index for reading */
-		    short writer; /* current index for writing */
-		  };
-
-
-/*		Logical line handle
-		-------------------
-*/
-struct T_LogLineHdl {
-          struct icv196T_s *s;
-	  int LogIndex;
-          struct T_LineCtxt *LineCtxt;
-	  union icvU_Evt Event_Pattern; /* Pattern of event build at
-	       			     set up of link from physical line
-	       			     this pattern is dependent of the
-	       			     design of logical line address
-	       	                     */
-	  struct T_Subscriber LineMaster; /* for further need:  */
-			/* Subscriber table  */
-	  int SubscriberMxNb;         /* size of subscriber table  */
-	  int SubscriberCurNb;	      /* current number of subscriber  */
-          struct T_Subscriber Subscriber[icv_SubscriberNb]; /* Where to cast
-							   the received trigger */
-	};
-
-/*        	Structure of a User Handle
-		--------------------------
- structure associated to each minor device
-*/
-
-struct T_UserHdl{
-	       struct icv196T_s *s;
-               short usercount;
-	       int   chanel;
-	       long  count;
-	       int   timid;
-	       int   pid;       /* process id  */
-               int   *sel_sem;	/* semaphore for select */
-	       int   WaitingTO;
-	       short UserMode;
-	       char  Cmap[ICV_mapByteSz]; /* bit map of connection */
-	       struct T_RingBuffer Ring; /* Ring buffer to manage events */
-	       struct icvT_RingAtom Atom[Evt_nb]; /* Buffer of Ring buffer */
-	     };
-
-
-/*
-                		Declaration dependent of the device level
-				=========================================
-*/
-
-
-/*		structure of  the physical line address
-		---------------------------------------
-*/
-
-union U_LineAdd {
-                 long all;
-		 struct {
-		        short M; /* module index */
-			short L; /* line index in the module */
-		      }field;
-	       };
-
-/*		Structure of a physical line context:
-		------------------------------------
-		this depends on the type of module
-*/
-
-struct T_LineCtxt {
-                  struct icv196T_s *s;
-		  struct T_ModuleCtxt *MCtxt;
-		  struct T_LogLineHdl *LHdl;       /* Line handle linked to */
-		  int Type;    /* to stand specificity of lines: pls or icv */
-		  short  Line; /* Line index */
-		  int status;
-		  int intmod;
-		  int loc_count;
-		  short  Reset;
-		};
-
-struct T_ModuleCtxt {
-               short   length;
-               struct  icv196T_s *s;
-	       int     sem_module;    /* mutex semaphore */
-	       int     dflag;         /* debug flag */
-	       short   Module;        /* Module index */
-	       int     VME_size;      /* original info table values */
-	       unsigned long VME_offset;
-
-	       unsigned long CPUVME_Add; /* Module physical 32 bits address
-	                                   can be get by the user (via ioctl)
-					    and used to open a shared segment
-					   on this VME module address */
-
-	       short              *SYSVME_Add; /* module virtual base address */
-	       unsigned char      *VME_StatusCtrl;
-	       unsigned char      *VME_IntLvl;
-	       short              *VME_CsDir;
-	       short              old_CsDir;
-	       unsigned short     startflag;
-	       unsigned short     int_en_mask;
-
-			        	/* context of the lines  */
-	       short   LineMxNb;
-	       unsigned char Vect[icv_LineNb]; /* for each line a Int. vector */
-	       unsigned char Lvl[icv_LineNb];  /* for each line an Int. level */
-	       int (*isr[icv_LineNb])(void *);   /* yet only element [0] used */
-	       struct T_LineCtxt LineCtxt[icv_LineNb];
+	struct T_UserHdl *UHdl; /* owner of the ring buffer */
+	struct icvT_RingAtom *Buffer; /* Buffer of atom */
+	int Evtsem;	  /* semaphore to synchronise and count evt */
+	short   mask; /* mask to manage buffer wrapping */
+	short reader; /* current index for reading */
+	short writer; /* current index for writing */
 };
 
 
+/* Logical line handle */
+struct T_LogLineHdl {
+	struct icv196T_s *s;
+	int LogIndex;
+	struct T_LineCtxt *LineCtxt;
+	union icvU_Evt Event_Pattern; /* Pattern of event build at
+					 set up of link from physical line
+					 this pattern is dependent of the
+					 design of logical line address
+				      */
+	struct T_Subscriber LineMaster; /* for further need:  */
 
+	/* Subscriber table  */
+	int SubscriberMxNb;         /* size of subscriber table  */
+	int SubscriberCurNb;	      /* current number of subscriber  */
+	struct T_Subscriber Subscriber[icv_SubscriberNb]; /* Where to cast
+							     the received
+							     trigger */
+};
+
+/*
+  User Handle
+  structure associated to each minor device
+*/
+struct T_UserHdl {
+	struct icv196T_s *s;
+	short usercount;
+	int   chanel;
+	long  count;
+	int   timid;
+	int   pid;       /* process id  */
+	int   *sel_sem;	/* semaphore for select */
+	int   WaitingTO;
+	short UserMode;
+	char  Cmap[ICV_mapByteSz]; /* bit map of connection */
+	struct T_RingBuffer Ring; /* Ring buffer to manage events */
+	struct icvT_RingAtom Atom[Evt_nb]; /* Buffer of Ring buffer */
+};
+
+
+/* Declaration dependent of the device level */
+
+/* structure of  the physical line address */
+union U_LineAdd {
+	long all;
+	struct {
+		short M; /* module index */
+		short L; /* line index in the module */
+	} field;
+};
+
+/*
+  Structure of a physical line context:
+  this depends on the type of module
+*/
+struct T_LineCtxt {
+	struct icv196T_s *s;
+	struct T_ModuleCtxt *MCtxt;
+	struct T_LogLineHdl *LHdl;       /* Line handle linked to */
+	int Type;    /* to stand specificity of lines: pls or icv */
+	short  Line; /* Line index */
+	int status;
+	int intmod;
+	int loc_count;
+	short  Reset;
+};
+
+struct T_ModuleCtxt {
+	short   length;
+	struct  icv196T_s *s;
+	int     sem_module;    /* mutex semaphore */
+	int     dflag;         /* debug flag */
+	short   Module;        /* Module index */
+	int     VME_size;      /* original info table values */
+	unsigned long VME_offset;
+
+	unsigned long CPUVME_Add; /* Module physical 32 bits address
+				     can be get by the user (via ioctl)
+				     and used to open a shared segment
+				     on this VME module address */
+
+	short              *SYSVME_Add; /* module virtual base address */
+	unsigned char      *VME_StatusCtrl;
+	unsigned char      *VME_IntLvl;
+	short              *VME_CsDir;
+	short              old_CsDir;
+	unsigned short     startflag;
+	unsigned short     int_en_mask;
+
+	/* context of the lines */
+	short   LineMxNb;
+	unsigned char Vect[icv_LineNb]; /* for each line a Int. vector */
+	unsigned char Lvl[icv_LineNb];  /* for each line an Int. level */
+	int (*isr[icv_LineNb])(void *);   /* yet only element [0] used */
+	struct T_LineCtxt LineCtxt[icv_LineNb];
+};
+
+#endif	/* _ICV_196_VME_P_H_INCLUDE_ */

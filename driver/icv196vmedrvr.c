@@ -259,7 +259,7 @@ struct icv196T_s {
 	short SubscriberMxNb;
 
 	/*  User handle: as many as device created at install */
-	struct T_UserHdl ServiceHdl;         /* sharable user service handle */
+	struct T_UserHdl ServiceHdl; /* sharable user service handle */
 	int    UserHdlICV_Size;
 	struct T_UserHdl ICVHdl[ICVVME_MaxChan]; /* user handle for synchro */
 
@@ -441,18 +441,18 @@ static unsigned long PullFrom_Ring(struct T_RingBuffer *Ring)
 	return Evt.All;
 }
 
-/* Subroutine to initialise a user Handle */
+/* init user Handle */
 static void Init_UserHdl(struct T_UserHdl *UHdl, int chanel,
 			 struct icv196T_s *s)
 {
 	int i;
 	char *cptr;
 
-	UHdl -> s = s;
-	UHdl -> chanel = chanel;
-	UHdl -> pid = 0;
-	UHdl -> usercount = 0; /* clear current user number */
-	UHdl -> sel_sem = NULL; /* clear the semaphore for the select */
+	UHdl->s         = s;
+	UHdl->chanel    = chanel;
+	UHdl->pid       = 0;
+	UHdl->usercount = 0; /* clear current user number */
+	UHdl->sel_sem   = NULL; /* clear the semaphore for the select */
 
 	/* clear up  bit map of established connection */
 	for (i = 0, cptr = &UHdl->Cmap[0]; i < ICV_mapByteSz; i++)
@@ -1523,7 +1523,7 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 	for (i = ICVVME_IcvChan01; i < ICVVME_MaxChan; i++)
 		Init_UserHdl(&s->ICVHdl[i], i, s);
 
-	/* Initialize management tables  */
+	/* Initialize management tables */
 	Init_Dir(s); /* Initialize Directories */
 
 	/*
@@ -1533,9 +1533,9 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 
 	/* for each module declared in info table: Set up tables */
 
-	for ( m=0 ; m < icv_ModuleNb; m++) {
+	for (m = 0; m < icv_ModuleNb; m++) {
 		/* Set up pointer to current device table  */
-		if (info->ModuleFlag[m] == 0) /* this module non present; */
+		if (info->ModuleFlag[m] == 0) /* this module non present */
 			continue;
 
 		MInfo = &info->ModuleInfo[m]; /* set up the current Module info */
