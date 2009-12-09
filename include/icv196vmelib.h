@@ -18,22 +18,21 @@
   22-nov-1993 Alain GAGNAIRE : add icv196_DioPorts declaration
   10-may-1994 A.G.: update to stand 8 modules
 */
-
 #ifndef  _icv196vmelib
 #define  _icv196vmelib
 
 /* definition link to configuration */
 /* module specification */
-#define icv_LineNb       16 /* number of line per module */
-#define ICV_IndexNb      16 /* index number in a group */
+#define icv_LineNb  16 /* number of line per module */
+#define ICV_IndexNb 16 /* index number in a group */
 
 /* limits of the configuration */
-#define icv_ModuleNb  8       /* Max Number of icv modules */
-#define ICV_LogLineNb (icv_ModuleNb*icv_LineNb + 1) /* logical lines number + 1 */
+#define icv_ModuleNb  8 /* Max Number of icv modules */
+#define ICV_LogLineNb (icv_ModuleNb * icv_LineNb + 1) /* logical lines number + 1 */
 
 /* limit of the ressources */
-#define ICVVME_MaxChan    8 /* number of file handle in the pool
-			       (max number of simultaneous users) */
+#define ICVVME_MaxChan 8 /* number of file handle in the pool
+			    (max number of simultaneous users) */
 
 /* ioctl numbers */
 #define ICVVME_getmoduleinfo  1
@@ -56,12 +55,6 @@
 #define ICVVME_reenflags     18
 #define ICVVME_gethandleinfo 19
 
-/*
- *  Channel number
- *
- * for ressource used by caller of driver interface
- */
-
 /* Channel to read the PLS telegram */
 #define ICVVME_ServiceChan   0
 /* Channel to get synchronised with icv int */
@@ -74,7 +67,7 @@
 #define ICVVME_IcvChan07 7
 #define ICVVME_IcvChan08 8
 
-/* for direct io from direct pointer in  dioaiolib  */
+/* for direct io from direct pointer in dioaiolib */
 union icv196_DoubleGroups {
 	unsigned short  grp1_2;
 	struct {

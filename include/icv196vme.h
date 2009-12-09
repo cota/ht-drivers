@@ -31,9 +31,9 @@
 #define ICV_AddMSBMask 0xff000000 /* VME offset Least Sign Bits mask */
 
 
-#define icv_cumulative 1	/* cumulative mode */
-#define icv_queuleuleu 2	/* " a la queue leu leu " file */
-#define icv_ReenableOn 1	/* line management: automatic reenable */
+#define icv_cumulative  1	/* cumulative mode */
+#define icv_queuleuleu  2	/* " a la queue leu leu " file */
+#define icv_ReenableOn  1	/* line management: automatic reenable */
 #define icv_ReenableOff 2	/* line management: disable */
 
 #define icv_FpiLine 1		/* Type of a line special and private */
@@ -59,9 +59,8 @@
 #define icvB_14 0x4000
 #define icvB_15 0x8000
 
-#define icv_cumul icvB_0
+#define icv_cumul   icvB_0
 #define icv_disable icvB_1
-
 
 /* structure of an event */
 union icvU_Evt {
@@ -74,7 +73,7 @@ union icvU_Evt {
 	    } Byte;
 };
 
-/* Internal structure of Atom stuffed in the ring  */
+/* Internal structure of Atom stuffed in the ring */
 struct icvT_RingAtom {
 	struct T_Subscriber *Subscriber;
 	union  icvU_Evt Evt;
@@ -82,11 +81,7 @@ struct icvT_RingAtom {
 
 
 /* Structure to address hardware of the icvpls vme module */
-
-
-/*
-  structures linked to ioctl interface
-*/
+/* structures linked to ioctl interface */
 
 /*
   Logical line address of event sources:
@@ -94,10 +89,10 @@ struct icvT_RingAtom {
   the number of logical lines declared may be different than
   the number of the physical lines.
 
-  Beware: value are written in octal representation i.e.: 077 form !!!
+  Beware: value are written in octal representation i.e.: 077 form
 */
 
-/*  Group 0 */
+/* Group 0 */
 #define ICV_L101  0000
 #define ICV_L102  0001
 #define ICV_L103  0002
@@ -115,7 +110,7 @@ struct icvT_RingAtom {
 #define ICV_L115  0016
 #define ICV_L116  0017
 
-/*  Group 1 */
+/* Group 1 */
 #define ICV_L201  0020
 #define ICV_L202  0021
 #define ICV_L203  0022

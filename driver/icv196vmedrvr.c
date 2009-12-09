@@ -95,13 +95,12 @@
 #define IGNORE_SIG 0
 #define ICV_tout   1000
 
-static int icv196vmeisr (void *);
+static int icv196vmeisr(void *);
 
 static char Version[]="$Revision: 3.1 $";
 static char compile_date[] = __DATE__;
 static char compile_time[] = __TIME__;
 static int G_dbgflag = 0;
-
 
 /*
                      ______________________________
@@ -119,7 +118,7 @@ static int G_dbgflag = 0;
  event source address: (source, line) and the physical line associated
  by this configuration.
  This make code less dependent of hardware configuration and type of module
- used as trigger source !
+ used as trigger source
 */
 
 /* structure to store for one module the  logical lines
@@ -130,7 +129,7 @@ struct T_ModuleLogLine {
 };
 
 /* sizing of module */
-short LinePerModule= icv_LineNb;
+short LinePerModule = icv_LineNb;
 
 /* isr entry point table */
 int (*ModuleIsr[icv_ModuleNb])(void *) = {
@@ -188,7 +187,6 @@ int (*ModuleIsr[icv_ModuleNb])(void *) = {
 				   ICV_L813,ICV_L814, ICV_L815, ICV_L816,
 				  }};
 
-
 /* table of the maximum configuration : 4 modules */
  struct T_ModuleLogLine *MConfig[icv_ModuleNb] = {&Module1, &Module2, &Module3,
 						 &Module4, &Module5, &Module6,
@@ -236,7 +234,6 @@ struct icv196T_UserLine UserLineAdd[ICV_LogLineNb] = {
        {ICV_Group7,ICV_Index04},{ICV_Group7,ICV_Index05},{ICV_Group7,ICV_Index06},{ICV_Group7,ICV_Index07},
        {ICV_Group7,ICV_Index08},{ICV_Group7,ICV_Index09},{ICV_Group7,ICV_Index10},{ICV_Group7,ICV_Index11},
        {ICV_Group7,ICV_Index13},{ICV_Group7,ICV_Index14},{ICV_Group7,ICV_Index15},{ICV_Group7,ICV_Index16},
-
 };
 
 /*
@@ -268,7 +265,7 @@ struct icv196T_s {
 	long Buffer_Evt[GlobEvt_nb]; /* To put event in a sequence */
 
 	/* Hardware table */
-	/* configuration table  */
+	/* configuration table */
 	int    ModuleCtxt_Size;
 	struct T_ModuleCtxt *ModuleCtxtDir[icv_ModuleNb]; /* module directory */
 	struct T_ModuleCtxt ModuleCtxt[icv_ModuleNb]; /* Modules contexts */
@@ -340,10 +337,10 @@ static void Init_Ring(struct T_UserHdl *UHdl, struct T_RingBuffer *Ring,
 	short   i;
 	struct icvT_RingAtom *ptr;
 
-	Ring->UHdl = UHdl;
+	Ring->UHdl   = UHdl;
 	Ring->Buffer = Buf;
-	Ring->Evtsem =0;
-	Ring->mask = mask;
+	Ring->Evtsem = 0;
+	Ring->mask   = mask;
 	Ring->reader = Ring->writer = 0;
 	ptr = &Buf[mask];
 
@@ -1067,10 +1064,8 @@ static void Init_LineCtxt(int line, int type, struct T_ModuleCtxt *MCtxt)
 	LCtxt->LHdl = Init_LineHdl(LogIndex, LCtxt);
 }
 
-
-
 /*
-  Subroutine to initialise a module context for a icv196 module
+  Initialise a module context for a icv196 module
   table to manage the hardware of a physical module
 */
 static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
@@ -1090,29 +1085,27 @@ static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
 	MCtxt = &s->ModuleCtxt[module];
 
 	/* init context table */
-	MCtxt -> s = s;
-	MCtxt -> length = sizeof(struct T_ModuleCtxt);
-	MCtxt -> sem_module = 1;	/* semaphore for exclusive access */
-	MCtxt -> Module = module;
-	MCtxt -> dflag = 0;
-	MCtxt -> LineMxNb = LinePerModule;
+	MCtxt->s = s;
+	MCtxt->length = sizeof(struct T_ModuleCtxt);
+	MCtxt->sem_module = 1;	/* semaphore for exclusive access */
+	MCtxt->Module = module;
+	MCtxt->dflag = 0;
+	MCtxt->LineMxNb = LinePerModule;
 
-	/*  CHK (("icv:MCtxt: s= $%lx Module %d ctxt add = $%lx\n", MCtxt ->s, module, MCtxt ));*/
-
-	/*  set up device dependent info */
+	/* CHK (("icv:MCtxt: s= $%lx Module %d ctxt add = $%lx\n",
+	   MCtxt ->s, module, MCtxt )); */
 
 	/* Set up base add of module as seen from cpu mapping.
 	   This information is available to user through ioctl function
 	   it provides the Module base add required by  smemcreate to create
 	   a virtual window on the vme space of the module
 	   this is for accessing the module directly from user program access
-	   through a window created by smem_create.
-	*/
+	   through a window created by smem_create */
 
-	base = vmeinfo -> base;
+	base = vmeinfo->base;
 
-	MCtxt -> VME_offset =  base;
-	MCtxt -> VME_size =     vmeinfo -> size;
+	MCtxt->VME_offset = base;
+	MCtxt->VME_size = vmeinfo->size;
 
 	offset = base & (unsigned long)0x00ffffffL;
 	am = AM_A24_UDA;
@@ -1124,35 +1117,36 @@ static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
 	param.rdpref = 0;	/* no VME read prefetch option */
 	param.wrpost = 0;	/* no VME write posting option */
 	param.swap   = 1;	/* VME auto swap option */
-	param.dum[0]   = 0;	/* window is sharable */
+	param.dum[0] = 0;	/* window is sharable */
 	sysBase = (unsigned long)find_controller( 0x0, 0x10000, am, 0, 0, &param);
-	if (sysBase == (unsigned long)(-1)){
-		CPRNT(("icv196vme_drvr:find_controller:cannot map device address space, INSTALLATION IMPOSSIBLE\n"));
-		return ((struct T_ModuleCtxt *) (-1));
+	if (sysBase == (unsigned long) -1) {
+		CPRNT(("icv196vme_drvr:find_controller:cannot map device"
+		       " address space, INSTALLATION IMPOSSIBLE\n"));
+		return (struct T_ModuleCtxt *) -1;
 	}
 
 	moduleSysBase = sysBase + offset;
 	DBG_INSTAL(("icv196vme:install: am 0x%x Standard,  0x%lx base + 0x%lx"
-		    "offset => 0x%lx module sys base\n",  am, sysBase, offset, moduleSysBase));
+		    "offset => 0x%lx module sys base\n",
+		    am, sysBase, offset, moduleSysBase));
 	/*
 	  Set up permanent pointers to access the module
 	  from system mapping to be used from the driver
 	*/
-	MCtxt -> SYSVME_Add = (short *) (moduleSysBase);
-
-	MCtxt -> VME_StatusCtrl =   (unsigned char *)(moduleSysBase + CoReg_Z8536);
-	MCtxt -> VME_IntLvl =       (unsigned char *)(moduleSysBase + CSNIT_ICV);
-	MCtxt -> VME_CsDir =        (short *)(moduleSysBase + CSDIR_ICV);
+	MCtxt->SYSVME_Add     = (short *) moduleSysBase;
+	MCtxt->VME_StatusCtrl = (unsigned char *)(moduleSysBase + CoReg_Z8536);
+	MCtxt->VME_IntLvl     = (unsigned char *)(moduleSysBase + CSNIT_ICV);
+	MCtxt->VME_CsDir      = (short *)(moduleSysBase + CSDIR_ICV);
 
 	/* Initialise the associated line contexts */
 	type = 0; /* to select default line type  */
-	n = MCtxt -> LineMxNb;
-	for (i = 0 ; i < n; i++) {
-		MCtxt -> Vect[i] = vmeinfo -> vector[0];
-		MCtxt -> Lvl[i]  = vmeinfo -> level[0];
-		Init_LineCtxt(i,type, MCtxt);
+	n = MCtxt->LineMxNb;
+	for (i = 0; i < n; i++) {
+		MCtxt->Vect[i] = vmeinfo->vector[0];
+		MCtxt->Lvl[i]  = vmeinfo->level[0];
+		Init_LineCtxt(i, type, MCtxt);
 	}
-	MCtxt -> isr[0] = ModuleIsr[module];
+	MCtxt->isr[0] = ModuleIsr[module];
 	return MCtxt;
 }
 
@@ -1489,7 +1483,7 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 
 char *icv196install(struct icv196T_ConfigInfo *info)
 {
-	register struct icv196T_s  *s; /* static table pointer */
+	struct icv196T_s  *s; /* static table pointer */
 	struct icv196T_ModuleParam *MInfo;
 	struct T_ModuleCtxt      *MCtxt;
 	unsigned char l;
@@ -1532,7 +1526,6 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 	*/
 
 	/* for each module declared in info table: Set up tables */
-
 	for (m = 0; m < icv_ModuleNb; m++) {
 		/* Set up pointer to current device table  */
 		if (info->ModuleFlag[m] == 0) /* this module non present */
@@ -1815,118 +1808,105 @@ int icv196write(struct icv196T_s *s, struct cdcm_file *f, char *buff,int bcount)
 /* This routine is called to perform ioctl function */
 int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 {
-  int   err;
-  struct icv196T_ModuleInfo *Infop;
-  register int  Timeout;
-  register int  i,j,l;
-  int   Chan;
-  short group;
-  short index;
-  int   mode;
-  int   SubsMode;
-  struct T_UserHdl  *UHdl;
-  struct T_ModuleCtxt *MCtxt;
-  struct T_LineCtxt   *LCtxt;
-  struct T_LogLineHdl *LHdl;
-  struct T_Subscriber *Subs;
-  struct icv196T_HandleInfo *HanInfo;
-  struct icv196T_HandleLines *HanLin;
-  struct icv196T_UserLine ULine;
-  long   Module;
-  short  Line;
-  int    Type;
-  int    LogIx;
-  int    grp;
-  int    dir;
-  int    group_mask;
-  unsigned long *Data;
-  int Iw1;
-  int Flag;
+	int   err;
+	struct icv196T_ModuleInfo *Infop;
+	int  Timeout;
+	int  i, j, l;
+	int   Chan;
+	short group;
+	short index;
+	int   mode;
+	int   SubsMode;
+	struct T_UserHdl  *UHdl;
+	struct T_ModuleCtxt *MCtxt;
+	struct T_LineCtxt   *LCtxt;
+	struct T_LogLineHdl *LHdl;
+	struct T_Subscriber *Subs;
+	struct icv196T_HandleInfo *HanInfo;
+	struct icv196T_HandleLines *HanLin;
+	struct icv196T_UserLine ULine;
+	long   Module;
+	short  Line;
+	int    Type;
+	int    LogIx;
+	int    grp;
+	int    dir;
+	int    group_mask;
+	unsigned long *Data;
+	int Iw1;
+	int Flag;
 
-  err = 0;
-  UHdl = NULL;
-  DBG_IOCTL(("icv196:ioctl: function code = %x \n", fct));
+	err = 0;
+	UHdl = NULL;
+	DBG_IOCTL(("icv196:ioctl: function code = %x \n", fct));
 
-
-  if ( (rbounds((int)arg) == EFAULT) || (wbounds((int)arg) == EFAULT)) {
-    pseterr (EFAULT);
-    return (SYSERR);
-  }
-  Chan = minordev (f -> dev);
-
-  switch (fct) {
-
-  /* get device information */
-
-  case ICVVME_getmoduleinfo:
-
-    Infop = (struct icv196T_ModuleInfo *)arg;
-    for ( i = 0; i < icv_ModuleNb; i++, Infop++) {
-	if (s -> ModuleCtxtDir[i] == NULL) {
-	    Infop -> ModuleFlag = 0;
-	    continue;
+	if ( (rbounds((int)arg) == EFAULT) || (wbounds((int)arg) == EFAULT)) {
+		pseterr(EFAULT);
+		return SYSERR;
 	}
-	else {
-	    MCtxt = &(s -> ModuleCtxt[i]);
-	    Infop -> ModuleFlag = 1;
-	    Infop -> ModuleInfo.base = (unsigned long)MCtxt -> SYSVME_Add;
-	    Infop -> ModuleInfo.size = MCtxt -> VME_size;
-	    for ( j = 0; j < icv_LineNb; j++) {
-		Infop -> ModuleInfo.vector[j] = MCtxt -> Vect[j];
-		Infop -> ModuleInfo.level[j] = MCtxt -> Lvl[j];
-	    }
-	}
-    };
-    break;
 
+	Chan = minordev(f->dev);
 
-
-  case ICVVME_gethandleinfo:
-
-    HanInfo = (struct icv196T_HandleInfo *)arg;
-    UHdl = s -> ICVHdl;           /* point to first user handle */
-    for ( i = 0; i < ICVVME_MaxChan; i++, UHdl++) {
-	HanLin = &(HanInfo -> handle[i]);
-	l = 0;
-	if (UHdl -> usercount == 0)
-	    continue;
-	else {
-	    HanLin -> pid = UHdl -> pid;
-	    for ( j = 0; j < ICV_LogLineNb; j++) {
-		if (TESTBIT(UHdl -> Cmap, j)) {
-		    GetUserLine(j, &ULine);
-		    HanLin -> lines[l].group = ULine.group;
-		    HanLin -> lines[l].index = ULine.index;
-		    l++;
+	switch (fct) {
+	case ICVVME_getmoduleinfo:  /* get device information */
+		Infop = (struct icv196T_ModuleInfo *)arg;
+		for ( i = 0; i < icv_ModuleNb; i++, Infop++) {
+			if (s -> ModuleCtxtDir[i] == NULL) {
+				Infop -> ModuleFlag = 0;
+				continue;
+			} else {
+				MCtxt = &s->ModuleCtxt[i];
+				Infop->ModuleFlag = 1;
+				Infop->ModuleInfo.base =
+					(unsigned long) MCtxt->SYSVME_Add;
+				Infop->ModuleInfo.size = MCtxt->VME_size;
+				for (j = 0; j < icv_LineNb; j++) {
+					Infop->ModuleInfo.vector[j] =
+						MCtxt->Vect[j];
+					Infop->ModuleInfo.level[j] =
+						MCtxt->Lvl[j];
+				}
+			}
 		}
-	    }
-	}
-    };
-    break;
-
-
-/*
-				ioctl reset function
-				====================
-   perform hardware reset of icv196 module
-*/
-  case ICVVME_reset:
-
-      break;
+		break;
+	case ICVVME_gethandleinfo:
+		HanInfo = (struct icv196T_HandleInfo *)arg;
+		UHdl = s->ICVHdl; /* point to first user handle */
+		for (i = 0; i < ICVVME_MaxChan; i++, UHdl++) {
+			HanLin = &HanInfo->handle[i];
+			l = 0;
+			if (UHdl->usercount == 0)
+				continue;
+			else {
+				HanLin->pid = UHdl->pid;
+				for (j = 0; j < ICV_LogLineNb; j++) {
+					if (TESTBIT(UHdl->Cmap, j)) {
+						GetUserLine(j, &ULine);
+						HanLin->lines[l].group =
+							ULine.group;
+						HanLin->lines[l].index =
+							ULine.index;
+						l++;
+					}
+				}
+			}
+		}
+		break;
+	case ICVVME_reset: /* perform hardware reset of icv196 module */
+		break;
 
 /*                              ioctl icvvme dynamic debug flag control
                                 =======================================
     Toggle function on debug flag
 */
-  case ICVVME_setDbgFlag:
-    Flag = G_dbgflag;
-    if ( *( (int *) arg) != (-1)){ /* update the flag if value  not = (-1) */
-      G_dbgflag = *( (int *) arg);
-    }
-    *( (int *) arg) = Flag;	/* give back old value */
-    break;
-
-
+	case ICVVME_setDbgFlag:
+		Flag = G_dbgflag;
+		if ( *( (int *) arg) != -1) {
+			/* update the flag if value not = -1 */
+			G_dbgflag = *( (int *) arg);
+		}
+		*( (int *) arg) = Flag;	/* give back old value */
+		break;
 /*                              ioctl icvvme set reenable flag
 				==============================
     Set reenable flag to allow continuous interrupts
