@@ -15,6 +15,15 @@
  */
 
 #include <linux/pagemap.h>
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
+#include <linux/semaphore.h>
+#else
+#include <asm/semaphore.h>
+#endif
+
+#include <asm/atomic.h>
 
 #include "vmebus.h"
 #include "vme_bridge.h"
@@ -22,6 +31,16 @@
 
 
 struct dma_channel channels[TSI148_NUM_DMA_CHANNELS];
+
+/*
+ * @dma_semaphore manages the common queue to access all the DMA channels.
+ * Once a process gets through the semaphore, it must acquire
+ * dma_lock mutex to atomically look for an available channel.
+ * The @disable flag can be set to disable any further DMA transfers.
+ */
+static struct semaphore	dma_semaphore;
+static struct mutex	dma_lock;
+static atomic_t		dma_disable;
 
 /*
  * Used for synchronizing between DMA transfer using a channel and
@@ -207,6 +226,70 @@ static void vme_dma_start(struct dma_channel *channel)
 	tsi148_dma_start(channel);
 }
 
+/* This function has to be called with dma_semaphore and dma_lock held. */
+static struct dma_channel *__lock_avail_channel(void)
+{
+	struct dma_channel *channel;
+	int i;
+
+	for (i = 0; i < TSI148_NUM_DMA_CHANNELS; i++) {
+		channel = &channels[i];
+
+		if (!channel->busy) {
+			channel->busy = 1;
+			return channel;
+		}
+	}
+	WARN_ON_ONCE(i == TSI148_NUM_DMA_CHANNELS);
+	return ERR_PTR(-EDEADLK);
+}
+
+/*
+ * Wait in the queue of the semaphore for an available channel. Then find
+ * this newly available channel, and acquire it by flagging it as busy.
+ */
+static struct dma_channel *vme_dma_channel_acquire(void)
+{
+	struct dma_channel *channel;
+	int rc;
+
+	/* do not process any requests if dma_disable is set */
+	if (atomic_read(&dma_disable))
+		return ERR_PTR(-EBUSY);
+
+	/* wait for a channel to be available */
+	rc = down_interruptible(&dma_semaphore);
+	if (rc)
+		return ERR_PTR(rc);
+
+	/*
+	 * dma_disable might have been flagged while this task was
+	 * sleeping on dma_semaphore.
+	 */
+	if (atomic_read(&dma_disable)) {
+		up(&dma_semaphore);
+		return ERR_PTR(-EBUSY);
+	}
+
+	/* find the available channel */
+	mutex_lock(&dma_lock);
+	channel = __lock_avail_channel();
+	mutex_unlock(&dma_lock);
+
+	return channel;
+}
+
+static void vme_dma_channel_release(struct dma_channel *channel)
+{
+	/* release the channel busy flag */
+	mutex_lock(&dma_lock);
+	channel->busy = 0;
+	mutex_unlock(&dma_lock);
+
+	/* up the DMA semaphore to mark there's a channel available */
+	up(&dma_semaphore);
+}
+
 /**
  * vme_do_dma() - Do a DMA transfer
  * @desc: DMA transfer descriptor
@@ -221,7 +304,6 @@ int vme_do_dma(struct vme_dma *desc)
 {
 	int rc = 0;
 	struct dma_channel *channel;
-	int i;
 
 	/* First check the transfer length */
 	if (!desc->length) {
@@ -244,31 +326,12 @@ int vme_do_dma(struct vme_dma *desc)
 		return -EINVAL;
 	}
 
-	/* Find an available channel */
-	for (i = 0; i < TSI148_NUM_DMA_CHANNELS; i++) {
-		if (mutex_lock_interruptible(&channels[i].lock))
-			return -ERESTARTSYS;
+	/* Acquire an available channel */
+	channel = vme_dma_channel_acquire();
+	if (IS_ERR(channel))
+		return PTR_ERR(channel);
 
-		channel = &channels[i];
-
-		if (!channel->busy)
-			break;
-
-		mutex_unlock(&channel->lock);
-	}
-
-	if (i == TSI148_NUM_DMA_CHANNELS) {
-		/* No channel available, try again later */
-		return -EBUSY;
-	}
-
-	/*
-	 * We found a free channel, mark it as busy and release the
-	 * channel mutex as no one will bother us now */
-	channel->busy = 1;
 	memcpy(&channel->desc, desc, sizeof(struct vme_dma));
-
-	mutex_unlock(&channel->lock);
 
 	/* Setup the DMA transfer */
 	rc = vme_dma_setup(channel);
@@ -296,10 +359,7 @@ int vme_do_dma(struct vme_dma *desc)
 	kfree(channel->sgl);
 
 out_release_channel:
-	/* Finally release the channel busy flag */
-	mutex_lock(&channel->lock);
-	channel->busy = 0;
-	mutex_unlock(&channel->lock);
+	vme_dma_channel_release(channel);
 
 	/* Signal we're done in case we're in module exit */
 	wake_up(&channel_wait[channel->num]);
@@ -362,29 +422,18 @@ void __devexit vme_dma_exit(void)
 {
 	int i;
 
-	/*
-	 * We must be careful here before releasing resources as there might be
-	 * some DMA transfers in flight. So wait for those transfers to complete
-	 * before doing the cleanup.
-	 */
+	/* do not perform any further DMA operations */
+	atomic_set(&dma_disable, 1);
+
+	/* abort all the in flight DMA operations */
 	for (i = 0; i < TSI148_NUM_DMA_CHANNELS; i++) {
-
-		mutex_lock(&channels[i].lock);
 		tsi148_dma_abort(&channels[i]);
+	}
 
-		while (channels[i].busy) {
-			mutex_unlock(&channels[0].lock);
-			wait_event_interruptible(channel_wait[i],
-						 !channels[i].busy);
-			mutex_lock(&channels[i].lock);
-		}
-
-		/*
-		 * OK, now we know that the channel is not busy and we have
-		 * it locked. Mark it busy so no one will use it anymore.
-		 */
-		channels[i].busy = 1;
-		mutex_unlock(&channels[0].lock);
+	/* wait until all the channels are idle */
+	for (i = 0; i < TSI148_NUM_DMA_CHANNELS; i++) {
+		down(&dma_semaphore);
+		up(&dma_semaphore);
 	}
 
 	tsi148_dma_exit();
@@ -399,12 +448,14 @@ int __devinit vme_dma_init(void)
 	int i;
 
 	for (i = 0; i < TSI148_NUM_DMA_CHANNELS; i++) {
-		mutex_init(&channels[i].lock);
 		channels[i].num = i;
 		init_waitqueue_head(&channels[i].wait);
 		init_waitqueue_head(&channel_wait[i]);
 		INIT_LIST_HEAD(&channels[i].hw_desc_list);
 	}
 
+	sema_init(&dma_semaphore, TSI148_NUM_DMA_CHANNELS);
+	mutex_init(&dma_lock);
+	atomic_set(&dma_disable, 0);
 	return tsi148_dma_init();
 }
