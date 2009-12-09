@@ -1520,7 +1520,7 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 
 	/* Initialise user'shandle */
 	/* handles to get synchronized with the icv */
-	for (i = ICVVME_IcvChan01; i < ICVVME_MaxChan; i++)
+	for (i = 0; i < ICVVME_MaxChan; i++)
 		Init_UserHdl(&s->ICVHdl[i], i, s);
 
 	/* Initialize management tables */
