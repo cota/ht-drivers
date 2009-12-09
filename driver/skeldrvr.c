@@ -860,13 +860,26 @@ static int wa_init(InsLibDrvrDesc *drvrd)
 
 /**
  * @brief install modules defined in the XML description
+ *
+ * @return -1 -- didn't install all the modules requested in .xml
+ * @return -2 -- requested module amount exeeds supported one
+ * @return  0 -- all OK
  */
-static void modules_install(void)
+static int modules_install(void)
 {
 	SkelDrvrModuleContext *mcon;
 	InsLibModlDesc *modld;
 	int mod_ok;
-	int i;
+	int i, rc = 0;
+
+	/* safety first */
+	if (Wa->Drvrd->ModuleCount > SkelDrvrMODULE_CONTEXTS) {
+		SK_ERROR("Requested Module amount (%d) exeeds supported"
+			 " one (%d). SkelDrvrMODULE_CONTEXTS should be"
+			 " extended\n",
+			 Wa->Drvrd->ModuleCount, SkelDrvrMODULE_CONTEXTS);
+		return -2;
+	}
 
 	modld = Wa->Drvrd->Modules;
 	/*
@@ -895,11 +908,16 @@ static void modules_install(void)
 
 			mcon->InUse = 1;
 			i++; /* ensure that there are no gaps in Wa->Modules */
-		} else
-			SK_WARN("Error installing module#%d", modld->ModuleNumber);
+		} else {
+			SK_WARN("Error installing module#%d",
+				modld->ModuleNumber);
+			rc = -1;
+		}
 
 		modld = modld->Next;
 	}
+
+	return rc;
 }
 
 char *SkelDrvrInstall(void *infofile)
