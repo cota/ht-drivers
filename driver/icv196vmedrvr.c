@@ -1511,7 +1511,7 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 			" INSTALLATION IMPOSSIBLE\n", __FUNCTION__);
 		return (char *) SYSERR;
 	}
-	memset(s, 0, sizeof(*s);
+	memset(s, 0, sizeof(*s));
 
 	/* Set up the static table of driver */
 	s->sem_drvr  = 1; /* to protect global ressources management sequences*/

@@ -49,8 +49,8 @@
  These structures an declaration don't depend on hardware module which
  provides the interrupt.
 */
-#ifdndef _ICV_196_VME_P_H_INCLUDE_
-#define  _ICV_196_VME_P_H_INCLUDE_
+#ifndef _ICV_196_VME_P_H_INCLUDE_
+#define _ICV_196_VME_P_H_INCLUDE_
 
 /* define some macroes to manage bit map of the connection */
 /* to operate othe bit given by its number in a byte table map  */
