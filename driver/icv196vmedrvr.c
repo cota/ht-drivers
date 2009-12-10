@@ -1031,18 +1031,11 @@ static void Init_LineCtxt(int line, int type, struct T_ModuleCtxt *MCtxt)
   table to manage the hardware of a physical module
 */
 static struct T_ModuleCtxt* Init_ModuleCtxt(struct icv196T_s *s,
-					    struct icv196T_ModuleParam *vmeinfo)
+					    InsLibModlDesc *md)
 {
-	int i;
-	unsigned long offset, sysBase, moduleSysBase;
-	struct T_ModuleCtxt *MCtxt;
-	int type;
-	int am;
-	struct pdparam_master param; /* structure containing VME
-					access parameters */
-
-	/* declare module in the Module directory */
-	MCtxt = &s->ModuleCtxt[s->mcntr];
+	InsLibVmeAddressSpace *vmeinfo = (InsLibVmeAddressSpace *)md->ModuleAddress;
+	struct T_ModuleCtxt *MCtxt = &s->ModuleCtxt[s->mcntr];
+	int type, i;
 
 	/* init context table */
 	MCtxt->s = s;
@@ -1056,47 +1049,30 @@ static struct T_ModuleCtxt* Init_ModuleCtxt(struct icv196T_s *s,
 	   a virtual window on the vme space of the module
 	   this is for accessing the module directly from user program access
 	   through a window created by smem_create */
-	MCtxt->VME_size = vmeinfo->size;
-	offset = vmeinfo->base & (unsigned long)0x00ffffffL;
-	am = AM_A24_UDA;
+	MCtxt->VME_size = vmeinfo->WindowSize;
 
-	/* Compute address in system space */
-	bzero((char *)&param, sizeof(struct pdparam_master));
-	/* CES: build an address window (64 kbyte) for VME A16D16 accesses */
-	param.iack   = 1;	/* no iack */
-	param.rdpref = 0;	/* no VME read prefetch option */
-	param.wrpost = 0;	/* no VME write posting option */
-	param.swap   = 1;	/* VME auto swap option */
-	param.dum[0] = 0;	/* window is sharable */
-	sysBase = (unsigned long)find_controller( 0x0, 0x10000, am, 0, 0, &param);
-	if (sysBase == (unsigned long) -1) {
-		CPRNT(("icv196vme_drvr:find_controller:cannot map device"
-		       " address space, INSTALLATION IMPOSSIBLE\n"));
-		return NULL;
-	}
-
-	moduleSysBase = sysBase + offset;
-	DBG_INSTAL(("icv196vme:install: am 0x%x Standard,  0x%lx base + 0x%lx"
-		    "offset => 0x%lx module sys base\n",
-		    am, sysBase, offset, moduleSysBase));
 	/*
 	  Set up permanent pointers to access the module
 	  from system mapping to be used from the driver
 	*/
-	MCtxt->SYSVME_Add     = (short *) moduleSysBase;
-	MCtxt->VME_StatusCtrl = (unsigned char *)(moduleSysBase + CoReg_Z8536);
-	MCtxt->VME_IntLvl     = (unsigned char *)(moduleSysBase + CSNIT_ICV);
-	MCtxt->VME_CsDir      = (short *)(moduleSysBase + CSDIR_ICV);
+	MCtxt->SYSVME_Add     = (short *) vmeinfo->Mapped;
+	MCtxt->VME_StatusCtrl = (unsigned char *)(vmeinfo->Mapped + CoReg_Z8536);
+	MCtxt->VME_IntLvl     = (unsigned char *)(vmeinfo->Mapped + CSNIT_ICV);
+	MCtxt->VME_CsDir      = (short *)(vmeinfo->Mapped + CSDIR_ICV);
 
 	/* Initialise the associated line contexts */
 	type = 0; /* to select default line type */
 	for (i = 0; i < icv_LineNb; i++) {
-		MCtxt->Vect = vmeinfo->vector;
-		MCtxt->Lvl  = vmeinfo->level;
+		MCtxt->Vect = md->Isr->Vector;
+		MCtxt->Lvl  = md->Isr->Level;
 		Init_LineCtxt(i, type, MCtxt);
 	}
 	MCtxt->isr = icv196vmeisr;
 
+	/* Update Module directory */
+	s->ModuleCtxtDir[s->mcntr] = MCtxt;
+
+	/* increase declared module counter */
 	s->mcntr++;
 	return MCtxt;
 }
@@ -1262,10 +1238,8 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 int icvModule_Startup(struct T_ModuleCtxt *MCtxt)
 {
 	unsigned char v;
-	struct icv196T_s *s;
 	int m, cc;
 
-	s = MCtxt->s;
 	m = MCtxt->Module;
 	v = MCtxt->Vect;
 
@@ -1402,11 +1376,9 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 	return 0;
 }
 
-char *icv196install(struct icv196T_ConfigInfo *info)
+char *icv196install(InsLibModlDesc *ptr)
 {
-	struct icv196T_ModuleParam *MInfo;
 	struct T_ModuleCtxt *MCtxt;
-	int m;
 
 	compile_date[11] = 0; /* overwrite LF by 0 = end of string */
 	compile_time[9]  = 0;
@@ -1415,41 +1387,14 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 
 	init_statics_once();
 
-	/*
-	  Set up of table associated to devices
-	  this depends on the info table which tell which modules are declared
-	*/
+	/* Set up the tables for the current Module */
+	MCtxt = Init_ModuleCtxt(&icv196_statics, ptr);
 
-	/* for each module declared in info table: Set up tables */
-	for (m = 0; m < icv_ModuleNb; m++) {
-		/* Set up pointer to current device table  */
-		if (info->ModuleFlag[m] == 0) /* this module non present */
-			continue;
+	/* Startup the hardware for that module context */
+	icvModule_Startup(MCtxt);
 
-		MInfo = &info->ModuleInfo[m]; /* set up the current Module info */
-
-		/* Set up the tables of the  current Module */
-		MCtxt = Init_ModuleCtxt(&icv196_statics, MInfo);
-
-		/*  Update Module directory */
-		icv196_statics.ModuleCtxtDir[m] = MCtxt;
-	}
-
-	/*
-	  Now setup devices driven by the device directory
-	  which tell which modules have been declared
-	*/
-	for (m = 0; m < icv_ModuleNb; m++) {
-		if ( (MCtxt = icv196_statics.ModuleCtxtDir[m]) == NULL)
-			continue;
-
-		/* Startup the hardware for that module context */
-		if (icvModule_Startup(MCtxt) < 0)
-			MCtxt = icv196_statics.ModuleCtxtDir[m] = 0;
-	}
-
-	cprintf("\ricv196 OK\n");
-	return (char *) &icv196_statics;
+	cprintf("\rModule#%d installed OK\n", icv196_statics.mcntr);
+	return (char *) MCtxt;	/* will save it for isr routine */
 }
 
 /* Uninstalling the driver */
