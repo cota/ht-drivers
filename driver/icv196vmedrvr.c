@@ -1612,9 +1612,9 @@ int icv196open(struct icv196T_s *s, int dev, struct cdcm_file *f)
 	swait(&s->sem_drvr, IGNORE_SIG);
 	if (DevType == 0) { /* Case synchro */
 		Init_UserHdl(UHdl, chan, s);
-		UHdl->UserMode = s->UserMode;
+		UHdl->UserMode  = s->UserMode;
 		UHdl->WaitingTO = s->UserTO;
-		UHdl->pid = getpid();
+		UHdl->pid       = getpid();
 	}
 
 	s->usercounter++; /* Update user counter value */
@@ -1668,7 +1668,6 @@ int icv196read(struct icv196T_s *s, struct cdcm_file *f, char *buff, int bcount)
 
 	/* Check parameters and Set up channel environnement */
 	if (wbounds((int)buff) == EFAULT) {
-		/* DBG (("icv:read wbound error \n" )); */
 		pseterr(EFAULT);
 		return SYSERR;
 	}
@@ -1702,25 +1701,23 @@ int icv196read(struct icv196T_s *s, struct cdcm_file *f, char *buff, int bcount)
 	buffEvt = (long *)buff;
 	bn = 0;
 	i = count; /* Long word count */
-	/* DBG (("icv196:read:Entry Evtsem value= %d\n", scount( &UHdl -> Ring.Evtsem) )); */
 	do {
 		if ((Evt = PullFrom_Ring (&UHdl->Ring)) != -1) {
 			*buffEvt = Evt;
 			buffEvt++; i--; bn += 1;
 		} else { /* no event in ring, wait if requested */
-			if ((bn == 0) && ((UHdl->UserMode & icv_bitwait))) { /* Wait for Lam */
-				/* Contro waiting by t.o. */
+			if (!bn && ((UHdl->UserMode & icv_bitwait))) { /* Wait for Lam */
+				/* Control waiting by t.o. */
 				UHdl->timid = 0;
-				UHdl->timid = timeout(UserWakeup, (char *)UHdl, (int)UHdl->WaitingTO);
+				UHdl->timid = timeout(UserWakeup, (char *)UHdl,
+						      (int)UHdl->WaitingTO);
 				swait(&UHdl->Ring.Evtsem, -1);	/* Wait Lam or Time Out */
-
 				disable(ps);
 				if (UHdl->timid < 0 ) {	/* time Out occured */
 					restore(ps);
-
 					/* check if any module setting got reset */
 					for (m = 0; m < icv_ModuleNb; m++) {
-						/*  Update Module directory */
+						/* Update Module directory */
 						MCtxt = s->ModuleCtxtDir[m];
 						if ( MCtxt != NULL) {
 							Line = 0;
@@ -2339,23 +2336,14 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
     if ( ( *( (int *) arg)) < 0 ){
       pseterr (EINVAL); return (SYSERR);
     }
-    Timeout = UHdl -> WaitingTO; /* current value     */
-    Iw1 = *( (int *) arg);	    /* new value         */
-    UHdl -> WaitingTO =  Iw1;    /* set T.O.          */
-    *( (int *) arg) = Timeout;    /* return old value  */
-
-/*      DBG (("icv196:setTO: for chanel= %d oldTO= %d newTO= %d in 1/100 s\n",Chan, Timeout, Iw1 ));*/
-
+    Timeout = UHdl->WaitingTO; /* current value */
+    Iw1 = *( (int *) arg);	    /* new value */
+    UHdl->WaitingTO =  Iw1;    /* set T.O. */
+    *( (int *) arg) = Timeout;    /* return old value */
     break;
-/* ICVVME_setTO */
-
-/*				connect function
-				================
-*/
-
-  case ICVVME_connect:
-
-    err = 0;
+	case ICVVME_connect:
+		/* connect function */
+		err = 0;
       /* Check channel number and Set up Handle pointer */
     if (Chan == 0) {		/* no connect on channel 0 */
       pseterr (EACCES); return (SYSERR);
