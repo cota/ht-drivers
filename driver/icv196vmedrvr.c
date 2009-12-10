@@ -1580,35 +1580,27 @@ int icv196uninstall(struct icv196T_s *s)
 /* Open a service access point for the user */
 int icv196open(struct icv196T_s *s, int dev, struct cdcm_file *f)
 {
-	int   chan;
 	short DevType = 0; /* 0 -- normal, 1 -- service channel */
 	struct T_UserHdl *UHdl = NULL;
+	int   chan = minor(dev);
 
-	/* DBG (("icvvme: Open on device= %lx \n", (long) dev)); */
-	chan = minor(dev);
-	/* DBG (("icv196:Open: on minor device= %d \n", (int) chan)); */
-
-	if ( (s == (struct icv196T_s *) NULL) || ( s == (struct icv196T_s *) -1)) {
+	if (!s) {
 		pseterr(EACCES);
 		return SYSERR;
 	}
 
 	if (chan == ICVVME_ServiceChan) {
-		/* DBG (("icvvme:Open:Handle for icv services \n")); */
 		UHdl = &s->ServiceHdl;
 		DevType = 1;
-	} else {
-		if (chan >= ICVVME_IcvChan01 && chan <= ICVVME_MaxChan) {
-			/* DBG (("icvvme:Open:Handle for synchro with ICV lines \n"));*/
-			if (f->access_mode & FWRITE) {
-				pseterr(EACCES);
-				return SYSERR;
-			}
-			UHdl = &s->ICVHdl[chan];
-		} else {
+	} else if (chan >= ICVVME_IcvChan01 && chan <= ICVVME_MaxChan) {
+		if (f->access_mode & FWRITE) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
+		UHdl = &s->ICVHdl[chan-1];
+	} else {
+		pseterr(EACCES);
+		return SYSERR;
 	}
 
 	if (!DevType && UHdl->usercount) { /* synchro channel already open */
@@ -1623,7 +1615,6 @@ int icv196open(struct icv196T_s *s, int dev, struct cdcm_file *f)
 		UHdl->UserMode = s->UserMode;
 		UHdl->WaitingTO = s->UserTO;
 		UHdl->pid = getpid();
-		/* DBG (("icvvme:open: Chanel =%d UHdl=$%lx\n", chan, UHdl )); */
 	}
 
 	s->usercounter++; /* Update user counter value */
