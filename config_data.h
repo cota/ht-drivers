@@ -125,14 +125,13 @@ typedef struct {
 /** @brief Each VME address space is a VME base address mapped to kernel
  *         memory.
  *
- * @param Mapped           -- Points to the VME base address mapped
-			      to kernel memory
+ * @param Mapped           -- Virtual Base Address
  * @param Next             -- next VME addr space (if any)
  * @param AddressModifier  -- SpaceNumber is the VME address modifier
  * @param WindowSize       --
  * @param DataWidth        --
  * @param Endian           --
- * @param BaseAddress      --
+ * @param BaseAddress      -- VME base address
  * @param FreeModifierFlag --
  * @param Comment          --
  */
