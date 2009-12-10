@@ -254,7 +254,6 @@ struct icv196T_s {
 
 	/*  User handle: as many as device created at install */
 	struct T_UserHdl ServiceHdl; /* sharable user service handle */
-	int    UserHdlICV_Size;
 	struct T_UserHdl ICVHdl[ICVVME_MaxChan]; /* user handle for synchro */
 
 	/*  ring buffer to serialise event coming from the modules */
@@ -263,12 +262,10 @@ struct icv196T_s {
 
 	/* Hardware table */
 	/* configuration table */
-	int    ModuleCtxt_Size;
 	struct T_ModuleCtxt *ModuleCtxtDir[icv_ModuleNb]; /* module directory */
 	struct T_ModuleCtxt ModuleCtxt[icv_ModuleNb]; /* Modules contexts */
 
 	/* Logical line tables */
-	int LogLine_Size;
 	struct T_LogLineHdl *LineHdlDir[ICV_LogLineNb]; /* Logical line directory */
 	struct T_LogLineHdl LineHdl[ICV_LogLineNb]; /* Logical line handles */
 };
@@ -1398,19 +1395,11 @@ static void enable_Module(struct T_ModuleCtxt *MCtxt)
 */
 int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 {
-	struct icv196T_s     *s;
 	struct T_LineCtxt *LCtxt;
-	unsigned char v, l;
-	int  i, m, cc;
+	int  i, cc;
 	unsigned char bw1, *CtrStat;
 
-	s = MCtxt->s;
 	LCtxt = &MCtxt->LineCtxt[line];
-
-	m = MCtxt->Module;
-	v = MCtxt->Vect[line];
-
-	l = MCtxt->Lvl[line];
 	CtrStat = MCtxt->VME_StatusCtrl;
 
 	*CtrStat = MIC_reg; /* master interrupt disable, permits */
@@ -1430,7 +1419,7 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 	PURGE_CPUPIPELINE;
 
 	/* Check if setting still well recorded  */
-	if (bw1 != v) {
+	if (bw1 != MCtxt->Vect[line]) {
 		/* The module lost its initialisation: redo it */
 		/*  DBG (("icv: Reinit Module %d line %d !!! corrupted vect= %d instead of %d\n",
 		    m, line, bw1, v )); */
@@ -1449,7 +1438,7 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 				enable_Line(LCtxt);
 				cprintf("icv196vmedrvr: Reinit: in module %d,"
 					" reanable the active line %d\n",
-					m, LCtxt->Line);
+					MCtxt->Module, LCtxt->Line);
 			}
 			LCtxt->Reset = 1; /* To manage reenable of line
 					     at connect */
