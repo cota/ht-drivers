@@ -239,7 +239,6 @@ struct icv196T_UserLine UserLineAdd[ICV_LogLineNb] = {
   allocated  by the install subroutine of the driver.
 */
 struct icv196T_s {
-	int install;
 	int usercounter; /* User counter */
 	int sem_drvr;    /* semaphore for exclusive access to static table */
 	int timid;       /* Interval timer Identification */
@@ -249,7 +248,7 @@ struct icv196T_s {
 	int   UserTO;   /* User time out, by waiting for ICV */
 	short UserMode; /* ? */
 
-	/* Sizing : depend  on needs of user interface */
+	/* Sizing: depend  on needs of user interface */
 	short SubscriberMxNb;
 
 	/*  User handle: as many as device created at install */
@@ -1105,9 +1104,6 @@ static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
 	MCtxt->Module = module;
 	MCtxt->dflag = 0;
 
-	/* CHK (("icv:MCtxt: s= $%lx Module %d ctxt add = $%lx\n",
-	   MCtxt ->s, module, MCtxt )); */
-
 	/* Set up base add of module as seen from cpu mapping.
 	   This information is available to user through ioctl function
 	   it provides the Module base add required by  smemcreate to create
@@ -1478,10 +1474,7 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 char *icv196install(struct icv196T_ConfigInfo *info)
 {
 	struct icv196T_ModuleParam *MInfo;
-	struct T_ModuleCtxt      *MCtxt;
-	unsigned char l;
-	ushort v;
-	long base;
+	struct T_ModuleCtxt *MCtxt;
 	int m;
 
 	compile_date[11] = 0; /* overwrite LF by 0 = end of string */
@@ -1504,10 +1497,6 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 
 		MInfo = &info->ModuleInfo[m]; /* set up the current Module info */
 
-		base = MInfo->base; /* base address */
-		v    = MInfo->vector[0]; /* int vector */
-		l    = MInfo->level[0];  /* int level */
-
 		/* Set up the tables of the  current Module */
 		MCtxt = Init_ModuleCtxt(&icv196_statics, m, MInfo);
 
@@ -1519,7 +1508,7 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 	  Now setup devices driven by the device directory
 	  which tell which modules have been declared
 	*/
-	for ( m = 0; m < icv_ModuleNb; m++) {
+	for (m = 0; m < icv_ModuleNb; m++) {
 		if ( (MCtxt = icv196_statics.ModuleCtxtDir[m]) == NULL)
 			continue;
 
