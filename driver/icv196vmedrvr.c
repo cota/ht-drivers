@@ -267,6 +267,10 @@ struct icv196T_s {
 	/* Logical line tables */
 	struct T_LogLineHdl *LineHdlDir[ICV_LogLineNb]; /* Logical line directory */
 	struct T_LogLineHdl LineHdl[ICV_LogLineNb]; /* Logical line handles */
+} icv196_statics = {
+	.sem_drvr = 1, /* to protect global ressources management sequences */
+	.UserTO   = 6000, /* default T.O. for waiting Trigger */
+	.UserMode = icv_bitwait /* set flag wait for read = wait */
 };
 
 /* to come out of waiting event */
@@ -449,6 +453,25 @@ static void Init_UserHdl(struct T_UserHdl *UHdl, int chanel,
 		*cptr++ = 0;
 
 	Init_Ring(UHdl, &UHdl->Ring, &UHdl->Atom[0], Evt_msk);
+}
+
+/* initialize driver statics table */
+static void init_statics_once(void)
+{
+	static int done = 0;
+	int i;
+
+	if (!done) {
+		done = 1;	/* only once */
+
+		/* Initialise user'shandle */
+		for (i = 0; i < ICVVME_MaxChan; i++)
+			Init_UserHdl(&icv196_statics.ICVHdl[i], i+1,
+				     &icv196_statics);
+
+		/* Initialize management tables */
+		Init_Dir(&icv196_statics); /* Initialize Directories */
+	}
 }
 
 /* subroutines Initialise a subscriber Handle */
@@ -1454,38 +1477,19 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 
 char *icv196install(struct icv196T_ConfigInfo *info)
 {
-	struct icv196T_s  *s; /* static table pointer */
 	struct icv196T_ModuleParam *MInfo;
 	struct T_ModuleCtxt      *MCtxt;
 	unsigned char l;
 	ushort v;
 	long base;
-	int i, m;
+	int m;
 
 	compile_date[11] = 0; /* overwrite LF by 0 = end of string */
 	compile_time[9]  = 0;
 
 	cprintf("V.%s %s %s", Version, compile_date, compile_time);
 
-	/* allocate static table */
-	s = (struct icv196T_s *) sysbrk(sizeof(*s));
-	if (!s) {
-		cprintf("\nicv196@%s() no room for static table,"
-			" INSTALLATION IMPOSSIBLE\n", __FUNCTION__);
-		return (char *) SYSERR;
-	}
-	memset(s, 0, sizeof(*s));
-
-	s->sem_drvr  = 1; /* to protect global ressources management sequences */
-	s->UserTO    = 6000; /* default T.O. for waiting Trigger */
-	s->UserMode |= (short)icv_bitwait; /* set flag wait for read = wait */
-
-	/* Initialise user'shandle */
-	for (i = 0; i < ICVVME_MaxChan; i++)
-		Init_UserHdl(&s->ICVHdl[i], i+1, s);
-
-	/* Initialize management tables */
-	Init_Dir(s); /* Initialize Directories */
+	init_statics_once();
 
 	/*
 	  Set up of table associated to devices
@@ -1535,10 +1539,10 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 		}
 
 		/* Set up the tables of the  current Module */
-		MCtxt = Init_ModuleCtxt(s, m, MInfo);
+		MCtxt = Init_ModuleCtxt(&icv196_statics, m, MInfo);
 
 		/*  Update Module directory */
-		s->ModuleCtxtDir[m] = MCtxt;
+		icv196_statics.ModuleCtxtDir[m] = MCtxt;
 	}
 
 	/*
@@ -1546,16 +1550,16 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 	  which tell which modules have been declared
 	*/
 	for ( m = 0; m < icv_ModuleNb; m++) {
-		if ( (MCtxt = s->ModuleCtxtDir[m]) == NULL)
+		if ( (MCtxt = icv196_statics.ModuleCtxtDir[m]) == NULL)
 			continue;
 
 		/* Startup the hardware for that module context */
 		if (icvModule_Startup(MCtxt) < 0)
-			MCtxt = s->ModuleCtxtDir[m] = 0;
+			MCtxt = icv196_statics.ModuleCtxtDir[m] = 0;
 	}
 
 	cprintf("\ricv196 OK\n");
-	return (char *) s;
+	return (char *) &icv196_statics;
 }
 
 /* Uninstalling the driver */
