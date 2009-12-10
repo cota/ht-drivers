@@ -1158,16 +1158,6 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 	l       = MCtxt->Lvl[0];
 	CtrStat = MCtxt->VME_StatusCtrl;
 
-	/* To catch bus error if module does not answer */
-	if (recoset()) { /* To prevent system crash in case of bus error */
-		cprintf("icv196 install: on Module %d VME offset$%lx,"
-			" CTrStat address = $%x bus error occured!\n",
-			m, MCtxt->VME_offset, (uint)CtrStat);
-		cprintf("icv196:install: Module %d INSTALLATION IMPOSSIBLE\n",
-			m);
-		return -1;
-	}
-
 	/* reset hardware of icv196vme module */
 	disable(ps);
 
@@ -1301,8 +1291,6 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 
 	/* DBG (("icv196vmedrvr: install: hardware set up finished \n"));*/
 	/* DBG (("icv196vme installation terminated, driver ready to work \n"));*/
-
-	noreco(); /* remove local bus trap */
 	return 0;
 }
 
