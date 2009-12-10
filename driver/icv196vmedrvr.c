@@ -1504,39 +1504,9 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 
 		MInfo = &info->ModuleInfo[m]; /* set up the current Module info */
 
-		/* Set up of the current module tables */
-		/* Check info parameters */
-		base = MInfo->base;
-
-		/* check if base address conform to hardware strapping */
-		if ( ((base & 0xff000000) != 0)
-		     || ((base & 0x000000ff) != 0) ) {
-			cprintf("\n");
-			cprintf ("icv196:install: base address out of range !.. %lx \n",base);
-			cprintf("icv196:install: INSTALLATION IMPOSSIBLE\n");
-			pseterr(EFAULT);
-			return (char *) SYSERR;
-		}
-
-		/*  Only one vector and one level for the 8 lines of the module */
-		v = MInfo->vector[0];
-
-		if ((v < USER_VBASE) || (v > 255)) { /* USER_VBASE from interrupt.h */
-			cprintf("\n");
-			cprintf("icv196vmeinstall: vector value out of range !.. %d \n",v);
-			cprintf("icv196:install: INSTALLATION IMPOSSIBLE\n");
-			pseterr(EFAULT);
-			return (char *) SYSERR;
-		}
-		l = MInfo->level[0];
-
-		if ( (l > 5) || (l < 1) ) {
-			cprintf("\n");
-			cprintf("icv196vmeinstall: Int. level out of range must be in [2..5] !.. %d \n", l);
-			cprintf("icv196:install: INSTALLATION IMPOSSIBLE\n");
-			pseterr(EFAULT);
-			return (char *) SYSERR;
-		}
+		base = MInfo->base; /* base address */
+		v    = MInfo->vector[0]; /* int vector */
+		l    = MInfo->level[0];  /* int level */
 
 		/* Set up the tables of the  current Module */
 		MCtxt = Init_ModuleCtxt(&icv196_statics, m, MInfo);
