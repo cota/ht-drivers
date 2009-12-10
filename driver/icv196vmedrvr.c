@@ -128,14 +128,6 @@ struct T_ModuleLogLine {
 	short LogLineIndex[icv_LineNb];
 };
 
-/* isr entry point table */
-int (*ModuleIsr[icv_ModuleNb])(void *) = {
-	icv196vmeisr,
-	icv196vmeisr,
-	icv196vmeisr,
-	icv196vmeisr
-};
-
 /* table to link for each possible module:
    actual phys line and logical unit index
 */
@@ -1102,13 +1094,13 @@ static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
 	MCtxt->VME_CsDir      = (short *)(moduleSysBase + CSDIR_ICV);
 
 	/* Initialise the associated line contexts */
-	type = 0; /* to select default line type  */
+	type = 0; /* to select default line type */
 	for (i = 0; i < icv_LineNb; i++) {
-		MCtxt->Vect[i] = vmeinfo->vector[0];
-		MCtxt->Lvl[i]  = vmeinfo->level[0];
+		MCtxt->Vect = vmeinfo->vector;
+		MCtxt->Lvl  = vmeinfo->level;
 		Init_LineCtxt(i, type, MCtxt);
 	}
-	MCtxt->isr[0] = ModuleIsr[s->mcntr];
+	MCtxt->isr = icv196vmeisr;
 
 	s->mcntr++;
 	return MCtxt;
@@ -1125,8 +1117,8 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 	ulong ps;
 
 	m       = MCtxt->Module;
-	v       = MCtxt->Vect[0];
-	l       = MCtxt->Lvl[0];
+	v       = MCtxt->Vect;
+	l       = MCtxt->Lvl;
 	CtrStat = MCtxt->VME_StatusCtrl;
 
 	/* reset hardware of icv196vme module */
@@ -1280,10 +1272,10 @@ int icvModule_Startup(struct T_ModuleCtxt *MCtxt)
 
 	s = MCtxt->s;
 	m = MCtxt->Module;
-	v = MCtxt->Vect[0];
+	v = MCtxt->Vect;
 
 	/* Connect interrupt from module  */
-	IOINTSET(cc, v, (int (*)(void *))MCtxt->isr[0], (char *)MCtxt);
+	IOINTSET(cc, v, (int (*)(void *))MCtxt->isr, (char *)MCtxt);
 	if (cc < 0) {
 		cprintf("icv196:install: iointset for  vector=%d error%d\n",
 			v, cc);
@@ -1384,7 +1376,7 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 	PURGE_CPUPIPELINE;
 
 	/* Check if setting still well recorded  */
-	if (bw1 != MCtxt->Vect[line]) {
+	if (bw1 != MCtxt->Vect) {
 		/* The module lost its initialisation: redo it */
 		for (i = 0; i < icv_LineNb; i++) {
 			LCtxt = &MCtxt->LineCtxt[i];
@@ -1476,7 +1468,7 @@ int icv196uninstall(struct icv196T_s *s)
 		if ( (MCtxt = s->ModuleCtxtDir[m]) == NULL)
 			continue;
 
-		v = MCtxt->Vect[0];
+		v = MCtxt->Vect;
 		IOINTCLR(v);
 	}
 
@@ -1708,10 +1700,10 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 					(unsigned long) MCtxt->SYSVME_Add;
 				Infop->ModuleInfo.size = MCtxt->VME_size;
 				for (j = 0; j < icv_LineNb; j++) {
-					Infop->ModuleInfo.vector[j] =
-						MCtxt->Vect[j];
-					Infop->ModuleInfo.level[j] =
-						MCtxt->Lvl[j];
+					Infop->ModuleInfo.vector =
+						MCtxt->Vect;
+					Infop->ModuleInfo.level =
+						MCtxt->Lvl;
 				}
 			}
 		}

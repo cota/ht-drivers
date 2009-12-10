@@ -107,8 +107,8 @@ struct icv196T_UserEvent {
 struct icv196T_ModuleParam {
 	unsigned long base;
 	unsigned long size;
-	unsigned char vector[icv_LineNb];
-	unsigned char level[icv_LineNb];
+	unsigned char vector;
+	unsigned char level;
 };
 
 struct icv196T_ConfigInfo {

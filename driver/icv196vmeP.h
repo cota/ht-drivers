@@ -210,9 +210,9 @@ struct T_ModuleCtxt {
 	unsigned short     int_en_mask;
 
 	/* context of the lines */
-	unsigned char Vect[icv_LineNb]; /* for each line a Int. vector */
-	unsigned char Lvl[icv_LineNb];  /* for each line an Int. level */
-	int (*isr[icv_LineNb])(void *);   /* yet only element [0] used */
+	unsigned char Vect; /* for each line a Int. vector */
+	unsigned char Lvl;  /* for each line an Int. level */
+	int (*isr)(void *);
 	struct T_LineCtxt LineCtxt[icv_LineNb];
 };
 
