@@ -128,9 +128,6 @@ struct T_ModuleLogLine {
 	short LogLineIndex[icv_LineNb];
 };
 
-/* sizing of module */
-short LinePerModule = icv_LineNb;
-
 /* isr entry point table */
 int (*ModuleIsr[icv_ModuleNb])(void *) = {
 	icv196vmeisr,
@@ -1072,8 +1069,7 @@ static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
 					    short module,
 					    struct icv196T_ModuleParam *vmeinfo)
 {
-	int   i;
-	short n;
+	int i;
 	unsigned long base, offset, sysBase, moduleSysBase;
 	struct T_ModuleCtxt *MCtxt;
 	int type;
@@ -1086,11 +1082,9 @@ static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
 
 	/* init context table */
 	MCtxt->s = s;
-	MCtxt->length = sizeof(struct T_ModuleCtxt);
 	MCtxt->sem_module = 1;	/* semaphore for exclusive access */
 	MCtxt->Module = module;
 	MCtxt->dflag = 0;
-	MCtxt->LineMxNb = LinePerModule;
 
 	/* CHK (("icv:MCtxt: s= $%lx Module %d ctxt add = $%lx\n",
 	   MCtxt ->s, module, MCtxt )); */
@@ -1140,8 +1134,7 @@ static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
 
 	/* Initialise the associated line contexts */
 	type = 0; /* to select default line type  */
-	n = MCtxt->LineMxNb;
-	for (i = 0; i < n; i++) {
+	for (i = 0; i < icv_LineNb; i++) {
 		MCtxt->Vect[i] = vmeinfo->vector[0];
 		MCtxt->Lvl[i]  = vmeinfo->level[0];
 		Init_LineCtxt(i, type, MCtxt);
@@ -1417,7 +1410,7 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 	struct icv196T_s     *s;
 	struct T_LineCtxt *LCtxt;
 	unsigned char v, l;
-	int  i, m, lx, cc;
+	int  i, m, cc;
 	unsigned char bw1, *CtrStat;
 
 	s = MCtxt->s;
@@ -1451,8 +1444,7 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 		/*  DBG (("icv: Reinit Module %d line %d !!! corrupted vect= %d instead of %d\n",
 		    m, line, bw1, v )); */
 
-		lx = MCtxt->LineMxNb;
-		for (i = 0; i < lx; i++) {
+		for (i = 0; i < icv_LineNb; i++) {
 			LCtxt = &MCtxt->LineCtxt[i];
 			LCtxt->Reset = 1; /* To manage reenable of line
 					     at connect */
@@ -1460,7 +1452,7 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 		/* reset hardware of icv196vme module */
 		cc = icvModule_Init_HW(MCtxt);
 
-		for (i = 0; i < lx; i++) {
+		for (i = 0; i < icv_LineNb; i++) {
 			LCtxt = &MCtxt->LineCtxt[i];
 			if (LCtxt->LHdl->SubscriberCurNb) {
 				enable_Line(LCtxt);

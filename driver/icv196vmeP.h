@@ -189,7 +189,6 @@ struct T_LineCtxt {
 };
 
 struct T_ModuleCtxt {
-	short   length;
 	struct  icv196T_s *s;
 	int     sem_module;    /* mutex semaphore */
 	int     dflag;         /* debug flag */
@@ -211,7 +210,6 @@ struct T_ModuleCtxt {
 	unsigned short     int_en_mask;
 
 	/* context of the lines */
-	short   LineMxNb;
 	unsigned char Vect[icv_LineNb]; /* for each line a Int. vector */
 	unsigned char Lvl[icv_LineNb];  /* for each line an Int. level */
 	int (*isr[icv_LineNb])(void *);   /* yet only element [0] used */
