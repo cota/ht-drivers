@@ -371,8 +371,6 @@ static struct icvT_RingAtom *PushTo_Ring(struct T_RingBuffer *Ring,
 		Ring->writer++;
 		ssignal(&Ring->Evtsem);
 		UHdl = Ring->UHdl;
-		/* DBG (("icv196:isr:purge Ring for Chanel=%d UHdl= $%lx\n",
-		   UHdl -> chanel, UHdl)); */
 	}
 
 	/* now push the event in the ring  */
@@ -382,10 +380,8 @@ static struct icvT_RingAtom *PushTo_Ring(struct T_RingBuffer *Ring,
 	Atom->Subscriber = atom->Subscriber;
 	Ring->writer     = ((++I) & (Ring->mask));
 	ssignal(&(Ring->Evtsem)); /* manage ring  */
-	/*  DBG(("icvp:Push Evtsem %lx Writer = %lx Evt= %lx, Subs=$%lx\n",
-	    Ring->Evtsem, Ring->writer, Atom->Evt.All, Atom->Subscriber)); */
 
-  return Atom;
+	return Atom;
 }
 
 /* Subroutine to pull out an event from the Ring */
@@ -396,9 +392,6 @@ static unsigned long PullFrom_Ring(struct T_RingBuffer *Ring)
 	register struct T_Subscriber *Subs;
 	short  I, ix;
 	union icvU_Evt Evt;
-
-	/* DBG(("icv:PullFrom: Ring=$%lx Evtsem=%d \n",
-	   Ring, Ring -> Evtsem )); */
 
 	disable(ps); /* Protect seq. from isr access */
 	ix = I = Ring->reader;
@@ -413,8 +406,6 @@ static unsigned long PullFrom_Ring(struct T_RingBuffer *Ring)
 
 		/* build the value to return according to mode */
 		if (Subs != NULL) { /* Case cumulative mode */
-			/* DBG(("icv:PullFrom: Subs*=$%lx LHdl=%lx\n",
-			   Subs, Subs -> LHdl));*/
 			Evt.Word.w1 = Subs->EvtCounter; /* counter from
 							   subscriber */
 
@@ -423,12 +414,8 @@ static unsigned long PullFrom_Ring(struct T_RingBuffer *Ring)
 			Subs->EvtCounter = -1; /* clear event present
 						  in the ring */
 		}
-		/* DBG (("icv196:PullRing: buff $%lx Reader= %d Evt= $%lx\n",
-		   Ring -> Buffer, ix, Evt.All));*/
 	} else { /* ring empty  */
 		Evt.All = -1;
-		/* DBG (("icv196:Empty ring: buff * %lx \n",
-		   Ring -> Buffer)); */
 	}
 
 	restore(ps);
@@ -490,8 +477,6 @@ static void Init_SubscriberHdl(struct T_Subscriber *Subs, int mode)
 	Subs->Ring = NULL;	/* Clear the subscribing link */
 	Subs->mode = mode;
 	Subs->EvtCounter = 0;
-
-	/* CHK (("icv:Subs: Subs Hdl add = $%lx\n", Subs )); */
 }
 
 /* Initialise the subscriber directory of a logical line handle */
@@ -508,8 +493,6 @@ static void Init_LineSubscribers(struct T_LogLineHdl *LHdl)
 					 queue leuleu */
 
 	Subs = &LHdl->Subscriber[0];
-	/* CHK (("icv:LSubs: LSubs add =$%lx   \n",Subs )); */
-
 	n = LHdl->SubscriberMxNb;
 	for (i=0; i < n; i++, Subs++) {
 		Subs->LHdl = LHdl;
@@ -537,10 +520,6 @@ static struct T_LogLineHdl *Init_LineHdl(int lli, struct T_LineCtxt *LCtxt)
 	/* build the event pattern for that line */
 	LHdl->Event_Pattern.Word.w2 = UserLine.All;
 	LHdl->Event_Pattern.Word.w1 = 0;
-
-	/* CHK (("icv:LHdl: s = $%lxLogIndex %d LHdl add= $%lx\n",
-	   LHdl -> s, lli, LHdl)); */
-
 	LHdl->SubscriberCurNb = 0; /* Current Subscriber nb set to 0 */
 
 	if (LCtxt->Type == icv_FpiLine)
@@ -680,15 +659,12 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 
 	CtrStat = LCtxt->MCtxt->VME_StatusCtrl;
 	locdev = LCtxt->Line;
-	/* DBX (("enable line: locdev = %d\n", locdev)); */
 
 	if (locdev >= PortA_nln) { /*if locdev is on portB  */
 		/*enable interrupt on line nr. locdev on portB */
 		disable(ps);
 		mask = 1 << locdev; /* set interrupt enable */
 		LCtxt->MCtxt->int_en_mask |= mask; /* mask */
-		/* DBX (("enable line: int_en_mask = 0x%x\n",
-		  LCtxt->MCtxt->int_en_mask)); */
 
 		mask = 1 << (locdev - PortA_nln);
 
@@ -735,21 +711,18 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
-		/* DBX(("enable line: PtrMsk_Breg = 0x%x\n", dummy)); */
 
 		/* TEST!! */
 		*CtrStat = PtrPo_Breg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
-		/* DBX(("enable line: PtrPo_Breg = 0x%x\n", dummy)); */
 
 		/* TEST!! */
 		*CtrStat = PtrTr_Breg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
-		/* DBX(("enable line: PtrTr_Breg = 0x%x\n", dummy)); */
 
 		*CtrStat = CSt_Breg;
 		PURGE_CPUPIPELINE;
@@ -761,8 +734,6 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 		disable(ps);
 		mask = 1 << locdev; /* set interrupt enable */
 		LCtxt->MCtxt->int_en_mask |= mask; /* mask */
-		/* DBX (("enable line: int_en_mask = 0x%x\n",
-		  LCtxt->MCtxt->int_en_mask)); */
 
 		*CtrStat = CSt_Areg;
 		PURGE_CPUPIPELINE;
@@ -807,21 +778,18 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
-		/* DBX(("enable line: PtrMsk_Areg = 0x%x\n", dummy)); */
 
 		/* TEST !! */
 		*CtrStat = PtrPo_Areg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
-		/* DBX(("enable line: PtrPo_Areg = 0x%x\n", dummy)); */
 
 		/* TEST !! */
 		*CtrStat = PtrTr_Areg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
-		/* DBX(("enable line: PtrTr_Areg = 0x%x\n", dummy)); */
 
 		*CtrStat = CSt_Areg;
 		PURGE_CPUPIPELINE;
@@ -844,14 +812,11 @@ static void disable_Line(struct T_LineCtxt *LCtxt)
 
 	CtrStat = LCtxt->MCtxt->VME_StatusCtrl;
 	locdev = LCtxt->Line;
-	/* DBX (("disable line: locdev = %d\n", locdev)); */
 	if (locdev >= PortA_nln) { /* if locdev is on portB */
 		/* enable interrupt on line nr. locdev on portB */
 		disable(ps);
 		mask = ~(1 << locdev); /* clear interrupt enable */
 		LCtxt->MCtxt->int_en_mask &= mask;  /* mask */
-		/*DBX (("disable line: int_en_mask = 0x%x\n",
-		  LCtxt->MCtxt->int_en_mask))*/;
 
 		mask = ~(1 << (locdev - PortA_nln));
 
@@ -898,21 +863,18 @@ static void disable_Line(struct T_LineCtxt *LCtxt)
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
-		/* DBX(("disable line: PtrMsk_Breg = 0x%x\n", dummy)); */
 
 		/* TEST!! */
 		*CtrStat = PtrPo_Breg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
-		/* DBX(("disable line: PtrPo_Breg = 0x%x\n", dummy)); */
 
 		/* TEST!! */
 		*CtrStat = PtrTr_Breg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
-		/* DBX(("disable line: PtrTr_Breg = 0x%x\n", dummy)); */
 
 		*CtrStat = CSt_Breg;
 		PURGE_CPUPIPELINE;
@@ -926,8 +888,6 @@ static void disable_Line(struct T_LineCtxt *LCtxt)
 		mask = ~(1 << locdev);
 		/* clear interrupt enable */
 		LCtxt->MCtxt->int_en_mask &= mask; /* mask */
-		/*DBX (("disable line: int_en_mask = 0x%x\n",
-		  LCtxt->MCtxt->int_en_mask))*/;
 
 		*CtrStat = CSt_Areg;
 		PURGE_CPUPIPELINE;
@@ -972,21 +932,18 @@ static void disable_Line(struct T_LineCtxt *LCtxt)
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
-		/* DBX(("disable line: PtrMsk_Areg = 0x%x\n", dummy)); */
 
 		/* TEST!! */
 		*CtrStat = PtrPo_Areg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
-		/* DBX(("disable line: PtrPo_Areg = 0x%x\n", dummy)); */
 
 		/* TEST!! */
 		*CtrStat = PtrTr_Areg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
-		/* DBX(("disable line: PtrTr_Areg = 0x%x\n", dummy)); */
 
 		*CtrStat = CSt_Areg;
 		PURGE_CPUPIPELINE;
@@ -1072,9 +1029,6 @@ static void Init_LineCtxt(int line, int type, struct T_ModuleCtxt *MCtxt)
 	LCtxt->intmod = icv_ReenableOn;
 	LCtxt->status = icv_Disabled;
 	LCtxt->loc_count = -1;
-
-	/* CHK(("icv:LCtxt:s= $%lx Module %d Line %d Line ctxt add = $%lx, LogIndex %d\n",
-	   LCtxt -> s ,m, line, LCtxt, LogIndex )); */
 
 	/* Link physical line to logical line and vise versa */
 	LCtxt->LHdl = Init_LineHdl(LogIndex, LCtxt);
@@ -1305,9 +1259,6 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 	PURGE_CPUPIPELINE;
 
 	restore(ps);
-
-	/* DBG (("icv196vmedrvr: install: hardware set up finished \n"));*/
-	/* DBG (("icv196vme installation terminated, driver ready to work \n"));*/
 	return 0;
 }
 
@@ -1330,12 +1281,6 @@ int icvModule_Startup(struct T_ModuleCtxt *MCtxt)
 	s = MCtxt->s;
 	m = MCtxt->Module;
 	v = MCtxt->Vect[0];
-
-	/* CHK (("icv:Setup: s =$%lx, Module %d ctxt add = $%lx\n",
-	   s, m, MCtxt )); */
-
-	/* Now connect interrupt to system */
-	/* DBG (("icv:Setup: module %d vector %d level %d \n",m,v, l )); */
 
 	/* Connect interrupt from module  */
 	IOINTSET(cc, v, (int (*)(void *))MCtxt->isr[0], (char *)MCtxt);
@@ -1441,9 +1386,6 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 	/* Check if setting still well recorded  */
 	if (bw1 != MCtxt->Vect[line]) {
 		/* The module lost its initialisation: redo it */
-		/*  DBG (("icv: Reinit Module %d line %d !!! corrupted vect= %d instead of %d\n",
-		    m, line, bw1, v )); */
-
 		for (i = 0; i < icv_LineNb; i++) {
 			LCtxt = &MCtxt->LineCtxt[i];
 			LCtxt->Reset = 1; /* To manage reenable of line
@@ -1708,7 +1650,6 @@ int icv196read(struct icv196T_s *s, struct cdcm_file *f, char *buff, int bcount)
 /* not available */
 int icv196write(struct icv196T_s *s, struct cdcm_file *f, char *buff,int bcount)
 {
-	/* DBG (("icvdrvr: write: no such facility available \n")); */
 	return (bcount = s->usercounter);
 }
 
@@ -1822,18 +1763,16 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
       /* Check channel number and Set up Handle pointer */
     if (Chan == 0) {		/* no connect on channel 0 */
       pseterr (EACCES); return (SYSERR);
-    };
+    }
     if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
       UHdl = &(s -> ICVHdl[Chan]);
-    }
-    else {
+    } else {
       pseterr (ENODEV);  return (SYSERR);
-    };
-    /* DBG (("icv:clearreenable: Entry:UHdl= %lx \n", (long) UHdl));*/
+    }
 
-    if (UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
+    if (UHdl == NULL) {  /* Abnormal status system corruption */
       pseterr (EWOULDBLOCK);
-      return (SYSERR);
+      return SYSERR;
     }
 
 		/* Check parameters and Set up environnement */
@@ -1847,30 +1786,23 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
     }
 
    if ((group < 0) || (group > (icv_ModuleNb - 1))) {
-/*      DBG (("icv:connect: module group= %d out of range on channel %d\n",group, Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
     if ((index < 0) || (index > (icv_LineNb -1) )) {
-/*      DBG (("icv:setreenable: line index= %d out of range on channel %d\n",index,  Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
            /* set up Logical line handle pointer */
     LogIx = CnvrtUserLine( (char) group,(char) index );
 
-    /* DBG (("icv:setreenable: request on group %d index %d, associated  log line %d\n",group, index, LogIx )); */
-
     if (LogIx < 0 || LogIx > ICV_LogLineNb){
-/*      DBG (("icv:setreenable: LogIndex outside [0..%d] for channel %d\n", ICV_LogLineNb, Chan ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 
     if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /* Line not in config*/
-/*      DBG (("icv:setreenable: %d no such log line in config, for channel %d \n", LogIx, Chan ));*/
       pseterr (EINVAL); return (SYSERR);
     }
     LCtxt = LHdl -> LineCtxt;
     if ( (LCtxt -> LHdl) != LHdl){
-/*      DBG (("icv:setreenable: computed LHdl $%lx and LLCtxt -> LHdl $%lx mismatch \n", LHdl, (LCtxt -> LHdl) ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 
@@ -1896,9 +1828,8 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
     else {
       pseterr (ENODEV);  return (SYSERR);
     };
-    /* DBG (("icv:clearreenable: Entry:UHdl= %lx \n", (long) UHdl));*/
 
-    if (UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
+    if (UHdl == NULL) {  /* Abnormal status system corruption */
       pseterr (EWOULDBLOCK);
       return (SYSERR);
     }
@@ -1914,30 +1845,23 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
     }
 
    if ((group < 0) || (group > (icv_ModuleNb - 1))) {
-/*      DBG (("icv:connect: module group= %d out of range on channel %d\n",group, Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
     if ((index < 0) || (index > (icv_LineNb -1) )) {
-/*      DBG (("icv:clearreenable: line index= %d out of range on channel %d\n",index,  Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
            /* set up Logical line handle pointer */
     LogIx = CnvrtUserLine( (char) group,(char) index );
 
-    /* DBG (("icv:clearreenable: request on group %d index %d, associated  log line %d\n",group, index, LogIx )); */
-
     if (LogIx < 0 || LogIx > ICV_LogLineNb){
-/*      DBG (("icv:clearreenable: LogIndex outside [0..%d] for chanel %d\n", ICV_LogLineNb, Chan ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 
     if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /* Line not in config*/
-/*      DBG (("icv:clearreenable: %d no such log line in config, for chanel %d \n", LogIx, Chan ));*/
       pseterr (EINVAL); return (SYSERR);
     }
     LCtxt = LHdl -> LineCtxt;
     if ( (LCtxt -> LHdl) != LHdl){
-/*      DBG (("icv:clearreenable: computed LHdl $%lx and LLCtxt -> LHdl $%lx mismatch \n", LHdl, (LCtxt -> LHdl) ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 
@@ -1961,7 +1885,6 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
     else {
       pseterr (ENODEV);  return (SYSERR);
     };
-    /* DBG (("icv:disableint: Entry:UHdl= %lx \n", (long) UHdl));*/
 
     if (UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
       pseterr (EWOULDBLOCK);
@@ -1979,30 +1902,23 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
     }
 
    if ((group < 0) || (group > (icv_ModuleNb - 1))) {
-/*      DBG (("icv:connect: module group= %d out of range on channel %d\n",group, Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
     if ((index < 0) || (index > (icv_LineNb -1) )) {
-/*      DBG (("icv:disableint: line index= %d out of range on channel %d\n",index,  Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
            /* set up Logical line handle pointer */
     LogIx = CnvrtUserLine( (char) group,(char) index );
 
-    /* DBG (("icv:disableint: request on group %d index %d, associated  log line %d\n",group, index, LogIx )); */
-
     if (LogIx < 0 || LogIx > ICV_LogLineNb){
-/*      DBG (("icv:disableint: LogIndex outside [0..%d] for chanel %d\n", ICV_LogLineNb, Chan ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 
     if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /* Line not in config*/
-/*      DBG (("icv:disableint: %d no such log line in config, for chanel %d \n", LogIx, Chan ));*/
       pseterr (EINVAL); return (SYSERR);
     }
     LCtxt = LHdl -> LineCtxt;
     if ( (LCtxt -> LHdl) != LHdl){
-/*      DBG (("icv:disableint: computed LHdl $%lx and LLCtxt -> LHdl $%lx mismatch \n", LHdl, (LCtxt -> LHdl) ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 
@@ -2026,9 +1942,8 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
     else {
       pseterr (ENODEV);  return (SYSERR);
     };
-    /* DBG (("icv:disableint: Entry:UHdl= %lx \n", (long) UHdl));*/
 
-    if (UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
+    if (UHdl == NULL) {  /* Abnormal status system corruption */
       pseterr (EWOULDBLOCK);
       return (SYSERR);
     }
@@ -2044,30 +1959,23 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
     }
 
    if ((group < 0) || (group > (icv_ModuleNb - 1))) {
-/*      DBG (("icv:connect: module group= %d out of range on channel %d\n",group, Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
     if ((index < 0) || (index > (icv_LineNb -1) )) {
-/*      DBG (("icv:disableint: line index= %d out of range on channel %d\n",index,  Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
            /* set up Logical line handle pointer */
     LogIx = CnvrtUserLine( (char) group,(char) index );
 
-    /* DBG (("icv:disableint: request on group %d index %d, associated  log line %d\n",group, index, LogIx )); */
-
     if (LogIx < 0 || LogIx > ICV_LogLineNb){
-/*      DBG (("icv:disableint: LogIndex outside [0..%d] for chanel %d\n", ICV_LogLineNb, Chan ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 
     if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /* Line not in config*/
-/*      DBG (("icv:disableint: %d no such log line in config, for chanel %d \n", LogIx, Chan ));*/
       pseterr (EINVAL); return (SYSERR);
     }
     LCtxt = LHdl -> LineCtxt;
     if ( (LCtxt -> LHdl) != LHdl){
-/*      DBG (("icv:disableint: computed LHdl $%lx and LLCtxt -> LHdl $%lx mismatch \n", LHdl, (LCtxt -> LHdl) ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
 
@@ -2241,8 +2149,6 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
     }
     UHdl->UserMode &= (~((short) icv_bitwait)); /* reset flag wait */
 
-/*     DBG (("icvdrvr:ioctl:reset wait flag UserMode now= %lx \n", UHdl -> UserMode ));*/
-
     break;
 /*
                                 ioctl wai/nowait flag control:     wait
@@ -2268,9 +2174,6 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
       return (SYSERR);
     }
     UHdl->UserMode |= ((short)icv_bitwait); /* set flag wait */
-
-/*    DBG (("icv196:ioctl:set wait flag UserMode now= %lx \n", UHdl -> UserMode ));*/
-
     break;
 
 
@@ -2319,9 +2222,8 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
     else {
       pseterr (ENODEV);  return (SYSERR);
     };
-    /* DBG (("icv196:connect: Entry:UHdl= %lx \n", (long) UHdl));*/
 
-    if (UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
+    if (UHdl == NULL) {  /* Abnormal status system corruption */
       pseterr (EWOULDBLOCK);
       return (SYSERR);
     }
@@ -2331,9 +2233,7 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
     group = ((struct icv196T_connect *) arg) -> source.field.group;
     index = ((struct icv196T_connect *) arg) -> source.field.index;
     mode = ((struct icv196T_connect *) arg) -> mode;
-   /* DBG (("icv196:connect: param = group = %d Line %d Mode %d \n", group, index, mode));   */
     if (mode & (~(icv_cumul | icv_disable))){
-/*      DBG (("icv:connect: mode out of range on channel %d\n", Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
 
@@ -2343,39 +2243,29 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
     }
 
    if ((group < 0) || (group > (icv_ModuleNb - 1))) {
-/*      DBG (("icv:connect: module group= %d out of range on channel %d\n",group, Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
     if ((index < 0) || (index > (icv_LineNb -1) )) {
-/*      DBG (("icv:connect: line index= %d out of range on channel %d\n",index,  Chan));*/
       pseterr (EINVAL); return (SYSERR);
     }
            /* set up Logical line handle pointer */
     LogIx = CnvrtUserLine( (char) group,(char) index );
 
-    /* DBG (("icv196:connect: request on group %d index %d, associated  log line %d\n",group, index, LogIx )); */
-
     if (LogIx < 0 || LogIx > ICV_LogLineNb){
-/*      DBG (("icv196:connect: LogIndex outside [0..%d] for chanel %d\n", ICV_LogLineNb, Chan ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
     if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /* Line not in config*/
-/*      DBG (("icv196:connect: %d no such log line in config, for chanel %d \n", LogIx, Chan ));*/
       pseterr (EINVAL); return (SYSERR);
     }
     LCtxt = LHdl -> LineCtxt;
     if ( (LCtxt -> LHdl) != LHdl){
-/*      DBG (("icv196:connect: computed LHdl $%lx and LLCtxt -> LHdl $%lx mismatch \n", LHdl, (LCtxt -> LHdl) ));*/
       pseterr (EWOULDBLOCK); return(SYSERR);
     }
-/*  DBG (("icv196:connect: checking if connection already exists\n")); */
     if  ( TESTBIT(UHdl -> Cmap, LogIx) ) {
       if (LCtxt -> Reset) {
 	enable_Line(LCtxt);
-/*      DBG (("icv196:connect: line %d enabled\n", Chan));            */
       }
       err = 0;
-/*      DBG (( "icv196:connect: already connected group = %d index = %d Logline =%d\n", group, index, LogIx));*/
       break;			/* already connected ok --->  exit */
     }
     SubsMode = 0;		/* default mode requested */
@@ -2396,12 +2286,8 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
     icvModule_Reinit(MCtxt, Line);
 
     if ((Subs = LineBooking(UHdl, LHdl, SubsMode)) == NULL){
-/*      DBG (("icv196:connect: booking unsuccessfull UHdl $%lx LHdl $%lx\n", UHdl, LHdl ));*/
       pseterr (EUSERS); return (SYSERR);
     }
-
-/*    DBG(("icv196 connect chanel= %d on group = %d, index = %d, mode %d \n", Chan, group, index, mode));*/
-
 
       /*  enable line interrupt */
     if (LCtxt -> status == icv_Disabled)
@@ -2409,8 +2295,6 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
     LCtxt -> loc_count = 0;
 
     break;
-
-/*  ICVVME_connect */
 
 /*
 				disconnect function
@@ -2443,9 +2327,6 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
       pseterr (EACCES);
       return (SYSERR);
     }
-
-
-/*      DBG (("icv196:disconnect:chanel= %d from group = %lx, index = %lx \n", Chan,(long) group, (long) index));*/
 
     if ((group < 0) || (group >= icv_ModuleNb)) {
       pseterr (EINVAL); return (SYSERR);
@@ -2501,9 +2382,6 @@ int icv196select(struct icv196T_s *s, struct cdcm_file *f,
 		UHdl = &s->ICVHdl[Chan]; /* general handle */
 	}
 
-	/* DBG(("icv196:select:Entry: on channel %lx which = %lx \n",
-	   Chan, which )); */
-
 	switch (which) {
 	case SREAD:
 		se->iosem   = &UHdl->Ring.Evtsem;
@@ -2549,16 +2427,12 @@ static int icv196vmeisr(void *arg)
 	s = MCtxt->s; /* common static area */
 	m = MCtxt->Module;
 	CtrStat = MCtxt->VME_StatusCtrl;
-	/* DBX (("icv196:isr: s=$%lx MCtxt= $%lx MCtxt.Module= =$%d \n",
-	  s, (long)MCtxt,(long)m )); */
 
 	if (m <0 || m > icv_ModuleNb) {
-		/* DBG(("icv:isr: Module context pointer mismatch  \n")); */
 		return SYSERR;
 	}
 
 	if (!s->ModuleCtxtDir[m]) {
-		/* DBG (("icv196isr: Interrupt from a non declared module \n"));*/
 		return SYSERR;
 	}
 
@@ -2573,7 +2447,6 @@ static int icv196vmeisr(void *arg)
 	PURGE_CPUPIPELINE;
 	status = *CtrStat;        /* read portA's status register */
 	PURGE_CPUPIPELINE;
-	/* DBX(("CSt_Areg = 0x%x\n", status)); */
 
 	if (status & CoSt_Ius) { /*did portA cause the interrupt? */
 		mask = 1;
@@ -2581,7 +2454,6 @@ static int icv196vmeisr(void *arg)
 		PURGE_CPUPIPELINE;
 		mdev = *CtrStat;      /* read portA's data register */
 		PURGE_CPUPIPELINE;
-		/* DBG(("Icv196isr:Data_Areg = 0x%x\n", mdev)); */
 
 		for (i = 0; i <= 7; i++) {
 			if (mdev & mask & MCtxt->int_en_mask)
@@ -2595,7 +2467,6 @@ static int icv196vmeisr(void *arg)
 	PURGE_CPUPIPELINE;
 	status = *CtrStat; /* read portB's status register */
 	PURGE_CPUPIPELINE;
-	/* DBX(("CSt_Breg = 0x%x\n", status)); */
 
 	if (status & CoSt_Ius) { /* did portB cause the interrupt? */
 		mask = 1;
@@ -2603,7 +2474,6 @@ static int icv196vmeisr(void *arg)
 		PURGE_CPUPIPELINE;
 		mdev = *CtrStat; /* read portB's data register */
 		PURGE_CPUPIPELINE;
-		/* DBX(("Data_Breg = 0x%x\n", mdev)); */
 
 		for (i = 8; i <= 15; i++) {
 			if (mdev & mask & (MCtxt -> int_en_mask >> 8))
@@ -2617,7 +2487,6 @@ static int icv196vmeisr(void *arg)
 	for (i = 0; i <= 15; i++) {
 		if (input[i]) {
 			/* active line */
-			/* DBX(("icv:isr:mdev = 0x%x\n", i + 1)); */
 			input[i] = 0;
 			LCtxt = &MCtxt->LineCtxt[i];
 			LCtxt->loc_count++;
@@ -2635,13 +2504,8 @@ static int icv196vmeisr(void *arg)
 					/* subscriber passive */
 					continue;
 				cs--; /* nb of subbscribers to find out
-					 in Subs table*/
+					 in Subs table */
 				UHdl = Subs->Ring->UHdl;
-				/* DBX(("icv:isr:UHdl=$%x j= %d  Subs=$%x\n",
-				   UHdl, j, Subs)); */
-				/* DBX(("*Ring$%x Subs->Counter$%x\n",
-				   Subs->Ring,Subs->EvtCounter)); */
-
 				if (( count = Subs->EvtCounter) != -1) {
 					Sw1 = (unsigned short) count;
 					Sw1++;
@@ -2691,7 +2555,6 @@ static int icv196vmeisr(void *arg)
 	*CtrStat = CoSt_ClIpIus;
 	PURGE_CPUPIPELINE;
 
-	/* DBX (("icv:isr: end\n")); */
 	return OK;
 }
 
