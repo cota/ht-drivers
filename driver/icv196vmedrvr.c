@@ -1158,7 +1158,7 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 	l       = MCtxt->Lvl[0];
 	CtrStat = MCtxt->VME_StatusCtrl;
 
-  /* To catch bus error if module does not answer */
+	/* To catch bus error if module does not answer */
 	if (recoset()) { /* To prevent system crash in case of bus error */
 		cprintf("icv196 install: on Module %d VME offset$%lx,"
 			" CTrStat address = $%x bus error occured!\n",
@@ -1307,39 +1307,42 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 }
 
 /*
-  subroutines to startup a icv196 module
+  Startup a icv196 module.
   This routine performs the hardware set up of the device and connects it to
   the system interrupt processing, this actually start up the driver for this
   device.
   The devices are served by the same Lynx OS driver, the isr recognizes the
   line by inspecting the Control register if the associated module.
   Each Module has its own context, the different isr if there are several
-  different level are working in the local stack, no jam should occurr!
+  different level are working in the local stack, no jam should occurr
 */
 int icvModule_Startup(struct T_ModuleCtxt *MCtxt)
 {
-    unsigned char v;
-    struct icv196T_s *s;
-    int m, cc;
+	unsigned char v;
+	struct icv196T_s *s;
+	int m, cc;
 
-    s = MCtxt->s;
-    m = MCtxt->Module;
-    v = MCtxt->Vect[0];
+	s = MCtxt->s;
+	m = MCtxt->Module;
+	v = MCtxt->Vect[0];
 
-    /* CHK (("icv:Setup: s =$%lx, Module %d ctxt add = $%lx\n", s, m, MCtxt )); */
+	/* CHK (("icv:Setup: s =$%lx, Module %d ctxt add = $%lx\n",
+	   s, m, MCtxt )); */
 
-    /* Now connect interrupt to system */
-    /* DBG (("icv:Setup: module %d vector %d level %d \n",m,v, l )); */
+	/* Now connect interrupt to system */
+	/* DBG (("icv:Setup: module %d vector %d level %d \n",m,v, l )); */
 
-    /* Connect interrupt from module  */
-    IOINTSET(cc, v, (int (*)(void *))MCtxt->isr[0], (char *)MCtxt);
-    if (cc < 0) {
-	cprintf("icv196:install: iointset for  vector=%d error%d\n", v, cc);
-	pseterr(EFAULT);
-	return SYSERR;
-    }
+	/* Connect interrupt from module  */
+	IOINTSET(cc, v, (int (*)(void *))MCtxt->isr[0], (char *)MCtxt);
+	if (cc < 0) {
+		cprintf("icv196:install: iointset for  vector=%d error%d\n",
+			v, cc);
+		pseterr(EFAULT);
+		return SYSERR;
+	}
 
-    DBG_INSTAL(("icv196vme_drvr:install: iointset for module %d, vector %d\n", m, v));
+	DBG_INSTAL(("icv196vme_drvr:install: iointset for"
+		    " module %d, vector %d\n", m, v));
     return icvModule_Init_HW(MCtxt);
 }
 
