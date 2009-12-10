@@ -260,6 +260,7 @@ struct icv196T_s {
 	long Buffer_Evt[GlobEvt_nb]; /* To put event in a sequence */
 
 	/* Hardware configuration table */
+	int mcntr; /**< active module counter */
 	struct T_ModuleCtxt *ModuleCtxtDir[icv_ModuleNb]; /* module directory */
 	struct T_ModuleCtxt ModuleCtxt[icv_ModuleNb]; /* Modules contexts */
 
@@ -1084,7 +1085,6 @@ static void Init_LineCtxt(int line, int type, struct T_ModuleCtxt *MCtxt)
   table to manage the hardware of a physical module
 */
 static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
-					    short module,
 					    struct icv196T_ModuleParam *vmeinfo)
 {
 	int i;
@@ -1096,12 +1096,12 @@ static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
 					access parameters */
 
 	/* declare module in the Module directory */
-	MCtxt = &s->ModuleCtxt[module];
+	MCtxt = &s->ModuleCtxt[s->mcntr];
 
 	/* init context table */
 	MCtxt->s = s;
 	MCtxt->sem_module = 1;	/* semaphore for exclusive access */
-	MCtxt->Module = module;
+	MCtxt->Module = s->mcntr;
 	MCtxt->dflag = 0;
 
 	/* Set up base add of module as seen from cpu mapping.
@@ -1154,7 +1154,9 @@ static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
 		MCtxt->Lvl[i]  = vmeinfo->level[0];
 		Init_LineCtxt(i, type, MCtxt);
 	}
-	MCtxt->isr[0] = ModuleIsr[module];
+	MCtxt->isr[0] = ModuleIsr[s->mcntr];
+
+	s->mcntr++;
 	return MCtxt;
 }
 
@@ -1498,7 +1500,7 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 		MInfo = &info->ModuleInfo[m]; /* set up the current Module info */
 
 		/* Set up the tables of the  current Module */
-		MCtxt = Init_ModuleCtxt(&icv196_statics, m, MInfo);
+		MCtxt = Init_ModuleCtxt(&icv196_statics, MInfo);
 
 		/*  Update Module directory */
 		icv196_statics.ModuleCtxtDir[m] = MCtxt;
