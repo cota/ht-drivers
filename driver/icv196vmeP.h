@@ -194,8 +194,6 @@ struct T_ModuleCtxt {
 	int     dflag;         /* debug flag */
 	short   Module;        /* Module index */
 	int     VME_size;      /* original info table values */
-	unsigned long VME_offset;
-
 	unsigned long CPUVME_Add; /* Module physical 32 bits address
 				     can be get by the user (via ioctl)
 				     and used to open a shared segment

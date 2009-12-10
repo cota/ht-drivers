@@ -1030,11 +1030,11 @@ static void Init_LineCtxt(int line, int type, struct T_ModuleCtxt *MCtxt)
   Initialise a module context for a icv196 module
   table to manage the hardware of a physical module
 */
-static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
+static struct T_ModuleCtxt* Init_ModuleCtxt(struct icv196T_s *s,
 					    struct icv196T_ModuleParam *vmeinfo)
 {
 	int i;
-	unsigned long base, offset, sysBase, moduleSysBase;
+	unsigned long offset, sysBase, moduleSysBase;
 	struct T_ModuleCtxt *MCtxt;
 	int type;
 	int am;
@@ -1056,13 +1056,8 @@ static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
 	   a virtual window on the vme space of the module
 	   this is for accessing the module directly from user program access
 	   through a window created by smem_create */
-
-	base = vmeinfo->base;
-
-	MCtxt->VME_offset = base;
 	MCtxt->VME_size = vmeinfo->size;
-
-	offset = base & (unsigned long)0x00ffffffL;
+	offset = vmeinfo->base & (unsigned long)0x00ffffffL;
 	am = AM_A24_UDA;
 
 	/* Compute address in system space */
@@ -1077,7 +1072,7 @@ static struct T_ModuleCtxt *Init_ModuleCtxt(struct icv196T_s *s,
 	if (sysBase == (unsigned long) -1) {
 		CPRNT(("icv196vme_drvr:find_controller:cannot map device"
 		       " address space, INSTALLATION IMPOSSIBLE\n"));
-		return (struct T_ModuleCtxt *) -1;
+		return NULL;
 	}
 
 	moduleSysBase = sysBase + offset;
