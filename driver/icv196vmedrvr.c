@@ -1628,36 +1628,27 @@ int icv196open(struct icv196T_s *s, int dev, struct cdcm_file *f)
 */
 int icv196close(struct icv196T_s *s, struct cdcm_file *f)
 {
-	int chan;
-	short DevType;
-	struct T_UserHdl *UHdl;
+	int chan = minor(f->dev);
+	short DevType = 0;
+	struct T_UserHdl *UHdl = NULL;
 
-	chan = minor(f->dev);
-	UHdl = NULL;
-	DevType = 0;
 	if (chan == ICVVME_ServiceChan) {
-		/* DBG (("icvvme:Close:Handle for icv services\n")); */
 		UHdl = &s->ServiceHdl;
 		DevType = 1;
+	} else if (chan >= ICVVME_IcvChan01 && chan <= ICVVME_MaxChan) {
+		UHdl = &s->ICVHdl[chan-1];
 	} else {
-		if (chan >= ICVVME_IcvChan01 && chan <= ICVVME_MaxChan) {
-			/* DBG (("icvvme:Close:Handle for synchro with Icv \n")); */
-			UHdl = &s->ICVHdl[chan];
-		} else {
-			pseterr(EACCES);
-			return SYSERR;
-		}
+		pseterr(EACCES);
+		return SYSERR;
 	}
 
-	/* Perform the close */
+	/* Perform close */
 	swait(&s->sem_drvr, IGNORE_SIG);
-	if (DevType == 0) { /* case of Synchro handle */
-	  /* DBG (("icv196:close: Chanel =%d UHdl=%lx \n",chan, UHdl)); */
+	if (DevType == 0) /* case of Synchro handle */
 		ClrSynchro(UHdl); /* Clear connection established */
-	}
 
-	--(s->usercounter); /* Update user counter value */
-	--UHdl->usercount;
+	s->usercounter--; /* Update user counter value */
+	UHdl->usercount--;
 	ssignal(&s->sem_drvr);
 
 	return OK;
