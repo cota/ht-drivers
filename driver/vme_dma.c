@@ -346,6 +346,13 @@ int vme_do_dma(struct vme_dma *desc)
 	rc = wait_event_interruptible(channel->wait,
 				 !tsi148_dma_busy(channel));
 
+	/* React to user-space signals by aborting the ongoing DMA transfer */
+	if (rc) {
+		tsi148_dma_abort(channel);
+		/* leave some time for the bridge to clear the DMA channel */
+		udelay(10);
+	}
+
 	desc->status = tsi148_dma_get_status(channel);
 
 	/* Now do some cleanup and we're done */
