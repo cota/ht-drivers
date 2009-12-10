@@ -97,10 +97,10 @@
 
 static int icv196vmeisr(void *);
 
-static char Version[]="$Revision: 3.1 $";
+static char Version[]      = "4.0";
 static char compile_date[] = __DATE__;
 static char compile_time[] = __TIME__;
-static int G_dbgflag = 0;
+static int  G_dbgflag      = 0;
 
 /*
                      ______________________________
@@ -260,8 +260,7 @@ struct icv196T_s {
 	struct T_RingBuffer RingGlobal;
 	long Buffer_Evt[GlobEvt_nb]; /* To put event in a sequence */
 
-	/* Hardware table */
-	/* configuration table */
+	/* Hardware configuration table */
 	struct T_ModuleCtxt *ModuleCtxtDir[icv_ModuleNb]; /* module directory */
 	struct T_ModuleCtxt ModuleCtxt[icv_ModuleNb]; /* Modules contexts */
 
@@ -525,7 +524,7 @@ static struct T_LogLineHdl *Init_LineHdl(int lli, struct T_LineCtxt *LCtxt)
 		/* Fpi line only one subscriber allowed */
 		LHdl->SubscriberMxNb = 1;
 	else
-		/* Icv line multi user to wait  */
+		/* Icv line multi user to wait */
 		LHdl->SubscriberMxNb = icv_SubscriberNb;
 
 	Init_LineSubscribers(LHdl);
@@ -1463,12 +1462,10 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 	long base;
 	int i, m;
 
-	G_dbgflag = 0;
-	compile_date[11] = 0;		/* overwrite LF by 0 = end of string */
-	compile_time [9] = 0;
-	Version[strlen(Version)-1] = 0;
+	compile_date[11] = 0; /* overwrite LF by 0 = end of string */
+	compile_time[9]  = 0;
 
-	cprintf("V%s %s%s", &Version[11], compile_date, compile_time);
+	cprintf("V.%s %s %s", Version, compile_date, compile_time);
 
 	/* allocate static table */
 	s = (struct icv196T_s *) sysbrk(sizeof(*s));
@@ -1479,13 +1476,11 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 	}
 	memset(s, 0, sizeof(*s));
 
-	/* Set up the static table of driver */
-	s->sem_drvr  = 1; /* to protect global ressources management sequences*/
+	s->sem_drvr  = 1; /* to protect global ressources management sequences */
 	s->UserTO    = 6000; /* default T.O. for waiting Trigger */
 	s->UserMode |= (short)icv_bitwait; /* set flag wait for read = wait */
 
 	/* Initialise user'shandle */
-	/* handles to get synchronized with the icv */
 	for (i = 0; i < ICVVME_MaxChan; i++)
 		Init_UserHdl(&s->ICVHdl[i], i, s);
 
@@ -1547,10 +1542,9 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 	}
 
 	/*
-	  Now setup devices
-	  driven by the device directory  which tell which modules have been declared
+	  Now setup devices driven by the device directory
+	  which tell which modules have been declared
 	*/
-
 	for ( m = 0; m < icv_ModuleNb; m++) {
 		if ( (MCtxt = s->ModuleCtxtDir[m]) == NULL)
 			continue;
@@ -1560,7 +1554,7 @@ char *icv196install(struct icv196T_ConfigInfo *info)
 			MCtxt = s->ModuleCtxtDir[m] = 0;
 	}
 
-	cprintf("\rDrivOK:\n");
+	cprintf("\ricv196 OK\n");
 	return (char *) s;
 }
 
@@ -1571,7 +1565,7 @@ int icv196uninstall(struct icv196T_s *s)
 	unsigned char v;
 	int m;
 
-	for (m = 0 ; m < icv_ModuleNb; m++) {
+	for (m = 0; m < icv_ModuleNb; m++) {
 		if ( (MCtxt = s->ModuleCtxtDir[m]) == NULL)
 			continue;
 
@@ -1583,63 +1577,59 @@ int icv196uninstall(struct icv196T_s *s)
 	return OK;
 }
 
-/* This routine is called to open a service access point for the user */
+/* Open a service access point for the user */
 int icv196open(struct icv196T_s *s, int dev, struct cdcm_file *f)
 {
-  int   chan;
-  short   DevType;
-  register struct T_UserHdl *UHdl;
+	int   chan;
+	short DevType = 0; /* 0 -- normal, 1 -- service channel */
+	struct T_UserHdl *UHdl = NULL;
 
-/*  DBG (("icvvme: Open on device= %lx \n", (long) dev)); */
-  chan = minor(dev);
-/*  DBG (("icv196:Open: on minor device= %d \n", (int) chan)); */
+	/* DBG (("icvvme: Open on device= %lx \n", (long) dev)); */
+	chan = minor(dev);
+	/* DBG (("icv196:Open: on minor device= %d \n", (int) chan)); */
 
-  if ( (s == (struct icv196T_s *) NULL) || ( s == (struct icv196T_s *)(-1))) {
-/*    DBG (("icvvme:Install wrong: static pointer is = %lx \n", (int) s));*/
-	  pseterr(EACCES);
-	  return SYSERR;
-  }
+	if ( (s == (struct icv196T_s *) NULL) || ( s == (struct icv196T_s *) -1)) {
+		pseterr(EACCES);
+		return SYSERR;
+	}
 
-  UHdl = NULL;
-  DevType = 0;
-  if (chan == ICVVME_ServiceChan) {
-    /* DBG (("icvvme:Open:Handle for icv services \n"));*/
-    UHdl = &(s->ServiceHdl);
-    DevType = 1;
-  } else {
-    if ((chan >= ICVVME_IcvChan01) && (chan <= ICVVME_MaxChan)) {
-      /* DBG (("icvvme:Open:Handle for synchro with ICV lines \n"));*/
-      if (f->access_mode & FWRITE) {
-	pseterr(EACCES);
-	return SYSERR;
-      }
-      UHdl = &s->ICVHdl[chan];
-    } else {
-      pseterr(EACCES);
-      return SYSERR;
-    }
-  }
+	if (chan == ICVVME_ServiceChan) {
+		/* DBG (("icvvme:Open:Handle for icv services \n")); */
+		UHdl = &s->ServiceHdl;
+		DevType = 1;
+	} else {
+		if (chan >= ICVVME_IcvChan01 && chan <= ICVVME_MaxChan) {
+			/* DBG (("icvvme:Open:Handle for synchro with ICV lines \n"));*/
+			if (f->access_mode & FWRITE) {
+				pseterr(EACCES);
+				return SYSERR;
+			}
+			UHdl = &s->ICVHdl[chan];
+		} else {
+			pseterr(EACCES);
+			return SYSERR;
+		}
+	}
 
-  if ((DevType == 0) && (UHdl->usercount)) { /* synchro channel already open */
-    pseterr(EACCES);
-    return SYSERR;
-  }
+	if (!DevType && UHdl->usercount) { /* synchro channel already open */
+		pseterr(EACCES);
+		return SYSERR;
+	}
 
-  /* Perform the open */
-  swait(&s->sem_drvr, IGNORE_SIG);
-  if (DevType == 0) { /* Case synchro */
-    Init_UserHdl(UHdl, chan, s);
-    UHdl->UserMode = s->UserMode;
-    UHdl->WaitingTO = s->UserTO;
-    UHdl->pid = getpid();
+	/* Perform the open */
+	swait(&s->sem_drvr, IGNORE_SIG);
+	if (DevType == 0) { /* Case synchro */
+		Init_UserHdl(UHdl, chan, s);
+		UHdl->UserMode = s->UserMode;
+		UHdl->WaitingTO = s->UserTO;
+		UHdl->pid = getpid();
+		/* DBG (("icvvme:open: Chanel =%d UHdl=$%lx\n", chan, UHdl )); */
+	}
 
-    /* DBG (("icvvme:open: Chanel =%d UHdl=$%lx\n", chan, UHdl ));*/
-  }
-
-  ++(s->usercounter); /* Update user counter value */
-  UHdl->usercount++;
-  ssignal( &s->sem_drvr);
-  return OK;
+	s->usercounter++; /* Update user counter value */
+	UHdl->usercount++;
+	ssignal(&s->sem_drvr);
+	return OK;
 }
 
 /*
@@ -1647,137 +1637,137 @@ int icv196open(struct icv196T_s *s, int dev, struct cdcm_file *f)
 */
 int icv196close(struct icv196T_s *s, struct cdcm_file *f)
 {
-  int   chan;
-  short   DevType;
-  register struct T_UserHdl *UHdl;
+	int chan;
+	short DevType;
+	struct T_UserHdl *UHdl;
 
-  chan = minor(f->dev);
-  UHdl = NULL;
-  DevType = 0;
-  if (chan == ICVVME_ServiceChan) {
-/*   DBG (("icvvme:Close:Handle for icv services\n"));*/
-    UHdl = &(s->ServiceHdl);
-    DevType = 1;
-  } else {
-    if ((chan >= ICVVME_IcvChan01) && (chan <= ICVVME_MaxChan)) {
-    /* DBG (("icvvme:Close:Handle for synchro with Icv \n"));*/
-      UHdl = &s->ICVHdl[chan];
-    } else {
-      pseterr(EACCES);
-      return SYSERR;
-    }
-  }
+	chan = minor(f->dev);
+	UHdl = NULL;
+	DevType = 0;
+	if (chan == ICVVME_ServiceChan) {
+		/* DBG (("icvvme:Close:Handle for icv services\n")); */
+		UHdl = &s->ServiceHdl;
+		DevType = 1;
+	} else {
+		if (chan >= ICVVME_IcvChan01 && chan <= ICVVME_MaxChan) {
+			/* DBG (("icvvme:Close:Handle for synchro with Icv \n")); */
+			UHdl = &s->ICVHdl[chan];
+		} else {
+			pseterr(EACCES);
+			return SYSERR;
+		}
+	}
 
-  /* Perform the close */
-  swait(&s->sem_drvr, IGNORE_SIG);
-  if (DevType == 0) { /* case of Synchro handle */
-	  /*    DBG (("icv196:close: Chanel =%d UHdl=%lx \n",chan, UHdl));*/
-	  ClrSynchro(UHdl); /* Clear connection established*/
-  }
-  --(s->usercounter); /* Update user counter value */
-  --UHdl->usercount;
-  ssignal(&s->sem_drvr);
+	/* Perform the close */
+	swait(&s->sem_drvr, IGNORE_SIG);
+	if (DevType == 0) { /* case of Synchro handle */
+	  /* DBG (("icv196:close: Chanel =%d UHdl=%lx \n",chan, UHdl)); */
+		ClrSynchro(UHdl); /* Clear connection established */
+	}
 
-  return OK;
+	--(s->usercounter); /* Update user counter value */
+	--UHdl->usercount;
+	ssignal(&s->sem_drvr);
+
+	return OK;
 }
 
 int icv196read(struct icv196T_s *s, struct cdcm_file *f, char *buff, int bcount)
 {
-	int   count, Chan;
-  struct T_UserHdl  *UHdl;
-  long   *buffEvt;
-  struct T_ModuleCtxt *MCtxt;
-  int   i,m;
-  long  Evt;
-  int bn;
-  ulong ps;
-  int Line;
+	int count, Chan;
+	struct T_UserHdl  *UHdl;
+	long   *buffEvt;
+	struct T_ModuleCtxt *MCtxt;
+	int i, m;
+	long Evt;
+	int bn;
+	ulong ps;
+	int Line;
 
-  /* Check parameters and Set up channel environnement */
-  if (wbounds ((int)buff) == EFAULT) {
-    /* DBG (("icv:read wbound error \n" ));*/
-    pseterr(EFAULT);
-    return SYSERR;
-  }
+	/* Check parameters and Set up channel environnement */
+	if (wbounds((int)buff) == EFAULT) {
+		/* DBG (("icv:read wbound error \n" )); */
+		pseterr(EFAULT);
+		return SYSERR;
+	}
 
-  Chan = minordev(f->dev);
-  if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-    UHdl = &s->ICVHdl[Chan];	/* ICV event handle */
-  } else {
-	  pseterr(ENODEV);
-	  return SYSERR;
-  }
+	Chan = minordev(f->dev);
+	if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+		UHdl = &s->ICVHdl[Chan]; /* ICV event handle */
+	} else {
+		pseterr(ENODEV);
+		return SYSERR;
+	}
 
-  if (UHdl == NULL) { /* Abnormal status system corruption */
-    pseterr(EWOULDBLOCK);
-    return SYSERR;
-  }
+	if (UHdl == NULL) { /* Abnormal status system corruption */
+		pseterr(EWOULDBLOCK);
+		return SYSERR;
+	}
 
-  /* processing of the read */
-  /* Case of Reading the event buffer */
-  /* Event are long and so count should be multiple of 4 bytes */
-  if ((count = (bcount >> 2)) <= 0) {
-      pseterr(EINVAL);
-      return SYSERR;
-  }
+	/* processing of the read */
+	/* Case of Reading the event buffer */
+	/* Event are long and so count should be multiple of 4 bytes */
+	if ((count = (bcount >> 2)) <= 0) {
+		pseterr(EINVAL);
+		return SYSERR;
+	}
 
-  /* BEWARE !!!!
-     alignment constraint for the buffer
-     should be satisfied by caller  !!!!!
-  */
-    buffEvt = (long *)buff;
-    bn = 0;
-    i = count; /* Long word count */
-    /* DBG (("icv196:read:Entry Evtsem value= %d\n", scount( &UHdl -> Ring.Evtsem) )); */
-    do {
-      if ((Evt = PullFrom_Ring ( &UHdl->Ring)) != -1) {
-	      *buffEvt = Evt;
-	      buffEvt++; i--; bn += 1;
-      } else { /* no event in ring, wait if requested */
-	      if ((bn == 0) && ((UHdl->UserMode & icv_bitwait))) { /* Wait for Lam */
-		      /* Contro waiting by t.o. */
-		      UHdl->timid = 0;
-		      UHdl->timid = timeout(UserWakeup, (char *)UHdl, (int)UHdl->WaitingTO);
-		      swait(&UHdl->Ring.Evtsem, -1);	/* Wait Lam or Time Out */
+	/*
+	  BEWARE!
+	  alignment constraint for the buffer
+	  should be satisfied by caller!
+	*/
+	buffEvt = (long *)buff;
+	bn = 0;
+	i = count; /* Long word count */
+	/* DBG (("icv196:read:Entry Evtsem value= %d\n", scount( &UHdl -> Ring.Evtsem) )); */
+	do {
+		if ((Evt = PullFrom_Ring (&UHdl->Ring)) != -1) {
+			*buffEvt = Evt;
+			buffEvt++; i--; bn += 1;
+		} else { /* no event in ring, wait if requested */
+			if ((bn == 0) && ((UHdl->UserMode & icv_bitwait))) { /* Wait for Lam */
+				/* Contro waiting by t.o. */
+				UHdl->timid = 0;
+				UHdl->timid = timeout(UserWakeup, (char *)UHdl, (int)UHdl->WaitingTO);
+				swait(&UHdl->Ring.Evtsem, -1);	/* Wait Lam or Time Out */
 
-		      disable(ps);
-		      if (UHdl->timid < 0 ) {	/* time Out occured */
-			      restore(ps);
+				disable(ps);
+				if (UHdl->timid < 0 ) {	/* time Out occured */
+					restore(ps);
 
-			      /* check if any module setting got reset */
-			      for (m = 0; m < icv_ModuleNb; m++) {
-				      /*  Update Module directory */
-				      MCtxt = s->ModuleCtxtDir[m];
-				      if ( MCtxt != NULL) {
-					      Line = 0;
-					      icvModule_Reinit(MCtxt, Line);
-				      }
-			      }
+					/* check if any module setting got reset */
+					for (m = 0; m < icv_ModuleNb; m++) {
+						/*  Update Module directory */
+						MCtxt = s->ModuleCtxtDir[m];
+						if ( MCtxt != NULL) {
+							Line = 0;
+							icvModule_Reinit(MCtxt, Line);
+						}
+					}
+					pseterr(ETIMEDOUT);
+					return SYSERR;
+				}
 
-			      pseterr(ETIMEDOUT);
-			      return SYSERR;
-		      }
+				cancel_timeout(UHdl->timid);
+				UHdl->Ring.Evtsem += 1;	/* to remind this event for swait by reading */
+				restore(ps);
+			} else {
+				break;
+			}
+		}
+	} while (i > 0); /* while  room in buffer */
 
-		      cancel_timeout(UHdl->timid);
-		      UHdl->Ring.Evtsem += 1;	/* to remind this event for swait by reading */
-		      restore(ps);
-	      } else {
-		      break;
-	      }
-      }
-    } while (i > 0); /* while  room in buffer */
-
-    return (bn << 2);
+	return (bn << 2);
 }
 
 /* not available */
 int icv196write(struct icv196T_s *s, struct cdcm_file *f, char *buff,int bcount)
 {
-	/*   DBG (("icvdrvr: write: no such facility available \n"));*/
+	/* DBG (("icvdrvr: write: no such facility available \n")); */
 	return (bcount = s->usercounter);
 }
 
-/* This routine is called to perform ioctl function */
 int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 {
 	int   err;
@@ -1823,8 +1813,8 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 	case ICVVME_getmoduleinfo:  /* get device information */
 		Infop = (struct icv196T_ModuleInfo *)arg;
 		for ( i = 0; i < icv_ModuleNb; i++, Infop++) {
-			if (s -> ModuleCtxtDir[i] == NULL) {
-				Infop -> ModuleFlag = 0;
+			if (s->ModuleCtxtDir[i] == NULL) {
+				Infop->ModuleFlag = 0;
 				continue;
 			} else {
 				MCtxt = &s->ModuleCtxt[i];
@@ -2550,51 +2540,50 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 
     break;
 
-/* ICVVME_disconnect */
 
-
-
-/*			Ioctl function code out of range
-			================================
-*/
-  default:
-    pseterr (EINVAL);
-    return (SYSERR);
-
-  }
-  return (err);
+	default:    /* Ioctl function code out of range */
+		pseterr(EINVAL);
+		return SYSERR;
+	}
+	return err;
 }
 
 
-int icv196select(struct icv196T_s *s, struct cdcm_file *f, int which, struct sel *se)
+int icv196select(struct icv196T_s *s, struct cdcm_file *f,
+		 int which, struct sel *se)
 {
-  int   Chan;
-  register struct T_UserHdl *UHdl = NULL;
+	int   Chan;
+	register struct T_UserHdl *UHdl = NULL;
 
-  Chan = minordev (f -> dev);
-  if (Chan == 0) {			/* no select on channel 0 */
-    pseterr (EACCES);
-    return (SYSERR);
-  };
-  if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-    UHdl = &s -> ICVHdl[Chan];	/* general handle */
-  }
-/*  DBG (("icv196:select:Entry: on channel %lx which = %lx \n", Chan, which ));*/
-  switch (which) {
-    case SREAD:
-      se -> iosem = &(UHdl -> Ring.Evtsem);
-      se -> sel_sem = &(UHdl -> sel_sem);
-      break;
-    case SWRITE:
-      pseterr (EACCES);
-      return (SYSERR);
-      break;
-    case SEXCEPT:
-      pseterr (EACCES);
-      return (SYSERR);
-      break;
-    }
-  return (OK);
+	Chan = minordev(f->dev);
+
+	if (Chan == 0) { /* no select on channel 0 */
+		pseterr(EACCES);
+		return SYSERR;
+	}
+
+	if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+		UHdl = &s->ICVHdl[Chan]; /* general handle */
+	}
+
+	/* DBG(("icv196:select:Entry: on channel %lx which = %lx \n",
+	   Chan, which )); */
+
+	switch (which) {
+	case SREAD:
+		se->iosem   = &UHdl->Ring.Evtsem;
+		se->sel_sem = &UHdl->sel_sem;
+		break;
+	case SWRITE:
+		pseterr(EACCES);
+		return SYSERR;
+		break;
+	case SEXCEPT:
+		pseterr(EACCES);
+		return SYSERR;
+		break;
+	}
+	return OK;
 }
 
 /*
@@ -2607,162 +2596,168 @@ int icv196select(struct icv196T_s *s, struct cdcm_file *f, int which, struct sel
 */
 static int icv196vmeisr(void *arg)
 {
-    struct icv196T_s *s;
-    int m;
-    struct T_UserHdl    *UHdl;
-    struct T_LineCtxt   *LCtxt;
-    struct T_LogLineHdl *LHdl;
-    struct T_Subscriber *Subs;
-    struct icvT_RingAtom Atom;
-    struct icvT_RingAtom *RingAtom;
-    int i,j, ns, cs;
-    short count;
-    unsigned short Sw1 = 0;
-    unsigned char     *CtrStat;
-    unsigned char   mdev, mask, status;
-    static unsigned short input[16];
-    struct T_ModuleCtxt *MCtxt = (struct T_ModuleCtxt *)arg;
+	struct icv196T_s     *s;
+	struct T_UserHdl     *UHdl;
+	struct T_LineCtxt    *LCtxt;
+	struct T_LogLineHdl  *LHdl;
+	struct T_Subscriber  *Subs;
+	struct icvT_RingAtom *RingAtom;
+	struct icvT_RingAtom Atom;
+	int m, i, j, ns, cs;
+	short count;
+	unsigned short Sw1 = 0;
+	unsigned char *CtrStat;
+	unsigned char mdev, mask, status;
+	static unsigned short input[16];
+	struct T_ModuleCtxt *MCtxt = (struct T_ModuleCtxt *)arg;
 
-    s = MCtxt -> s;                       /* common static area */
-    m = MCtxt -> Module;
-    CtrStat = MCtxt -> VME_StatusCtrl;
-    /*DBX (("icv196:isr: s=$%lx MCtxt= $%lx MCtxt.Module= =$%d \n", s, (long)MCtxt,(long)m ));*/
+	s = MCtxt->s; /* common static area */
+	m = MCtxt->Module;
+	CtrStat = MCtxt->VME_StatusCtrl;
+	/* DBX (("icv196:isr: s=$%lx MCtxt= $%lx MCtxt.Module= =$%d \n",
+	  s, (long)MCtxt,(long)m )); */
 
-    if ((m <0) || ( m > icv_ModuleNb)){
-/*	DBG(("icv:isr: Module context pointer mismatch  \n"));*/
-	return SYSERR;
-    }
-
-    if ( !(s -> ModuleCtxtDir[m]) ){
-/*	DBG (( "icv196:isr: Interrupt from a non declared module \n"));*/
-	return SYSERR;
-    }
-
-    if (MCtxt -> startflag == 0) {
-	for (i = 0; i <= 15; i++) input[i] = 0;
-	MCtxt -> startflag = 1;/*reset the input array the first */
-    }                              /*time the routine is entered     */
-
-    status = *CtrStat;        /*force board to defined state    */
-      PURGE_CPUPIPELINE;
-    *CtrStat = CSt_Areg;
-      PURGE_CPUPIPELINE;
-    status = *CtrStat;        /*read portA's status register    */
-      PURGE_CPUPIPELINE;
-    /*DBX(("CSt_Areg = 0x%x\n", status));*/
-
-    if (status & CoSt_Ius) {     /*did portA cause the interrupt ? */
-
-	mask = 1;
-	*CtrStat = Data_Areg;
-          PURGE_CPUPIPELINE;
-	mdev = *CtrStat;      /*read portA's data register      */
-          PURGE_CPUPIPELINE;
-	/*DBG(("Icv196isr:Data_Areg = 0x%x\n", mdev));*/
-
-	for (i = 0; i <= 7; i++) {
-
-	    if (mdev & mask & MCtxt -> int_en_mask)
-		input[i] = 1;   /* mark port A's active interrupt  */
-	    mask <<= 1;         /* lines                           */
+	if (m <0 || m > icv_ModuleNb) {
+		/* DBG(("icv:isr: Module context pointer mismatch  \n")); */
+		return SYSERR;
 	}
-    }
 
-    *CtrStat = CSt_Breg;
-      PURGE_CPUPIPELINE;
-    status = *CtrStat;        /*read portB's status register    */
-      PURGE_CPUPIPELINE;
-    /*DBX(("CSt_Breg = 0x%x\n", status));*/
-
-    if (status & CoSt_Ius) {     /*did portB cause the interrupt ? */
-
-	mask = 1;
-	*CtrStat = Data_Breg;
-          PURGE_CPUPIPELINE;
-	mdev = *CtrStat;      /*read portB's data register      */
-          PURGE_CPUPIPELINE;
-	/*DBX(("Data_Breg = 0x%x\n", mdev));*/
-
-	for (i = 8; i <= 15; i++) {
-	    if (mdev & mask & (MCtxt -> int_en_mask >> 8))
-		input[i] = 1;           /* mark port B's active interrupt  */
-	    mask <<= 1;                 /* lines                           */
+	if (!s->ModuleCtxtDir[m]) {
+		/* DBG (("icv196isr: Interrupt from a non declared module \n"));*/
+		return SYSERR;
 	}
-    }
-				/* loop on active line */
-    for (i = 0; i <= 15; i++) {
-	if (input[i]) {
-			/* active line */
-	    /*DBX(("icv:isr:mdev = 0x%x\n", i + 1));*/
-	    input[i] = 0;
-	    LCtxt = &(MCtxt -> LineCtxt[i]);
-	    LCtxt -> loc_count++;
 
-	    LHdl = LCtxt -> LHdl;
-		      /* Build the Event */
-	    Atom.Evt.All = LHdl -> Event_Pattern.All;
-			     /*  scan the subscriber table to send them the event */
-	    ns = LHdl -> SubscriberMxNb;
-	    cs = LHdl -> SubscriberCurNb;
-	    Subs= &(LHdl -> Subscriber[0]);
-	    for (j= 0 ; ((j < ns) && (cs >0) ) ; j++, Subs++){
+	if (!MCtxt->startflag) {
+		for (i = 0; i <= 15; i++) input[i] = 0;
+		MCtxt->startflag = 1; /* reset the input array the first */
+	}                             /*time the routine is entered      */
 
-	      if (Subs -> Ring == NULL) /* subscriber passive */
-		continue;
-	      cs--;   /* nb of subbscribers to find out in Subs table*/
-	      UHdl = (Subs -> Ring) -> UHdl;
-	      /*DBX(("icv:isr:UHdl=$%x j= %d  Subs=$%x\n", UHdl, j, Subs));*/
-	      /*DBX(("*Ring$%x Subs->Counter$%x\n",Subs->Ring,Subs->EvtCounter));*/
+	status = *CtrStat;        /* force board to defined state */
+	PURGE_CPUPIPELINE;
+	*CtrStat = CSt_Areg;
+	PURGE_CPUPIPELINE;
+	status = *CtrStat;        /* read portA's status register */
+	PURGE_CPUPIPELINE;
+	/* DBX(("CSt_Areg = 0x%x\n", status)); */
 
-	      if (( count = Subs -> EvtCounter) != (-1)){
-		Sw1 = (unsigned short) count;
-		Sw1++;
-		if ( ( (short)Sw1 ) <0 )
-		  Sw1=1;
+	if (status & CoSt_Ius) { /*did portA cause the interrupt? */
+		mask = 1;
+		*CtrStat = Data_Areg;
+		PURGE_CPUPIPELINE;
+		mdev = *CtrStat;      /* read portA's data register */
+		PURGE_CPUPIPELINE;
+		/* DBG(("Icv196isr:Data_Areg = 0x%x\n", mdev)); */
 
-		Subs -> EvtCounter = Sw1; /* keep counter positive */
-	      }
-		      /* give the event according to subscriber status  */
-	      if (Subs -> mode  == icv_queuleuleu){ /* mode a la queueleuleu*/
-
-		Atom.Subscriber = NULL;
-		Atom.Evt.Word.w1  = Sw1;     /* set up event counter */
-		RingAtom = PushTo_Ring(Subs -> Ring, &Atom);
-	      }
-	      else{                                     /* cumulative mode */
-		if (count <0){      /* no event in Ring */
-
-		  Subs -> EvtCounter = 1; /* init counter of Subscriber */
-		  Atom.Subscriber = Subs; /* Link event to subscriber */
-		  Atom.Evt.Word.w1  = 1;     /* set up event counter */
-		  RingAtom = PushTo_Ring(Subs -> Ring, &Atom);
-		  Subs -> CumulEvt = RingAtom; /* link to cumulative event, used to disconnect*/
+		for (i = 0; i <= 7; i++) {
+			if (mdev & mask & MCtxt->int_en_mask)
+				/* mark port A's active interrupt lines */
+				input[i] = 1;
+			mask <<= 1;
 		}
-	      }
-	      /* process case user stuck on select semaphore  */
-	      if (UHdl -> sel_sem)
-		ssignal(UHdl -> sel_sem);
+	}
 
-	    } /* for/subscriber */
-	    /* Enable the line before leaving */
+	*CtrStat = CSt_Breg;
+	PURGE_CPUPIPELINE;
+	status = *CtrStat; /* read portB's status register */
+	PURGE_CPUPIPELINE;
+	/* DBX(("CSt_Breg = 0x%x\n", status)); */
 
-	    if (LCtxt -> intmod == icv_ReenableOff )
-	      disable_Line(LCtxt);
-	    /*break;  */
-	} /* if line active  */
+	if (status & CoSt_Ius) { /* did portB cause the interrupt? */
+		mask = 1;
+		*CtrStat = Data_Breg;
+		PURGE_CPUPIPELINE;
+		mdev = *CtrStat; /* read portB's data register */
+		PURGE_CPUPIPELINE;
+		/* DBX(("Data_Breg = 0x%x\n", mdev)); */
 
-    } /*  for / line */
-    *CtrStat = CSt_Breg;       /*clear IP bit on portB  */
-      PURGE_CPUPIPELINE;
-    *CtrStat = CoSt_ClIpIus;
-      PURGE_CPUPIPELINE;
-    *CtrStat = CSt_Areg;       /*clear IP bit on portA  */
-      PURGE_CPUPIPELINE;
-    *CtrStat = CoSt_ClIpIus;
-      PURGE_CPUPIPELINE;
+		for (i = 8; i <= 15; i++) {
+			if (mdev & mask & (MCtxt -> int_en_mask >> 8))
+				/* mark port B's active interrupt lines */
+				input[i] = 1;
+			mask <<= 1;
+		}
+	}
 
-    /*DBX (("icv:isr: end\n"));*/
-      return OK;
+	/* loop on active line */
+	for (i = 0; i <= 15; i++) {
+		if (input[i]) {
+			/* active line */
+			/* DBX(("icv:isr:mdev = 0x%x\n", i + 1)); */
+			input[i] = 0;
+			LCtxt = &MCtxt->LineCtxt[i];
+			LCtxt->loc_count++;
+			LHdl = LCtxt->LHdl;
+
+			/* Build the Event */
+			Atom.Evt.All = LHdl->Event_Pattern.All;
+			/* scan the subscriber table to send them the event */
+			ns = LHdl->SubscriberMxNb;
+			cs = LHdl->SubscriberCurNb;
+			Subs= &LHdl->Subscriber[0];
+
+			for (j = 0; (j < ns && cs > 0); j++, Subs++) {
+				if (Subs->Ring == NULL)
+					/* subscriber passive */
+					continue;
+				cs--; /* nb of subbscribers to find out
+					 in Subs table*/
+				UHdl = Subs->Ring->UHdl;
+				/* DBX(("icv:isr:UHdl=$%x j= %d  Subs=$%x\n",
+				   UHdl, j, Subs)); */
+				/* DBX(("*Ring$%x Subs->Counter$%x\n",
+				   Subs->Ring,Subs->EvtCounter)); */
+
+				if (( count = Subs->EvtCounter) != -1) {
+					Sw1 = (unsigned short) count;
+					Sw1++;
+					if ((short)Sw1 < 0)
+						Sw1 = 1;
+					Subs->EvtCounter = Sw1; /* keep counter
+								   positive */
+				}
+
+				/* give the event according to subscriber
+				   status  */
+				if (Subs->mode == icv_queuleuleu) {
+					/* mode a la queueleuleu*/
+					Atom.Subscriber = NULL;
+					Atom.Evt.Word.w1 = Sw1; /* set up event
+								   counter */
+					RingAtom = PushTo_Ring(Subs->Ring,
+							       &Atom);
+				} else { /* cumulative mode */
+					if (count < 0) { /* no event in Ring */
+						Subs->EvtCounter = 1; /* init counter of Subscriber */
+						Atom.Subscriber = Subs; /* Link event to subscriber */
+						Atom.Evt.Word.w1  = 1;     /* set up event counter */
+						RingAtom = PushTo_Ring(Subs -> Ring, &Atom);
+						Subs -> CumulEvt = RingAtom; /* link to cumulative event, used to disconnect*/
+					}
+				}
+				/* process case user stuck on select semaphore */
+				if (UHdl->sel_sem)
+					ssignal(UHdl->sel_sem);
+
+			} /* for/subscriber */
+
+			/* Enable the line before leaving */
+			if (LCtxt->intmod == icv_ReenableOff)
+				disable_Line(LCtxt);
+			/*break;  */
+		} /* if line active */
+	} /*  for / line */
+
+	*CtrStat = CSt_Breg; /*clear IP bit on portB  */
+	PURGE_CPUPIPELINE;
+	*CtrStat = CoSt_ClIpIus;
+	PURGE_CPUPIPELINE;
+	*CtrStat = CSt_Areg; /*clear IP bit on portA  */
+	PURGE_CPUPIPELINE;
+	*CtrStat = CoSt_ClIpIus;
+	PURGE_CPUPIPELINE;
+
+	/* DBX (("icv:isr: end\n")); */
+	return OK;
 }
 
 
