@@ -30,9 +30,6 @@
 #define ISYNC_CPUPIPELINE
 #endif
 
-#define IOINTSET(c, v, i, s) c = vme_intset(v, i, s, 0)
-#define IOINTCLR(v)  vme_intclr(v, 0)
-
 #define X_NO_enable_Module  1
 #define X_NO_disable_Module 1
 #define X_NO_CheckBooking   1
@@ -1363,19 +1360,7 @@ char *icv196_install(InsLibModlDesc *ptr)
 /* Uninstall Entry Point */
 int icv196_uninstall(struct icv196T_s *s)
 {
-	struct T_ModuleCtxt *MCtxt;
-	unsigned char v;
-	int m;
-
-	for (m = 0; m < icv_ModuleNb; m++) {
-		if ( (MCtxt = s->ModuleCtxtDir[m]) == NULL)
-			continue;
-
-		v = MCtxt->Vect;
-		IOINTCLR(v);
-	}
-
-	sysfree((char *)s, sizeof(s));
+	/* nothing to do */
 	return OK;
 }
 
