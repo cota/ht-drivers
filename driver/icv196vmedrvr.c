@@ -95,8 +95,6 @@
 #define IGNORE_SIG 0
 #define ICV_tout   1000
 
-static int icv196vmeisr(void *);
-
 static char Version[]      = "4.0";
 static char compile_date[] = __DATE__;
 static char compile_time[] = __TIME__;
@@ -437,12 +435,9 @@ static void Init_UserHdl(struct T_UserHdl *UHdl, int chanel,
 /* initialize driver statics table */
 static void init_statics_once(void)
 {
-	static int done = 0;
 	int i;
 
-	if (!done) {
-		done = 1;	/* only once */
-
+	if (!icv196_statics.mcntr) {
 		/* Initialise user'shandle */
 		for (i = 0; i < ICVVME_MaxChan; i++)
 			Init_UserHdl(&icv196_statics.ICVHdl[i], i+1,
@@ -1067,7 +1062,6 @@ static struct T_ModuleCtxt* Init_ModuleCtxt(struct icv196T_s *s,
 		MCtxt->Lvl  = md->Isr->Level;
 		Init_LineCtxt(i, type, MCtxt);
 	}
-	MCtxt->isr = icv196vmeisr;
 
 	/* Update Module directory */
 	s->ModuleCtxtDir[s->mcntr] = MCtxt;
@@ -1225,38 +1219,6 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 	return 0;
 }
 
-/*
-  Startup a icv196 module.
-  This routine performs the hardware set up of the device and connects it to
-  the system interrupt processing, this actually start up the driver for this
-  device.
-  The devices are served by the same Lynx OS driver, the isr recognizes the
-  line by inspecting the Control register if the associated module.
-  Each Module has its own context, the different isr if there are several
-  different level are working in the local stack, no jam should occurr
-*/
-int icvModule_Startup(struct T_ModuleCtxt *MCtxt)
-{
-	unsigned char v;
-	int m, cc;
-
-	m = MCtxt->Module;
-	v = MCtxt->Vect;
-
-	/* Connect interrupt from module  */
-	IOINTSET(cc, v, (int (*)(void *))MCtxt->isr, (char *)MCtxt);
-	if (cc < 0) {
-		cprintf("icv196:install: iointset for  vector=%d error%d\n",
-			v, cc);
-		pseterr(EFAULT);
-		return SYSERR;
-	}
-
-	DBG_INSTAL(("icv196vme_drvr:install: iointset for"
-		    " module %d, vector %d\n", m, v));
-    return icvModule_Init_HW(MCtxt);
-}
-
 #ifndef X_NO_disable_Module
 /*
   protection routine
@@ -1391,9 +1353,9 @@ char *icv196install(InsLibModlDesc *ptr)
 	MCtxt = Init_ModuleCtxt(&icv196_statics, ptr);
 
 	/* Startup the hardware for that module context */
-	icvModule_Startup(MCtxt);
+	icvModule_Init_HW(MCtxt);
 
-	cprintf("\rModule#%d installed OK\n", icv196_statics.mcntr);
+	cprintf("\rModule#%d installed\n", icv196_statics.mcntr);
 	return (char *) MCtxt;	/* will save it for isr routine */
 }
 
@@ -2332,29 +2294,27 @@ int icv196select(struct icv196T_s *s, struct cdcm_file *f,
 }
 
 /*
-  There is one entry for each of the module present in the actual configuration
-*/
-/*
   interrupt service routine
   of the icv196 module driver
   work on the module context which start the corresponding isr
 */
-static int icv196vmeisr(void *arg)
+int icv196vmeisr(void *arg)
 {
-	struct icv196T_s     *s;
-	struct T_UserHdl     *UHdl;
-	struct T_LineCtxt    *LCtxt;
-	struct T_LogLineHdl  *LHdl;
-	struct T_Subscriber  *Subs;
-	struct icvT_RingAtom *RingAtom;
-	struct icvT_RingAtom Atom;
+	SkelDrvrModuleContext *mcon  = arg;
+	struct T_ModuleCtxt   *MCtxt = mcon->UserData;
+	struct icv196T_s      *s;
+	struct T_UserHdl      *UHdl;
+	struct T_LineCtxt     *LCtxt;
+	struct T_LogLineHdl   *LHdl;
+	struct T_Subscriber   *Subs;
+	struct icvT_RingAtom  *RingAtom;
+	struct icvT_RingAtom   Atom;
 	int m, i, j, ns, cs;
 	short count;
 	unsigned short Sw1 = 0;
 	unsigned char *CtrStat;
 	unsigned char mdev, mask, status;
 	static unsigned short input[16];
-	struct T_ModuleCtxt *MCtxt = (struct T_ModuleCtxt *)arg;
 
 	s = MCtxt->s; /* common static area */
 	m = MCtxt->Module;

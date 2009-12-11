@@ -210,7 +210,6 @@ struct T_ModuleCtxt {
 	/* context of the lines */
 	unsigned char Vect; /* for each line a Int. vector */
 	unsigned char Lvl;  /* for each line an Int. level */
-	int (*isr)(void *);
 	struct T_LineCtxt LineCtxt[icv_LineNb];
 };
 

@@ -16,6 +16,10 @@
 #include <skeluser.h>
 #include <skeldrvrP.h>
 #include <skeluser_ioctl.h>
+#include <icv196vme.h>
+
+extern char *icv196install(InsLibModlDesc *);
+extern int icv196vmeisr(void *);
 
 static char *SpecificIoctlNames[] = {
 	[_IOC_NR(MY_IOCTL_NAME_1)]	= "MyIoctl-1",
@@ -185,7 +189,7 @@ SkelUserReturn SkelUserJtagWriteByte(SkelDrvrModuleContext *mcon,
  */
 SkelUserReturn SkelUserModuleInit(SkelDrvrModuleContext *mcon)
 {
-	icv196install();
+	mcon->UserData = icv196install(mcon->Modld);
 	return SkelUserReturnOK;
 }
 
@@ -251,7 +255,7 @@ SkelUserReturn SkelUserIoctls(SkelDrvrClientContext *ccon,
 }
 
 struct skel_conf SkelConf = {
-        .read = icv196read,
-        .write = icv196write,
+        //.read        = icv196read,
+        //.write       = icv196write,
         .intrhandler = icv196vmeisr
 };
