@@ -1618,12 +1618,8 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 		break;
 	case ICVVME_reset: /* perform hardware reset of icv196 module */
 		break;
-
-/*                              ioctl icvvme dynamic debug flag control
-                                =======================================
-    Toggle function on debug flag
-*/
 	case ICVVME_setDbgFlag:
+		/* dynamic debugging */
 		Flag = G_dbgflag;
 		if ( *( (int *) arg) != -1) {
 			/* update the flag if value not = -1 */
@@ -1631,610 +1627,604 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 		}
 		*( (int *) arg) = Flag;	/* give back old value */
 		break;
-/*                              ioctl icvvme set reenable flag
-				==============================
-    Set reenable flag to allow continuous interrupts
-*/
-  case ICVVME_setreenable:
-
-      /* Check channel number and Set up Handle pointer */
-    if (Chan == 0) {		/* no connect on channel 0 */
-      pseterr (EACCES); return (SYSERR);
-    }
-    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-      UHdl = &(s -> ICVHdl[Chan]);
-    } else {
-      pseterr (ENODEV);  return (SYSERR);
-    }
-
-    if (UHdl == NULL) {  /* Abnormal status system corruption */
-      pseterr (EWOULDBLOCK);
-      return SYSERR;
-    }
+	case ICVVME_setreenable:
+		/* Set reenable flag to allow continuous interrupts */
+		/* Check channel number and Set up Handle pointer */
+		if (!Chan) { /* no connect on channel 0 */
+			pseterr(EACCES);
+			return SYSERR;
+		}
+		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+			UHdl = &s->ICVHdl[Chan];
+		} else {
+			pseterr(ENODEV);
+			return SYSERR;
+		}
+		if (!UHdl) {  /* Abnormal status system corruption */
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
 		/* Check parameters and Set up environnement */
+		group = ((struct icv196T_UserLine *) arg)->group;
+		index = ((struct icv196T_UserLine *) arg)->index;
 
-    group = ((struct icv196T_UserLine *) arg) -> group;
-    index = ((struct icv196T_UserLine *) arg) -> index;
+		if (s->ModuleCtxtDir[group] == NULL) {
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
-    if (s -> ModuleCtxtDir[group] == NULL) {
-      pseterr (EACCES);
-      return (SYSERR);
-    }
+		if (group < 0 || group > (icv_ModuleNb - 1)) {
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
-   if ((group < 0) || (group > (icv_ModuleNb - 1))) {
-      pseterr (EINVAL); return (SYSERR);
-    }
-    if ((index < 0) || (index > (icv_LineNb -1) )) {
-      pseterr (EINVAL); return (SYSERR);
-    }
-           /* set up Logical line handle pointer */
-    LogIx = CnvrtUserLine( (char) group,(char) index );
+		if (index < 0 || index > (icv_LineNb -1)) {
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
-    if (LogIx < 0 || LogIx > ICV_LogLineNb){
-      pseterr (EWOULDBLOCK); return(SYSERR);
-    }
+		/* set up Logical line handle pointer */
+		LogIx = CnvrtUserLine((char)group, (char)index);
 
-    if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /* Line not in config*/
-      pseterr (EINVAL); return (SYSERR);
-    }
-    LCtxt = LHdl -> LineCtxt;
-    if ( (LCtxt -> LHdl) != LHdl){
-      pseterr (EWOULDBLOCK); return(SYSERR);
-    }
+		if (LogIx < 0 || LogIx > ICV_LogLineNb) {
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
-    LCtxt -> intmod = icv_ReenableOn;
-    break;
+		if ((LHdl = s->LineHdlDir[LogIx]) == NULL) {
+			/* Line not in config */
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
+		LCtxt = LHdl->LineCtxt;
+		if ( LCtxt->LHdl != LHdl) {
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
+		LCtxt->intmod = icv_ReenableOn;
+		break;
+	case ICVVME_clearreenable:
+		/* clear reenable flag
+		   After an interrupt, further interrupts are inhibited
+		   until the line is enabled again */
 
-/*                              ioctl icvvme clear reenable flag
-				==================================
-    Clear reenable: after an interrupt, further interrupts are inhibited
-		    until the line is enabled again
-*/
-  case ICVVME_clearreenable:
+		/* Check channel number and Set up Handle pointer */
+		if (!Chan) { /* no connect on channel 0 */
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
-      /* Check channel number and Set up Handle pointer */
-    if (Chan == 0) {		/* no connect on channel 0 */
-      pseterr (EACCES); return (SYSERR);
-    };
-    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-      UHdl = &(s -> ICVHdl[Chan]);
-    }
-    else {
-      pseterr (ENODEV);  return (SYSERR);
-    };
+		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+			UHdl = &s->ICVHdl[Chan];
+		} else {
+			pseterr(ENODEV);
+			return SYSERR;
+		}
 
-    if (UHdl == NULL) {  /* Abnormal status system corruption */
-      pseterr (EWOULDBLOCK);
-      return (SYSERR);
-    }
-
-		/* Check parameters and Set up environnement */
-
-    group = ((struct icv196T_UserLine *) arg) -> group;
-    index = ((struct icv196T_UserLine *) arg) -> index;
-
-    if (s -> ModuleCtxtDir[group] == NULL) {
-      pseterr (EACCES);
-      return (SYSERR);
-    }
-
-   if ((group < 0) || (group > (icv_ModuleNb - 1))) {
-      pseterr (EINVAL); return (SYSERR);
-    }
-    if ((index < 0) || (index > (icv_LineNb -1) )) {
-      pseterr (EINVAL); return (SYSERR);
-    }
-           /* set up Logical line handle pointer */
-    LogIx = CnvrtUserLine( (char) group,(char) index );
-
-    if (LogIx < 0 || LogIx > ICV_LogLineNb){
-      pseterr (EWOULDBLOCK); return(SYSERR);
-    }
-
-    if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /* Line not in config*/
-      pseterr (EINVAL); return (SYSERR);
-    }
-    LCtxt = LHdl -> LineCtxt;
-    if ( (LCtxt -> LHdl) != LHdl){
-      pseterr (EWOULDBLOCK); return(SYSERR);
-    }
-
-    LCtxt -> intmod = icv_ReenableOff;
-    break;
-
-
-/*                              ioctl icvvme disable interrupt
-				==============================
-    interrupts on the given logical line are disabled
-*/
-  case ICVVME_disable:
-
-      /* Check channel number and Set up Handle pointer */
-    if (Chan == 0) {		/* no connect on channel 0 */
-      pseterr (EACCES); return (SYSERR);
-    };
-    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-      UHdl = &(s -> ICVHdl[Chan]);
-    }
-    else {
-      pseterr (ENODEV);  return (SYSERR);
-    };
-
-    if (UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
-      pseterr (EWOULDBLOCK);
-      return (SYSERR);
-    }
+		if (!UHdl) {  /* Abnormal status system corruption */
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
 		/* Check parameters and Set up environnement */
+		group = ((struct icv196T_UserLine *) arg)->group;
+		index = ((struct icv196T_UserLine *) arg)->index;
 
-    group = ((struct icv196T_UserLine *) arg) -> group;
-    index = ((struct icv196T_UserLine *) arg) -> index;
+		if (s->ModuleCtxtDir[group] == NULL) {
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
-    if (s -> ModuleCtxtDir[group] == NULL) {
-      pseterr (EACCES);
-      return (SYSERR);
-    }
+		if (group < 0 || group > (icv_ModuleNb - 1)) {
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
-   if ((group < 0) || (group > (icv_ModuleNb - 1))) {
-      pseterr (EINVAL); return (SYSERR);
-    }
-    if ((index < 0) || (index > (icv_LineNb -1) )) {
-      pseterr (EINVAL); return (SYSERR);
-    }
-           /* set up Logical line handle pointer */
-    LogIx = CnvrtUserLine( (char) group,(char) index );
+		if (index < 0 || index > (icv_LineNb -1)) {
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
-    if (LogIx < 0 || LogIx > ICV_LogLineNb){
-      pseterr (EWOULDBLOCK); return(SYSERR);
-    }
+		/* set up Logical line handle pointer */
+		LogIx = CnvrtUserLine((char)group, (char)index);
+		if (LogIx < 0 || LogIx > ICV_LogLineNb) {
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
-    if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /* Line not in config*/
-      pseterr (EINVAL); return (SYSERR);
-    }
-    LCtxt = LHdl -> LineCtxt;
-    if ( (LCtxt -> LHdl) != LHdl){
-      pseterr (EWOULDBLOCK); return(SYSERR);
-    }
+		if ((LHdl = s->LineHdlDir[LogIx]) == NULL) {
+			/* Line not in config */
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
-    disable_Line(LCtxt);
-    break;
+		LCtxt = LHdl->LineCtxt;
+		if ( LCtxt->LHdl != LHdl) {
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
+		LCtxt->intmod = icv_ReenableOff;
+		break;
+	case ICVVME_disable:
+		/* Disable interrupt. Interrupts on the given logical
+		   line are disabled */
 
-/*                              ioctl icvvme enable interrupt
-				=============================
-    interrupts on the given logical line are enabled
-*/
-  case ICVVME_enable:
+		/* Check channel number and Set up Handle pointer */
+		if (!Chan) { /* no connect on channel 0 */
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
-      /* Check channel number and Set up Handle pointer */
-    if (Chan == 0) {		/* no connect on channel 0 */
-      pseterr (EACCES); return (SYSERR);
-    };
-    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-      UHdl = &(s -> ICVHdl[Chan]);
-    }
-    else {
-      pseterr (ENODEV);  return (SYSERR);
-    };
+		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+			UHdl = &s->ICVHdl[Chan];
+		} else {
+			pseterr(ENODEV);
+			return SYSERR;
+		}
 
-    if (UHdl == NULL) {  /* Abnormal status system corruption */
-      pseterr (EWOULDBLOCK);
-      return (SYSERR);
-    }
+		if (!UHdl) {  /* Abnormal status system corruption */
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
 		/* Check parameters and Set up environnement */
+		group = ((struct icv196T_UserLine *) arg)->group;
+		index = ((struct icv196T_UserLine *) arg)->index;
 
-    group = ((struct icv196T_UserLine *) arg) -> group;
-    index = ((struct icv196T_UserLine *) arg) -> index;
+		if (s->ModuleCtxtDir[group] == NULL) {
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
-    if (s -> ModuleCtxtDir[group] == NULL) {
-      pseterr (EACCES);
-      return (SYSERR);
-    }
+		if (group < 0 || group > (icv_ModuleNb - 1)) {
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
-   if ((group < 0) || (group > (icv_ModuleNb - 1))) {
-      pseterr (EINVAL); return (SYSERR);
-    }
-    if ((index < 0) || (index > (icv_LineNb -1) )) {
-      pseterr (EINVAL); return (SYSERR);
-    }
-           /* set up Logical line handle pointer */
-    LogIx = CnvrtUserLine( (char) group,(char) index );
+		if (index < 0 || index > (icv_LineNb -1)) {
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
-    if (LogIx < 0 || LogIx > ICV_LogLineNb){
-      pseterr (EWOULDBLOCK); return(SYSERR);
-    }
+		/* set up Logical line handle pointer */
+		LogIx = CnvrtUserLine((char)group, (char)index);
 
-    if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /* Line not in config*/
-      pseterr (EINVAL); return (SYSERR);
-    }
-    LCtxt = LHdl -> LineCtxt;
-    if ( (LCtxt -> LHdl) != LHdl){
-      pseterr (EWOULDBLOCK); return(SYSERR);
-    }
+		if (LogIx < 0 || LogIx > ICV_LogLineNb) {
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
-    enable_Line(LCtxt);
-    break;
+		if ((LHdl = s->LineHdlDir[LogIx]) == NULL) {
+			/* Line not in config */
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
+		LCtxt = LHdl->LineCtxt;
+		if (LCtxt->LHdl != LHdl) {
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
+		disable_Line(LCtxt);
+		break;
+	case ICVVME_enable:
+		/* Enable interrupt
+		   Interrupts on the given logical line are enabled */
 
-/*                              ioctl icvvme read interrupt counters
-				====================================
-    Read interrupt counters for all lines in the given module
-*/
-  case ICVVME_intcount:
+		/* Check channel number and Set up Handle pointer */
+		if (!Chan) { /* no connect on channel 0 */
+			pseterr(EACCES);
+			return (SYSERR);
+		}
 
-    Module = (long)((struct icv196T_Service *) arg) -> module;
-    Data =   ((struct icv196T_Service *)arg) -> data;
-    if (s -> ModuleCtxtDir[Module] == NULL) {
-      pseterr (EACCES);
-      return (SYSERR);
-    }
-    MCtxt =  &(s -> ModuleCtxt[Module]);
-    LCtxt =  MCtxt -> LineCtxt;
-    for (i = 0; i < icv_LineNb; i++, LCtxt++)
-      *Data++ = LCtxt -> loc_count;
-    break;
+		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+			UHdl = &s->ICVHdl[Chan];
+		} else {
+			pseterr(ENODEV);
+			return SYSERR;
+		}
 
+		if (!UHdl) {  /* Abnormal status system corruption */
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
+		/* Check parameters and Set up environnement */
+		group = ((struct icv196T_UserLine *) arg)->group;
+		index = ((struct icv196T_UserLine *) arg)->index;
 
-/*                              ioctl icvvme read reenable flags
-				================================
-    Read reenable flags for all lines in the given module
-*/
-  case ICVVME_reenflags:
+		if (s->ModuleCtxtDir[group] == NULL) {
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
-    Module = (long)((struct icv196T_Service *) arg) -> module;
-    Data =   ((struct icv196T_Service *)arg) -> data;
-    if (s -> ModuleCtxtDir[Module] == NULL) {
-      pseterr (EACCES);
-      return (SYSERR);
-    }
-    MCtxt =  &(s -> ModuleCtxt[Module]);
-    LCtxt =  MCtxt -> LineCtxt;
-    for (i = 0; i < icv_LineNb; i++, LCtxt++)
-      *Data++ = LCtxt -> intmod;
-    break;
+		if (group < 0 || group > (icv_ModuleNb - 1)) {
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
+		if (index < 0 || index > (icv_LineNb -1)) {
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
+		/* set up Logical line handle pointer */
+		LogIx = CnvrtUserLine((char)group, (char)index);
+		if (LogIx < 0 || LogIx > ICV_LogLineNb) {
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
+		if ((LHdl = s->LineHdlDir[LogIx]) == NULL) {
+			/* Line not in config */
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
-/*                              ioctl icvvme read interrupt enable mask
-				=======================================
-    Read interrupt enable mask for the given module
-*/
-  case ICVVME_intenmask:
+		LCtxt = LHdl->LineCtxt;
+		if ( LCtxt->LHdl != LHdl) {
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
-    Module = (long)((struct icv196T_Service *) arg) -> module;
-    Data =   ((struct icv196T_Service *)arg) -> data;
-    if (s -> ModuleCtxtDir[Module] == NULL) {
-      pseterr (EACCES);
-      return (SYSERR);
-    }
-    MCtxt =  &(s -> ModuleCtxt[Module]);
-    *Data = MCtxt -> int_en_mask;
-    break;
+		enable_Line(LCtxt);
+		break;
+	case ICVVME_intcount:
+		/* Read interrupt counters for all lines in the given module */
+		Module = (long)((struct icv196T_Service *) arg)->module;
+		Data   = ((struct icv196T_Service *)arg)->data;
+		if (s->ModuleCtxtDir[Module] == NULL) {
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
+		MCtxt = &s->ModuleCtxt[Module];
+		LCtxt =  MCtxt->LineCtxt;
+		for (i = 0; i < icv_LineNb; i++, LCtxt++)
+			*Data++ = LCtxt->loc_count;
+		break;
+	case ICVVME_reenflags:
+		/* Read reenable flags for all lines in the given module */
+		Module = (long)((struct icv196T_Service *) arg)->module;
+		Data   = ((struct icv196T_Service *)arg)->data;
+		if (s->ModuleCtxtDir[Module] == NULL) {
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
+		MCtxt = &s->ModuleCtxt[Module];
+		LCtxt = MCtxt->LineCtxt;
+		for (i = 0; i < icv_LineNb; i++, LCtxt++)
+			*Data++ = LCtxt->intmod;
+		break;
+	case ICVVME_intenmask:
+		/* Read interrupt enable mask for the given module */
+		Module = (long)((struct icv196T_Service *) arg)->module;
+		Data   = ((struct icv196T_Service *)arg)->data;
+		if (s->ModuleCtxtDir[Module] == NULL) {
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
+		MCtxt = &s->ModuleCtxt[Module];
+		*Data = MCtxt->int_en_mask;
+		break;
+	case ICVVME_iosem:
+		/* Read io semaphores for all lines in the given module */
+		Module = (long)((struct icv196T_Service *) arg)->module;
+		Data   = ((struct icv196T_Service *)arg)->data;
+		if (s->ModuleCtxtDir[Module] == NULL) {
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
-/*                              ioctl icvvme read io semaphores
-				===============================
-    Read io semaphores for all lines in the given module
-*/
-  case ICVVME_iosem:
+		MCtxt = &s->ModuleCtxt[Module];
+		LCtxt = &MCtxt->LineCtxt[0];
 
-    Module = (long)((struct icv196T_Service *) arg) -> module;
-    Data =   ((struct icv196T_Service *)arg) -> data;
-    if (s -> ModuleCtxtDir[Module] == NULL) {
-      pseterr (EACCES);
-      return (SYSERR);
-    }
-    MCtxt =  &(s -> ModuleCtxt[Module]);
-    LCtxt =  &(MCtxt -> LineCtxt[0]);
-    for (i = 0; i < icv_LineNb; i++, LCtxt++) {
-	LHdl = LCtxt -> LHdl;
-	Subs = &(LHdl -> Subscriber[0]);
-	for (j = 0; j < LHdl -> SubscriberCurNb; j++, Subs++) {
-	    if (Subs -> Ring != NULL) {
-		if ((j = 0))
-		    Data++;
-		continue;
-	    }
-	    *Data++ = Subs -> Ring -> Evtsem;
-	}
-    }
-    break;
+		for (i = 0; i < icv_LineNb; i++, LCtxt++) {
+			LHdl = LCtxt->LHdl;
+			Subs = &LHdl->Subscriber[0];
+			for (j = 0; j < LHdl->SubscriberCurNb; j++, Subs++) {
+				if (Subs->Ring) {
+					if (j == 0)
+						Data++;
+					continue;
+				}
+				*Data++ = Subs->Ring->Evtsem;
+			}
+		}
+		break;
+	case ICVVME_setio:
+		/* Set direction of input/output ports.
+		   (when using the I/O part of the ICV196 board) */
+		Module = (long)((struct icv196T_Service *) arg)->module;
+		Data   = ((struct icv196T_Service *)arg)->data;
+		if (s->ModuleCtxtDir[Module] == NULL) {
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
-/*                              ioctl icvvme set io direction
-				===============================
-	     ICVVME_setio: set direction of input/output ports.
-	     (when using the I/O part of the ICV196 board)
-*/
-  case ICVVME_setio:
-
-    Module = (long)((struct icv196T_Service *) arg) -> module;
-    Data =   ((struct icv196T_Service *)arg) -> data;
-    if (s -> ModuleCtxtDir[Module] == NULL) {
-      pseterr (EACCES);
-      return (SYSERR);
-    }
-    MCtxt =  &(s -> ModuleCtxt[Module]);
-    grp = *Data++;
-    dir = *Data;
+		MCtxt = &s->ModuleCtxt[Module];
+		grp = *Data++;
+		dir = *Data;
 
 		if ( grp < 0 || grp > 11)
-		    return(SYSERR);
+			return SYSERR;
 
 		group_mask = 1 << grp;
 		if (dir) {            /* dir >< 0 : output */
-		    *(MCtxt -> VME_CsDir) =
-		    MCtxt -> old_CsDir | group_mask;
-		    MCtxt -> old_CsDir =
-		    MCtxt -> old_CsDir | group_mask;
+		    *(MCtxt->VME_CsDir) = MCtxt->old_CsDir | group_mask;
+		    MCtxt->old_CsDir = MCtxt->old_CsDir | group_mask;
+		} else { /* dir = 0: input  */
+			*(MCtxt->VME_CsDir) = MCtxt->old_CsDir & ~group_mask;
+		    MCtxt->old_CsDir = MCtxt->old_CsDir & ~group_mask;
 		}
-		else {                     /* dir = 0: input  */
-		    *(MCtxt -> VME_CsDir) =
-		    MCtxt -> old_CsDir & ~group_mask;
-		    MCtxt -> old_CsDir =
-		    MCtxt -> old_CsDir & ~group_mask;
+		break;
+	case ICVVME_readio:
+		/* Read direction of input/output ports.
+		   (when using the I/O part of the ICV196 board) */
+		Module = (long)((struct icv196T_Service *) arg)->module;
+		Data   = ((struct icv196T_Service *)arg)->data;
+		if (s->ModuleCtxtDir[Module] == NULL) {
+			pseterr(EACCES);
+			return SYSERR;
 		}
-  break;
 
+		MCtxt = &s->ModuleCtxt[Module];
+		*Data = MCtxt->old_CsDir;
+		break;
+	case ICVVME_nowait:
+		/* Set nowait mode on the read function */
 
-/*                              ioctl icvvme read io direction
-				===============================
-	     ICVVME_setio: read direction of input/output ports.
-	     (when using the I/O part of the ICV196 board)
-*/
-  case ICVVME_readio:
+		/* Check channel number and Set up Handle pointer */
+		if (!Chan) { /* no such function on channel 0 */
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
-    Module = (long)((struct icv196T_Service *) arg) -> module;
-    Data =   ((struct icv196T_Service *)arg) -> data;
-    if (s -> ModuleCtxtDir[Module] == NULL) {
-      pseterr (EACCES);
-      return (SYSERR);
-    }
-    MCtxt =  &(s -> ModuleCtxt[Module]);
-    *Data = MCtxt -> old_CsDir;
-  break;
+		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+			UHdl = &(s -> ICVHdl[Chan]);
+		} else {
+			pseterr(ENODEV);
+			return SYSERR;
+		}
 
-/* ioctl wait/nowait flag control:  no wait
-   =========================================
-   to set nowait mode on the read function
-*/
-  case ICVVME_nowait:
+		if (!UHdl) { /* system corruption */
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
-      /* Check channel number and Set up Handle pointer */
-    if (Chan == 0) {		/* no such function on channel 0 */
-      pseterr (EACCES);
-      return (SYSERR);
-    };
-    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-      UHdl = &(s -> ICVHdl[Chan]);
-    }
-    else {
-      pseterr (ENODEV);
-      return (SYSERR);
-    }
-    if (UHdl == NULL) {		/* system corruption */
-      pseterr (EWOULDBLOCK);
-      return (SYSERR);
-    }
-    UHdl->UserMode &= (~((short) icv_bitwait)); /* reset flag wait */
+		/* reset flag wait */
+		UHdl->UserMode &= (~((short) icv_bitwait));
+		break;
+	case ICVVME_wait:
+		/* Set wait mode on the read function */
 
-    break;
-/*
-                                ioctl wai/nowait flag control:     wait
-                                ===========================================
-   to set nowait mode on the read function
-*/
-  case ICVVME_wait:
+		/* Check channel number and Set up Handle pointer */
+		if (!Chan) { /* no such function on channel 0 */
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
-      /* Check channel number and Set up Handle pointer */
-    if (Chan == 0) {		/* no such function on channel 0 */
-      pseterr (EACCES);
-      return (SYSERR);
-    };
-    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-      UHdl = &(s -> ICVHdl[Chan]);/* LAM handle */
-    }
-    else {
-      pseterr (ENODEV);
-      return (SYSERR);
-    }
-    if (UHdl == NULL) {		/* system corruption !!! ...*/
-      pseterr (EWOULDBLOCK);
-      return (SYSERR);
-    }
-    UHdl->UserMode |= ((short)icv_bitwait); /* set flag wait */
-    break;
+		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+			UHdl = &s->ICVHdl[Chan]; /* LAM handle */
+		} else {
+			pseterr(ENODEV);
+			return SYSERR;
+		}
 
+		if (!UHdl) { /* system corruption */
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
-/*
-                        ioctl function: to set Time out for waiting Event
-                        ================================================
-   to monitor duration of wait on interrupt event before time out  declared
-*/
-  case ICVVME_setupTO:
+		UHdl->UserMode |= ((short)icv_bitwait); /* set flag wait */
+		break;
+	case ICVVME_setupTO:
+		/* Set Time out for waiting Event
+		   Monitor duration of wait on interrupt event before
+		   time out  declared */
 
+		/* Check channel number and Set up Handle pointer */
+		if (!Chan) { /* no such function on channel 0 */
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
-      /* Check channel number and Set up Handle pointer */
-      if (Chan == 0) {		/* no such function on channel 0 */
-	pseterr (EACCES);
-	return (SYSERR);
-      };
-    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-      UHdl = &(s -> ICVHdl[Chan]);/* LAM handle */
-    }
-    else {
-      pseterr (ENODEV);
-      return (SYSERR);
-    }
-    if (UHdl == NULL) {		/* system corruption */
-      pseterr (EWOULDBLOCK);
-      return (SYSERR);
-    }
-    if ( ( *( (int *) arg)) < 0 ){
-      pseterr (EINVAL); return (SYSERR);
-    }
-    Timeout = UHdl->WaitingTO; /* current value */
-    Iw1 = *( (int *) arg);	    /* new value */
-    UHdl->WaitingTO =  Iw1;    /* set T.O. */
-    *( (int *) arg) = Timeout;    /* return old value */
-    break;
+		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+			UHdl = &s->ICVHdl[Chan];/* LAM handle */
+		} else {
+			pseterr(ENODEV);
+			return SYSERR;
+		}
+
+		if (!UHdl) { /* system corruption */
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
+
+		if (( *( (int *) arg)) < 0) {
+			pseterr(EINVAL);
+			return SYSERR;
+		}
+
+		Timeout = UHdl->WaitingTO; /* current value */
+		Iw1 = *( (int *) arg);	    /* new value */
+		UHdl->WaitingTO =  Iw1;    /* set T.O. */
+		*( (int *) arg) = Timeout;    /* return old value */
+		break;
 	case ICVVME_connect:
 		/* connect function */
 		err = 0;
-      /* Check channel number and Set up Handle pointer */
-    if (Chan == 0) {		/* no connect on channel 0 */
-      pseterr (EACCES); return (SYSERR);
-    };
-    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-      UHdl = &(s -> ICVHdl[Chan]);
-    }
-    else {
-      pseterr (ENODEV);  return (SYSERR);
-    };
+		/* Check channel number and Set up Handle pointer */
+		if (!Chan) { /* no connect on channel 0 */
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
-    if (UHdl == NULL) {  /* Abnormal status system corruption */
-      pseterr (EWOULDBLOCK);
-      return (SYSERR);
-    }
+		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+			UHdl = &s->ICVHdl[Chan];
+		} else {
+			pseterr(ENODEV);
+			return SYSERR;
+		}
+
+		if (!UHdl) {  /* Abnormal status system corruption */
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
 		/* Check parameters and Set up environnement */
+		group = ((struct icv196T_connect *) arg)->source.field.group;
+		index = ((struct icv196T_connect *) arg)->source.field.index;
+		mode  = ((struct icv196T_connect *) arg)->mode;
 
-    group = ((struct icv196T_connect *) arg) -> source.field.group;
-    index = ((struct icv196T_connect *) arg) -> source.field.index;
-    mode = ((struct icv196T_connect *) arg) -> mode;
-    if (mode & (~(icv_cumul | icv_disable))){
-      pseterr (EINVAL); return (SYSERR);
-    }
+		if (mode & (~(icv_cumul | icv_disable))) {
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
-    if (s -> ModuleCtxtDir[group] == NULL) {
-      pseterr (EACCES);
-      return (SYSERR);
-    }
+		if (s->ModuleCtxtDir[group] == NULL) {
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
-   if ((group < 0) || (group > (icv_ModuleNb - 1))) {
-      pseterr (EINVAL); return (SYSERR);
-    }
-    if ((index < 0) || (index > (icv_LineNb -1) )) {
-      pseterr (EINVAL); return (SYSERR);
-    }
-           /* set up Logical line handle pointer */
-    LogIx = CnvrtUserLine( (char) group,(char) index );
+		if (group < 0 || group > (icv_ModuleNb - 1)) {
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
-    if (LogIx < 0 || LogIx > ICV_LogLineNb){
-      pseterr (EWOULDBLOCK); return(SYSERR);
-    }
-    if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /* Line not in config*/
-      pseterr (EINVAL); return (SYSERR);
-    }
-    LCtxt = LHdl -> LineCtxt;
-    if ( (LCtxt -> LHdl) != LHdl){
-      pseterr (EWOULDBLOCK); return(SYSERR);
-    }
-    if  ( TESTBIT(UHdl -> Cmap, LogIx) ) {
-      if (LCtxt -> Reset) {
-	enable_Line(LCtxt);
-      }
-      err = 0;
-      break;			/* already connected ok --->  exit */
-    }
-    SubsMode = 0;		/* default mode requested */
-    if (mode & icv_cumul)
-      SubsMode = icv_cumulative;
+		if (index < 0 || index > (icv_LineNb -1)) {
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
-    if (mode & icv_disable)
-      LCtxt -> intmod = icv_ReenableOff;
+		/* set up Logical line handle pointer */
+		LogIx = CnvrtUserLine((char)group, (char)index);
 
-    MCtxt = LCtxt -> MCtxt;
+		if (LogIx < 0 || LogIx > ICV_LogLineNb) {
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
-    Type = LCtxt -> Type;
-    Line = LCtxt -> Line;
+		if ((LHdl = s->LineHdlDir[LogIx]) == NULL) {
+			/* Line not in config */
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
-       /* Reinit module if setting lost !!!!
-	  beware !,  all lines loose their current state */
+		LCtxt = LHdl->LineCtxt;
+		if (LCtxt->LHdl != LHdl) {
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
-    icvModule_Reinit(MCtxt, Line);
+		if (TESTBIT(UHdl->Cmap, LogIx)) {
+			if (LCtxt->Reset)
+				enable_Line(LCtxt);
+			err = 0;
+			break; /* already connected ok -->  exit */
+		}
 
-    if ((Subs = LineBooking(UHdl, LHdl, SubsMode)) == NULL){
-      pseterr (EUSERS); return (SYSERR);
-    }
+		SubsMode = 0; /* default mode requested */
+		if (mode & icv_cumul)
+			SubsMode = icv_cumulative;
 
-      /*  enable line interrupt */
-    if (LCtxt -> status == icv_Disabled)
-	enable_Line(LCtxt);
-    LCtxt -> loc_count = 0;
+		if (mode & icv_disable)
+			LCtxt->intmod = icv_ReenableOff;
 
-    break;
+		MCtxt = LCtxt->MCtxt;
+		Type  = LCtxt->Type;
+		Line  = LCtxt->Line;
 
-/*
-				disconnect function
-				===================
-*/
+		/* Reinit module if setting lost !!!!
+		   beware! all lines loose their current state */
+		icvModule_Reinit(MCtxt, Line);
 
-  case ICVVME_disconnect:
+		if ((Subs = LineBooking(UHdl, LHdl, SubsMode)) == NULL) {
+			pseterr(EUSERS);
+			return SYSERR;
+		}
 
-    err = 0;
-      /* Check channel number and Set up Handle pointer */
-    if (Chan == 0) {		/* no disconnect on channel 0 */
-      pseterr (EACCES); return (SYSERR);
-    };
-    if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-      UHdl = &(s -> ICVHdl[Chan]);
-    }
-    else {
-      pseterr (ENODEV);  return (SYSERR);
-    };
-    if (UHdl == NULL) {  /* Abnormal status system corruption   !!!! */
-      pseterr (EWOULDBLOCK);
-      return (SYSERR);
-    };
-                 /* Check parameters and Set up environnement */
+		/*  enable line interrupt */
+		if (LCtxt->status == icv_Disabled)
+			enable_Line(LCtxt);
+		LCtxt->loc_count = 0;
+		break;
+	case ICVVME_disconnect:
+		/* disconnect function */
+		err = 0;
+		/* Check channel number and Set up Handle pointer */
+		if (!Chan) { /* no disconnect on channel 0 */
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
-    group = ((struct icv196T_connect *) arg) -> source.field.group;
-    index = ((struct icv196T_connect *) arg) -> source.field.index;
+		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+			UHdl = &s->ICVHdl[Chan];
+		} else {
+			pseterr(ENODEV);
+			return SYSERR;
+		}
 
-    if (s -> ModuleCtxtDir[group] == NULL) {
-      pseterr (EACCES);
-      return (SYSERR);
-    }
+		if (!UHdl) { /* Abnormal status system corruption! */
+			pseterr(EWOULDBLOCK);
+			return SYSERR;
+		}
 
-    if ((group < 0) || (group >= icv_ModuleNb)) {
-      pseterr (EINVAL); return (SYSERR);
-    }
-    if ((index < 0) || (index >= icv_LineNb)) {
-      pseterr (EINVAL); return (SYSERR);
-    }
-    LogIx = CnvrtUserLine( (char) group, (char) index);
-           /* set up Logical line handle pointer */
-    if ((LHdl = s -> LineHdlDir[LogIx]) == NULL){ /*log line not affected*/
-      pseterr (EINVAL); return (SYSERR);
-    }
-    if ( !(TESTBIT(UHdl -> Cmap, LogIx)) ){ /* non connected */
-      pseterr (ENOTCONN); return (SYSERR);
-    }
-    if ((Subs = LineUnBooking(UHdl, LHdl)) == NULL){
-      pseterr (ENOTCONN); return (SYSERR);
-    }
-			/* Set up line context */
-    LCtxt = LHdl -> LineCtxt;
+		/* Check parameters and Set up environnement */
+		group = ((struct icv196T_connect *) arg)->source.field.group;
+		index = ((struct icv196T_connect *) arg)->source.field.index;
 
-    /* disable the corresponding line */
-    if (LHdl -> SubscriberCurNb == 0){
-      disable_Line(LCtxt);
-      LCtxt -> loc_count = -1;
-    }
+		if (s->ModuleCtxtDir[group] == NULL) {
+			pseterr(EACCES);
+			return SYSERR;
+		}
 
-    break;
+		if (group < 0 || group >= icv_ModuleNb) {
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
+		if (index < 0 || index >= icv_LineNb) {
+			pseterr(EINVAL);
+			return SYSERR;
+		}
 
-	default:    /* Ioctl function code out of range */
+		LogIx = CnvrtUserLine((char)group, (char)index);
+
+		/* set up Logical line handle pointer */
+		if ((LHdl = s->LineHdlDir[LogIx]) == NULL) {
+			/*log line not affected*/
+			pseterr(EINVAL);
+			return SYSERR;
+		}
+
+		if (!(TESTBIT(UHdl->Cmap, LogIx))) { /* non connected */
+			pseterr(ENOTCONN);
+			return SYSERR;
+		}
+
+		if ((Subs = LineUnBooking(UHdl, LHdl)) == NULL) {
+			pseterr(ENOTCONN);
+			return SYSERR;
+		}
+
+		/* Set up line context */
+		LCtxt = LHdl->LineCtxt;
+
+		/* disable the corresponding line */
+		if (LHdl->SubscriberCurNb == 0) {
+			disable_Line(LCtxt);
+			LCtxt->loc_count = -1;
+		}
+		break;
+	default: /* Ioctl function code out of range */
 		pseterr(EINVAL);
 		return SYSERR;
 	}
