@@ -28,24 +28,38 @@ typedef struct {
    SkelDrvrReadBuf Entries[SkelDrvrQUEUE_SIZE];
  } SkelDrvrQueue;
 
-/* =============================================== */
-/* The client context                              */
-
+/**
+ * @brief The client context
+ *
+ * @param lock         --
+ * @param mutex        --
+ * @param ClientIndex  -- minor - 1
+ * @param InUse        --
+ * @param Pid          --
+ * @param Semaphore    --
+ * @param Timeout      --
+ * @param Timer        --
+ * @param Queue        --
+ * @param Debug        --
+ * @param ModuleNumber --
+ * @param ChannelNr    --
+ * @param UserData     --
+ */
 typedef struct {
-	cdcm_spinlock_t		lock;
-	struct cdcm_mutex 	mutex;
-   U32               ClientIndex;
-   U32               InUse;
-   U32               Pid;
-   S32               Semaphore;
-   U32               Timeout;
-   S32               Timer;
-   SkelDrvrQueue     Queue;
-   SkelDrvrDebugFlag Debug;
-   U32               ModuleNumber;
-   U32               ChannelNr;
-   void             *UserData;
- } SkelDrvrClientContext;
+	cdcm_spinlock_t   lock;
+	struct cdcm_mutex mutex;
+	U32               ClientIndex;
+	U32               InUse;
+	U32               Pid;
+	S32               Semaphore;
+	U32               Timeout;
+	S32               Timer;
+	SkelDrvrQueue     Queue;
+	SkelDrvrDebugFlag Debug;
+	U32               ModuleNumber;
+	U32               ChannelNr;
+	void             *UserData;
+} SkelDrvrClientContext;
 
 /**
  * \brief keep client's connections on a module

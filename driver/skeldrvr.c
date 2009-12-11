@@ -1027,7 +1027,7 @@ int client_init(SkelDrvrClientContext *ccon, int clientnr)
  */
 int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 {
-	SkelDrvrClientContext * ccon;   /* Client context */
+	SkelDrvrClientContext *ccon;   /* Client context */
 	int clientnr;
 
 	/*
