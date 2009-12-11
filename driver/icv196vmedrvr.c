@@ -1439,7 +1439,7 @@ int icv196_close(struct icv196T_s *s, struct cdcm_file *f)
 	return OK;
 }
 
-/* Read Entry Point */
+/* Read Entry Point. Called directly from ske_read */
 int icv196_read(struct icv196T_s *s, struct cdcm_file *f,
 		char *buff, int bcount)
 {
@@ -1528,10 +1528,10 @@ int icv196_read(struct icv196T_s *s, struct cdcm_file *f,
 }
 
 /* Write Entry Point. not available */
-int icv196_write(struct icv196T_s *s, struct cdcm_file *f,
-		 char *buff,int bcount)
+int icv196_write(void *wa, struct cdcm_file *f, char *buff, int bcount)
 {
-	return (bcount = s->usercounter);
+	pseterr(ENOSYS);
+        return SYSERR;
 }
 
 /* IOCTL Entry Point */
