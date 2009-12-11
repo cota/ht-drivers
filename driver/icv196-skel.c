@@ -27,8 +27,25 @@ extern int   icv196_close(SkelDrvrClientContext *);
 extern int   icv196_ioctl(int, int, char *);
 
 static char *SpecificIoctlNames[] = {
-	[_IOC_NR(MY_IOCTL_NAME_1)]	= "MyIoctl-1",
-	[_IOC_NR(MY_IOCTL_NAME_2)] 	= "MyIoctl-2"
+	[_IOC_NR(ICVVME_getmoduleinfo)]	= "Get device information",
+	[_IOC_NR(ICVVME_connect)]	= "Connect function",
+	[_IOC_NR(ICVVME_disconnect)]	= "Disconnect function",
+	[_IOC_NR(ICVVME_reset) ]	= "HW reset (not implemented)",
+	[_IOC_NR(ICVVME_setDbgFlag)]	= "Dynamic debugging",
+	[_IOC_NR(ICVVME_nowait)]	= "Set nowait mode on the read function",
+	[_IOC_NR(ICVVME_wait)]  	= "Set wait mode on the read function",
+	[_IOC_NR(ICVVME_setupTO)]	= "Set Time out for waiting Event",
+	[_IOC_NR(ICVVME_intcount)]	= "Read interrupt counters for all lines",
+	[_IOC_NR(ICVVME_setreenable)]	= "Set reenable flag to allow continuous interrupts",
+	[_IOC_NR(ICVVME_clearreenable)]	= "Clear reenable flag",
+	[_IOC_NR(ICVVME_enable)]	= "Enable interrupt",
+	[_IOC_NR(ICVVME_disable)]	= "Disable interrupt",
+	[_IOC_NR(ICVVME_iosem)]       	= "Read i/o semaphores for all lines",
+	[_IOC_NR(ICVVME_readio)]	= "Read direction of i/o ports",
+	[_IOC_NR(ICVVME_setio)]    	= "Set direction of i/o ports",
+	[_IOC_NR(ICVVME_intenmask)]	= "Read interrupt enable mask",
+	[_IOC_NR(ICVVME_reenflags)]	= "Read reenable flags for all lines",
+	[_IOC_NR(ICVVME_gethandleinfo)]	= "Get handle information"
 };
 
 /**

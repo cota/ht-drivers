@@ -34,27 +34,6 @@
 #define ICVVME_MaxChan 8 /* number of file handle in the pool
 			    (max number of simultaneous users) */
 
-/* ioctl numbers */
-#define ICVVME_getmoduleinfo  1
-#define ICVVME_connect        2
-#define ICVVME_disconnect     3
-#define ICVVME_reset          4
-#define ICVVME_setDbgFlag     5
-#define ICVVME_nowait         6
-#define ICVVME_wait           7
-#define ICVVME_setupTO        8
-#define ICVVME_intcount       9
-#define ICVVME_setreenable   10
-#define ICVVME_clearreenable 11
-#define ICVVME_enable        12
-#define ICVVME_disable       13
-#define ICVVME_iosem         14
-#define ICVVME_readio        15
-#define ICVVME_setio         16
-#define ICVVME_intenmask     17
-#define ICVVME_reenflags     18
-#define ICVVME_gethandleinfo 19
-
 /* Channel to read the PLS telegram */
 #define ICVVME_ServiceChan   0
 /* Channel to get synchronised with icv int */
@@ -140,7 +119,7 @@ struct icv196T_HandleInfo {
 	struct icv196T_HandleLines handle[ICVVME_MaxChan];
 };
 
-/*  structure passed at gethandleinfo ioctl call */
+/* structure passed at gethandleinfo ioctl call */
 struct icv196T_ModuleInfo {
 	int    ModuleFlag;
 	struct icv196T_ModuleParam ModuleInfo;

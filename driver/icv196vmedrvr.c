@@ -1595,7 +1595,8 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			}
 		}
 		break;
-	case ICVVME_reset: /* perform hardware reset of icv196 module */
+	case ICVVME_reset:
+		/* perform hardware reset of icv196 module */
 		break;
 	case ICVVME_setDbgFlag:
 		/* dynamic debugging */
@@ -1666,7 +1667,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		LCtxt->intmod = icv_ReenableOn;
 		break;
 	case ICVVME_clearreenable:
-		/* clear reenable flag
+		/* Clear reenable flag.
 		   After an interrupt, further interrupts are inhibited
 		   until the line is enabled again */
 
@@ -1792,7 +1793,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		disable_Line(LCtxt);
 		break;
 	case ICVVME_enable:
-		/* Enable interrupt
+		/* Enable interrupt.
 		   Interrupts on the given logical line are enabled */
 
 		/* Check channel number and Set up Handle pointer */
@@ -2005,7 +2006,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		UHdl->UserMode |= ((short)icv_bitwait); /* set flag wait */
 		break;
 	case ICVVME_setupTO:
-		/* Set Time out for waiting Event
+		/* Set Time out for waiting Event.
 		   Monitor duration of wait on interrupt event before
 		   time out  declared */
 
