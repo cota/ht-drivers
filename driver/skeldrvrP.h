@@ -44,6 +44,7 @@ typedef struct {
  * @param ModuleNumber --
  * @param ChannelNr    --
  * @param UserData     --
+ * @param cdcmf        -- CDCM file
  */
 typedef struct {
 	cdcm_spinlock_t   lock;
@@ -59,6 +60,7 @@ typedef struct {
 	U32               ModuleNumber;
 	U32               ChannelNr;
 	void             *UserData;
+	struct cdcm_file *cdcmf;
 } SkelDrvrClientContext;
 
 /**
