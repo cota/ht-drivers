@@ -1365,26 +1365,21 @@ int icv196_uninstall(struct icv196T_s *s)
 }
 
 /* Open Entry Point */
-int icv196_open(struct icv196T_s *s, int dev, struct cdcm_file *f)
+int icv196_open(SkelDrvrClientContext *ccon)
 {
 	short DevType = 0; /* 0 -- normal, 1 -- service channel */
 	struct T_UserHdl *UHdl = NULL;
-	int   chan = minor(dev);
-
-	if (!s) {
-		pseterr(EACCES);
-		return SYSERR;
-	}
+	int   chan = ccon->ClientIndex + 1; /* convert to minor dev */
 
 	if (chan == ICVVME_ServiceChan) {
-		UHdl = &s->ServiceHdl;
+		UHdl = &icv196_statics.ServiceHdl;
 		DevType = 1;
 	} else if (chan >= ICVVME_IcvChan01 && chan <= ICVVME_MaxChan) {
-		if (f->access_mode & FWRITE) {
+		if (ccon->cdcmf->access_mode & FWRITE) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
-		UHdl = &s->ICVHdl[chan-1];
+		UHdl = &icv196_statics.ICVHdl[chan-1];
 	} else {
 		pseterr(EACCES);
 		return SYSERR;
@@ -1396,17 +1391,17 @@ int icv196_open(struct icv196T_s *s, int dev, struct cdcm_file *f)
 	}
 
 	/* Perform the open */
-	swait(&s->sem_drvr, IGNORE_SIG);
+	swait(&icv196_statics.sem_drvr, IGNORE_SIG);
 	if (DevType == 0) { /* Case synchro */
-		Init_UserHdl(UHdl, chan, s);
-		UHdl->UserMode  = s->UserMode;
-		UHdl->WaitingTO = s->UserTO;
-		UHdl->pid       = getpid();
+		Init_UserHdl(UHdl, chan, &icv196_statics);
+		UHdl->UserMode  = icv196_statics.UserMode;
+		UHdl->WaitingTO = icv196_statics.UserTO;
+		UHdl->pid       = ccon->Pid;
 	}
 
-	s->usercounter++; /* Update user counter value */
+	icv196_statics.usercounter++; /* Update user counter value */
 	UHdl->usercount++;
-	ssignal(&s->sem_drvr);
+	ssignal(&icv196_statics.sem_drvr);
 	return OK;
 }
 
