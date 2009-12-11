@@ -1338,7 +1338,8 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 	return 0;
 }
 
-char *icv196install(InsLibModlDesc *ptr)
+/* Install Entry Point */
+char *icv196_install(InsLibModlDesc *ptr)
 {
 	struct T_ModuleCtxt *MCtxt;
 
@@ -1359,8 +1360,8 @@ char *icv196install(InsLibModlDesc *ptr)
 	return (char *) MCtxt;	/* will save it for isr routine */
 }
 
-/* Uninstalling the driver */
-int icv196uninstall(struct icv196T_s *s)
+/* Uninstall Entry Point */
+int icv196_uninstall(struct icv196T_s *s)
 {
 	struct T_ModuleCtxt *MCtxt;
 	unsigned char v;
@@ -1378,8 +1379,8 @@ int icv196uninstall(struct icv196T_s *s)
 	return OK;
 }
 
-/* Open a service access point for the user */
-int icv196open(struct icv196T_s *s, int dev, struct cdcm_file *f)
+/* Open Entry Point */
+int icv196_open(struct icv196T_s *s, int dev, struct cdcm_file *f)
 {
 	short DevType = 0; /* 0 -- normal, 1 -- service channel */
 	struct T_UserHdl *UHdl = NULL;
@@ -1424,10 +1425,8 @@ int icv196open(struct icv196T_s *s, int dev, struct cdcm_file *f)
 	return OK;
 }
 
-/*
- This routine is called to close the devices access point
-*/
-int icv196close(struct icv196T_s *s, struct cdcm_file *f)
+/* Close Entry Point */
+int icv196_close(struct icv196T_s *s, struct cdcm_file *f)
 {
 	int chan = minor(f->dev);
 	short DevType = 0;
@@ -1455,7 +1454,9 @@ int icv196close(struct icv196T_s *s, struct cdcm_file *f)
 	return OK;
 }
 
-int icv196read(struct icv196T_s *s, struct cdcm_file *f, char *buff, int bcount)
+/* Read Entry Point */
+int icv196_read(struct icv196T_s *s, struct cdcm_file *f,
+		char *buff, int bcount)
 {
 	int count, Chan;
 	struct T_UserHdl  *UHdl;
@@ -1541,13 +1542,15 @@ int icv196read(struct icv196T_s *s, struct cdcm_file *f, char *buff, int bcount)
 	return (bn << 2);
 }
 
-/* not available */
-int icv196write(struct icv196T_s *s, struct cdcm_file *f, char *buff,int bcount)
+/* Write Entry Point. not available */
+int icv196_write(struct icv196T_s *s, struct cdcm_file *f,
+		 char *buff,int bcount)
 {
 	return (bcount = s->usercounter);
 }
 
-int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
+/* IOCTL Entry Point */
+int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 {
 	int   err;
 	struct icv196T_ModuleInfo *Infop;
@@ -2258,8 +2261,8 @@ int icv196ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 	return err;
 }
 
-
-int icv196select(struct icv196T_s *s, struct cdcm_file *f,
+/* Select Entry Point */
+int icv196_select(struct icv196T_s *s, struct cdcm_file *f,
 		 int which, struct sel *se)
 {
 	int   Chan;
@@ -2449,13 +2452,3 @@ int icv196vmeisr(void *arg)
 
 	return OK;
 }
-
-
-#if 0
-struct dldd entry_points = {
-	icv196open, icv196close,
-	icv196read, icv196write,
-	icv196select, icv196ioctl,
-	icv196install, icv196uninstall
-};
-#endif
