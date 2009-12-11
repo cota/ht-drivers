@@ -24,6 +24,7 @@ extern int   icv196_write(void *, struct cdcm_file *, char *, int);
 extern int   icv196_vmeisr(void *);
 extern int   icv196_open(SkelDrvrClientContext *);
 extern int   icv196_close(SkelDrvrClientContext *);
+extern int   icv196_ioctl(int, int, char *);
 
 static char *SpecificIoctlNames[] = {
 	[_IOC_NR(MY_IOCTL_NAME_1)]	= "MyIoctl-1",
@@ -246,18 +247,7 @@ void SkelUserClientRelease(SkelDrvrClientContext *ccon)
 SkelUserReturn SkelUserIoctls(SkelDrvrClientContext *ccon,
 			      SkelDrvrModuleContext *mcon, int cm, char *arg)
 {
-	switch (cm) {
-
-	case MY_IOCTL_NAME_1:
-		break;
-
-	case MY_IOCTL_NAME_2:
-		break;
-
-	default:
-		break;
-	}
-
+	icv196_ioctl(ccon->ClientIndex + 1, cm, arg);
 	return SkelUserReturnNOT_IMPLEMENTED;
 }
 

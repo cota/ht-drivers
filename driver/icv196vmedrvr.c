@@ -1530,9 +1530,9 @@ int icv196_write(void *wa, struct cdcm_file *f, char *buff, int bcount)
 }
 
 /* IOCTL Entry Point */
-int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
+int icv196_ioctl(int Chan, int fct, char *arg)
 {
-	int   mode, SubsMode, Chan, Timeout, i, j, l, err = 0;
+	int   mode, SubsMode, Timeout, i, j, l, err = 0;
 	short group, index, Line;
 	struct T_UserHdl    *UHdl = NULL;
 	struct T_ModuleCtxt *MCtxt;
@@ -1548,8 +1548,6 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 	unsigned long *Data;
 
 	DBG_IOCTL(("icv196:ioctl: function code = %x \n", fct));
-
-	Chan = minordev(f->dev);
 
 	switch (fct) {
 	case ICVVME_getmoduleinfo:
@@ -1969,7 +1967,7 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 		}
 
 		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
-			UHdl = &(s -> ICVHdl[Chan]);
+			UHdl = &icv196_statics.ICVHdl[Chan];
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
