@@ -1406,30 +1406,30 @@ int icv196_open(SkelDrvrClientContext *ccon)
 }
 
 /* Close Entry Point */
-int icv196_close(struct icv196T_s *s, struct cdcm_file *f)
+int icv196_close(SkelDrvrClientContext *ccon)
 {
-	int chan = minor(f->dev);
 	short DevType = 0;
 	struct T_UserHdl *UHdl = NULL;
+	int chan = ccon->ClientIndex + 1; /* convert to minor dev */
 
 	if (chan == ICVVME_ServiceChan) {
-		UHdl = &s->ServiceHdl;
+		UHdl = &icv196_statics.ServiceHdl;
 		DevType = 1;
 	} else if (chan >= ICVVME_IcvChan01 && chan <= ICVVME_MaxChan) {
-		UHdl = &s->ICVHdl[chan-1];
+		UHdl = &icv196_statics.ICVHdl[chan-1];
 	} else {
 		pseterr(EACCES);
 		return SYSERR;
 	}
 
 	/* Perform close */
-	swait(&s->sem_drvr, IGNORE_SIG);
+	swait(&icv196_statics.sem_drvr, IGNORE_SIG);
 	if (DevType == 0) /* case of Synchro handle */
 		ClrSynchro(UHdl); /* Clear connection established */
 
-	s->usercounter--; /* Update user counter value */
+	icv196_statics.usercounter--; /* Update user counter value */
 	UHdl->usercount--;
-	ssignal(&s->sem_drvr);
+	ssignal(&icv196_statics.sem_drvr);
 
 	return OK;
 }
