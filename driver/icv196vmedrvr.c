@@ -1374,7 +1374,7 @@ int icv196_open(SkelDrvrClientContext *ccon)
 	if (chan == ICVVME_ServiceChan) {
 		UHdl = &icv196_statics.ServiceHdl;
 		DevType = 1;
-	} else if (chan >= ICVVME_IcvChan01 && chan <= ICVVME_MaxChan) {
+	} else if (WITHIN_RANGE(ICVVME_IcvChan01, chan, ICVVME_MaxChan)) {
 		if (ccon->cdcmf->access_mode & FWRITE) {
 			pseterr(EACCES);
 			return SYSERR;
@@ -1415,7 +1415,7 @@ int icv196_close(SkelDrvrClientContext *ccon)
 	if (chan == ICVVME_ServiceChan) {
 		UHdl = &icv196_statics.ServiceHdl;
 		DevType = 1;
-	} else if (chan >= ICVVME_IcvChan01 && chan <= ICVVME_MaxChan) {
+	} else if (WITHIN_RANGE(ICVVME_IcvChan01, chan, ICVVME_MaxChan)) {
 		UHdl = &icv196_statics.ICVHdl[chan-1];
 	} else {
 		pseterr(EACCES);
@@ -1455,7 +1455,7 @@ int icv196_read(void *wa, struct cdcm_file *f,
 	}
 
 	Chan = minordev(f->dev);
-	if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+	if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
 		UHdl = &icv196_statics.ICVHdl[Chan]; /* ICV event handle */
 	} else {
 		pseterr(ENODEV);
@@ -1532,16 +1532,9 @@ int icv196_write(void *wa, struct cdcm_file *f, char *buff, int bcount)
 /* IOCTL Entry Point */
 int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 {
-	int   err;
-	struct icv196T_ModuleInfo *Infop;
-	int  Timeout;
-	int  i, j, l;
-	int   Chan;
-	short group;
-	short index;
-	int   mode;
-	int   SubsMode;
-	struct T_UserHdl  *UHdl;
+	int   mode, SubsMode, Chan, Timeout, i, j, l, err = 0;
+	short group, index, Line;
+	struct T_UserHdl    *UHdl = NULL;
 	struct T_ModuleCtxt *MCtxt;
 	struct T_LineCtxt   *LCtxt;
 	struct T_LogLineHdl *LHdl;
@@ -1549,37 +1542,25 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 	struct icv196T_HandleInfo *HanInfo;
 	struct icv196T_HandleLines *HanLin;
 	struct icv196T_UserLine ULine;
+	struct icv196T_ModuleInfo *Infop;
 	long   Module;
-	short  Line;
-	int    Type;
-	int    LogIx;
-	int    grp;
-	int    dir;
-	int    group_mask;
+	int    Type, LogIx, grp, dir, group_mask, Iw1, Flag;
 	unsigned long *Data;
-	int Iw1;
-	int Flag;
 
-	err = 0;
-	UHdl = NULL;
 	DBG_IOCTL(("icv196:ioctl: function code = %x \n", fct));
-
-	if ( (rbounds((int)arg) == EFAULT) || (wbounds((int)arg) == EFAULT)) {
-		pseterr(EFAULT);
-		return SYSERR;
-	}
 
 	Chan = minordev(f->dev);
 
 	switch (fct) {
-	case ICVVME_getmoduleinfo:  /* get device information */
+	case ICVVME_getmoduleinfo:
+		/* get device information */
 		Infop = (struct icv196T_ModuleInfo *)arg;
-		for ( i = 0; i < icv_ModuleNb; i++, Infop++) {
-			if (s->ModuleCtxtDir[i] == NULL) {
+		for (i = 0; i < icv_ModuleNb; i++, Infop++) {
+			if (icv196_statics.ModuleCtxtDir[i] == NULL) {
 				Infop->ModuleFlag = 0;
 				continue;
 			} else {
-				MCtxt = &s->ModuleCtxt[i];
+				MCtxt = &icv196_statics.ModuleCtxt[i];
 				Infop->ModuleFlag = 1;
 				Infop->ModuleInfo.base =
 					(unsigned long) MCtxt->SYSVME_Add;
@@ -1595,7 +1576,7 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 		break;
 	case ICVVME_gethandleinfo:
 		HanInfo = (struct icv196T_HandleInfo *)arg;
-		UHdl = s->ICVHdl; /* point to first user handle */
+		UHdl = icv196_statics.ICVHdl; /* point to first user handle */
 		for (i = 0; i < ICVVME_MaxChan; i++, UHdl++) {
 			HanLin = &HanInfo->handle[i];
 			l = 0;
@@ -1634,8 +1615,8 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 			pseterr(EACCES);
 			return SYSERR;
 		}
-		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-			UHdl = &s->ICVHdl[Chan];
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+			UHdl = &icv196_statics.ICVHdl[Chan];
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -1649,7 +1630,7 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 		group = ((struct icv196T_UserLine *) arg)->group;
 		index = ((struct icv196T_UserLine *) arg)->index;
 
-		if (s->ModuleCtxtDir[group] == NULL) {
+		if (icv196_statics.ModuleCtxtDir[group] == NULL) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
@@ -1672,7 +1653,7 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if ((LHdl = s->LineHdlDir[LogIx]) == NULL) {
+		if ((LHdl = icv196_statics.LineHdlDir[LogIx]) == NULL) {
 			/* Line not in config */
 			pseterr(EINVAL);
 			return SYSERR;
@@ -1697,8 +1678,8 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-			UHdl = &s->ICVHdl[Chan];
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+			UHdl = &icv196_statics.ICVHdl[Chan];
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -1713,7 +1694,7 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 		group = ((struct icv196T_UserLine *) arg)->group;
 		index = ((struct icv196T_UserLine *) arg)->index;
 
-		if (s->ModuleCtxtDir[group] == NULL) {
+		if (icv196_statics.ModuleCtxtDir[group] == NULL) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
@@ -1735,7 +1716,7 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if ((LHdl = s->LineHdlDir[LogIx]) == NULL) {
+		if ((LHdl = icv196_statics.LineHdlDir[LogIx]) == NULL) {
 			/* Line not in config */
 			pseterr(EINVAL);
 			return SYSERR;
@@ -1759,8 +1740,8 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-			UHdl = &s->ICVHdl[Chan];
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+			UHdl = &icv196_statics.ICVHdl[Chan];
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -1775,7 +1756,7 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 		group = ((struct icv196T_UserLine *) arg)->group;
 		index = ((struct icv196T_UserLine *) arg)->index;
 
-		if (s->ModuleCtxtDir[group] == NULL) {
+		if (icv196_statics.ModuleCtxtDir[group] == NULL) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
@@ -1798,7 +1779,7 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if ((LHdl = s->LineHdlDir[LogIx]) == NULL) {
+		if ((LHdl = icv196_statics.LineHdlDir[LogIx]) == NULL) {
 			/* Line not in config */
 			pseterr(EINVAL);
 			return SYSERR;
@@ -1822,8 +1803,8 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 			return (SYSERR);
 		}
 
-		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-			UHdl = &s->ICVHdl[Chan];
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+			UHdl = &icv196_statics.ICVHdl[Chan];
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -1838,7 +1819,7 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 		group = ((struct icv196T_UserLine *) arg)->group;
 		index = ((struct icv196T_UserLine *) arg)->index;
 
-		if (s->ModuleCtxtDir[group] == NULL) {
+		if (icv196_statics.ModuleCtxtDir[group] == NULL) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
@@ -1860,7 +1841,7 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if ((LHdl = s->LineHdlDir[LogIx]) == NULL) {
+		if ((LHdl = icv196_statics.LineHdlDir[LogIx]) == NULL) {
 			/* Line not in config */
 			pseterr(EINVAL);
 			return SYSERR;
@@ -1878,12 +1859,12 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 		/* Read interrupt counters for all lines in the given module */
 		Module = (long)((struct icv196T_Service *) arg)->module;
 		Data   = ((struct icv196T_Service *)arg)->data;
-		if (s->ModuleCtxtDir[Module] == NULL) {
+		if (icv196_statics.ModuleCtxtDir[Module] == NULL) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
 
-		MCtxt = &s->ModuleCtxt[Module];
+		MCtxt = &icv196_statics.ModuleCtxt[Module];
 		LCtxt =  MCtxt->LineCtxt;
 		for (i = 0; i < icv_LineNb; i++, LCtxt++)
 			*Data++ = LCtxt->loc_count;
@@ -1892,12 +1873,12 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 		/* Read reenable flags for all lines in the given module */
 		Module = (long)((struct icv196T_Service *) arg)->module;
 		Data   = ((struct icv196T_Service *)arg)->data;
-		if (s->ModuleCtxtDir[Module] == NULL) {
+		if (icv196_statics.ModuleCtxtDir[Module] == NULL) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
 
-		MCtxt = &s->ModuleCtxt[Module];
+		MCtxt = &icv196_statics.ModuleCtxt[Module];
 		LCtxt = MCtxt->LineCtxt;
 		for (i = 0; i < icv_LineNb; i++, LCtxt++)
 			*Data++ = LCtxt->intmod;
@@ -1906,24 +1887,24 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 		/* Read interrupt enable mask for the given module */
 		Module = (long)((struct icv196T_Service *) arg)->module;
 		Data   = ((struct icv196T_Service *)arg)->data;
-		if (s->ModuleCtxtDir[Module] == NULL) {
+		if (icv196_statics.ModuleCtxtDir[Module] == NULL) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
 
-		MCtxt = &s->ModuleCtxt[Module];
+		MCtxt = &icv196_statics.ModuleCtxt[Module];
 		*Data = MCtxt->int_en_mask;
 		break;
 	case ICVVME_iosem:
 		/* Read io semaphores for all lines in the given module */
 		Module = (long)((struct icv196T_Service *) arg)->module;
 		Data   = ((struct icv196T_Service *)arg)->data;
-		if (s->ModuleCtxtDir[Module] == NULL) {
+		if (icv196_statics.ModuleCtxtDir[Module] == NULL) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
 
-		MCtxt = &s->ModuleCtxt[Module];
+		MCtxt = &icv196_statics.ModuleCtxt[Module];
 		LCtxt = &MCtxt->LineCtxt[0];
 
 		for (i = 0; i < icv_LineNb; i++, LCtxt++) {
@@ -1944,12 +1925,12 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 		   (when using the I/O part of the ICV196 board) */
 		Module = (long)((struct icv196T_Service *) arg)->module;
 		Data   = ((struct icv196T_Service *)arg)->data;
-		if (s->ModuleCtxtDir[Module] == NULL) {
+		if (icv196_statics.ModuleCtxtDir[Module] == NULL) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
 
-		MCtxt = &s->ModuleCtxt[Module];
+		MCtxt = &icv196_statics.ModuleCtxt[Module];
 		grp = *Data++;
 		dir = *Data;
 
@@ -1970,12 +1951,12 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 		   (when using the I/O part of the ICV196 board) */
 		Module = (long)((struct icv196T_Service *) arg)->module;
 		Data   = ((struct icv196T_Service *)arg)->data;
-		if (s->ModuleCtxtDir[Module] == NULL) {
+		if (icv196_statics.ModuleCtxtDir[Module] == NULL) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
 
-		MCtxt = &s->ModuleCtxt[Module];
+		MCtxt = &icv196_statics.ModuleCtxt[Module];
 		*Data = MCtxt->old_CsDir;
 		break;
 	case ICVVME_nowait:
@@ -1987,7 +1968,7 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
 			UHdl = &(s -> ICVHdl[Chan]);
 		} else {
 			pseterr(ENODEV);
@@ -2011,8 +1992,8 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-			UHdl = &s->ICVHdl[Chan]; /* LAM handle */
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+			UHdl = &icv196_statics.ICVHdl[Chan]; /* LAM handle */
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -2036,8 +2017,8 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-			UHdl = &s->ICVHdl[Chan];/* LAM handle */
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+			UHdl = &icv196_statics.ICVHdl[Chan];/* LAM handle */
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -2067,8 +2048,8 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-			UHdl = &s->ICVHdl[Chan];
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+			UHdl = &icv196_statics.ICVHdl[Chan];
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -2089,7 +2070,7 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (s->ModuleCtxtDir[group] == NULL) {
+		if (icv196_statics.ModuleCtxtDir[group] == NULL) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
@@ -2112,7 +2093,7 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if ((LHdl = s->LineHdlDir[LogIx]) == NULL) {
+		if ((LHdl = icv196_statics.LineHdlDir[LogIx]) == NULL) {
 			/* Line not in config */
 			pseterr(EINVAL);
 			return SYSERR;
@@ -2165,8 +2146,8 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-			UHdl = &s->ICVHdl[Chan];
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+			UHdl = &icv196_statics.ICVHdl[Chan];
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -2181,7 +2162,7 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 		group = ((struct icv196T_connect *) arg)->source.field.group;
 		index = ((struct icv196T_connect *) arg)->source.field.index;
 
-		if (s->ModuleCtxtDir[group] == NULL) {
+		if (icv196_statics.ModuleCtxtDir[group] == NULL) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
@@ -2199,7 +2180,7 @@ int icv196_ioctl(struct icv196T_s *s, struct cdcm_file *f, int fct, char *arg)
 		LogIx = CnvrtUserLine((char)group, (char)index);
 
 		/* set up Logical line handle pointer */
-		if ((LHdl = s->LineHdlDir[LogIx]) == NULL) {
+		if ((LHdl = icv196_statics.LineHdlDir[LogIx]) == NULL) {
 			/*log line not affected*/
 			pseterr(EINVAL);
 			return SYSERR;
@@ -2245,7 +2226,7 @@ int icv196_select(struct icv196T_s *s, struct cdcm_file *f,
 		return SYSERR;
 	}
 
-	if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
+	if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
 		UHdl = &s->ICVHdl[Chan]; /* general handle */
 	}
 
