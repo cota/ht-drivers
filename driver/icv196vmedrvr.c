@@ -1440,7 +1440,7 @@ int icv196_close(struct icv196T_s *s, struct cdcm_file *f)
 }
 
 /* Read Entry Point. Called directly from ske_read */
-int icv196_read(struct icv196T_s *s, struct cdcm_file *f,
+int icv196_read(void *wa, struct cdcm_file *f,
 		char *buff, int bcount)
 {
 	int count, Chan;
@@ -1461,7 +1461,7 @@ int icv196_read(struct icv196T_s *s, struct cdcm_file *f,
 
 	Chan = minordev(f->dev);
 	if (Chan >= ICVVME_IcvChan01 && Chan <= ICVVME_MaxChan) {
-		UHdl = &s->ICVHdl[Chan]; /* ICV event handle */
+		UHdl = &icv196_statics.ICVHdl[Chan]; /* ICV event handle */
 	} else {
 		pseterr(ENODEV);
 		return SYSERR;
@@ -1505,7 +1505,7 @@ int icv196_read(struct icv196T_s *s, struct cdcm_file *f,
 					/* check if any module setting got reset */
 					for (m = 0; m < icv_ModuleNb; m++) {
 						/* Update Module directory */
-						MCtxt = s->ModuleCtxtDir[m];
+						MCtxt = icv196_statics.ModuleCtxtDir[m];
 						if ( MCtxt != NULL) {
 							Line = 0;
 							icvModule_Reinit(MCtxt, Line);
@@ -2286,7 +2286,7 @@ int icv196_select(struct icv196T_s *s, struct cdcm_file *f,
   of the icv196 module driver
   work on the module context which start the corresponding isr
 */
-int icv196vmeisr(void *arg)
+int icv196_vmeisr(void *arg)
 {
 	SkelDrvrModuleContext *mcon  = arg;
 	struct T_ModuleCtxt   *MCtxt = mcon->UserData;
