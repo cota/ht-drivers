@@ -1055,27 +1055,37 @@ int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 	return OK;
 }
 
-int SkelDrvrClose(void             *wa,    /* Working area */
-		  struct cdcm_file *flp) { /* File pointer */
+/**
+ * @brief Close E.P.
+ *
+ * @param wa  -- working area
+ * @param flp -- file pointer
+ *
+ * <long-description>
+ *
+ * @return SYSERR -- failed
+ * @return OK     -- success
+ */
+int SkelDrvrClose(void *wa, struct cdcm_file *flp)
+{
+	SkelDrvrClientContext *ccon; /* Client context */
+	S32 clientnr; /* Client number */
 
-SkelDrvrClientContext *ccon; /* Client context */
-S32                    clientnr; /* Client number */
+	/* We allow one client per minor device, we use the minor device */
+	/* number as an index into the client contexts array.            */
 
-   /* We allow one client per minor device, we use the minor device */
-   /* number as an index into the client contexts array.            */
+	clientnr = minor(flp->dev) -1;
+	if ((clientnr < 0) || (clientnr >= SkelDrvrCLIENT_CONTEXTS)) {
+		pseterr(EFAULT); /* EFAULT = "Bad address" */
+		return SYSERR;
+	}
 
-   clientnr = minor(flp->dev) -1;
-   if ((clientnr < 0) || (clientnr >= SkelDrvrCLIENT_CONTEXTS)) {
-      pseterr(EFAULT); /* EFAULT = "Bad address" */
-      return SYSERR;
-   }
-   ccon = &(Wa->Clients[clientnr]);
-
-   DisConnectAll(ccon);
-   bzero((void *) ccon,sizeof(SkelDrvrClientContext));
-
-   report_client(ccon, SkelDrvrDebugFlagTRACE, "Close called");
-   return(OK);
+	ccon = &(Wa->Clients[clientnr]);
+	DisConnectAll(ccon);
+	SkelUserClientRelease(ccon); /* hook the user */
+	bzero((void *) ccon,sizeof(SkelDrvrClientContext));
+	report_client(ccon, SkelDrvrDebugFlagTRACE, "Close called");
+	return OK;
 }
 
 /**
