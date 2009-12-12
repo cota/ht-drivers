@@ -129,8 +129,6 @@ struct T_LogLineHdl {
 					 this pattern is dependent of the
 					 design of logical line address
 				      */
-	struct T_Subscriber LineMaster; /* for further need */
-
 	/* Subscriber table */
 	int SubscriberMxNb; /* size of subscriber table */
 	int SubscriberCurNb; /* current number of subscriber */
