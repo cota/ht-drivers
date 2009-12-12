@@ -510,6 +510,10 @@ static void init_statics_once(void)
 	int i;
 
 	if (!icv196_statics.mcntr) {
+		compile_date[11] = 0; /* overwrite LF by 0 = end of string */
+		compile_time[9]  = 0;
+		cprintf("V.%s %s %s", Version, compile_date, compile_time);
+
 		/* Initialise user'shandle */
 		for (i = 0; i < ICVVME_MaxChan; i++)
 			Init_UserHdl(&icv196_statics.ICVHdl[i], i+1,
@@ -1411,11 +1415,6 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 char *icv196_install(InsLibModlDesc *ptr)
 {
 	struct T_ModuleCtxt *MCtxt;
-
-	compile_date[11] = 0; /* overwrite LF by 0 = end of string */
-	compile_time[9]  = 0;
-
-	cprintf("V.%s %s %s", Version, compile_date, compile_time);
 
 	init_statics_once();
 
