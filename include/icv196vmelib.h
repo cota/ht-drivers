@@ -111,7 +111,7 @@ struct icv196T_UserLine {
 };
 
 struct icv196T_HandleLines {
-	int  pid;
+	int pid;
 	struct icv196T_UserLine lines[ICV_LogLineNb];
 };
 
@@ -121,7 +121,7 @@ struct icv196T_HandleInfo {
 
 /* structure passed at gethandleinfo ioctl call */
 struct icv196T_ModuleInfo {
-	int    ModuleFlag;
+	int ModuleFlag;
 	struct icv196T_ModuleParam ModuleInfo;
 };
 

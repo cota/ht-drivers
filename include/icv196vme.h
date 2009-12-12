@@ -127,7 +127,7 @@ struct icvT_RingAtom {
 #define ICV_L215  0036
 #define ICV_L216  0037
 
-/*  Group 2 */
+/* Group 2 */
 #define ICV_L301  0040
 #define ICV_L302  0041
 #define ICV_L303  0042
@@ -145,7 +145,7 @@ struct icvT_RingAtom {
 #define ICV_L315  0056
 #define ICV_L316  0057
 
-/*  Group 3 */
+/* Group 3 */
 #define ICV_L401  0060
 #define ICV_L402  0061
 #define ICV_L403  0062
@@ -163,7 +163,7 @@ struct icvT_RingAtom {
 #define ICV_L415  0076
 #define ICV_L416  0077
 
-/*  Group 4 */
+/* Group 4 */
 #define ICV_L501  0100
 #define ICV_L502  0101
 #define ICV_L503  0102
@@ -181,7 +181,7 @@ struct icvT_RingAtom {
 #define ICV_L515  0116
 #define ICV_L516  0117
 
-/*  Group 5 */
+/* Group 5 */
 #define ICV_L601  0120
 #define ICV_L602  0121
 #define ICV_L603  0122
@@ -199,7 +199,7 @@ struct icvT_RingAtom {
 #define ICV_L615  0136
 #define ICV_L616  0137
 
-/*  Group 6 */
+/* Group 6 */
 #define ICV_L701  0140
 #define ICV_L702  0141
 #define ICV_L703  0142
@@ -217,7 +217,7 @@ struct icvT_RingAtom {
 #define ICV_L715  0156
 #define ICV_L716  0157
 
-/*  Group 7 */
+/* Group 7 */
 #define ICV_L801  0160
 #define ICV_L802  0161
 #define ICV_L803  0162
@@ -235,7 +235,7 @@ struct icvT_RingAtom {
 #define ICV_L815  0176
 #define ICV_L816  0177
 
-/*  Group  value */
+/* Group value */
 #define ICV_Group0 0
 #define ICV_Group1 1
 #define ICV_Group2 2
@@ -245,11 +245,11 @@ struct icvT_RingAtom {
 #define ICV_Group6 6
 #define ICV_Group7 7
 
-#define ICV_GroupNb (ICV_Group7 + 1)	/* Module number */
+#define ICV_GroupNb (ICV_Group7 + 1) /* Module number */
 
 #define ICV_mapByteSz (ICV_GroupNb << 1) /* 2 byte per module; 16 lines */
 
-/*  Index value */
+/* Index value */
 #define ICV_Index00 000
 #define ICV_Index01 001
 #define ICV_Index02 002

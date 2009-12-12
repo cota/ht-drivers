@@ -18,24 +18,23 @@
  02dec-1992 A.G. : add element in struct : CumulEvt in T_Subscriber
                                            SubscriberCurnb in T_LogLineHdl
  10-may-1994 A.G.: update to stand 8 modules
-
-
 */
-/*
-			 On the design of the driver for interrupt
 
- In order to stand several type of module as interrupt source with the same
- driver interface, the design of drivers separates 2 level of processing:
+/*
+  On the design of the driver for interrupt
+
+  In order to stand several type of module as interrupt source with the same
+  driver interface, the design of drivers separates 2 level of processing:
 	- The level dependent on the hardware which issued the interrupt
 	  for each kind of hardware module; this part must be specific
-	  as from tables structure point of vue as from a processing one.
+	  as from tables structure point of view as from a processing one.
 	- The level of event processing which is the same whatever is the
 	  device source.
 
- Consequently the same event processing provides users with the
- synchronization service (Access method level) whatever device is used
- to generate the external signals : new PS pls module, icv196 module ...
- This aim explains the splitting of code, data and definition into 3 sets:
+  Consequently the same event processing provides users with the
+  synchronization service (Access method level) whatever device is used
+  to generate the external signals: new PS pls module, icv196 module.
+  This aim explains the splitting of code, data and definition into 3 sets:
 	-  a set completely independent of the device: Event management
 	   and user interface
 	-  a set dependent on devices giving the triggers
@@ -43,34 +42,33 @@
 */
 
 /*
-			 Declaration dependent of Event management
-			 =========================================
+  Declaration dependent of Event management
+  =========================================
 
- These structures an declaration don't depend on hardware module which
- provides the interrupt.
+  These structures an declaration don't depend on hardware module which
+  provides the interrupt.
 */
 #ifndef _ICV_196_VME_P_H_INCLUDE_
 #define _ICV_196_VME_P_H_INCLUDE_
 
 /* define some macroes to manage bit map of the connection */
 /* to operate othe bit given by its number in a byte table map  */
-#define CLRBIT(ar,n) ar[(n) / 8] &= (~(0x1 << ( (n) & 0x7)))
-#define SETBIT(ar,n) ar[(n) / 8] |= ( 0x1  << ( (n) & 0x7))
-#define TESTBIT(ar,n) ar[(n) / 8] & ( 0x1  << ( (n) & 0x7))
+#define CLRBIT(ar,n)  ar[(n) / 8] &= (~(0x1 << ( (n) & 0x7)))
+#define SETBIT(ar,n)  ar[(n) / 8] |= (  0x1 << ( (n) & 0x7))
+#define TESTBIT(ar,n) ar[(n) / 8] &  (  0x1 << ( (n) & 0x7))
 
-/*               Ring buffer management
-		 ----------------------
-	the buffer size must be a power of 2 To follow ring buffer
-	management principle based on a wrapping of the index in the ring
-	buffer by increasing the index modulo a power of 2 ( role of the mask
-	which is the power of 2 minus 1)
+/* Ring buffer management
+   ----------------------
+   The buffer size must be a power of 2 To follow ring buffer
+   management principle based on a wrapping of the index in the ring
+   buffer by increasing the index modulo a power of 2 (role of the mask
+   which is the power of 2 minus 1)
 */
 #define Evt_nb  (1 << 3)       /* size = 2**3 = (base 2#01000 */
-#define Evt_msk (Evt_nb - 1)   /* mask = 2**3 - 1 = (base 2#00111 */
+#define Evt_msk (Evt_nb - 1)   /* mask = 2**3 - 1 = (base 2#00111) */
 
 /* for global ring buffer to pass interrupt from isr to Thread */
-
-#define GlobEvt_nb (1<<6)	/* 2 time as many as lines number in config */
+#define GlobEvt_nb  (1 << 6) /* 2 time as many as lines number in config */
 #define GlobEvt_msk (GlobEvt_nb - 1) /*  */
 
 /* these structures  are used to buffer the event */
@@ -91,10 +89,11 @@
 /*
   Subscriber management:
   ----------------------
-  normal mode :
+
+  normal mode:
   each trigger give one event in the ring buffer
 
-  cumulative mode :
+  cumulative mode:
   only one event from a given trigger source is present in the ring,
   At arrival of the next trigger, if event not already read, no event is put
   in the ring, it only count the occurance in the subscriber
@@ -103,14 +102,14 @@
 struct T_Subscriber {
 	struct T_LogLineHdl * LHdl;
 	struct T_RingBuffer *Ring; /* Point at the user Handle
-				      providing the Ring buffer*/
-	struct icvT_RingAtom *CumulEvt; /* Cumulative event pointer*/
+				      providing the Ring buffer */
+	struct icvT_RingAtom *CumulEvt; /* Cumulative event pointer */
 	short mode;        /* 0 means normal, 1 means cumulative */
 	short EvtCounter; /* line event counter for this user */
 };
 
 
-/* Ring buffer manager  */
+/* Ring buffer manager */
 struct T_RingBuffer {
 	struct T_UserHdl *UHdl; /* owner of the ring buffer */
 	struct icvT_RingAtom *Buffer; /* Buffer of atom */
@@ -119,7 +118,6 @@ struct T_RingBuffer {
 	short reader; /* current index for reading */
 	short writer; /* current index for writing */
 };
-
 
 /* Logical line handle */
 struct T_LogLineHdl {
@@ -131,11 +129,11 @@ struct T_LogLineHdl {
 					 this pattern is dependent of the
 					 design of logical line address
 				      */
-	struct T_Subscriber LineMaster; /* for further need:  */
+	struct T_Subscriber LineMaster; /* for further need */
 
-	/* Subscriber table  */
-	int SubscriberMxNb;         /* size of subscriber table  */
-	int SubscriberCurNb;	      /* current number of subscriber  */
+	/* Subscriber table */
+	int SubscriberMxNb; /* size of subscriber table */
+	int SubscriberCurNb; /* current number of subscriber */
 	struct T_Subscriber Subscriber[icv_SubscriberNb]; /* Where to cast
 							     the received
 							     trigger */
@@ -179,7 +177,7 @@ union U_LineAdd {
 struct T_LineCtxt {
 	struct icv196T_s *s;
 	struct T_ModuleCtxt *MCtxt;
-	struct T_LogLineHdl *LHdl;       /* Line handle linked to */
+	struct T_LogLineHdl *LHdl; /* Line handle linked to */
 	int Type;    /* to stand specificity of lines: pls or icv */
 	short  Line; /* Line index */
 	int status;

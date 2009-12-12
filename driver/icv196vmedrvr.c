@@ -116,108 +116,183 @@ static int  G_dbgflag      = 0;
  used as trigger source
 */
 
-/* structure to store for one module the  logical lines
+/* structure to store for one module the logical lines
    corresponding to the physical lines */
 struct T_ModuleLogLine {
-	int Module_Index;
+	int   Module_Index;
 	short LogLineIndex[icv_LineNb];
 };
 
 /* table to link for each possible module:
    actual phys line and logical unit index
 */
- struct T_ModuleLogLine Module1 = {0, {ICV_L101, ICV_L102, ICV_L103, ICV_L104,
-				   ICV_L105,ICV_L106, ICV_L107, ICV_L108,
-				   ICV_L109,ICV_L110, ICV_L111, ICV_L112,
-				   ICV_L113,ICV_L114, ICV_L115, ICV_L116,
-				  }};
+struct T_ModuleLogLine Module1 = {
+	0,
+	{
+		ICV_L101, ICV_L102, ICV_L103, ICV_L104,
+		ICV_L105, ICV_L106, ICV_L107, ICV_L108,
+		ICV_L109, ICV_L110, ICV_L111, ICV_L112,
+		ICV_L113, ICV_L114, ICV_L115, ICV_L116,
+	}
+};
 
- struct T_ModuleLogLine Module2 = {1, {ICV_L201, ICV_L202, ICV_L203, ICV_L204,
-				   ICV_L205,ICV_L206, ICV_L207, ICV_L208,
-				   ICV_L209,ICV_L210, ICV_L211, ICV_L212,
-				   ICV_L213,ICV_L214, ICV_L215, ICV_L216,
-				  }};
+struct T_ModuleLogLine Module2 = {
+	1,
+	{
+		ICV_L201, ICV_L202, ICV_L203, ICV_L204,
+		ICV_L205, ICV_L206, ICV_L207, ICV_L208,
+		ICV_L209, ICV_L210, ICV_L211, ICV_L212,
+		ICV_L213, ICV_L214, ICV_L215, ICV_L216,
+	}
+};
 
- struct T_ModuleLogLine Module3 = {2, {ICV_L301, ICV_L302, ICV_L303, ICV_L304,
-				   ICV_L305,ICV_L306, ICV_L307, ICV_L308,
-				   ICV_L309,ICV_L310, ICV_L311, ICV_L312,
-				   ICV_L313,ICV_L314, ICV_L315, ICV_L316,
-				  }};
+struct T_ModuleLogLine Module3 = {
+	2,
+	{
+		ICV_L301, ICV_L302, ICV_L303, ICV_L304,
+		ICV_L305, ICV_L306, ICV_L307, ICV_L308,
+		ICV_L309, ICV_L310, ICV_L311, ICV_L312,
+		ICV_L313, ICV_L314, ICV_L315, ICV_L316,
+	}
+};
 
- struct T_ModuleLogLine Module4 = {3, {ICV_L401, ICV_L402, ICV_L403, ICV_L404,
-				   ICV_L405,ICV_L406, ICV_L407, ICV_L408,
-				   ICV_L409,ICV_L410, ICV_L411, ICV_L412,
-				   ICV_L413,ICV_L414, ICV_L415, ICV_L416,
-				  }};
+struct T_ModuleLogLine Module4 = {
+	3,
+	{
+		ICV_L401, ICV_L402, ICV_L403, ICV_L404,
+		ICV_L405, ICV_L406, ICV_L407, ICV_L408,
+		ICV_L409, ICV_L410, ICV_L411, ICV_L412,
+		ICV_L413, ICV_L414, ICV_L415, ICV_L416,
+	}
+};
 
- struct T_ModuleLogLine Module5 = {4, {ICV_L501, ICV_L502, ICV_L503, ICV_L504,
-				   ICV_L505,ICV_L506, ICV_L507, ICV_L508,
-				   ICV_L509,ICV_L510, ICV_L511, ICV_L512,
-				   ICV_L513,ICV_L514, ICV_L515, ICV_L516,
-				  }};
- struct T_ModuleLogLine Module6 = {5, {ICV_L601, ICV_L602, ICV_L603, ICV_L604,
-				   ICV_L605,ICV_L606, ICV_L607, ICV_L608,
-				   ICV_L609,ICV_L610, ICV_L611, ICV_L612,
-				   ICV_L613,ICV_L614, ICV_L615, ICV_L616,
-				  }};
- struct T_ModuleLogLine Module7 = {6, {ICV_L701, ICV_L702, ICV_L703, ICV_L704,
-				   ICV_L705,ICV_L706, ICV_L707, ICV_L708,
-				   ICV_L709,ICV_L710, ICV_L711, ICV_L712,
-				   ICV_L713,ICV_L714, ICV_L715, ICV_L716,
-				  }};
- struct T_ModuleLogLine Module8 = {7, {ICV_L801, ICV_L802, ICV_L803, ICV_L804,
-				   ICV_L805,ICV_L806, ICV_L807, ICV_L808,
-				   ICV_L809,ICV_L810, ICV_L811, ICV_L812,
-				   ICV_L813,ICV_L814, ICV_L815, ICV_L816,
-				  }};
+struct T_ModuleLogLine Module5 = {
+	4,
+	{
+		ICV_L501, ICV_L502, ICV_L503, ICV_L504,
+		ICV_L505, ICV_L506, ICV_L507, ICV_L508,
+		ICV_L509, ICV_L510, ICV_L511, ICV_L512,
+		ICV_L513, ICV_L514, ICV_L515, ICV_L516,
+	}
+};
 
-/* table of the maximum configuration : 4 modules */
- struct T_ModuleLogLine *MConfig[icv_ModuleNb] = {&Module1, &Module2, &Module3,
-						 &Module4, &Module5, &Module6,
-						 &Module7, &Module8 };
+struct T_ModuleLogLine Module6 = {
+	5,
+	{
+		ICV_L601, ICV_L602, ICV_L603, ICV_L604,
+		ICV_L605, ICV_L606, ICV_L607, ICV_L608,
+		ICV_L609, ICV_L610, ICV_L611, ICV_L612,
+		ICV_L613, ICV_L614, ICV_L615, ICV_L616,
+	}
+};
+
+struct T_ModuleLogLine Module7 = {
+	6,
+	{
+		ICV_L701, ICV_L702, ICV_L703, ICV_L704,
+		ICV_L705, ICV_L706, ICV_L707, ICV_L708,
+		ICV_L709, ICV_L710, ICV_L711, ICV_L712,
+		ICV_L713, ICV_L714, ICV_L715, ICV_L716,
+	}
+};
+
+struct T_ModuleLogLine Module8 = {
+	7,
+	{
+		ICV_L801, ICV_L802, ICV_L803, ICV_L804,
+		ICV_L805, ICV_L806, ICV_L807, ICV_L808,
+		ICV_L809, ICV_L810, ICV_L811, ICV_L812,
+		ICV_L813, ICV_L814, ICV_L815, ICV_L816,
+	}
+};
+
+/* table of the maximum configuration: 4 modules */
+struct T_ModuleLogLine *MConfig[icv_ModuleNb] = {
+	&Module1, &Module2, &Module3, &Module4,
+	&Module5, &Module6, &Module7, &Module8
+};
 
 /* table to link logical index and user line address */
 struct icv196T_UserLine UserLineAdd[ICV_LogLineNb] = {
+	/* group #0 */
+       {ICV_Group0,ICV_Index00},{ICV_Group0,ICV_Index01},
+       {ICV_Group0,ICV_Index02},{ICV_Group0,ICV_Index03},
+       {ICV_Group0,ICV_Index04},{ICV_Group0,ICV_Index05},
+       {ICV_Group0,ICV_Index06},{ICV_Group0,ICV_Index07},
+       {ICV_Group0,ICV_Index08},{ICV_Group0,ICV_Index09},
+       {ICV_Group0,ICV_Index10},{ICV_Group0,ICV_Index11},
+       {ICV_Group0,ICV_Index13},{ICV_Group0,ICV_Index14},
+       {ICV_Group0,ICV_Index15},{ICV_Group0,ICV_Index16},
 
-       {ICV_Group0,ICV_Index00},{ICV_Group0,ICV_Index01},{ICV_Group0,ICV_Index02},{ICV_Group0,ICV_Index03},
-       {ICV_Group0,ICV_Index04},{ICV_Group0,ICV_Index05},{ICV_Group0,ICV_Index06},{ICV_Group0,ICV_Index07},
-       {ICV_Group0,ICV_Index08},{ICV_Group0,ICV_Index09},{ICV_Group0,ICV_Index10},{ICV_Group0,ICV_Index11},
-       {ICV_Group0,ICV_Index13},{ICV_Group0,ICV_Index14},{ICV_Group0,ICV_Index15},{ICV_Group0,ICV_Index16},
+	/* group #1 */
+       {ICV_Group1,ICV_Index00},{ICV_Group1,ICV_Index01},
+       {ICV_Group1,ICV_Index02},{ICV_Group1,ICV_Index03},
+       {ICV_Group1,ICV_Index04},{ICV_Group1,ICV_Index05},
+       {ICV_Group1,ICV_Index06},{ICV_Group1,ICV_Index07},
+       {ICV_Group1,ICV_Index08},{ICV_Group1,ICV_Index09},
+       {ICV_Group1,ICV_Index10},{ICV_Group1,ICV_Index11},
+       {ICV_Group1,ICV_Index13},{ICV_Group1,ICV_Index14},
+       {ICV_Group1,ICV_Index15},{ICV_Group1,ICV_Index16},
 
-       {ICV_Group1,ICV_Index00},{ICV_Group1,ICV_Index01},{ICV_Group1,ICV_Index02},{ICV_Group1,ICV_Index03},
-       {ICV_Group1,ICV_Index04},{ICV_Group1,ICV_Index05},{ICV_Group1,ICV_Index06},{ICV_Group1,ICV_Index07},
-       {ICV_Group1,ICV_Index08},{ICV_Group1,ICV_Index09},{ICV_Group1,ICV_Index10},{ICV_Group1,ICV_Index11},
-       {ICV_Group1,ICV_Index13},{ICV_Group1,ICV_Index14},{ICV_Group1,ICV_Index15},{ICV_Group1,ICV_Index16},
+	/* group #2 */
+       {ICV_Group2,ICV_Index00},{ICV_Group2,ICV_Index01},
+       {ICV_Group2,ICV_Index02},{ICV_Group2,ICV_Index03},
+       {ICV_Group2,ICV_Index04},{ICV_Group2,ICV_Index05},
+       {ICV_Group2,ICV_Index06},{ICV_Group2,ICV_Index07},
+       {ICV_Group2,ICV_Index08},{ICV_Group2,ICV_Index09},
+       {ICV_Group2,ICV_Index10},{ICV_Group2,ICV_Index11},
+       {ICV_Group2,ICV_Index13},{ICV_Group2,ICV_Index14},
+       {ICV_Group2,ICV_Index15},{ICV_Group2,ICV_Index16},
 
-       {ICV_Group2,ICV_Index00},{ICV_Group2,ICV_Index01},{ICV_Group2,ICV_Index02},{ICV_Group2,ICV_Index03},
-       {ICV_Group2,ICV_Index04},{ICV_Group2,ICV_Index05},{ICV_Group2,ICV_Index06},{ICV_Group2,ICV_Index07},
-       {ICV_Group2,ICV_Index08},{ICV_Group2,ICV_Index09},{ICV_Group2,ICV_Index10},{ICV_Group2,ICV_Index11},
-       {ICV_Group2,ICV_Index13},{ICV_Group2,ICV_Index14},{ICV_Group2,ICV_Index15},{ICV_Group2,ICV_Index16},
+	/* group #3 */
+       {ICV_Group3,ICV_Index00},{ICV_Group3,ICV_Index01},
+       {ICV_Group3,ICV_Index02},{ICV_Group3,ICV_Index03},
+       {ICV_Group3,ICV_Index04},{ICV_Group3,ICV_Index05},
+       {ICV_Group3,ICV_Index06},{ICV_Group3,ICV_Index07},
+       {ICV_Group3,ICV_Index08},{ICV_Group3,ICV_Index09},
+       {ICV_Group3,ICV_Index10},{ICV_Group3,ICV_Index11},
+       {ICV_Group3,ICV_Index13},{ICV_Group3,ICV_Index14},
+       {ICV_Group3,ICV_Index15},{ICV_Group3,ICV_Index16},
 
-       {ICV_Group3,ICV_Index00},{ICV_Group3,ICV_Index01},{ICV_Group3,ICV_Index02},{ICV_Group3,ICV_Index03},
-       {ICV_Group3,ICV_Index04},{ICV_Group3,ICV_Index05},{ICV_Group3,ICV_Index06},{ICV_Group3,ICV_Index07},
-       {ICV_Group3,ICV_Index08},{ICV_Group3,ICV_Index09},{ICV_Group3,ICV_Index10},{ICV_Group3,ICV_Index11},
-       {ICV_Group3,ICV_Index13},{ICV_Group3,ICV_Index14},{ICV_Group3,ICV_Index15},{ICV_Group3,ICV_Index16},
+	/* group #4 */
+       {ICV_Group4,ICV_Index00},{ICV_Group4,ICV_Index01},
+       {ICV_Group4,ICV_Index02},{ICV_Group4,ICV_Index03},
+       {ICV_Group4,ICV_Index04},{ICV_Group4,ICV_Index05},
+       {ICV_Group4,ICV_Index06},{ICV_Group4,ICV_Index07},
+       {ICV_Group4,ICV_Index08},{ICV_Group4,ICV_Index09},
+       {ICV_Group4,ICV_Index10},{ICV_Group4,ICV_Index11},
+       {ICV_Group4,ICV_Index13},{ICV_Group4,ICV_Index14},
+       {ICV_Group4,ICV_Index15},{ICV_Group4,ICV_Index16},
 
-       {ICV_Group4,ICV_Index00},{ICV_Group4,ICV_Index01},{ICV_Group4,ICV_Index02},{ICV_Group4,ICV_Index03},
-       {ICV_Group4,ICV_Index04},{ICV_Group4,ICV_Index05},{ICV_Group4,ICV_Index06},{ICV_Group4,ICV_Index07},
-       {ICV_Group4,ICV_Index08},{ICV_Group4,ICV_Index09},{ICV_Group4,ICV_Index10},{ICV_Group4,ICV_Index11},
-       {ICV_Group4,ICV_Index13},{ICV_Group4,ICV_Index14},{ICV_Group4,ICV_Index15},{ICV_Group4,ICV_Index16},
+	/* group #5 */
+       {ICV_Group5,ICV_Index00},{ICV_Group5,ICV_Index01},
+       {ICV_Group5,ICV_Index02},{ICV_Group5,ICV_Index03},
+       {ICV_Group5,ICV_Index04},{ICV_Group5,ICV_Index05},
+       {ICV_Group5,ICV_Index06},{ICV_Group5,ICV_Index07},
+       {ICV_Group5,ICV_Index08},{ICV_Group5,ICV_Index09},
+       {ICV_Group5,ICV_Index10},{ICV_Group5,ICV_Index11},
+       {ICV_Group5,ICV_Index13},{ICV_Group5,ICV_Index14},
+       {ICV_Group5,ICV_Index15},{ICV_Group5,ICV_Index16},
 
-       {ICV_Group5,ICV_Index00},{ICV_Group5,ICV_Index01},{ICV_Group5,ICV_Index02},{ICV_Group5,ICV_Index03},
-       {ICV_Group5,ICV_Index04},{ICV_Group5,ICV_Index05},{ICV_Group5,ICV_Index06},{ICV_Group5,ICV_Index07},
-       {ICV_Group5,ICV_Index08},{ICV_Group5,ICV_Index09},{ICV_Group5,ICV_Index10},{ICV_Group5,ICV_Index11},
-       {ICV_Group5,ICV_Index13},{ICV_Group5,ICV_Index14},{ICV_Group5,ICV_Index15},{ICV_Group5,ICV_Index16},
+	/* group #6 */
+       {ICV_Group6,ICV_Index00},{ICV_Group6,ICV_Index01},
+       {ICV_Group6,ICV_Index02},{ICV_Group6,ICV_Index03},
+       {ICV_Group6,ICV_Index04},{ICV_Group6,ICV_Index05},
+       {ICV_Group6,ICV_Index06},{ICV_Group6,ICV_Index07},
+       {ICV_Group6,ICV_Index08},{ICV_Group6,ICV_Index09},
+       {ICV_Group6,ICV_Index10},{ICV_Group6,ICV_Index11},
+       {ICV_Group6,ICV_Index13},{ICV_Group6,ICV_Index14},
+       {ICV_Group6,ICV_Index15},{ICV_Group6,ICV_Index16},
 
-       {ICV_Group6,ICV_Index00},{ICV_Group6,ICV_Index01},{ICV_Group6,ICV_Index02},{ICV_Group6,ICV_Index03},
-       {ICV_Group6,ICV_Index04},{ICV_Group6,ICV_Index05},{ICV_Group6,ICV_Index06},{ICV_Group6,ICV_Index07},
-       {ICV_Group6,ICV_Index08},{ICV_Group6,ICV_Index09},{ICV_Group6,ICV_Index10},{ICV_Group6,ICV_Index11},
-       {ICV_Group6,ICV_Index13},{ICV_Group6,ICV_Index14},{ICV_Group6,ICV_Index15},{ICV_Group6,ICV_Index16},
-
-       {ICV_Group7,ICV_Index00},{ICV_Group7,ICV_Index01},{ICV_Group7,ICV_Index02},{ICV_Group7,ICV_Index03},
-       {ICV_Group7,ICV_Index04},{ICV_Group7,ICV_Index05},{ICV_Group7,ICV_Index06},{ICV_Group7,ICV_Index07},
-       {ICV_Group7,ICV_Index08},{ICV_Group7,ICV_Index09},{ICV_Group7,ICV_Index10},{ICV_Group7,ICV_Index11},
-       {ICV_Group7,ICV_Index13},{ICV_Group7,ICV_Index14},{ICV_Group7,ICV_Index15},{ICV_Group7,ICV_Index16},
+	/* group #7 */
+       {ICV_Group7,ICV_Index00},{ICV_Group7,ICV_Index01},
+       {ICV_Group7,ICV_Index02},{ICV_Group7,ICV_Index03},
+       {ICV_Group7,ICV_Index04},{ICV_Group7,ICV_Index05},
+       {ICV_Group7,ICV_Index06},{ICV_Group7,ICV_Index07},
+       {ICV_Group7,ICV_Index08},{ICV_Group7,ICV_Index09},
+       {ICV_Group7,ICV_Index10},{ICV_Group7,ICV_Index11},
+       {ICV_Group7,ICV_Index13},{ICV_Group7,ICV_Index14},
+       {ICV_Group7,ICV_Index15},{ICV_Group7,ICV_Index16},
 };
 
 /*
@@ -269,7 +344,7 @@ static int UserWakeup(void *data)
 	ssignal(&UHdl->Ring.Evtsem);
 	disable(ps);
 	if (UHdl->timid >= 0)
-		cancel_timeout(UHdl -> timid);
+		cancel_timeout(UHdl->timid);
 
 	UHdl->timid = -1;
 	restore(ps);
@@ -280,7 +355,7 @@ static int UserWakeup(void *data)
 	       ===========================================
 */
 
-/* subroutines to convert a user line address in a logical line index */
+/* Convert a user line address in a logical line index */
 static int CnvrtUserLine(char grp, char index)
 {
 	int val;
@@ -289,20 +364,20 @@ static int CnvrtUserLine(char grp, char index)
 	return val;
 }
 
-/* subroutines to convert a module line address in a logical index */
+/* Convert a module line address in a logical index */
 static int CnvrtModuleLine(int module, int line)
 {
 	return ((int)(( *(MConfig[module])).LogLineIndex[line]));
 }
 
-/* subroutines to get a user line address from a logical line index */
+/* Get a user line address from a logical line index */
 static void GetUserLine(int logindex, struct icv196T_UserLine *add)
 {
 	add->group = UserLineAdd[logindex].group;
 	add->index = UserLineAdd[logindex].index;
 }
 
-/* subroutines to initialise the directory tables */
+/* Initialise the directory tables */
 static void Init_Dir(struct icv196T_s *s)
 {
 	int i;
@@ -314,7 +389,7 @@ static void Init_Dir(struct icv196T_s *s)
 		s->LineHdlDir[i] = NULL; /* Default value */
 }
 
-/* subroutine to  Initialise Ring buffer descriptor */
+/* Initialise Ring buffer descriptor */
 static void Init_Ring(struct T_UserHdl *UHdl, struct T_RingBuffer *Ring,
 		      struct icvT_RingAtom *Buf, short mask)
 {
@@ -525,8 +600,8 @@ static struct T_Subscriber *LineBooking(struct T_UserHdl *UHdl,
 {
 	ulong ps;
 	int i, ns;
-	struct T_Subscriber *Subs, *val ;
-	struct T_LineCtxt   *LCtxt;
+	struct T_Subscriber *Subs, *val;
+	struct T_LineCtxt *LCtxt;
 
 	val = NULL;
 	LCtxt = LHdl->LineCtxt;
@@ -535,7 +610,7 @@ static struct T_Subscriber *LineBooking(struct T_UserHdl *UHdl,
 	disable(ps);
 
 	for (i = 0; i < ns; i++, Subs++) {
-		if (Subs->Ring != NULL) /* subscriber occupied, scan on */
+		if (Subs->Ring) /* subscriber occupied, scan on */
 			continue;
 
 		/* allocated this element */
@@ -1376,6 +1451,7 @@ int icv196_open(SkelDrvrClientContext *ccon)
 		DevType = 1;
 	} else if (WITHIN_RANGE(ICVVME_IcvChan01, chan, ICVVME_MaxChan)) {
 		if (ccon->cdcmf->access_mode & FWRITE) {
+			/* write is not supported */
 			pseterr(EACCES);
 			return SYSERR;
 		}
@@ -1392,7 +1468,7 @@ int icv196_open(SkelDrvrClientContext *ccon)
 
 	/* Perform the open */
 	swait(&icv196_statics.sem_drvr, IGNORE_SIG);
-	if (DevType == 0) { /* Case synchro */
+	if (!DevType) { /* Case synchro */
 		Init_UserHdl(UHdl, chan, &icv196_statics);
 		UHdl->UserMode  = icv196_statics.UserMode;
 		UHdl->WaitingTO = icv196_statics.UserTO;
