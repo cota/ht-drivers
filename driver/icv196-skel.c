@@ -207,12 +207,17 @@ SkelUserReturn SkelUserJtagWriteByte(SkelDrvrModuleContext *mcon,
  *
  * @param mcon - module context
  *
- * @return SkelUserReturn
+ * @return SkelUserReturnOK     -- module is up
+ * @return SkelUserReturnFAILED -- failed to init the module
  */
 SkelUserReturn SkelUserModuleInit(SkelDrvrModuleContext *mcon)
 {
 	mcon->UserData = icv196_install(mcon->Modld);
-	return SkelUserReturnOK;
+
+	if (mcon->UserData)
+		return SkelUserReturnOK;
+
+	return SkelUserReturnFAILED;
 }
 
 /**

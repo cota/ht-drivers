@@ -1416,6 +1416,9 @@ char *icv196_install(InsLibModlDesc *ptr)
 {
 	struct T_ModuleCtxt *MCtxt;
 
+	if (icv196_statics.mcntr == icv_ModuleNb)
+		return NULL; /* can control only 8 modules */
+
 	init_statics_once();
 
 	/* Set up the tables for the current Module */
