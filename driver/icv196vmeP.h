@@ -176,19 +176,19 @@ struct T_LineCtxt {
 	struct icv196T_s *s;
 	struct T_ModuleCtxt *MCtxt;
 	struct T_LogLineHdl *LHdl; /* Line handle linked to */
-	int Type;    /* to stand specificity of lines: pls or icv */
-	short  Line; /* Line index */
-	int status;
-	int intmod;
-	int loc_count;
-	short  Reset;
+	int   Type; /* to stand specificity of lines: pls or icv */
+	short Line; /* Line index [0 - 15] */
+	int   status;
+	int   intmod;
+	int   loc_count;
+	short Reset;
 };
 
 struct T_ModuleCtxt {
 	struct  icv196T_s *s;
 	int     sem_module;    /* mutex semaphore */
 	int     dflag;         /* debug flag */
-	short   Module;        /* Module index */
+	short   Module;        /* Module index [0 - 7] */
 	int     VME_size;      /* original info table values */
 	unsigned long CPUVME_Add; /* Module physical 32 bits address
 				     can be get by the user (via ioctl)

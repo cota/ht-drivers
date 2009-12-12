@@ -542,7 +542,7 @@ static void Init_SubscriberHdl(struct T_Subscriber *Subs, int mode)
 static void Init_LineSubscribers(struct T_LogLineHdl *LHdl)
 {
 	struct T_Subscriber *Subs;
-	int i, n, mode;
+	int i, mode;
 
 	if (LHdl->LineCtxt->Type == icv_FpiLine)
 		mode = icv_cumulative; /* default for pls line
@@ -552,8 +552,7 @@ static void Init_LineSubscribers(struct T_LogLineHdl *LHdl)
 					 queue leuleu */
 
 	Subs = &LHdl->Subscriber[0];
-	n = LHdl->SubscriberMxNb;
-	for (i=0; i < n; i++, Subs++) {
+	for (i = 0; i < LHdl->SubscriberMxNb; i++, Subs++) {
 		Subs->LHdl = LHdl;
 		Subs->CumulEvt = NULL; /* to prevent active event processing */
 		Init_SubscriberHdl(Subs, mode);
@@ -1075,12 +1074,9 @@ static void ClrSynchro(struct T_UserHdl *UHdl)
 */
 static void Init_LineCtxt(int line, int type, struct T_ModuleCtxt *MCtxt)
 {
-	struct T_LineCtxt *LCtxt;
+	struct T_LineCtxt *LCtxt = &MCtxt->LineCtxt[line];
 	int LogIndex, m;
 
-	LCtxt = &MCtxt->LineCtxt[line];
-	m = MCtxt->Module;
-	LogIndex = CnvrtModuleLine(m, line);
 	LCtxt->s = MCtxt->s;
 	LCtxt->MCtxt = MCtxt;
 	LCtxt->Line = line;
@@ -1090,6 +1086,8 @@ static void Init_LineCtxt(int line, int type, struct T_ModuleCtxt *MCtxt)
 	LCtxt->loc_count = -1;
 
 	/* Link physical line to logical line and vise versa */
+	m = MCtxt->Module;
+	LogIndex = CnvrtModuleLine(m, line);
 	LCtxt->LHdl = Init_LineHdl(LogIndex, LCtxt);
 }
 
@@ -1128,12 +1126,11 @@ static struct T_ModuleCtxt* Init_ModuleCtxt(struct icv196T_s *s,
 	MCtxt->VME_CsDir      = (short *)(vmeinfo->Mapped + CSDIR_ICV);
 
 	/* Initialise the associated line contexts */
+	MCtxt->Vect = md->Isr->Vector;
+	MCtxt->Lvl  = md->Isr->Level;
 	type = 0; /* to select default line type */
-	for (i = 0; i < icv_LineNb; i++) {
-		MCtxt->Vect = md->Isr->Vector;
-		MCtxt->Lvl  = md->Isr->Level;
+	for (i = 0; i < icv_LineNb; i++)
 		Init_LineCtxt(i, type, MCtxt);
-	}
 
 	/* Update Module directory */
 	s->ModuleCtxtDir[s->mcntr] = MCtxt;
