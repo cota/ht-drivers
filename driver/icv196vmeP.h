@@ -104,7 +104,9 @@ struct T_Subscriber {
 	struct T_RingBuffer *Ring; /* Point at the user Handle
 				      providing the Ring buffer */
 	struct icvT_RingAtom *CumulEvt; /* Cumulative event pointer */
-	short mode;        /* 0 means normal, 1 means cumulative */
+	short mode; /* 2 -- normal, 1 -- cumulative,
+		       0 -- default (that is cumulative(1) for PLS line,
+		                     and normal(2) for ) */
 	short EvtCounter; /* line event counter for this user */
 };
 
@@ -122,13 +124,12 @@ struct T_RingBuffer {
 /* Logical line handle */
 struct T_LogLineHdl {
 	struct icv196T_s *s;
-	int LogIndex; /* index of this logical line */
+	int LogIndex; /* logical line index (one of ICV_Lxxx) */
 	struct T_LineCtxt *LineCtxt;
 	union icvU_Evt Event_Pattern; /* Pattern of event build at
 					 set up of link from physical line
 					 this pattern is dependent of the
-					 design of logical line address
-				      */
+					 design of logical line address */
 	/* Subscriber table */
 	int SubscriberMxNb; /* size of subscriber table */
 	int SubscriberCurNb; /* current number of subscriber */
@@ -193,8 +194,8 @@ struct T_ModuleCtxt {
 	short         *SYSVME_Add; /* module virtual base address */
 	unsigned char *VME_StatusCtrl;
 	unsigned char *VME_IntLvl;
-	short         *VME_CsDir;
-	short          old_CsDir;
+	short         *VME_CsDir; /*  */
+	short          old_CsDir; /*  */
 	unsigned short startflag;
 	unsigned short int_en_mask;
 

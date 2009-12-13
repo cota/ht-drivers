@@ -141,9 +141,10 @@ union icv196U_LogLine {
 	unsigned short All;
 };
 
+
 struct icv196T_connect {
 	union icv196U_LogLine source;
-	int mode;
+	int                   mode;
 };
 
 struct icv196T_Service {

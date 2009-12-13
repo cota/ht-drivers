@@ -32,13 +32,14 @@
 
 #define icv_cumulative  1	/* cumulative mode */
 #define icv_queuleuleu  2	/* " a la queue leu leu " file */
+
 #define icv_ReenableOn  1	/* line management: automatic reenable */
 #define icv_ReenableOff 2	/* line management: disable */
 
 #define icv_FpiLine 1		/* Type of a line special and private */
 #define icv_IcvLine 2		/* Type of a normal line */
 
-#define icv_Enabled 1		/* Status for line enabled */
+#define icv_Enabled  1		/* Status for line enabled */
 #define icv_Disabled 0		/* Status for line disabled */
 
 #define icvB_0  0x1
@@ -269,4 +270,4 @@ struct icvT_RingAtom {
 #define ICV_Index16 020
 
 /* UserMode flags */
-#define icv_bitwait icvB_0	/* =1 to wait on read for LAM, 0 nowait */
+#define icv_bitwait icvB_0 /* =1 to wait on read for LAM, 0 nowait */

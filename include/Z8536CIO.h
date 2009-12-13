@@ -21,28 +21,26 @@
 #ifndef _Z8536CIO_
 #define _Z8536CIO_
 
-/*
-		ICV196 VME module: offset of interface registers
-*/
-#define     ICV_AM       0x3d      /* A24D16 for ICV module*/
+/* ICV196 VME module: offset of interface registers */
+#define ICV_AM       0x3d /* A24D16 for ICV module */
 
-#define     CSCLR_ICV	 0x00      /* Clear ICV (Read/Write 16 bits) */
-#define     CSGbase_ICV	 0x02      /* R/W group base */
-#define     CSG1G0_ICV	 0x02      /* R/W Groups 1, 0   Lines 8-15,0-7    */
-#define     CSG3G2_ICV	 0x04      /* R/W Group2 3, 2   Lines 24-31,16,23 */
-#define     CSG5G4_ICV	 0x06      /* R/W Group2 5, 4   Lines 40-47,32-39 */
-#define     CSG7G6_ICV	 0x08      /* R/W Group2 7, 6   Lines 56-63,48-55 */
-#define     CSG9G8_ICV	 0x0A      /* R/W Group2 9, 8   Lines 72-79,64-71 */
-#define     CSG11G10_ICV 0x0C      /* R/W Group2 11, 10 Lines 88-95,80-87 */
-#define     CSDIR_ICV	 0x0E      /* To define group dir(in/out): 12-9,8-1 */
+#define CSCLR_ICV    0x00 /* Clear ICV (Read/Write 16 bits) */
+#define CSGbase_ICV  0x02 /* R/W group base */
+#define CSG1G0_ICV   0x02 /* R/W Groups 1,  0   Lines  8-15,  0-7  */
+#define CSG3G2_ICV   0x04 /* R/W Group2 3,  2   Lines 24-31, 16-23 */
+#define CSG5G4_ICV   0x06 /* R/W Group2 5,  4   Lines 40-47, 32-39 */
+#define CSG7G6_ICV   0x08 /* R/W Group2 7,  6   Lines 56-63, 48-55 */
+#define CSG9G8_ICV   0x0A /* R/W Group2 9,  8   Lines 72-79, 64-71 */
+#define CSG11G10_ICV 0x0C /* R/W Group2 11, 10  Lines 88-95, 80-87 */
 
-#define     PortC_Z8536	 0x81     /* Port C of chip Z8536 */
-#define     PortB_Z8536	 0x83     /* Port B of chip Z8536 */
-#define     PortA_Z8536	 0x85	  /* Port A of chip Z8536 */
-#define     CoReg_Z8536	 0x87     /* Control Register of chip Z8536 */
+#define CSDIR_ICV    0x0E /* To define group dir(in/out): 12-9, 8-1 */
 
-#define     CSNIT_ICV	 0xC1     /* Mask reg. to define int.level used */
+#define PortC_Z8536  0x81 /* Port C of chip Z8536 */
+#define PortB_Z8536  0x83 /* Port B of chip Z8536 */
+#define PortA_Z8536  0x85 /* Port A of chip Z8536 */
+#define CoReg_Z8536  0x87 /* Control Register of chip Z8536 */
 
+#define CSNIT_ICV    0xC1 /* Mask reg. to define int.level used */
 
 /*
 		For Programming Z8536 chip,
@@ -69,12 +67,9 @@
                 --> Read -> <state reset>
                 --> Write reset bit(0)= 1 --> <State reset>
                 --> Write reset bit(0)= 0 --> <State 0>
-
 */
 
-/*         Register address offsets:
-*/
-
+/* Register address offsets */
 #define MIC_reg          0x00 /* Master Interrupt Control register */
 #define MCC_reg          0x01 /* Master Config Control    register */
 #define ItVct_Areg       0x02 /* Port A Interrupt Vector */
@@ -119,7 +114,8 @@
 #define PtrPo_Areg	 0x25 /* Port A Pattern Polarity register */
 #define PtrTr_Areg	 0x26 /* Port A Pattern Transition register */
 #define PtrMsk_Areg	 0x27 /* Port A Pattern Mask register */
-#define MSpec_Breg	 0x28 /* Port A Mode Specification register */
+
+#define MSpec_Breg	 0x28 /* Port B Mode Specification register */
 #define HSpec_Breg	 0x29 /* Port B Handshake Spec. register */
 #define DPPol_Breg	 0x2A /* Port B Data Path polarity register*/
 #define DDir_Breg	 0x2B /* Port B Data direction register */
@@ -128,27 +124,24 @@
 #define PtrTr_Breg	 0x2E /* Port B Pattern Transition register */
 #define PtrMsk_Breg	 0x2F /* Port B Pattern Mask register */
 
+/* Command code ( bit 7, 6, 5) in byte */
+#define CoSt_NULL	 0<<5 /* Null code */
+#define CoSt_ClIpIus	 1<<5 /* Clear IP & IUS bits */
+#define CoSt_SeIus	 2<<5 /* Set IUS   */
+#define CoSt_ClIus	 3<<5 /* Clear IUS */
+#define CoSt_SeIp	 4<<5 /* Set IP    */
+#define CoSt_ClIp	 5<<5 /* Clear IP  */
+#define CoSt_SeIe	 6<<5 /* Set IE    */
+#define CoSt_ClIe	 7<<5 /* Clear IE  */
 
-/*                 Command code ( bit (7,6,5) in byte
-*/
+#define CoSt_Ius         1<<7 /* Interrupt under Service (status) */
 
-#define CoSt_NULL	 0<<5        /* Null code */
-#define CoSt_ClIpIus	 1<<5        /* Clear IP & IUS bits */
-#define CoSt_SeIus	 2<<5        /* Set IUS */
-#define CoSt_ClIus	 3<<5        /*Clear IUS */
-#define CoSt_SeIp	 4<<5        /*Set IP */
-#define CoSt_ClIp	 5<<5        /*Clear IP */
-#define CoSt_SeIe	 6<<5        /* Set IE */
-#define CoSt_ClIe	 7<<5        /*Clear IE */
+#define PtrM_OrVect      3<<1 /* Pattern OR prior encoded vect. mode */
+#define PtrM_Or          2<<1 /* Pattern OR */
+#define PtrM_And         1<<1 /* Pattern AND */
+#define PtrM_Dis         0<<1 /* Pattern Disable */
 
-#define CoSt_Ius         1<<7        /*Interrupt under Service (status)    */
-
-#define PtrM_OrVect      3<<1        /*Pattern OR prior encoded vect. mode */
-#define PtrM_Or          2<<1        /*Pattern OR */
-#define PtrM_And         1<<1        /*Pattern AND */
-#define PtrM_Dis         0<<1        /*Pattern Disable */
-
-/*                 Mask bit for setting Master Interrupt Control register*/
+/* Mask bit for setting Master Interrupt Control register */
 #define b_0              1
 #define b_1              b_0<<1
 #define b_2              b_1<<1
@@ -175,8 +168,8 @@
 #define Zero_To_One      0xFF
 #define StInfMask        0xE
 
-#define     ICV_nln      16        /* Number of interrupt lines      */
-#define     ICV_nboards  4         /* Number of interrupt lines      */
-#define PortA_nln        8
+#define ICV_nln     16        /* Number of interrupt lines */
+#define ICV_nboards 4         /* Number of interrupt lines */
+#define PortA_nln   8
 
-#endif
+#endif	/* _Z8536CIO_ */

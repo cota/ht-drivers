@@ -215,84 +215,84 @@ struct T_ModuleLogLine *MConfig[icv_ModuleNb] = {
 /* table to link logical index and user line address */
 struct icv196T_UserLine UserLineAdd[ICV_LogLineNb] = {
 	/* group #0 */
-       {ICV_Group0,ICV_Index00},{ICV_Group0,ICV_Index01},
-       {ICV_Group0,ICV_Index02},{ICV_Group0,ICV_Index03},
-       {ICV_Group0,ICV_Index04},{ICV_Group0,ICV_Index05},
-       {ICV_Group0,ICV_Index06},{ICV_Group0,ICV_Index07},
-       {ICV_Group0,ICV_Index08},{ICV_Group0,ICV_Index09},
-       {ICV_Group0,ICV_Index10},{ICV_Group0,ICV_Index11},
-       {ICV_Group0,ICV_Index13},{ICV_Group0,ICV_Index14},
-       {ICV_Group0,ICV_Index15},{ICV_Group0,ICV_Index16},
+       {ICV_Group0, ICV_Index00}, {ICV_Group0, ICV_Index01},
+       {ICV_Group0, ICV_Index02}, {ICV_Group0, ICV_Index03},
+       {ICV_Group0, ICV_Index04}, {ICV_Group0, ICV_Index05},
+       {ICV_Group0, ICV_Index06}, {ICV_Group0, ICV_Index07},
+       {ICV_Group0, ICV_Index08}, {ICV_Group0, ICV_Index09},
+       {ICV_Group0, ICV_Index10}, {ICV_Group0, ICV_Index11},
+       {ICV_Group0, ICV_Index13}, {ICV_Group0, ICV_Index14},
+       {ICV_Group0, ICV_Index15}, {ICV_Group0, ICV_Index16},
 
 	/* group #1 */
-       {ICV_Group1,ICV_Index00},{ICV_Group1,ICV_Index01},
-       {ICV_Group1,ICV_Index02},{ICV_Group1,ICV_Index03},
-       {ICV_Group1,ICV_Index04},{ICV_Group1,ICV_Index05},
-       {ICV_Group1,ICV_Index06},{ICV_Group1,ICV_Index07},
-       {ICV_Group1,ICV_Index08},{ICV_Group1,ICV_Index09},
-       {ICV_Group1,ICV_Index10},{ICV_Group1,ICV_Index11},
-       {ICV_Group1,ICV_Index13},{ICV_Group1,ICV_Index14},
-       {ICV_Group1,ICV_Index15},{ICV_Group1,ICV_Index16},
+       {ICV_Group1, ICV_Index00}, {ICV_Group1, ICV_Index01},
+       {ICV_Group1, ICV_Index02}, {ICV_Group1, ICV_Index03},
+       {ICV_Group1, ICV_Index04}, {ICV_Group1, ICV_Index05},
+       {ICV_Group1, ICV_Index06}, {ICV_Group1, ICV_Index07},
+       {ICV_Group1, ICV_Index08}, {ICV_Group1, ICV_Index09},
+       {ICV_Group1, ICV_Index10}, {ICV_Group1, ICV_Index11},
+       {ICV_Group1, ICV_Index13}, {ICV_Group1, ICV_Index14},
+       {ICV_Group1, ICV_Index15}, {ICV_Group1, ICV_Index16},
 
 	/* group #2 */
-       {ICV_Group2,ICV_Index00},{ICV_Group2,ICV_Index01},
-       {ICV_Group2,ICV_Index02},{ICV_Group2,ICV_Index03},
-       {ICV_Group2,ICV_Index04},{ICV_Group2,ICV_Index05},
-       {ICV_Group2,ICV_Index06},{ICV_Group2,ICV_Index07},
-       {ICV_Group2,ICV_Index08},{ICV_Group2,ICV_Index09},
-       {ICV_Group2,ICV_Index10},{ICV_Group2,ICV_Index11},
-       {ICV_Group2,ICV_Index13},{ICV_Group2,ICV_Index14},
-       {ICV_Group2,ICV_Index15},{ICV_Group2,ICV_Index16},
+       {ICV_Group2, ICV_Index00}, {ICV_Group2, ICV_Index01},
+       {ICV_Group2, ICV_Index02}, {ICV_Group2, ICV_Index03},
+       {ICV_Group2, ICV_Index04}, {ICV_Group2, ICV_Index05},
+       {ICV_Group2, ICV_Index06}, {ICV_Group2, ICV_Index07},
+       {ICV_Group2, ICV_Index08}, {ICV_Group2, ICV_Index09},
+       {ICV_Group2, ICV_Index10}, {ICV_Group2, ICV_Index11},
+       {ICV_Group2, ICV_Index13}, {ICV_Group2, ICV_Index14},
+       {ICV_Group2, ICV_Index15}, {ICV_Group2, ICV_Index16},
 
 	/* group #3 */
-       {ICV_Group3,ICV_Index00},{ICV_Group3,ICV_Index01},
-       {ICV_Group3,ICV_Index02},{ICV_Group3,ICV_Index03},
-       {ICV_Group3,ICV_Index04},{ICV_Group3,ICV_Index05},
-       {ICV_Group3,ICV_Index06},{ICV_Group3,ICV_Index07},
-       {ICV_Group3,ICV_Index08},{ICV_Group3,ICV_Index09},
-       {ICV_Group3,ICV_Index10},{ICV_Group3,ICV_Index11},
-       {ICV_Group3,ICV_Index13},{ICV_Group3,ICV_Index14},
-       {ICV_Group3,ICV_Index15},{ICV_Group3,ICV_Index16},
+       {ICV_Group3, ICV_Index00}, {ICV_Group3, ICV_Index01},
+       {ICV_Group3, ICV_Index02}, {ICV_Group3, ICV_Index03},
+       {ICV_Group3, ICV_Index04}, {ICV_Group3, ICV_Index05},
+       {ICV_Group3, ICV_Index06}, {ICV_Group3, ICV_Index07},
+       {ICV_Group3, ICV_Index08}, {ICV_Group3, ICV_Index09},
+       {ICV_Group3, ICV_Index10}, {ICV_Group3, ICV_Index11},
+       {ICV_Group3, ICV_Index13}, {ICV_Group3, ICV_Index14},
+       {ICV_Group3, ICV_Index15}, {ICV_Group3, ICV_Index16},
 
 	/* group #4 */
-       {ICV_Group4,ICV_Index00},{ICV_Group4,ICV_Index01},
-       {ICV_Group4,ICV_Index02},{ICV_Group4,ICV_Index03},
-       {ICV_Group4,ICV_Index04},{ICV_Group4,ICV_Index05},
-       {ICV_Group4,ICV_Index06},{ICV_Group4,ICV_Index07},
-       {ICV_Group4,ICV_Index08},{ICV_Group4,ICV_Index09},
-       {ICV_Group4,ICV_Index10},{ICV_Group4,ICV_Index11},
-       {ICV_Group4,ICV_Index13},{ICV_Group4,ICV_Index14},
-       {ICV_Group4,ICV_Index15},{ICV_Group4,ICV_Index16},
+       {ICV_Group4, ICV_Index00}, {ICV_Group4, ICV_Index01},
+       {ICV_Group4, ICV_Index02}, {ICV_Group4, ICV_Index03},
+       {ICV_Group4, ICV_Index04}, {ICV_Group4, ICV_Index05},
+       {ICV_Group4, ICV_Index06}, {ICV_Group4, ICV_Index07},
+       {ICV_Group4, ICV_Index08}, {ICV_Group4, ICV_Index09},
+       {ICV_Group4, ICV_Index10}, {ICV_Group4, ICV_Index11},
+       {ICV_Group4, ICV_Index13}, {ICV_Group4, ICV_Index14},
+       {ICV_Group4, ICV_Index15}, {ICV_Group4, ICV_Index16},
 
 	/* group #5 */
-       {ICV_Group5,ICV_Index00},{ICV_Group5,ICV_Index01},
-       {ICV_Group5,ICV_Index02},{ICV_Group5,ICV_Index03},
-       {ICV_Group5,ICV_Index04},{ICV_Group5,ICV_Index05},
-       {ICV_Group5,ICV_Index06},{ICV_Group5,ICV_Index07},
-       {ICV_Group5,ICV_Index08},{ICV_Group5,ICV_Index09},
-       {ICV_Group5,ICV_Index10},{ICV_Group5,ICV_Index11},
-       {ICV_Group5,ICV_Index13},{ICV_Group5,ICV_Index14},
-       {ICV_Group5,ICV_Index15},{ICV_Group5,ICV_Index16},
+       {ICV_Group5, ICV_Index00}, {ICV_Group5, ICV_Index01},
+       {ICV_Group5, ICV_Index02}, {ICV_Group5, ICV_Index03},
+       {ICV_Group5, ICV_Index04}, {ICV_Group5, ICV_Index05},
+       {ICV_Group5, ICV_Index06}, {ICV_Group5, ICV_Index07},
+       {ICV_Group5, ICV_Index08}, {ICV_Group5, ICV_Index09},
+       {ICV_Group5, ICV_Index10}, {ICV_Group5, ICV_Index11},
+       {ICV_Group5, ICV_Index13}, {ICV_Group5, ICV_Index14},
+       {ICV_Group5, ICV_Index15}, {ICV_Group5, ICV_Index16},
 
 	/* group #6 */
-       {ICV_Group6,ICV_Index00},{ICV_Group6,ICV_Index01},
-       {ICV_Group6,ICV_Index02},{ICV_Group6,ICV_Index03},
-       {ICV_Group6,ICV_Index04},{ICV_Group6,ICV_Index05},
-       {ICV_Group6,ICV_Index06},{ICV_Group6,ICV_Index07},
-       {ICV_Group6,ICV_Index08},{ICV_Group6,ICV_Index09},
-       {ICV_Group6,ICV_Index10},{ICV_Group6,ICV_Index11},
-       {ICV_Group6,ICV_Index13},{ICV_Group6,ICV_Index14},
-       {ICV_Group6,ICV_Index15},{ICV_Group6,ICV_Index16},
+       {ICV_Group6, ICV_Index00}, {ICV_Group6, ICV_Index01},
+       {ICV_Group6, ICV_Index02}, {ICV_Group6, ICV_Index03},
+       {ICV_Group6, ICV_Index04}, {ICV_Group6, ICV_Index05},
+       {ICV_Group6, ICV_Index06}, {ICV_Group6, ICV_Index07},
+       {ICV_Group6, ICV_Index08}, {ICV_Group6, ICV_Index09},
+       {ICV_Group6, ICV_Index10}, {ICV_Group6, ICV_Index11},
+       {ICV_Group6, ICV_Index13}, {ICV_Group6, ICV_Index14},
+       {ICV_Group6, ICV_Index15}, {ICV_Group6, ICV_Index16},
 
 	/* group #7 */
-       {ICV_Group7,ICV_Index00},{ICV_Group7,ICV_Index01},
-       {ICV_Group7,ICV_Index02},{ICV_Group7,ICV_Index03},
-       {ICV_Group7,ICV_Index04},{ICV_Group7,ICV_Index05},
-       {ICV_Group7,ICV_Index06},{ICV_Group7,ICV_Index07},
-       {ICV_Group7,ICV_Index08},{ICV_Group7,ICV_Index09},
-       {ICV_Group7,ICV_Index10},{ICV_Group7,ICV_Index11},
-       {ICV_Group7,ICV_Index13},{ICV_Group7,ICV_Index14},
-       {ICV_Group7,ICV_Index15},{ICV_Group7,ICV_Index16},
+       {ICV_Group7, ICV_Index00}, {ICV_Group7, ICV_Index01},
+       {ICV_Group7, ICV_Index02}, {ICV_Group7, ICV_Index03},
+       {ICV_Group7, ICV_Index04}, {ICV_Group7, ICV_Index05},
+       {ICV_Group7, ICV_Index06}, {ICV_Group7, ICV_Index07},
+       {ICV_Group7, ICV_Index08}, {ICV_Group7, ICV_Index09},
+       {ICV_Group7, ICV_Index10}, {ICV_Group7, ICV_Index11},
+       {ICV_Group7, ICV_Index13}, {ICV_Group7, ICV_Index14},
+       {ICV_Group7, ICV_Index15}, {ICV_Group7, ICV_Index16},
 };
 
 /*
@@ -358,16 +358,20 @@ static int UserWakeup(void *data)
 /* Convert a user line address in a logical line index */
 static int CnvrtUserLine(char grp, char index)
 {
-	int val;
-
-	val = (int) ( (grp * ICV_IndexNb) + index);
-	return val;
+	return (int) ((grp * ICV_IndexNb) + index);
 }
 
-/* Convert a module line address in a logical index */
-static int CnvrtModuleLine(int module, int line)
+/**
+ * @brief Convert a module line address in a logical index
+ *
+ * @param midx -- module index [0 - 7]
+ * @param lidx -- line index [0 - 15]
+ *
+ * @return logical line index (one of ICV_Lxxx)
+ */
+static int CnvrtModuleLine(int midx, int lidx)
 {
-	return ((int)(( *(MConfig[module])).LogLineIndex[line]));
+	return ((int)(( *(MConfig[midx])).LogLineIndex[lidx]));
 }
 
 /* Get a user line address from a logical line index */
@@ -601,10 +605,9 @@ static struct T_Subscriber *LineBooking(struct T_UserHdl *UHdl,
 {
 	ulong ps;
 	int i, ns;
-	struct T_Subscriber *Subs, *val;
+	struct T_Subscriber *Subs, *val = NULL;
 	struct T_LineCtxt *LCtxt;
 
-	val = NULL;
 	LCtxt = LHdl->LineCtxt;
 	ns = LHdl->SubscriberMxNb;
 	Subs = &LHdl->Subscriber[0];
@@ -615,28 +618,28 @@ static struct T_Subscriber *LineBooking(struct T_UserHdl *UHdl,
 			continue;
 
 		/* allocated this element */
-		LHdl->SubscriberCurNb++; /* update current subscriber number  */
+		LHdl->SubscriberCurNb++; /* update current subscriber number */
 		val = Subs; /* found a place */
 		Subs->Ring = &UHdl->Ring; /* link to Ring buffer */
 		Subs->CumulEvt = NULL;
 
-		/*  flag booking of the line in the User handle */
+		/* flag booking of the line in the User handle */
 		SETBIT(UHdl->Cmap, LHdl->LogIndex);
 		Subs->mode = icv_queuleuleu; /* default mode */
 		Subs->EvtCounter = 0;	/* counter for connected line */
 
-    if (!mode) { /* no user requirement */
-	    if (LCtxt->Type == icv_FpiLine) {
-		    Subs->mode = icv_cumulative; /* def. cumulative
-						    for Pls Line */
-		    Subs->EvtCounter = -1;
-	    }
-    } else if (mode == icv_cumulative) {
-	    Subs->mode = icv_cumulative;
-	    Subs->EvtCounter = -1;
-    }
-    break;
-   }
+		if (!mode) { /* no user requirement */
+			if (LCtxt->Type == icv_FpiLine) {
+				Subs->mode = icv_cumulative; /* def. cumulative
+								for Pls Line */
+				Subs->EvtCounter = -1;
+			}
+		} else if (mode == icv_cumulative) {
+			Subs->mode = icv_cumulative;
+			Subs->EvtCounter = -1;
+		}
+		break;
+	}
 
 	restore(ps);
 	return val;
@@ -718,7 +721,7 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 	unsigned short mask;
 
 	CtrStat = LCtxt->MCtxt->VME_StatusCtrl;
-	locdev = LCtxt->Line;
+	locdev  = LCtxt->Line;
 
 	if (locdev >= PortA_nln) { /*if locdev is on portB  */
 		/*enable interrupt on line nr. locdev on portB */
@@ -1077,7 +1080,7 @@ static void ClrSynchro(struct T_UserHdl *UHdl)
 static void Init_LineCtxt(int line, int type, struct T_ModuleCtxt *MCtxt)
 {
 	struct T_LineCtxt *LCtxt = &MCtxt->LineCtxt[line];
-	int LogIndex, m;
+	int LogIndex;
 
 	LCtxt->s = MCtxt->s;
 	LCtxt->MCtxt = MCtxt;
@@ -1088,8 +1091,7 @@ static void Init_LineCtxt(int line, int type, struct T_ModuleCtxt *MCtxt)
 	LCtxt->loc_count = -1;
 
 	/* Link physical line to logical line and vise versa */
-	m = MCtxt->Module;
-	LogIndex = CnvrtModuleLine(m, line);
+	LogIndex = CnvrtModuleLine(MCtxt->Module, line);
 	LCtxt->LHdl = Init_LineHdl(LogIndex, LCtxt);
 }
 
@@ -1112,8 +1114,7 @@ static struct T_ModuleCtxt* Init_ModuleCtxt(InsLibModlDesc *md)
 	/* save VME window size */
 	MCtxt->VME_size = vmeinfo->WindowSize;
 
-	/* Set up permanent pointers to access the module
-	  from system mapping to be used from the driver */
+	/* Set HW mapping pointers to access the module */
 	MCtxt->SYSVME_Add     = (short *) vmeinfo->Mapped;
 	MCtxt->VME_StatusCtrl = (unsigned char *)(vmeinfo->Mapped + CoReg_Z8536);
 	MCtxt->VME_IntLvl     = (unsigned char *)(vmeinfo->Mapped + CSNIT_ICV);
@@ -1167,7 +1168,7 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 	*CtrStat = 0; /* go to state 0 (normal operation) */
 	PURGE_CPUPIPELINE;
 
-	*(MCtxt->VME_IntLvl)  = ~l; /* set interrupt level for this module */
+	*(MCtxt->VME_IntLvl) = ~l; /* set interrupt level for this module */
 	PURGE_CPUPIPELINE;
 	*(MCtxt->VME_CsDir) = 0; /* set all I/O ports to input */
 	PURGE_CPUPIPELINE;
@@ -1985,11 +1986,10 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 		break;
 	case ICVVME_setio:
-		/* Set direction of input/output ports.
-		   (when using the I/O part of the ICV196 board) */
-		Module = (long)((struct icv196T_Service *) arg)->module;
+		/* Set direction of input/output ports */
+		Module = (long)((struct icv196T_Service *)arg)->module;
 		Data   = ((struct icv196T_Service *)arg)->data;
-		if (icv196_statics.ModuleCtxtDir[Module] == NULL) {
+		if (!icv196_statics.ModuleCtxtDir[Module]) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
@@ -1998,24 +1998,23 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		grp = *Data++;
 		dir = *Data;
 
-		if ( grp < 0 || grp > 11)
+		if (!WITHIN_RANGE(0, grp, 11))
 			return SYSERR;
 
 		group_mask = 1 << grp;
-		if (dir) {            /* dir >< 0 : output */
-		    *(MCtxt->VME_CsDir) = MCtxt->old_CsDir | group_mask;
-		    MCtxt->old_CsDir = MCtxt->old_CsDir | group_mask;
-		} else { /* dir = 0: input  */
-			*(MCtxt->VME_CsDir) = MCtxt->old_CsDir & ~group_mask;
-		    MCtxt->old_CsDir = MCtxt->old_CsDir & ~group_mask;
+		if (dir) { /* output */
+			*(MCtxt->VME_CsDir) = MCtxt->old_CsDir | group_mask; /* HW ACCESS */
+			MCtxt->old_CsDir    = MCtxt->old_CsDir | group_mask;
+		} else { /* input  */
+			*(MCtxt->VME_CsDir) = MCtxt->old_CsDir & ~group_mask; /* HW ACCESS */
+			MCtxt->old_CsDir    = MCtxt->old_CsDir & ~group_mask;
 		}
 		break;
 	case ICVVME_readio:
-		/* Read direction of input/output ports.
-		   (when using the I/O part of the ICV196 board) */
-		Module = (long)((struct icv196T_Service *) arg)->module;
+		/* Read direction of input/output ports */
+		Module = (long)((struct icv196T_Service *)arg)->module;
 		Data   = ((struct icv196T_Service *)arg)->data;
-		if (icv196_statics.ModuleCtxtDir[Module] == NULL) {
+		if (!icv196_statics.ModuleCtxtDir[Module]) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
@@ -2187,7 +2186,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		Type  = LCtxt->Type;
 		Line  = LCtxt->Line;
 
-		/* Reinit module if setting lost !!!!
+		/* Reinit module if setting lost!
 		   beware! all lines loose their current state */
 		icvModule_Reinit(MCtxt, Line);
 
@@ -2245,7 +2244,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 
 		/* set up Logical line handle pointer */
 		if ((LHdl = icv196_statics.LineHdlDir[LogIx]) == NULL) {
-			/*log line not affected*/
+			/* log line not affected */
 			pseterr(EINVAL);
 			return SYSERR;
 		}
@@ -2264,7 +2263,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		LCtxt = LHdl->LineCtxt;
 
 		/* disable the corresponding line */
-		if (LHdl->SubscriberCurNb == 0) {
+		if (!LHdl->SubscriberCurNb) {
 			disable_Line(LCtxt);
 			LCtxt->loc_count = -1;
 		}
@@ -2351,11 +2350,11 @@ int icv196_vmeisr(void *arg)
 		MCtxt->startflag = 1; /* reset the input array the first */
 	}                             /*time the routine is entered      */
 
-	status = *CtrStat;        /* force board to defined state */
+	status = *CtrStat; /* force board to defined state */
 	PURGE_CPUPIPELINE;
 	*CtrStat = CSt_Areg;
 	PURGE_CPUPIPELINE;
-	status = *CtrStat;        /* read portA's status register */
+	status = *CtrStat; /* read portA's status register */
 	PURGE_CPUPIPELINE;
 
 	if (status & CoSt_Ius) { /*did portA cause the interrupt? */
@@ -2394,7 +2393,7 @@ int icv196_vmeisr(void *arg)
 	}
 
 	/* loop on active line */
-	for (i = 0; i <= 15; i++) {
+	for (i = 0; i < icv_LineNb; i++) {
 		if (input[i]) {
 			/* active line */
 			input[i] = 0;
@@ -2409,8 +2408,8 @@ int icv196_vmeisr(void *arg)
 			cs = LHdl->SubscriberCurNb;
 			Subs= &LHdl->Subscriber[0];
 
-			for (j = 0; (j < ns && cs > 0); j++, Subs++) {
-				if (Subs->Ring == NULL)
+			for (j = 0; j < ns && cs > 0; j++, Subs++) {
+				if (!Subs->Ring)
 					/* subscriber passive */
 					continue;
 				cs--; /* nb of subbscribers to find out
@@ -2428,7 +2427,7 @@ int icv196_vmeisr(void *arg)
 				/* give the event according to subscriber
 				   status  */
 				if (Subs->mode == icv_queuleuleu) {
-					/* mode a la queueleuleu*/
+					/* mode a la queueleuleu */
 					Atom.Subscriber = NULL;
 					Atom.Evt.Word.w1 = Sw1; /* set up event
 								   counter */
@@ -2452,15 +2451,15 @@ int icv196_vmeisr(void *arg)
 			/* Enable the line before leaving */
 			if (LCtxt->intmod == icv_ReenableOff)
 				disable_Line(LCtxt);
-			/*break;  */
+			/*break */
 		} /* if line active */
 	} /*  for / line */
 
-	*CtrStat = CSt_Breg; /*clear IP bit on portB  */
+	*CtrStat = CSt_Breg; /* clear IP bit on portB */
 	PURGE_CPUPIPELINE;
 	*CtrStat = CoSt_ClIpIus;
 	PURGE_CPUPIPELINE;
-	*CtrStat = CSt_Areg; /*clear IP bit on portA  */
+	*CtrStat = CSt_Areg; /* clear IP bit on portA */
 	PURGE_CPUPIPELINE;
 	*CtrStat = CoSt_ClIpIus;
 	PURGE_CPUPIPELINE;
