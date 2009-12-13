@@ -186,22 +186,17 @@ struct T_LineCtxt {
 
 struct T_ModuleCtxt {
 	struct  icv196T_s *s;
-	int     sem_module;    /* mutex semaphore */
-	int     dflag;         /* debug flag */
-	short   Module;        /* Module index [0 - 7] */
-	int     VME_size;      /* original info table values */
-	unsigned long CPUVME_Add; /* Module physical 32 bits address
-				     can be get by the user (via ioctl)
-				     and used to open a shared segment
-				     on this VME module address */
-
-	short              *SYSVME_Add; /* module virtual base address */
-	unsigned char      *VME_StatusCtrl;
-	unsigned char      *VME_IntLvl;
-	short              *VME_CsDir;
-	short              old_CsDir;
-	unsigned short     startflag;
-	unsigned short     int_en_mask;
+	int            sem_module; /* mutex semaphore */
+	int            dflag;      /* debug flag */
+	short          Module;     /* Module index [0 - 7] */
+	int            VME_size;   /* original info table values */
+	short         *SYSVME_Add; /* module virtual base address */
+	unsigned char *VME_StatusCtrl;
+	unsigned char *VME_IntLvl;
+	short         *VME_CsDir;
+	short          old_CsDir;
+	unsigned short startflag;
+	unsigned short int_en_mask;
 
 	/* context of the lines */
 	unsigned char Vect; /* for each line a Int. vector */
