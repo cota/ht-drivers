@@ -322,7 +322,7 @@ struct icv196T_s {
 	long Buffer_Evt[GlobEvt_nb]; /* To put event in a sequence */
 
 	/* Hardware configuration table */
-	int mcntr; /**< active module counter */
+	int mcntr; /**< counter of an active modules */
 	struct T_ModuleCtxt *ModuleCtxtDir[icv_ModuleNb]; /* module directory */
 	struct T_ModuleCtxt ModuleCtxt[icv_ModuleNb]; /* Modules contexts */
 
@@ -1099,17 +1099,16 @@ static void Init_LineCtxt(int line, int type, struct T_ModuleCtxt *MCtxt)
   Initialise a module context for a icv196 module
   table to manage the hardware of a physical module
 */
-static struct T_ModuleCtxt* Init_ModuleCtxt(struct icv196T_s *s,
-					    InsLibModlDesc *md)
+static struct T_ModuleCtxt* Init_ModuleCtxt(InsLibModlDesc *md)
 {
 	InsLibVmeAddressSpace *vmeinfo = (InsLibVmeAddressSpace *)md->ModuleAddress;
-	struct T_ModuleCtxt *MCtxt = &s->ModuleCtxt[s->mcntr];
+	struct T_ModuleCtxt *MCtxt = &icv196_statics.ModuleCtxt[icv196_statics.mcntr];
 	int type, i;
 
 	/* init context table */
-	MCtxt->s = s;
+	MCtxt->s = &icv196_statics;
 	MCtxt->sem_module = 1;	/* semaphore for exclusive access */
-	MCtxt->Module = s->mcntr;
+	MCtxt->Module = icv196_statics.mcntr;
 	MCtxt->dflag = 0;
 
 	/* Set up base add of module as seen from cpu mapping.
@@ -1133,14 +1132,15 @@ static struct T_ModuleCtxt* Init_ModuleCtxt(struct icv196T_s *s,
 	MCtxt->Vect = md->Isr->Vector;
 	MCtxt->Lvl  = md->Isr->Level;
 	type = 0; /* to select default line type */
+
 	for (i = 0; i < icv_LineNb; i++)
 		Init_LineCtxt(i, type, MCtxt);
 
 	/* Update Module directory */
-	s->ModuleCtxtDir[s->mcntr] = MCtxt;
+	icv196_statics.ModuleCtxtDir[icv196_statics.mcntr] = MCtxt;
 
 	/* increase declared module counter */
-	s->mcntr++;
+	icv196_statics.mcntr++;
 	return MCtxt;
 }
 
@@ -1379,7 +1379,7 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 	*CtrStat = b_MIE; /*master interrupt enable */
 	PURGE_CPUPIPELINE;
 
-	/* Check if setting still well recorded  */
+	/* Check if setting still well recorded */
 	if (bw1 != MCtxt->Vect) {
 		/* The module lost its initialisation: redo it */
 		for (i = 0; i < icv_LineNb; i++) {
@@ -1412,7 +1412,7 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 }
 
 /* Install Entry Point */
-char *icv196_install(InsLibModlDesc *ptr)
+char *icv196_install(InsLibModlDesc *md)
 {
 	struct T_ModuleCtxt *MCtxt;
 
@@ -1422,7 +1422,7 @@ char *icv196_install(InsLibModlDesc *ptr)
 	init_statics_once();
 
 	/* Set up the tables for the current Module */
-	MCtxt = Init_ModuleCtxt(&icv196_statics, ptr);
+	MCtxt = Init_ModuleCtxt(md);
 
 	/* Startup the hardware for that module context */
 	icvModule_Init_HW(MCtxt);
