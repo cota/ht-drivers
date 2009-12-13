@@ -566,13 +566,11 @@ static void Init_LineSubscribers(struct T_LogLineHdl *LHdl)
 /* initialise a Line handle associated to a physical line */
 static struct T_LogLineHdl *Init_LineHdl(int lli, struct T_LineCtxt *LCtxt)
 {
-	struct icv196T_s *s;
 	struct T_LogLineHdl *LHdl;
 	union  icv196U_UserLine UserLine;
 
-	s = LCtxt->s;
-	LHdl = s->LineHdlDir[lli] = &s->LineHdl[lli];
-	LHdl->s = s;
+	LHdl = icv196_statics.LineHdlDir[lli] = &icv196_statics.LineHdl[lli];
+	LHdl->s = &icv196_statics;
 	LHdl->LogIndex = lli;
 	LHdl->LineCtxt = LCtxt;	/* Link Line handle and Line context */
 
@@ -1111,18 +1109,11 @@ static struct T_ModuleCtxt* Init_ModuleCtxt(InsLibModlDesc *md)
 	MCtxt->Module = icv196_statics.mcntr;
 	MCtxt->dflag = 0;
 
-	/* Set up base add of module as seen from cpu mapping.
-	   This information is available to user through ioctl function
-	   it provides the Module base add required by  smemcreate to create
-	   a virtual window on the vme space of the module
-	   this is for accessing the module directly from user program access
-	   through a window created by smem_create */
+	/* save VME window size */
 	MCtxt->VME_size = vmeinfo->WindowSize;
 
-	/*
-	  Set up permanent pointers to access the module
-	  from system mapping to be used from the driver
-	*/
+	/* Set up permanent pointers to access the module
+	  from system mapping to be used from the driver */
 	MCtxt->SYSVME_Add     = (short *) vmeinfo->Mapped;
 	MCtxt->VME_StatusCtrl = (unsigned char *)(vmeinfo->Mapped + CoReg_Z8536);
 	MCtxt->VME_IntLvl     = (unsigned char *)(vmeinfo->Mapped + CSNIT_ICV);
@@ -1132,7 +1123,6 @@ static struct T_ModuleCtxt* Init_ModuleCtxt(InsLibModlDesc *md)
 	MCtxt->Vect = md->Isr->Vector;
 	MCtxt->Lvl  = md->Isr->Level;
 	type = 0; /* to select default line type */
-
 	for (i = 0; i < icv_LineNb; i++)
 		Init_LineCtxt(i, type, MCtxt);
 
