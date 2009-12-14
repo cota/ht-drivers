@@ -723,19 +723,23 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 	CtrStat = LCtxt->MCtxt->VME_StatusCtrl;
 	locdev  = LCtxt->Line;
 
-	if (locdev >= PortA_nln) { /*if locdev is on portB  */
-		/*enable interrupt on line nr. locdev on portB */
-		disable(ps);
-		mask = 1 << locdev; /* set interrupt enable */
-		LCtxt->MCtxt->int_en_mask |= mask; /* mask */
+	disable(ps);
 
+	mask = 1 << locdev;
+	LCtxt->MCtxt->int_en_mask |= mask; /* set interrupt enable mask */
+
+	if (locdev >= PortA_nln) { /* if locdev is on portB */
+
+		/* enable interrupt on line nr. locdev on portB */
 		mask = 1 << (locdev - PortA_nln);
 
+		/* Port B Command & Status register */
 		*CtrStat = CSt_Breg;
 		PURGE_CPUPIPELINE;
-		*CtrStat = CoSt_ClIpIus;
+		*CtrStat = CoSt_ClIpIus; /* Clear IP & IUS bits */
 		PURGE_CPUPIPELINE;
 
+		/* Port B Pattern Polarity register */
 		*CtrStat = PtrPo_Breg;
 		PURGE_CPUPIPELINE;
 		status = *CtrStat;
@@ -747,6 +751,7 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 		*CtrStat = status;
 		PURGE_CPUPIPELINE;
 
+		/* Port B Pattern Transition register */
 		*CtrStat = PtrTr_Breg;
 		PURGE_CPUPIPELINE;
 		status = *CtrStat;
@@ -758,6 +763,7 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 		*CtrStat = status;
 		PURGE_CPUPIPELINE;
 
+		/* Port B Pattern Mask register */
 		*CtrStat = PtrMsk_Breg;
 		PURGE_CPUPIPELINE;
 		status = *CtrStat;
@@ -769,40 +775,38 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 		*CtrStat = status;
 		PURGE_CPUPIPELINE;
 
-		/* TEST!! */
+		/* TEST */
 		*CtrStat = PtrMsk_Breg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
 
-		/* TEST!! */
+		/* TEST */
 		*CtrStat = PtrPo_Breg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
 
-		/* TEST!! */
+		/* TEST */
 		*CtrStat = PtrTr_Breg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
 
+		/* Port B Command & Status register */
 		*CtrStat = CSt_Breg;
 		PURGE_CPUPIPELINE;
-		*CtrStat = CoSt_ClIpIus;
+		*CtrStat = CoSt_ClIpIus; /* Clear IP & IUS bits */
 		PURGE_CPUPIPELINE;
-
-		restore(ps);
 	} else { /* Case port A */
-		disable(ps);
-		mask = 1 << locdev; /* set interrupt enable */
-		LCtxt->MCtxt->int_en_mask |= mask; /* mask */
 
+		/* Port A Command & Status register */
 		*CtrStat = CSt_Areg;
 		PURGE_CPUPIPELINE;
-		*CtrStat = CoSt_ClIpIus;
+		*CtrStat = CoSt_ClIpIus; /* Clear IP & IUS bits */
 		PURGE_CPUPIPELINE;
 
+		/* Port A Pattern Polarity register */
 		*CtrStat = PtrPo_Areg;
 		PURGE_CPUPIPELINE;
 		status = *CtrStat;
@@ -814,6 +818,7 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 		*CtrStat = status;
 		PURGE_CPUPIPELINE;
 
+		/* Port A Pattern Transition register */
 		*CtrStat = PtrTr_Areg;
 		PURGE_CPUPIPELINE;
 		status = *CtrStat;
@@ -825,6 +830,7 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 		*CtrStat = status;
 		PURGE_CPUPIPELINE;
 
+		/* Port A Pattern Mask register */
 		*CtrStat = PtrMsk_Areg;
 		PURGE_CPUPIPELINE;
 		status = *CtrStat;
@@ -836,33 +842,33 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 		*CtrStat = status;
 		PURGE_CPUPIPELINE;
 
-		/* TEST!! */
+		/* TEST */
 		*CtrStat = PtrMsk_Areg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
 
-		/* TEST !! */
+		/* TEST */
 		*CtrStat = PtrPo_Areg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
 
-		/* TEST !! */
+		/* TEST */
 		*CtrStat = PtrTr_Areg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
 
+		/* Port A Command & Status register */
 		*CtrStat = CSt_Areg;
 		PURGE_CPUPIPELINE;
-		*CtrStat = CoSt_ClIpIus;
+		*CtrStat = CoSt_ClIpIus; /* Clear IP & IUS bits */
 		PURGE_CPUPIPELINE;
-
-		restore(ps);
 	}
 
 	LCtxt->status = icv_Enabled;
+	restore(ps);
 }
 
 /* to stop interrupt from this line this is done when user request it */
@@ -875,19 +881,22 @@ static void disable_Line(struct T_LineCtxt *LCtxt)
 
 	CtrStat = LCtxt->MCtxt->VME_StatusCtrl;
 	locdev = LCtxt->Line;
-	if (locdev >= PortA_nln) { /* if locdev is on portB */
-		/* enable interrupt on line nr. locdev on portB */
-		disable(ps);
-		mask = ~(1 << locdev); /* clear interrupt enable */
-		LCtxt->MCtxt->int_en_mask &= mask;  /* mask */
 
+	disable(ps);
+
+	mask = ~(1 << locdev);
+	LCtxt->MCtxt->int_en_mask &= mask; /* clear interrupt enable */
+
+	if (locdev >= PortA_nln) { /* if locdev is on portB */
 		mask = ~(1 << (locdev - PortA_nln));
 
+		/*  */
 		*CtrStat = CSt_Breg;
 		PURGE_CPUPIPELINE;
 		*CtrStat = CoSt_ClIpIus;
 		PURGE_CPUPIPELINE;
 
+		/*  */
 		*CtrStat = PtrPo_Breg;
 		PURGE_CPUPIPELINE;
 		status = *CtrStat;
@@ -899,6 +908,7 @@ static void disable_Line(struct T_LineCtxt *LCtxt)
 		*CtrStat = status;
 		PURGE_CPUPIPELINE;
 
+		/*  */
 		*CtrStat = PtrTr_Breg;
 		PURGE_CPUPIPELINE;
 		status = *CtrStat;
@@ -910,6 +920,7 @@ static void disable_Line(struct T_LineCtxt *LCtxt)
 		*CtrStat = status;
 		PURGE_CPUPIPELINE;
 
+		/*  */
 		*CtrStat = PtrMsk_Breg;
 		PURGE_CPUPIPELINE;
 		status = *CtrStat;
@@ -921,37 +932,32 @@ static void disable_Line(struct T_LineCtxt *LCtxt)
 		*CtrStat = status;
 		PURGE_CPUPIPELINE;
 
-		/* TEST !! */
+		/* TEST */
 		*CtrStat = PtrMsk_Breg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
 
-		/* TEST!! */
+		/* TEST */
 		*CtrStat = PtrPo_Breg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
 
-		/* TEST!! */
+		/* TEST */
 		*CtrStat = PtrTr_Breg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
 
+		/*  */
 		*CtrStat = CSt_Breg;
 		PURGE_CPUPIPELINE;
 		*CtrStat = CoSt_ClIpIus;
 		PURGE_CPUPIPELINE;
+	} else { /* port#A */
 
-		restore(ps);
-	} else { /* else */
-		/* disable interrupt on line nr. locdev on portA */
-		disable(ps);
-		mask = ~(1 << locdev);
-		/* clear interrupt enable */
-		LCtxt->MCtxt->int_en_mask &= mask; /* mask */
-
+		/*  */
 		*CtrStat = CSt_Areg;
 		PURGE_CPUPIPELINE;
 		*CtrStat = CoSt_ClIpIus;
@@ -990,19 +996,19 @@ static void disable_Line(struct T_LineCtxt *LCtxt)
 		*CtrStat = status;
 		PURGE_CPUPIPELINE;
 
-		/* TEST!! */
+		/* TEST */
 		*CtrStat = PtrMsk_Areg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
 
-		/* TEST!! */
+		/* TEST */
 		*CtrStat = PtrPo_Areg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
 		PURGE_CPUPIPELINE;
 
-		/* TEST!! */
+		/* TEST */
 		*CtrStat = PtrTr_Areg;
 		PURGE_CPUPIPELINE;
 		dummy = *CtrStat;
@@ -1012,11 +1018,10 @@ static void disable_Line(struct T_LineCtxt *LCtxt)
 		PURGE_CPUPIPELINE;
 		*CtrStat = CoSt_ClIpIus;
 		PURGE_CPUPIPELINE;
-
-		restore(ps);
 	}
 
 	LCtxt->status = icv_Disabled;
+	restore(ps);
 }
 
 /* to get rid of all connections established on a channel
@@ -1039,14 +1044,14 @@ static void ClrSynchro(struct T_UserHdl *UHdl)
 		cancel_timeout(UHdl->timid);
 
 	/* scan map byte array  */
-	for ( i = 0, cptr = &UHdl->Cmap[0]; i < ICV_mapByteSz; i++, cptr++) {
-		if ((w = (*cptr) & 255) != 0) {
+	for (i = 0, cptr = &UHdl->Cmap[0]; i < ICV_mapByteSz; i++, cptr++) {
+		if ((w = *cptr & 255) != 0) {
 			*cptr = 0; /* Clear bits */
 			for (j = 7; j >= 0; j--, w <<= 1 ) {
 				/* scan each bit of the current byte */
-				if (w == 0)
+				if (!w)
 					break;
-				if ( ((char) w) < 0 ){	/* line connected */
+				if ( ((char) w) < 0 ) {	/* line connected */
 					if ( (LHdl = s->LineHdlDir[(i*8 + j)])
 					     == NULL) {
 						/* DBG(("icv196:Clrsynchro: log line not in directory \n")); */
@@ -1058,7 +1063,7 @@ static void ClrSynchro(struct T_UserHdl *UHdl)
 					}
 					LCtxt = LHdl->LineCtxt;
 					disable(ps);
-					if (LHdl->SubscriberCurNb == 0)
+					if (!LHdl->SubscriberCurNb)
 						disable_Line(LCtxt);
 
 					restore(ps);
@@ -1067,14 +1072,14 @@ static void ClrSynchro(struct T_UserHdl *UHdl)
 		}
 	} /* end for/ Cmap byte scanning  */
 
-	sreset(&(UHdl->Ring.Evtsem)); /* clear semaphore */
+	sreset(&UHdl->Ring.Evtsem); /* clear semaphore */
 
 	for (i = 0, cptr = &UHdl->Cmap[0]; i < ICV_mapByteSz; i++)
 		*cptr++ = 0;
 }
 
 /*
-  subroutines to initialise a line context table of a icv196 module
+  Initialise a line context table of a icv196 module
   table to manage the hardware of a physical line of a module
 */
 static void Init_LineCtxt(int line, int type, struct T_ModuleCtxt *MCtxt)
@@ -1150,13 +1155,13 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 	l       = MCtxt->Lvl;
 	CtrStat = MCtxt->VME_StatusCtrl;
 
-	/* reset hardware of icv196vme module */
 	disable(ps);
 
 	dummy = *CtrStat; /* force the board to state 0 */
 	PURGE_CPUPIPELINE;
 	ISYNC_CPUPIPELINE;
 
+	/* Master Interrupt Control register */
 	*CtrStat = MIC_reg;
 	PURGE_CPUPIPELINE;
 	dummy = *CtrStat;
@@ -1178,105 +1183,138 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 	MCtxt->int_en_mask = 0; /* clear interrupt enable mask */
 
 	/* set up hardware for portA and portB on the icv module */
+
+	/* Master Config Control register */
 	*CtrStat = MCC_reg;
 	PURGE_CPUPIPELINE;
 	*CtrStat = (PortA_Enable | PortB_Enable);
 	PURGE_CPUPIPELINE;
 
-	/* (portA and portB operate independently) */
-	*CtrStat = MSpec_Areg; /* portA: bitport */
+	/* portA and portB operate independently */
+
+	/* Port A Mode Specification register */
+	*CtrStat = MSpec_Areg;
 	PURGE_CPUPIPELINE;
-	*CtrStat = (PtrM_Or | Latch_On_Pat_Match);
+	*CtrStat = (PtrM_Or | Latch_On_Pat_Match); /* bitport */
 	PURGE_CPUPIPELINE;
 
-	*CtrStat = MSpec_Breg; /* portB: bitport */
+	/* Port B Mode Specification register */
+	*CtrStat = MSpec_Breg;
 	PURGE_CPUPIPELINE;
-	*CtrStat = (PtrM_Or | Latch_On_Pat_Match);
-	PURGE_CPUPIPELINE;
-
-	*CtrStat = CSt_Areg; /* portA: no interrupt on error */
-	PURGE_CPUPIPELINE;
-	*CtrStat = CoSt_SeIe; /* interrupts enabled */
+	*CtrStat = (PtrM_Or | Latch_On_Pat_Match);  /* bitport */
 	PURGE_CPUPIPELINE;
 
-	*CtrStat = CSt_Breg; /* portB: no interrupt on error */
+	/* Port A Command & Status register */
+	*CtrStat = CSt_Areg;
 	PURGE_CPUPIPELINE;
-	*CtrStat = CoSt_SeIe; /* interrupts enabled */
-	PURGE_CPUPIPELINE;
-
-	*CtrStat = DPPol_Areg; /* portA: non inverting */
-	PURGE_CPUPIPELINE;
-	*CtrStat = Non_Invert;
+	*CtrStat = CoSt_SeIe;  /* interrupts enabled, no interrupt on error */
 	PURGE_CPUPIPELINE;
 
-	*CtrStat = DPPol_Breg; /* portB: non inverting */
+	/* Port B Command & Status register */
+	*CtrStat = CSt_Breg;
 	PURGE_CPUPIPELINE;
-	*CtrStat = Non_Invert;
-	PURGE_CPUPIPELINE;
-
-	*CtrStat = DDir_Areg; /* portA: input port */
-	PURGE_CPUPIPELINE;
-	*CtrStat = All_Input;
+	*CtrStat = CoSt_SeIe; /* interrupts enabled, no interrupt on error */
 	PURGE_CPUPIPELINE;
 
-	*CtrStat = DDir_Breg; /* portB: input port */
+	/* Port A Data Path polarity register */
+	*CtrStat = DPPol_Areg;
 	PURGE_CPUPIPELINE;
-	*CtrStat = All_Input;
-	PURGE_CPUPIPELINE;
-
-	*CtrStat = SIO_Areg; /* portA: normal input */
-	PURGE_CPUPIPELINE;
-	*CtrStat = Norm_Inp;
+	*CtrStat = Non_Invert; /* non inverting */
 	PURGE_CPUPIPELINE;
 
-	*CtrStat = SIO_Breg; /* portB: normal input */
+	/* Port B Data Path polarity register*/
+	*CtrStat = DPPol_Breg;
 	PURGE_CPUPIPELINE;
-	*CtrStat = Norm_Inp;
+	*CtrStat = Non_Invert; /* non inverting */
 	PURGE_CPUPIPELINE;
 
-	*CtrStat = PtrMsk_Areg; /* portA: masked off */
+	/* Port A Data direction register */
+	*CtrStat = DDir_Areg;
+	PURGE_CPUPIPELINE;
+	*CtrStat = All_Input; /* input port */
+	PURGE_CPUPIPELINE;
+
+	/* Port B Data direction register */
+	*CtrStat = DDir_Breg;
+	PURGE_CPUPIPELINE;
+	*CtrStat = All_Input;  /* input port */
+	PURGE_CPUPIPELINE;
+
+	/* Port A Special I/O control register */
+	*CtrStat = SIO_Areg;
+	PURGE_CPUPIPELINE;
+	*CtrStat = Norm_Inp; /* normal input */
+	PURGE_CPUPIPELINE;
+
+	/* Port B Special I/O control register */
+	*CtrStat = SIO_Breg;
+	PURGE_CPUPIPELINE;
+	*CtrStat = Norm_Inp; /* normal input */
+	PURGE_CPUPIPELINE;
+
+	/*
+	  set Pattern Specificatioin for Port#A && Port#B:
+	  PM PT PP
+	  ---------
+	  0  0  0   -- Bit Masked OFF
+	*/
+
+	/* port#A -- masked off */
+	/* Port A Pattern Mask register */
+	*CtrStat = PtrMsk_Areg;
 	PURGE_CPUPIPELINE;
 	*CtrStat = All_Masked;
 	PURGE_CPUPIPELINE;
 
+	/* Port A Pattern Transition register */
 	*CtrStat = PtrTr_Areg;
 	PURGE_CPUPIPELINE;
 	*CtrStat = 0;
 	PURGE_CPUPIPELINE;
 
+	/* Port A Pattern Polarity register */
 	*CtrStat = PtrPo_Areg;
 	PURGE_CPUPIPELINE;
 	*CtrStat = 0;
 	PURGE_CPUPIPELINE;
 
-	*CtrStat = PtrMsk_Breg; /* portB: masked off */
+	/* port#B -- masked off */
+	/* Port B Pattern Mask register */
+	*CtrStat = PtrMsk_Breg;
 	PURGE_CPUPIPELINE;
 	*CtrStat = All_Masked;
 	PURGE_CPUPIPELINE;
 
+	/* Port B Pattern Transition register */
 	*CtrStat = PtrTr_Breg;
 	PURGE_CPUPIPELINE;
 	*CtrStat = 0;
 	PURGE_CPUPIPELINE;
 
+	/* Port B Pattern Polarity register */
 	*CtrStat = PtrPo_Breg;
 	PURGE_CPUPIPELINE;
 	*CtrStat = 0;
 	PURGE_CPUPIPELINE;
 
 	/* write interrupt vectors for portA and portB */
+
+	/* Port A Interrupt Vector */
 	*CtrStat = ItVct_Areg;
 	PURGE_CPUPIPELINE;
 	*CtrStat = v;
 	PURGE_CPUPIPELINE;
+
+	/* Port B Interrupt Vector */
 	*CtrStat = ItVct_Breg;
 	PURGE_CPUPIPELINE;
 	*CtrStat = v;
 	PURGE_CPUPIPELINE;
 
-	*CtrStat = MIC_reg; /* no status in interrupt vector */
+	/* Master Interrupt Control register */
+	*CtrStat = MIC_reg;
 	PURGE_CPUPIPELINE;
-	*CtrStat = b_MIE; /* master interrupt enable */
+	*CtrStat = b_MIE; /* master interrupt enable, no status in interrupt vector */
 	PURGE_CPUPIPELINE;
 
 	restore(ps);
@@ -1583,7 +1621,7 @@ int icv196_read(void *wa, struct cdcm_file *f,
 				break;
 			}
 		}
-	} while (i > 0); /* while  room in buffer */
+	} while (i > 0); /* while room in buffer */
 
 	return (bn << 2);
 }
@@ -1725,7 +1763,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		LCtxt = LHdl->LineCtxt;
-		if ( LCtxt->LHdl != LHdl) {
+		if (LCtxt->LHdl != LHdl) {
 			pseterr(EWOULDBLOCK);
 			return SYSERR;
 		}
@@ -1788,7 +1826,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		LCtxt = LHdl->LineCtxt;
-		if ( LCtxt->LHdl != LHdl) {
+		if (LCtxt->LHdl != LHdl) {
 			pseterr(EWOULDBLOCK);
 			return SYSERR;
 		}
@@ -1913,7 +1951,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		LCtxt = LHdl->LineCtxt;
-		if ( LCtxt->LHdl != LHdl) {
+		if (LCtxt->LHdl != LHdl) {
 			pseterr(EWOULDBLOCK);
 			return SYSERR;
 		}
@@ -1930,7 +1968,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		MCtxt = &icv196_statics.ModuleCtxt[Module];
-		LCtxt =  MCtxt->LineCtxt;
+		LCtxt = MCtxt->LineCtxt;
 		for (i = 0; i < icv_LineNb; i++, LCtxt++)
 			*Data++ = LCtxt->loc_count;
 		break;
@@ -2331,13 +2369,13 @@ int icv196_isr(void *arg)
 	unsigned short Sw1 = 0;
 	unsigned char *CtrStat;
 	unsigned char mdev, mask, status;
-	static unsigned short input[16];
+	static unsigned short input[16] = { 0 }; /* input array */
 
 	s = MCtxt->s; /* statics table */
 	m = MCtxt->Module;
 	CtrStat = MCtxt->VME_StatusCtrl;
 
-	if (!(WITHIN_RANGE(0, m, icv_ModuleNb)))
+	if (!(WITHIN_RANGE(0, m, icv_ModuleNb-1)))
 		return SYSERR;
 
 	if (!s->ModuleCtxtDir[m])
@@ -2426,22 +2464,19 @@ int icv196_isr(void *arg)
 								   positive */
 				}
 
-				/* give the event according to subscriber
-				   status  */
+				/* give the event according to subscriber status  */
 				if (Subs->mode == icv_queuleuleu) {
 					/* mode a la queueleuleu */
 					Atom.Subscriber = NULL;
-					Atom.Evt.Word.w1 = Sw1; /* set up event
-								   counter */
-					RingAtom = PushTo_Ring(Subs->Ring,
-							       &Atom);
+					Atom.Evt.Word.w1 = Sw1; /* set up event counter */
+					RingAtom = PushTo_Ring(Subs->Ring, &Atom);
 				} else { /* cumulative mode */
 					if (count < 0) { /* no event in Ring */
 						Subs->EvtCounter = 1; /* init counter of Subscriber */
 						Atom.Subscriber  = Subs; /* Link event to subscriber */
 						Atom.Evt.Word.w1 = 1;     /* set up event counter */
 						RingAtom = PushTo_Ring(Subs->Ring, &Atom);
-						Subs->CumulEvt = RingAtom; /* link to cumulative event, used to disconnect*/
+						Subs->CumulEvt = RingAtom; /* link to cumulative event, used to disconnect */
 					}
 				}
 				/* process case user stuck on select semaphore */

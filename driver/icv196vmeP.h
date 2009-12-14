@@ -192,12 +192,12 @@ struct T_ModuleCtxt {
 	short          Module;     /* Module index [0 - 7] */
 	int            VME_size;   /* original info table values */
 	short         *SYSVME_Add; /* module virtual base address */
-	unsigned char *VME_StatusCtrl; /*  */
-	unsigned char *VME_IntLvl;
-	short         *VME_CsDir; /*  */
-	short          old_CsDir; /*  */
-	unsigned short startflag;
-	unsigned short int_en_mask;
+	unsigned char *VME_StatusCtrl; /* Z8536 Control reg */
+	unsigned char *VME_IntLvl;     /* ICV196 Int Level reg */
+	short         *VME_CsDir; /* ICV196 I/O Direction reg */
+	short          old_CsDir; /* Previous state of I/O Direction reg */
+	unsigned short startflag; /*  */
+	unsigned short int_en_mask; /*  */
 
 	/* context of the lines */
 	unsigned char Vect; /* for each line a Int. vector */

@@ -66,10 +66,10 @@
 union icvU_Evt {
 	unsigned long All;
 	struct {
-		unsigned short w1,w2;
+		unsigned short w1, w2;
 	} Word;
 	struct {
-		unsigned char b1,b2,b3,b4;
+		unsigned char b1, b2, b3, b4;
 	    } Byte;
 };
 

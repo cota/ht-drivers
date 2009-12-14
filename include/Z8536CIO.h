@@ -44,17 +44,17 @@
 
 /*
 		For Programming Z8536 chip,
-	 some hints picked up from  description manual
+	some hints picked up from  description manual
         of the ADAS ICV 196 module (manual in french)
 	Definition of register add in ICV196 chip: Z8536 CI/O
 	This register are accessed via ICV196 control register:
 	The acces to the chip must be done according to chip state
 
 		- It is always possible to read the control register
-		  a read set the chip in "state 0"
+		  * A read set the chip in "state 0"
 		- Write must be done in "state 0"
-		  first write in state 0 set the register pointer
-		  second write access the currently pointed to register
+		  * First write in state 0 set the register pointer
+		  * Second write access the currently pointed to register
        State diagram:
           <State 0>
                 --> Read  -> <state 0>
@@ -71,7 +71,7 @@
 
 /* Register address offsets */
 #define MIC_reg          0x00 /* Master Interrupt Control register */
-#define MCC_reg          0x01 /* Master Config Control    register */
+#define MCC_reg          0x01 /* Master Config Control register */
 #define ItVct_Areg       0x02 /* Port A Interrupt Vector */
 #define ItVct_Breg       0x03 /* Port B Interrupt Vector */
 #define CtIVct_reg       0x04 /* Counter/Timer Int. Vector register */
@@ -151,25 +151,25 @@
 #define b_6              b_5<<1
 #define b_7              b_6<<1
 
-#define b_MIE            b_7
-#define b_PAVIS          b_4
-#define b_PBVIS          b_3
-#define b_RIJUST         b_1
-#define b_RESET          b_0
+#define b_MIE              b_7
+#define b_PAVIS            b_4
+#define b_PBVIS            b_3
+#define b_RIJUST           b_1
+#define b_RESET            b_0
 
-#define PortA_Enable         b_2
-#define PortB_Enable         b_7
-#define Latch_On_Pat_Match   b_0
+#define PortA_Enable       b_2
+#define PortB_Enable       b_7
+#define Latch_On_Pat_Match b_0
 
-#define All_Input        0xFF
-#define All_Masked       0
-#define Norm_Inp         0
-#define Non_Invert       0
-#define Zero_To_One      0xFF
-#define StInfMask        0xE
+#define All_Input   0xFF
+#define All_Masked  0
+#define Norm_Inp    0
+#define Non_Invert  0
+#define Zero_To_One 0xFF
+#define StInfMask   0xE
 
-#define ICV_nln     16        /* Number of interrupt lines */
-#define ICV_nboards 4         /* Number of interrupt lines */
+#define ICV_nln     16 /* Number of interrupt lines */
+#define ICV_nboards 4  /* Number of interrupt lines */
 #define PortA_nln   8
 
 #endif	/* _Z8536CIO_ */
