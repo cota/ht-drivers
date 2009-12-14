@@ -124,15 +124,15 @@
 #define PtrTr_Breg	 0x2E /* Port B Pattern Transition register */
 #define PtrMsk_Breg	 0x2F /* Port B Pattern Mask register */
 
-/* Command code ( bit 7, 6, 5) in byte */
-#define CoSt_NULL	 0<<5 /* Null code */
+/* Command code ( bit 7, 6, 5) in Command and Status register */
+#define CoSt_NULL	 0<<5 /* Null code           */
 #define CoSt_ClIpIus	 1<<5 /* Clear IP & IUS bits */
-#define CoSt_SeIus	 2<<5 /* Set IUS   */
-#define CoSt_ClIus	 3<<5 /* Clear IUS */
-#define CoSt_SeIp	 4<<5 /* Set IP    */
-#define CoSt_ClIp	 5<<5 /* Clear IP  */
-#define CoSt_SeIe	 6<<5 /* Set IE    */
-#define CoSt_ClIe	 7<<5 /* Clear IE  */
+#define CoSt_SeIus	 2<<5 /* Set   IUS           */
+#define CoSt_ClIus	 3<<5 /* Clear IUS           */
+#define CoSt_SeIp	 4<<5 /* Set   IP            */
+#define CoSt_ClIp	 5<<5 /* Clear IP            */
+#define CoSt_SeIe	 6<<5 /* Set   IE            */
+#define CoSt_ClIe	 7<<5 /* Clear IE            */
 
 #define CoSt_Ius         1<<7 /* Interrupt under Service (status) */
 

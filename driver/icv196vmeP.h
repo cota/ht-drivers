@@ -192,7 +192,7 @@ struct T_ModuleCtxt {
 	short          Module;     /* Module index [0 - 7] */
 	int            VME_size;   /* original info table values */
 	short         *SYSVME_Add; /* module virtual base address */
-	unsigned char *VME_StatusCtrl;
+	unsigned char *VME_StatusCtrl; /*  */
 	unsigned char *VME_IntLvl;
 	short         *VME_CsDir; /*  */
 	short          old_CsDir; /*  */

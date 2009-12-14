@@ -21,7 +21,7 @@
 extern char* icv196_install(InsLibModlDesc *);
 extern int   icv196_read(void *, struct cdcm_file *, char *, int);
 extern int   icv196_write(void *, struct cdcm_file *, char *, int);
-extern int   icv196_vmeisr(void *);
+extern int   icv196_isr(void *);
 extern int   icv196_open(SkelDrvrClientContext *);
 extern int   icv196_close(SkelDrvrClientContext *);
 extern int   icv196_ioctl(int, int, char *);
@@ -276,5 +276,5 @@ SkelUserReturn SkelUserIoctls(SkelDrvrClientContext *ccon,
 struct skel_conf SkelConf = {
         .read        = icv196_read,
         .write       = icv196_write,
-        .intrhandler = icv196_vmeisr
+        .intrhandler = icv196_isr
 };

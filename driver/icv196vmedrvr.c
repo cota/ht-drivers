@@ -2315,7 +2315,7 @@ int icv196_select(struct icv196T_s *s, struct cdcm_file *f,
   of the icv196 module driver
   work on the module context which start the corresponding isr
 */
-int icv196_vmeisr(void *arg)
+int icv196_isr(void *arg)
 {
 	SkelDrvrModuleContext *mcon  = arg;
 	struct T_ModuleCtxt   *MCtxt = mcon->UserData;
@@ -2333,22 +2333,24 @@ int icv196_vmeisr(void *arg)
 	unsigned char mdev, mask, status;
 	static unsigned short input[16];
 
-	s = MCtxt->s; /* common static area */
+	s = MCtxt->s; /* statics table */
 	m = MCtxt->Module;
 	CtrStat = MCtxt->VME_StatusCtrl;
 
-	if (m <0 || m > icv_ModuleNb) {
+	if (!(WITHIN_RANGE(0, m, icv_ModuleNb)))
 		return SYSERR;
-	}
 
-	if (!s->ModuleCtxtDir[m]) {
+	if (!s->ModuleCtxtDir[m])
 		return SYSERR;
-	}
 
 	if (!MCtxt->startflag) {
-		for (i = 0; i <= 15; i++) input[i] = 0;
-		MCtxt->startflag = 1; /* reset the input array the first */
-	}                             /*time the routine is entered      */
+		/* reset the input array the first
+		   time the routine is entered */
+		for (i = 0; i <= 15; i++)
+			input[i] = 0;
+
+		MCtxt->startflag = 1;
+	}
 
 	status = *CtrStat; /* force board to defined state */
 	PURGE_CPUPIPELINE;
@@ -2357,11 +2359,11 @@ int icv196_vmeisr(void *arg)
 	status = *CtrStat; /* read portA's status register */
 	PURGE_CPUPIPELINE;
 
-	if (status & CoSt_Ius) { /*did portA cause the interrupt? */
+	if (status & CoSt_Ius) { /* did portA cause the interrupt? */
 		mask = 1;
 		*CtrStat = Data_Areg;
 		PURGE_CPUPIPELINE;
-		mdev = *CtrStat;      /* read portA's data register */
+		mdev = *CtrStat; /* read portA's data register */
 		PURGE_CPUPIPELINE;
 
 		for (i = 0; i <= 7; i++) {
@@ -2436,10 +2438,10 @@ int icv196_vmeisr(void *arg)
 				} else { /* cumulative mode */
 					if (count < 0) { /* no event in Ring */
 						Subs->EvtCounter = 1; /* init counter of Subscriber */
-						Atom.Subscriber = Subs; /* Link event to subscriber */
-						Atom.Evt.Word.w1  = 1;     /* set up event counter */
-						RingAtom = PushTo_Ring(Subs -> Ring, &Atom);
-						Subs -> CumulEvt = RingAtom; /* link to cumulative event, used to disconnect*/
+						Atom.Subscriber  = Subs; /* Link event to subscriber */
+						Atom.Evt.Word.w1 = 1;     /* set up event counter */
+						RingAtom = PushTo_Ring(Subs->Ring, &Atom);
+						Subs->CumulEvt = RingAtom; /* link to cumulative event, used to disconnect*/
 					}
 				}
 				/* process case user stuck on select semaphore */
