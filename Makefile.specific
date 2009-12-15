@@ -14,7 +14,7 @@
 ###############################################################################
 
 # Driver (Module) name. Comming from the DB. Will be converted to lowercase.
-DRIVER_NAME = icv196
+DRIVER_NAME = icv196vme
 
 # If this driver is using skeleton (y/n)
 IS_SKEL = y
