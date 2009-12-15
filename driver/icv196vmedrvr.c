@@ -996,6 +996,7 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 	/* set interrupt level for this module */
 	cdcm_iowrite8(~l, MCtxt->VME_IntLvl); /* TODO Check if writing correctly */
 
+	/* TODO Check if writing correctly */
 	icv196_wr(0, VME_CsDir); /* set all I/O ports to input */
 
 	MCtxt->old_CsDir = 0;
@@ -1393,21 +1394,21 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		/* get device information */
 		Infop = (struct icv196T_ModuleInfo *)arg;
 		for (i = 0; i < icv_ModuleNb; i++, Infop++) {
-			if (icv196_statics.ModuleCtxtDir[i] == NULL) {
+			if (!icv196_statics.ModuleCtxtDir[i]) {
 				Infop->ModuleFlag = 0;
 				continue;
-			} else {
-				MCtxt = &icv196_statics.ModuleCtxt[i];
-				Infop->ModuleFlag = 1;
-				Infop->ModuleInfo.base =
-					(unsigned long) MCtxt->SYSVME_Add;
-				Infop->ModuleInfo.size = MCtxt->VME_size;
-				for (j = 0; j < icv_LineNb; j++) {
-					Infop->ModuleInfo.vector =
-						MCtxt->Vect;
-					Infop->ModuleInfo.level =
-						MCtxt->Lvl;
-				}
+			}
+
+			MCtxt = &icv196_statics.ModuleCtxt[i];
+			Infop->ModuleFlag = 1;
+			Infop->ModuleInfo.base =
+				(unsigned long) MCtxt->SYSVME_Add;
+			Infop->ModuleInfo.size = MCtxt->VME_size;
+			for (j = 0; j < icv_LineNb; j++) {
+				Infop->ModuleInfo.vector =
+					MCtxt->Vect;
+				Infop->ModuleInfo.level =
+					MCtxt->Lvl;
 			}
 		}
 		break;
@@ -1776,10 +1777,10 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 
 		group_mask = 1 << grp;
 		if (dir) { /* output */
-			*(MCtxt->VME_CsDir) = MCtxt->old_CsDir | group_mask; /* HW ACCESS */
+			icv196_wr(MCtxt->old_CsDir | group_mask, VME_CsDir); /* TODO. check */
 			MCtxt->old_CsDir    = MCtxt->old_CsDir | group_mask;
 		} else { /* input */
-			*(MCtxt->VME_CsDir) = MCtxt->old_CsDir & ~group_mask; /* HW ACCESS */
+			icv196_wr(MCtxt->old_CsDir & ~group_mask , VME_CsDir);  /* TODO. check */
 			MCtxt->old_CsDir    = MCtxt->old_CsDir & ~group_mask;
 		}
 		break;
