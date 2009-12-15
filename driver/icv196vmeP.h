@@ -205,4 +205,43 @@ struct T_ModuleCtxt {
 	struct T_LineCtxt LineCtxt[icv_LineNb];
 };
 
+/* write z8536 Status register */
+#define z8536_wr(v)					\
+({							\
+	cdcm_iowrite8(v, MCtxt->VME_StatusCtrl);	\
+ })
+
+/* read z8536 Status register */
+#define z8536_rd()				\
+({						\
+	cdcm_ioread8(MCtxt->VME_StatusCtrl);	\
+ })
+
+/* write value in z8536 internal register */
+#define z8536_wr_val(r, v)				\
+({							\
+	cdcm_iowrite8(r, MCtxt->VME_StatusCtrl);	\
+	cdcm_iowrite8(v, MCtxt->VME_StatusCtrl);	\
+ })
+
+/* read value from z8536 internal register */
+#define z8536_rd_val(r)					\
+({							\
+	cdcm_iowrite8(r, MCtxt->VME_StatusCtrl);	\
+	cdcm_ioread8(MCtxt->VME_StatusCtrl);		\
+ })
+
+
+/* write icv196 16bit register */
+#define icv196_wr(v, reg)			\
+({						\
+        cdcm_iowrite16be(v, MCtxt->reg);	\
+ })
+
+/* read icv196 16bit register */
+#define icv196_rd(reg)				\
+({						\
+        cdcm_ioread16be(MCtxt->reg);		\
+ })
+
 #endif	/* _ICV_196_VME_P_H_INCLUDE_ */

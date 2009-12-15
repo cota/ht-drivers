@@ -717,16 +717,16 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 {
 	ulong ps;
 	int locdev;
-	unsigned char status, dummy, *CtrStat;
+	unsigned char status, dummy;
 	unsigned short mask;
+	struct T_ModuleCtxt *MCtxt = LCtxt->MCtxt;
 
-	CtrStat = LCtxt->MCtxt->VME_StatusCtrl;
-	locdev  = LCtxt->Line;
+	locdev = LCtxt->Line;
 
 	disable(ps);
 
 	mask = 1 << locdev;
-	LCtxt->MCtxt->int_en_mask |= mask; /* set interrupt enable mask */
+	MCtxt->int_en_mask |= mask; /* set interrupt enable mask */
 
 	if (locdev >= PortA_nln) { /* if locdev is on portB */
 
@@ -734,137 +734,57 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 		mask = 1 << (locdev - PortA_nln);
 
 		/* Port B Command & Status register */
-		*CtrStat = CSt_Breg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = CoSt_ClIpIus; /* Clear IP & IUS bits */
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(CSt_Breg, CoSt_ClIpIus); /* Clear IP & IUS bits */
 
 		/* Port B Pattern Polarity register */
-		*CtrStat = PtrPo_Breg;
-		PURGE_CPUPIPELINE;
-		status = *CtrStat;
-		PURGE_CPUPIPELINE;
+		status = z8536_rd_val(PtrPo_Breg);
 		status = status | mask;
-		PURGE_CPUPIPELINE;
-		*CtrStat = PtrPo_Breg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = status;
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(PtrPo_Breg, status);
 
 		/* Port B Pattern Transition register */
-		*CtrStat = PtrTr_Breg;
-		PURGE_CPUPIPELINE;
-		status = *CtrStat;
-		PURGE_CPUPIPELINE;
+		status = z8536_rd_val(PtrTr_Breg);
 		status = status | mask;
-		PURGE_CPUPIPELINE;
-		*CtrStat = PtrTr_Breg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = status;
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(PtrTr_Breg, status);
 
 		/* Port B Pattern Mask register */
-		*CtrStat = PtrMsk_Breg;
-		PURGE_CPUPIPELINE;
-		status = *CtrStat;
-		PURGE_CPUPIPELINE;
+		status = z8536_rd_val(PtrMsk_Breg);
 		status = status | mask;
-		PURGE_CPUPIPELINE;
-		*CtrStat = PtrMsk_Breg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = status;
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(PtrMsk_Breg, status);
 
 		/* TEST */
-		*CtrStat = PtrMsk_Breg;
-		PURGE_CPUPIPELINE;
-		dummy = *CtrStat;
-		PURGE_CPUPIPELINE;
-
-		/* TEST */
-		*CtrStat = PtrPo_Breg;
-		PURGE_CPUPIPELINE;
-		dummy = *CtrStat;
-		PURGE_CPUPIPELINE;
-
-		/* TEST */
-		*CtrStat = PtrTr_Breg;
-		PURGE_CPUPIPELINE;
-		dummy = *CtrStat;
-		PURGE_CPUPIPELINE;
+		dummy = z8536_rd_val(PtrMsk_Breg);
+		dummy = z8536_rd_val(PtrPo_Breg);
+		dummy = z8536_rd_val(PtrTr_Breg);
 
 		/* Port B Command & Status register */
-		*CtrStat = CSt_Breg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = CoSt_ClIpIus; /* Clear IP & IUS bits */
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(CSt_Breg, CoSt_ClIpIus); /* Clear IP & IUS bits */
 	} else { /* Case port A */
 
 		/* Port A Command & Status register */
-		*CtrStat = CSt_Areg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = CoSt_ClIpIus; /* Clear IP & IUS bits */
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(CSt_Areg, CoSt_ClIpIus); /* Clear IP & IUS bits */
 
 		/* Port A Pattern Polarity register */
-		*CtrStat = PtrPo_Areg;
-		PURGE_CPUPIPELINE;
-		status = *CtrStat;
-		PURGE_CPUPIPELINE;
+		status = z8536_rd_val(PtrPo_Areg);
 		status = status | mask;
-		PURGE_CPUPIPELINE;
-		*CtrStat = PtrPo_Areg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = status;
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(PtrPo_Areg, status);
 
 		/* Port A Pattern Transition register */
-		*CtrStat = PtrTr_Areg;
-		PURGE_CPUPIPELINE;
-		status = *CtrStat;
-		PURGE_CPUPIPELINE;
+		status = z8536_rd_val(PtrTr_Areg);
 		status = status | mask;
-		PURGE_CPUPIPELINE;
-		*CtrStat = PtrTr_Areg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = status;
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(PtrTr_Areg, status);
 
 		/* Port A Pattern Mask register */
-		*CtrStat = PtrMsk_Areg;
-		PURGE_CPUPIPELINE;
-		status = *CtrStat;
-		PURGE_CPUPIPELINE;
+		status = z8536_rd_val(PtrMsk_Areg);
 		status = status | mask;
-		PURGE_CPUPIPELINE;
-		*CtrStat = PtrMsk_Areg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = status;
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(PtrMsk_Areg, status);
 
 		/* TEST */
-		*CtrStat = PtrMsk_Areg;
-		PURGE_CPUPIPELINE;
-		dummy = *CtrStat;
-		PURGE_CPUPIPELINE;
-
-		/* TEST */
-		*CtrStat = PtrPo_Areg;
-		PURGE_CPUPIPELINE;
-		dummy = *CtrStat;
-		PURGE_CPUPIPELINE;
-
-		/* TEST */
-		*CtrStat = PtrTr_Areg;
-		PURGE_CPUPIPELINE;
-		dummy = *CtrStat;
-		PURGE_CPUPIPELINE;
+		dummy = z8536_rd_val(PtrMsk_Areg);
+		dummy = z8536_rd_val(PtrPo_Areg);
+		dummy = z8536_rd_val(PtrTr_Areg);
 
 		/* Port A Command & Status register */
-		*CtrStat = CSt_Areg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = CoSt_ClIpIus; /* Clear IP & IUS bits */
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(CSt_Areg, CoSt_ClIpIus); /* Clear IP & IUS bits */
 	}
 
 	LCtxt->status = icv_Enabled;
@@ -876,148 +796,72 @@ static void disable_Line(struct T_LineCtxt *LCtxt)
 {
 	ulong ps;
 	int locdev;
-	unsigned char status, dummy, *CtrStat;
+	unsigned char status, dummy;
 	unsigned short mask;
+	struct T_ModuleCtxt *MCtxt = LCtxt->MCtxt;
 
-	CtrStat = LCtxt->MCtxt->VME_StatusCtrl;
 	locdev = LCtxt->Line;
 
 	disable(ps);
 
 	mask = ~(1 << locdev);
-	LCtxt->MCtxt->int_en_mask &= mask; /* clear interrupt enable */
+	MCtxt->int_en_mask &= mask; /* clear interrupt enable */
 
 	if (locdev >= PortA_nln) { /* if locdev is on portB */
 		mask = ~(1 << (locdev - PortA_nln));
 
 		/*  */
-		*CtrStat = CSt_Breg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = CoSt_ClIpIus;
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(CSt_Breg, CoSt_ClIpIus);
 
 		/*  */
-		*CtrStat = PtrPo_Breg;
-		PURGE_CPUPIPELINE;
-		status = *CtrStat;
-		PURGE_CPUPIPELINE;
+		status = z8536_rd_val(PtrPo_Breg);
 		status = status & mask;
-		PURGE_CPUPIPELINE;
-		*CtrStat = PtrPo_Breg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = status;
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(PtrPo_Breg, status);
 
 		/*  */
-		*CtrStat = PtrTr_Breg;
-		PURGE_CPUPIPELINE;
-		status = *CtrStat;
-		PURGE_CPUPIPELINE;
+		status = z8536_rd_val(PtrTr_Breg);
 		status = status & mask;
-		PURGE_CPUPIPELINE;
-		*CtrStat = PtrTr_Breg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = status;
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(PtrTr_Breg, status);
 
 		/*  */
-		*CtrStat = PtrMsk_Breg;
-		PURGE_CPUPIPELINE;
-		status = *CtrStat;
-		PURGE_CPUPIPELINE;
+		status = z8536_rd_val(PtrMsk_Breg);
 		status = status & mask;
-		PURGE_CPUPIPELINE;
-		*CtrStat = PtrMsk_Breg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = status;
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(PtrMsk_Breg, status);
 
 		/* TEST */
-		*CtrStat = PtrMsk_Breg;
-		PURGE_CPUPIPELINE;
-		dummy = *CtrStat;
-		PURGE_CPUPIPELINE;
-
-		/* TEST */
-		*CtrStat = PtrPo_Breg;
-		PURGE_CPUPIPELINE;
-		dummy = *CtrStat;
-		PURGE_CPUPIPELINE;
-
-		/* TEST */
-		*CtrStat = PtrTr_Breg;
-		PURGE_CPUPIPELINE;
-		dummy = *CtrStat;
-		PURGE_CPUPIPELINE;
+		dummy = z8536_rd_val(PtrMsk_Breg);
+		dummy = z8536_rd_val(PtrPo_Breg);
+		dummy = z8536_rd_val(PtrTr_Breg);
 
 		/*  */
-		*CtrStat = CSt_Breg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = CoSt_ClIpIus;
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(CSt_Breg, CoSt_ClIpIus);
 	} else { /* port#A */
 
 		/*  */
-		*CtrStat = CSt_Areg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = CoSt_ClIpIus;
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(CSt_Areg, CoSt_ClIpIus);
 
-		*CtrStat = PtrPo_Areg;
-		PURGE_CPUPIPELINE;
-		status = *CtrStat;
-		PURGE_CPUPIPELINE;
+		/*  */
+		status = z8536_rd_val(PtrPo_Areg);
 		status = status & mask;
-		PURGE_CPUPIPELINE;
-		*CtrStat = PtrPo_Areg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = status;
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(PtrPo_Areg, status);
 
-		*CtrStat = PtrTr_Areg;
-		PURGE_CPUPIPELINE;
-		status = *CtrStat;
-		PURGE_CPUPIPELINE;
+		/*  */
+		status = z8536_rd_val(PtrTr_Areg);
 		status = status & mask;
-		PURGE_CPUPIPELINE;
-		*CtrStat = PtrTr_Areg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = status;
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(PtrTr_Areg, status);
 
-		*CtrStat = PtrMsk_Areg;
-		PURGE_CPUPIPELINE;
-		status = *CtrStat;
-		PURGE_CPUPIPELINE;
+		/*  */
+		status = z8536_rd_val(PtrMsk_Areg);
 		status = status & mask;
-		PURGE_CPUPIPELINE;
-		*CtrStat = PtrMsk_Areg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = status;
-		PURGE_CPUPIPELINE;
+		z8536_wr_val(PtrMsk_Areg, status);
 
 		/* TEST */
-		*CtrStat = PtrMsk_Areg;
-		PURGE_CPUPIPELINE;
-		dummy = *CtrStat;
-		PURGE_CPUPIPELINE;
+		dummy = z8536_rd_val(PtrMsk_Areg);
+		dummy = z8536_rd_val(PtrPo_Areg);
+		dummy = z8536_rd_val(PtrTr_Areg);
 
-		/* TEST */
-		*CtrStat = PtrPo_Areg;
-		PURGE_CPUPIPELINE;
-		dummy = *CtrStat;
-		PURGE_CPUPIPELINE;
-
-		/* TEST */
-		*CtrStat = PtrTr_Areg;
-		PURGE_CPUPIPELINE;
-		dummy = *CtrStat;
-		PURGE_CPUPIPELINE;
-
-		*CtrStat = CSt_Areg;
-		PURGE_CPUPIPELINE;
-		*CtrStat = CoSt_ClIpIus;
-		PURGE_CPUPIPELINE;
+		/*  */
+		z8536_wr_val(CSt_Areg, CoSt_ClIpIus);
 	}
 
 	LCtxt->status = icv_Disabled;
@@ -1146,37 +990,26 @@ static struct T_ModuleCtxt* Init_ModuleCtxt(InsLibModlDesc *md)
 */
 int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 {
-	unsigned char v, l, dummy, *CtrStat;
-	int m;
+	unsigned char v = MCtxt->Vect;
+	unsigned char l = MCtxt->Lvl;
+	unsigned char dummy;
 	ulong ps;
-
-	m       = MCtxt->Module;
-	v       = MCtxt->Vect;
-	l       = MCtxt->Lvl;
-	CtrStat = MCtxt->VME_StatusCtrl;
 
 	disable(ps);
 
-	dummy = *CtrStat; /* force the board to state 0 */
-	PURGE_CPUPIPELINE;
-	ISYNC_CPUPIPELINE;
+	/* The following squence will reset Z8536 anf put it in <state 0>
+	   (See Chapter 6. CIO Initialization) */
+	dummy = z8536_rd(); /* force the board to <state 0> */
+	z8536_wr(MIC_reg); /* Master Interrupt Control register */
+	dummy = z8536_rd();
+	z8536_wr(MIC_reg);
+	z8536_wr(b_RESET); /* reset the board */
+	z8536_wr(0); /* go from <reset state> to <state 0> (normal operation) */
 
-	/* Master Interrupt Control register */
-	*CtrStat = MIC_reg;
-	PURGE_CPUPIPELINE;
-	dummy = *CtrStat;
-	PURGE_CPUPIPELINE;
-	*CtrStat = MIC_reg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = b_RESET; /* reset the board */
-	PURGE_CPUPIPELINE;
-	*CtrStat = 0; /* go to state 0 (normal operation) */
-	PURGE_CPUPIPELINE;
+	/* set interrupt level for this module */
+	cdcm_iowrite8(~l, MCtxt->VME_IntLvl); /* TODO Check if writing correctly */
 
-	*(MCtxt->VME_IntLvl) = ~l; /* set interrupt level for this module */
-	PURGE_CPUPIPELINE;
-	*(MCtxt->VME_CsDir) = 0; /* set all I/O ports to input */
-	PURGE_CPUPIPELINE;
+	icv196_wr(0, VME_CsDir); /* set all I/O ports to input */
 
 	MCtxt->old_CsDir = 0;
 	MCtxt->startflag = 0;
@@ -1185,72 +1018,40 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 	/* set up hardware for portA and portB on the icv module */
 
 	/* Master Config Control register */
-	*CtrStat = MCC_reg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = (PortA_Enable | PortB_Enable);
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(MCC_reg, PortA_Enable | PortB_Enable); /* enable ports A && B */
 
 	/* portA and portB operate independently */
 
 	/* Port A Mode Specification register */
-	*CtrStat = MSpec_Areg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = (PtrM_Or | Latch_On_Pat_Match); /* bitport */
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(MSpec_Areg, PtrM_Or | Latch_On_Pat_Match); /* set to operate as bitport */
 
 	/* Port B Mode Specification register */
-	*CtrStat = MSpec_Breg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = (PtrM_Or | Latch_On_Pat_Match);  /* bitport */
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(MSpec_Breg, PtrM_Or | Latch_On_Pat_Match);  /* set to operate as bitport */
 
 	/* Port A Command & Status register */
-	*CtrStat = CSt_Areg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = CoSt_SeIe;  /* interrupts enabled, no interrupt on error */
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(CSt_Areg, CoSt_SeIe);  /* interrupts enabled, no interrupt on error */
 
 	/* Port B Command & Status register */
-	*CtrStat = CSt_Breg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = CoSt_SeIe; /* interrupts enabled, no interrupt on error */
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(CSt_Breg, CoSt_SeIe); /* interrupts enabled, no interrupt on error */
 
 	/* Port A Data Path polarity register */
-	*CtrStat = DPPol_Areg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = Non_Invert; /* non inverting */
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(DPPol_Areg, Non_Invert); /* non inverting */
 
 	/* Port B Data Path polarity register*/
-	*CtrStat = DPPol_Breg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = Non_Invert; /* non inverting */
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(DPPol_Breg, Non_Invert); /* non inverting */
 
 	/* Port A Data direction register */
-	*CtrStat = DDir_Areg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = All_Input; /* input port */
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(DDir_Areg, All_Input); /* input port */
 
 	/* Port B Data direction register */
-	*CtrStat = DDir_Breg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = All_Input;  /* input port */
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(DDir_Breg, All_Input);  /* input port */
 
 	/* Port A Special I/O control register */
-	*CtrStat = SIO_Areg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = Norm_Inp; /* normal input */
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(SIO_Areg, Norm_Inp); /* normal input */
 
 	/* Port B Special I/O control register */
-	*CtrStat = SIO_Breg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = Norm_Inp; /* normal input */
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(SIO_Breg, Norm_Inp); /* normal input */
+
 
 	/*
 	  set Pattern Specificatioin for Port#A && Port#B:
@@ -1258,64 +1059,36 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 	  ---------
 	  0  0  0   -- Bit Masked OFF
 	*/
-
 	/* port#A -- masked off */
 	/* Port A Pattern Mask register */
-	*CtrStat = PtrMsk_Areg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = All_Masked;
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(PtrMsk_Areg, All_Masked);
 
 	/* Port A Pattern Transition register */
-	*CtrStat = PtrTr_Areg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = 0;
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(PtrTr_Areg, 0);
 
 	/* Port A Pattern Polarity register */
-	*CtrStat = PtrPo_Areg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = 0;
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(PtrPo_Areg, 0);
 
 	/* port#B -- masked off */
 	/* Port B Pattern Mask register */
-	*CtrStat = PtrMsk_Breg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = All_Masked;
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(PtrMsk_Breg, All_Masked);
 
 	/* Port B Pattern Transition register */
-	*CtrStat = PtrTr_Breg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = 0;
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(PtrTr_Breg, 0);
 
 	/* Port B Pattern Polarity register */
-	*CtrStat = PtrPo_Breg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = 0;
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(PtrPo_Breg, 0);
+
 
 	/* write interrupt vectors for portA and portB */
-
 	/* Port A Interrupt Vector */
-	*CtrStat = ItVct_Areg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = v;
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(ItVct_Areg, v);
 
 	/* Port B Interrupt Vector */
-	*CtrStat = ItVct_Breg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = v;
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(ItVct_Breg, v);
 
 	/* Master Interrupt Control register */
-	*CtrStat = MIC_reg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = b_MIE; /* master interrupt enable, no status in interrupt vector */
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(MIC_reg, b_MIE); /* master interrupt enable, no status in interrupt vector */
 
 	restore(ps);
 	return 0;
@@ -1332,22 +1105,14 @@ static void disable_Module(struct T_ModuleCtxt *MCtxt)
 {
 	ulong ps;
 	unsigned int w1;
-	unsigned char msk, status, *CtrStat;
+	unsigned char msk, status;
 
-	CtrStat = MCtxt->VME_StatusCtrl;
 	w1 = ~b_MIE; /* mask excludes the MIE bit (Master Interrupt Enable) */
 	msk = (unsigned char) (w1 & 0xff);
 	disable(ps);
-	*CtrStat = MIC_reg;
-	PURGE_CPUPIPELINE;
-	status = *CtrStat;
-	PURGE_CPUPIPELINE;
+	status = z8536_rd_val(MIC_reg);
 	status = status & msk;
-	PURGE_CPUPIPELINE;
-	*CtrStat = MIC_reg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = status;
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(MIC_reg, status);
 	restore(ps);
 }
 #endif
@@ -1360,21 +1125,14 @@ static void disable_Module(struct T_ModuleCtxt *MCtxt)
 static void enable_Module(struct T_ModuleCtxt *MCtxt)
 {
 	long ps;
-	unsigned char msk, status, *CtrStat;
+	unsigned char msk, status;
 
-	CtrStat = MCtxt->VME_StatusCtrl;
 	msk = b_MIE; /* mask includes the MIE bit (Master Interrupt Enable) */
 	disable(ps);
-	*CtrStat = MIC_reg;
-	PURGE_CPUPIPELINE;
-	status = *CtrStat;
-	PURGE_CPUPIPELINE;
+
+	status = z8536_rd_val(MIC_reg);
 	status = status | msk;
-	PURGE_CPUPIPELINE;
-	*CtrStat = MIC_reg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = status;
-	PURGE_CPUPIPELINE;
+	z8536_wr_val(MIC_reg, status);
 	restore(ps);
 }
 #endif
@@ -1385,28 +1143,18 @@ static void enable_Module(struct T_ModuleCtxt *MCtxt)
 */
 int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 {
-	struct T_LineCtxt *LCtxt;
+	struct T_LineCtxt *LCtxt = &MCtxt->LineCtxt[line];
 	int  i, cc;
-	unsigned char bw1, *CtrStat;
+	unsigned char bw1;
 
-	LCtxt = &MCtxt->LineCtxt[line];
-	CtrStat = MCtxt->VME_StatusCtrl;
+	/* master interrupt disable, permits reading interrupt vector */
+	z8536_wr_val(MIC_reg, 0);
 
-	*CtrStat = MIC_reg; /* master interrupt disable, permits */
-	PURGE_CPUPIPELINE;
-	*CtrStat = 0; /* reading interrupt vector */
-	PURGE_CPUPIPELINE;
+	 /* read interrupt vector for this module */
+	bw1 = z8536_rd_val(ItVct_Areg);
 
-	*CtrStat = ItVct_Areg;
-	PURGE_CPUPIPELINE;
-	bw1 = (unsigned char)*CtrStat; /* read interrupt vector for
-					  this module */
-	PURGE_CPUPIPELINE;
-
-	*CtrStat = MIC_reg;
-	PURGE_CPUPIPELINE;
-	*CtrStat = b_MIE; /*master interrupt enable */
-	PURGE_CPUPIPELINE;
+	/*master interrupt enable */
+	z8536_wr_val(MIC_reg, b_MIE);
 
 	/* Check if setting still well recorded */
 	if (bw1 != MCtxt->Vect) {
@@ -1431,7 +1179,7 @@ int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 					     at connect */
 		}
 
-		if (cc == 0)
+		if (!cc)
 			return 0;
 		else
 			return -1;
@@ -2043,7 +1791,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		if (dir) { /* output */
 			*(MCtxt->VME_CsDir) = MCtxt->old_CsDir | group_mask; /* HW ACCESS */
 			MCtxt->old_CsDir    = MCtxt->old_CsDir | group_mask;
-		} else { /* input  */
+		} else { /* input */
 			*(MCtxt->VME_CsDir) = MCtxt->old_CsDir & ~group_mask; /* HW ACCESS */
 			MCtxt->old_CsDir    = MCtxt->old_CsDir & ~group_mask;
 		}
@@ -2367,13 +2115,11 @@ int icv196_isr(void *arg)
 	int m, i, j, ns, cs;
 	short count;
 	unsigned short Sw1 = 0;
-	unsigned char *CtrStat;
 	unsigned char mdev, mask, status;
 	static unsigned short input[16] = { 0 }; /* input array */
 
 	s = MCtxt->s; /* statics table */
 	m = MCtxt->Module;
-	CtrStat = MCtxt->VME_StatusCtrl;
 
 	if (!(WITHIN_RANGE(0, m, icv_ModuleNb-1)))
 		return SYSERR;
@@ -2390,20 +2136,14 @@ int icv196_isr(void *arg)
 		MCtxt->startflag = 1;
 	}
 
-	status = *CtrStat; /* force board to defined state */
-	PURGE_CPUPIPELINE;
-	*CtrStat = CSt_Areg;
-	PURGE_CPUPIPELINE;
-	status = *CtrStat; /* read portA's status register */
-	PURGE_CPUPIPELINE;
+	status = z8536_rd(); /* force board to defined state */
+
+	/* read portA status register */
+	status = z8536_rd_val(CSt_Areg);
 
 	if (status & CoSt_Ius) { /* did portA cause the interrupt? */
 		mask = 1;
-		*CtrStat = Data_Areg;
-		PURGE_CPUPIPELINE;
-		mdev = *CtrStat; /* read portA's data register */
-		PURGE_CPUPIPELINE;
-
+		mdev = z8536_rd_val(Data_Areg); /* read portA's data register */
 		for (i = 0; i <= 7; i++) {
 			if (mdev & mask & MCtxt->int_en_mask)
 				/* mark port A's active interrupt lines */
@@ -2412,18 +2152,12 @@ int icv196_isr(void *arg)
 		}
 	}
 
-	*CtrStat = CSt_Breg;
-	PURGE_CPUPIPELINE;
-	status = *CtrStat; /* read portB's status register */
-	PURGE_CPUPIPELINE;
+	 /* read portB status register */
+	status = z8536_rd_val(CSt_Breg);
 
 	if (status & CoSt_Ius) { /* did portB cause the interrupt? */
 		mask = 1;
-		*CtrStat = Data_Breg;
-		PURGE_CPUPIPELINE;
-		mdev = *CtrStat; /* read portB's data register */
-		PURGE_CPUPIPELINE;
-
+		mdev = z8536_rd_val(Data_Breg); /* read portB's data register */
 		for (i = 8; i <= 15; i++) {
 			if (mdev & mask & (MCtxt -> int_en_mask >> 8))
 				/* mark port B's active interrupt lines */
@@ -2492,14 +2226,10 @@ int icv196_isr(void *arg)
 		} /* if line active */
 	} /*  for / line */
 
-	*CtrStat = CSt_Breg; /* clear IP bit on portB */
-	PURGE_CPUPIPELINE;
-	*CtrStat = CoSt_ClIpIus;
-	PURGE_CPUPIPELINE;
-	*CtrStat = CSt_Areg; /* clear IP bit on portA */
-	PURGE_CPUPIPELINE;
-	*CtrStat = CoSt_ClIpIus;
-	PURGE_CPUPIPELINE;
+	/* clear IP bit on portB */
+	z8536_wr_val(CSt_Breg, CoSt_ClIpIus);
 
+	/* clear IP bit on portA */
+	z8536_wr_val(CSt_Areg, CoSt_ClIpIus);
 	return OK;
 }
