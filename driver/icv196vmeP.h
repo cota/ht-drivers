@@ -157,18 +157,6 @@ struct T_UserHdl {
 	struct icvT_RingAtom Atom[Evt_nb]; /* Buffer of Ring buffer */
 };
 
-
-/* Declaration dependent of the device level */
-
-/* structure of  the physical line address */
-union U_LineAdd {
-	long all;
-	struct {
-		short M; /* module index */
-		short L; /* line index in the module */
-	} field;
-};
-
 /*
   Structure of a physical line context:
   this depends on the type of module

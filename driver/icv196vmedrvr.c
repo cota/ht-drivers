@@ -338,9 +338,7 @@ static int UserWakeup(void *data)
 	return 0;
 }
 
-/*	       Management of logical/physical Line mapping
-	       ===========================================
-*/
+/* Management of logical/physical Line mapping */
 
 /* Convert a user line address in a logical line index */
 static int CnvrtUserLine(char grp, char index)
