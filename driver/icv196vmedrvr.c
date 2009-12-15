@@ -1736,7 +1736,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		/* Read io semaphores for all lines in the given module */
 		Module = (long)((struct icv196T_Service *) arg)->module;
 		Data   = ((struct icv196T_Service *)arg)->data;
-		if (icv196_statics.ModuleCtxtDir[Module] == NULL) {
+		if (!icv196_statics.ModuleCtxtDir[Module]) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
@@ -1776,10 +1776,10 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		group_mask = 1 << grp;
 		if (dir) { /* output */
 			icv196_wr(MCtxt->old_CsDir | group_mask, VME_CsDir); /* TODO. check */
-			MCtxt->old_CsDir    = MCtxt->old_CsDir | group_mask;
+			MCtxt->old_CsDir = MCtxt->old_CsDir | group_mask;
 		} else { /* input */
 			icv196_wr(MCtxt->old_CsDir & ~group_mask , VME_CsDir);  /* TODO. check */
-			MCtxt->old_CsDir    = MCtxt->old_CsDir & ~group_mask;
+			MCtxt->old_CsDir = MCtxt->old_CsDir & ~group_mask;
 		}
 		break;
 	case ICVVME_readio:
@@ -1905,17 +1905,17 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (icv196_statics.ModuleCtxtDir[group] == NULL) {
+		if (!icv196_statics.ModuleCtxtDir[group]) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
 
-		if (group < 0 || group > (icv_ModuleNb - 1)) {
+		if (!WITHIN_RANGE(0, group, icv_ModuleNb - 1)) {
 			pseterr(EINVAL);
 			return SYSERR;
 		}
 
-		if (index < 0 || index > (icv_LineNb -1)) {
+		if (!WITHIN_RANGE(0, index, icv_LineNb - 1)) {
 			pseterr(EINVAL);
 			return SYSERR;
 		}
@@ -1997,17 +1997,17 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		group = ((struct icv196T_connect *) arg)->source.field.group;
 		index = ((struct icv196T_connect *) arg)->source.field.index;
 
-		if (icv196_statics.ModuleCtxtDir[group] == NULL) {
+		if (!icv196_statics.ModuleCtxtDir[group]) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
 
-		if (group < 0 || group >= icv_ModuleNb) {
+		if (!WITHIN_RANGE(0, group, icv_ModuleNb - 1)) {
 			pseterr(EINVAL);
 			return SYSERR;
 		}
 
-		if (index < 0 || index >= icv_LineNb) {
+		if (!WITHIN_RANGE(0, index, icv_LineNb - 1)) {
 			pseterr(EINVAL);
 			return SYSERR;
 		}
