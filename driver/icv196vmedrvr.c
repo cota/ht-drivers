@@ -1187,7 +1187,7 @@ char *icv196_install(InsLibModlDesc *md)
 	/* Set up the tables for the current Module */
 	MCtxt = Init_ModuleCtxt(md);
 
-	/* Startup the hardware for that module context */
+	/* Startup the hardware for that module */
 	icvModule_Init_HW(MCtxt);
 
 	cprintf("\rModule#%d installed\n", icv196_statics.mcntr);

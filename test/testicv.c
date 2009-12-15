@@ -1,4 +1,3 @@
-
 #include <time.h>
 #include <file.h>
 #include <stdio.h>
@@ -27,11 +26,7 @@ static char choice[10];
 extern int gpevtconnect();
 extern int gpevtdisconnect();
 
-void get_input(ch, inp)
-
-char *ch;
-int  *inp;
-
+void get_input(char *ch, int *inp)
 {
     char *p;
 
@@ -62,20 +57,16 @@ int  *inp;
 	printf("input not correct\n");
 }
 
-
-int connect(fd, group, index, mode)
-int   *fd;
-short group, index, mode;
-
+int connect(int *fd, short group, short index, short mode)
 {
 
-    union U_short {
-		  short wordshort;
-		  struct {
-			    char w1;
-			    char w2;
-			  }elt;
-		 };
+	union U_short {
+		short wordshort;
+		struct {
+			char w1;
+			char w2;
+		} elt;
+	};
 
     int  L_type;
     int  L_val;
@@ -99,18 +90,15 @@ short group, index, mode;
 }
 
 
-int disconnect(group, index)
-short group, index;
-
+int disconnect(short group, short index)
 {
-
-    union U_short {
-		  short wordshort;
-		  struct {
-			    char w1;
-			    char w2;
-			  }elt;
-		 };
+	union U_short {
+		short wordshort;
+		struct {
+			char w1;
+			char w2;
+		} elt;
+	};
 
     int  L_type;
     int  L_dev;
@@ -130,9 +118,7 @@ short group, index;
     return (0);
 }
 
-
-void main()
-
+int main(int argc, char *argv[], char *envp[])
 {
     int retval, i, j, dir, stat, grp_nr, grp_mask = 1;
     char buff[SIZE], line[10];
@@ -162,7 +148,7 @@ void main()
     do {
 	get_input(&choice, &input);
 
-	switch(input) {
+	switch (input) {
 
 	case 1:
 
@@ -555,4 +541,3 @@ void main()
 	return;
     }
 }
-/* */
