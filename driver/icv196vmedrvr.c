@@ -424,13 +424,13 @@ static struct icvT_RingAtom *PushTo_Ring(struct T_RingBuffer *Ring,
 		UHdl = Ring->UHdl;
 	}
 
-	/* now push the event in the ring  */
+	/* now push the event in the ring */
 	I = Ring->writer;
-	Atom = &(Ring->Buffer[I]); /* Atom to set up */
+	Atom = &Ring->Buffer[I]; /* Atom to set up */
 	Atom->Evt.All    = atom->Evt.All;
 	Atom->Subscriber = atom->Subscriber;
-	Ring->writer     = ((++I) & (Ring->mask));
-	ssignal(&(Ring->Evtsem)); /* manage ring  */
+	Ring->writer     = (++I & Ring->mask);
+	ssignal(&Ring->Evtsem); /* manage ring */
 
 	return Atom;
 }
@@ -439,33 +439,33 @@ static struct icvT_RingAtom *PushTo_Ring(struct T_RingBuffer *Ring,
 static unsigned long PullFrom_Ring(struct T_RingBuffer *Ring)
 {
 	ulong ps;
-	register struct icvT_RingAtom *Atom;
-	register struct T_Subscriber *Subs;
+	struct icvT_RingAtom *Atom;
+	struct T_Subscriber *Subs;
 	short  I, ix;
 	union icvU_Evt Evt;
 
 	disable(ps); /* Protect seq. from isr access */
 	ix = I = Ring->reader;
-	if ((Ring->Evtsem) != 0) { /* Ring non empty */
-		swait(&Ring->Evtsem, -1); /* to manage sem counter */
+	if (Ring->Evtsem) { /* Ring non empty */
+		swait(&Ring->Evtsem, SEM_SIGIGNORE); /* to manage sem counter */
 		Atom = &Ring->Buffer[I]; /* point current atom
 					    to pull from ring */
 		/* extract the event to be read */
 		Subs = Atom->Subscriber;
 		Evt.All = Atom->Evt.All;
-		Ring->reader = ((++I) & (Ring->mask)); /* manage ring buffer */
+		Ring->reader = (++I & Ring->mask); /* manage ring buffer */
 
 		/* build the value to return according to mode */
-		if (Subs != NULL) { /* Case cumulative mode */
+		if (Subs) { /* Case cumulative mode */
 			Evt.Word.w1 = Subs->EvtCounter; /* counter from
 							   subscriber */
 
 			/* Clear event flag in subscriber context */
-			Subs->CumulEvt = NULL; /*no more event in ring*/
+			Subs->CumulEvt = NULL; /* no more event in ring */
 			Subs->EvtCounter = -1; /* clear event present
 						  in the ring */
 		}
-	} else { /* ring empty  */
+	} else { /* ring empty */
 		Evt.All = -1;
 	}
 
@@ -675,7 +675,7 @@ static struct T_Subscriber *CheckBooking(struct T_UserHdl *UHdl,
 	int i, ns;
 	struct T_Subscriber *Subs;
 	struct T_Subscriber *val;
-	register struct T_RingBuffer *UHdlRing;
+	struct T_RingBuffer *UHdlRing;
 
 	val = NULL;
 	UHdlRing = &UHdl->Ring;
@@ -718,20 +718,20 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 		/* enable interrupt on line nr. locdev on portB */
 		mask = 1 << (locdev - PortA_nln);
 
-		/* Port B Command & Status register */
+		/* Port B Command & Status reg */
 		z8536_wr_val(CSt_Breg, CoSt_ClIpIus); /* Clear IP & IUS bits */
 
-		/* Port B Pattern Polarity register */
+		/* Port B Pattern Polarity reg */
 		status = z8536_rd_val(PtrPo_Breg);
 		status = status | mask;
 		z8536_wr_val(PtrPo_Breg, status);
 
-		/* Port B Pattern Transition register */
+		/* Port B Pattern Transition reg */
 		status = z8536_rd_val(PtrTr_Breg);
 		status = status | mask;
 		z8536_wr_val(PtrTr_Breg, status);
 
-		/* Port B Pattern Mask register */
+		/* Port B Pattern Mask reg */
 		status = z8536_rd_val(PtrMsk_Breg);
 		status = status | mask;
 		z8536_wr_val(PtrMsk_Breg, status);
@@ -741,24 +741,24 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 		dummy = z8536_rd_val(PtrPo_Breg);
 		dummy = z8536_rd_val(PtrTr_Breg);
 
-		/* Port B Command & Status register */
+		/* Port B Command & Status reg */
 		z8536_wr_val(CSt_Breg, CoSt_ClIpIus); /* Clear IP & IUS bits */
 	} else { /* Case port A */
 
-		/* Port A Command & Status register */
+		/* Port A Command & Status reg */
 		z8536_wr_val(CSt_Areg, CoSt_ClIpIus); /* Clear IP & IUS bits */
 
-		/* Port A Pattern Polarity register */
+		/* Port A Pattern Polarity reg */
 		status = z8536_rd_val(PtrPo_Areg);
 		status = status | mask;
 		z8536_wr_val(PtrPo_Areg, status);
 
-		/* Port A Pattern Transition register */
+		/* Port A Pattern Transition reg */
 		status = z8536_rd_val(PtrTr_Areg);
 		status = status | mask;
 		z8536_wr_val(PtrTr_Areg, status);
 
-		/* Port A Pattern Mask register */
+		/* Port A Pattern Mask reg */
 		status = z8536_rd_val(PtrMsk_Areg);
 		status = status | mask;
 		z8536_wr_val(PtrMsk_Areg, status);
@@ -768,7 +768,7 @@ static void enable_Line(struct T_LineCtxt *LCtxt)
 		dummy = z8536_rd_val(PtrPo_Areg);
 		dummy = z8536_rd_val(PtrTr_Areg);
 
-		/* Port A Command & Status register */
+		/* Port A Command & Status reg */
 		z8536_wr_val(CSt_Areg, CoSt_ClIpIus); /* Clear IP & IUS bits */
 	}
 
@@ -859,11 +859,11 @@ static void ClrSynchro(struct T_UserHdl *UHdl)
 {
 	ulong ps;
 	int i, j;
-	struct icv196T_s   *s;
+	struct icv196T_s    *s;
 	struct T_LineCtxt   *LCtxt;
-	register struct T_LogLineHdl  *LHdl;
-	register struct T_RingBuffer *UHdlRing;
-	register struct T_Subscriber *Subs;
+	struct T_LogLineHdl *LHdl;
+	struct T_RingBuffer *UHdlRing;
+	struct T_Subscriber *Subs;
 	unsigned char w;
 	char *cptr;
 
@@ -985,7 +985,7 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 	/* The following squence will reset Z8536 anf put it in <state 0>
 	   (See Chapter 6. CIO Initialization) */
 	dummy = z8536_rd(); /* force the board to <state 0> */
-	z8536_wr(MIC_reg); /* Master Interrupt Control register */
+	z8536_wr(MIC_reg); /* Master Interrupt Control reg */
 	dummy = z8536_rd();
 	z8536_wr(MIC_reg);
 	z8536_wr(b_RESET); /* reset the board */
@@ -1003,39 +1003,39 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 
 	/* set up hardware for portA and portB on the icv module */
 
-	/* Master Config Control register */
+	/* Master Config Control reg */
 	z8536_wr_val(MCC_reg, PortA_Enable | PortB_Enable); /* enable ports A && B */
 
 	/* portA and portB operate independently */
 
-	/* Port A Mode Specification register */
+	/* Port A Mode Specification reg */
 	z8536_wr_val(MSpec_Areg, PtrM_Or | Latch_On_Pat_Match); /* set to operate as bitport */
 
-	/* Port B Mode Specification register */
+	/* Port B Mode Specification reg */
 	z8536_wr_val(MSpec_Breg, PtrM_Or | Latch_On_Pat_Match);  /* set to operate as bitport */
 
-	/* Port A Command & Status register */
+	/* Port A Command & Status reg */
 	z8536_wr_val(CSt_Areg, CoSt_SeIe);  /* interrupts enabled, no interrupt on error */
 
-	/* Port B Command & Status register */
+	/* Port B Command & Status reg */
 	z8536_wr_val(CSt_Breg, CoSt_SeIe); /* interrupts enabled, no interrupt on error */
 
-	/* Port A Data Path polarity register */
+	/* Port A Data Path polarity reg */
 	z8536_wr_val(DPPol_Areg, Non_Invert); /* non inverting */
 
-	/* Port B Data Path polarity register*/
+	/* Port B Data Path polarity reg */
 	z8536_wr_val(DPPol_Breg, Non_Invert); /* non inverting */
 
-	/* Port A Data direction register */
+	/* Port A Data direction reg */
 	z8536_wr_val(DDir_Areg, All_Input); /* input port */
 
-	/* Port B Data direction register */
+	/* Port B Data direction reg */
 	z8536_wr_val(DDir_Breg, All_Input);  /* input port */
 
-	/* Port A Special I/O control register */
+	/* Port A Special I/O control reg */
 	z8536_wr_val(SIO_Areg, Norm_Inp); /* normal input */
 
-	/* Port B Special I/O control register */
+	/* Port B Special I/O control reg */
 	z8536_wr_val(SIO_Breg, Norm_Inp); /* normal input */
 
 
@@ -1046,23 +1046,23 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 	  0  0  0   -- Bit Masked OFF
 	*/
 	/* port#A -- masked off */
-	/* Port A Pattern Mask register */
+	/* Port A Pattern Mask reg */
 	z8536_wr_val(PtrMsk_Areg, All_Masked);
 
-	/* Port A Pattern Transition register */
+	/* Port A Pattern Transition reg */
 	z8536_wr_val(PtrTr_Areg, 0);
 
-	/* Port A Pattern Polarity register */
+	/* Port A Pattern Polarity reg */
 	z8536_wr_val(PtrPo_Areg, 0);
 
 	/* port#B -- masked off */
-	/* Port B Pattern Mask register */
+	/* Port B Pattern Mask reg */
 	z8536_wr_val(PtrMsk_Breg, All_Masked);
 
-	/* Port B Pattern Transition register */
+	/* Port B Pattern Transition reg */
 	z8536_wr_val(PtrTr_Breg, 0);
 
-	/* Port B Pattern Polarity register */
+	/* Port B Pattern Polarity reg */
 	z8536_wr_val(PtrPo_Breg, 0);
 
 
@@ -1073,7 +1073,7 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 	/* Port B Interrupt Vector */
 	z8536_wr_val(ItVct_Breg, v);
 
-	/* Master Interrupt Control register */
+	/* Master Interrupt Control reg */
 	z8536_wr_val(MIC_reg, b_MIE); /* master interrupt enable, no status in interrupt vector */
 
 	restore(ps);
@@ -1300,7 +1300,7 @@ int icv196_read(void *wa, struct cdcm_file *f,
 		return SYSERR;
 	}
 
-	if (UHdl == NULL) { /* Abnormal status system corruption */
+	if (!UHdl) { /* Abnormal status system corruption */
 		pseterr(EWOULDBLOCK);
 		return SYSERR;
 	}
@@ -1331,7 +1331,7 @@ int icv196_read(void *wa, struct cdcm_file *f,
 				UHdl->timid = 0;
 				UHdl->timid = timeout(UserWakeup, (char *)UHdl,
 						      (int)UHdl->WaitingTO);
-				swait(&UHdl->Ring.Evtsem, -1);	/* Wait Lam or Time Out */
+				swait(&UHdl->Ring.Evtsem, SEM_SIGIGNORE);	/* Wait Lam or Time Out */
 				disable(ps);
 				if (UHdl->timid < 0 ) {	/* time Out occured */
 					restore(ps);
@@ -2052,11 +2052,11 @@ int icv196_select(struct icv196T_s *s, struct cdcm_file *f,
 		 int which, struct sel *se)
 {
 	int   Chan;
-	register struct T_UserHdl *UHdl = NULL;
+	struct T_UserHdl *UHdl = NULL;
 
 	Chan = minordev(f->dev);
 
-	if (Chan == 0) { /* no select on channel 0 */
+	if (!Chan) { /* no select on channel 0 */
 		pseterr(EACCES);
 		return SYSERR;
 	}
@@ -2124,12 +2124,12 @@ int icv196_isr(void *arg)
 
 	status = z8536_rd(); /* force board to defined state */
 
-	/* read portA status register */
+	/* read portA status reg */
 	status = z8536_rd_val(CSt_Areg);
 
 	if (status & CoSt_Ius) { /* did portA cause the interrupt? */
 		mask = 1;
-		mdev = z8536_rd_val(Data_Areg); /* read portA's data register */
+		mdev = z8536_rd_val(Data_Areg); /* read portA's data reg */
 		for (i = 0; i <= 7; i++) {
 			if (mdev & mask & MCtxt->int_en_mask)
 				/* mark port A's active interrupt lines */
@@ -2138,12 +2138,12 @@ int icv196_isr(void *arg)
 		}
 	}
 
-	 /* read portB status register */
+	 /* read portB status reg */
 	status = z8536_rd_val(CSt_Breg);
 
 	if (status & CoSt_Ius) { /* did portB cause the interrupt? */
 		mask = 1;
-		mdev = z8536_rd_val(Data_Breg); /* read portB's data register */
+		mdev = z8536_rd_val(Data_Breg); /* read portB's data reg */
 		for (i = 8; i <= 15; i++) {
 			if (mdev & mask & (MCtxt -> int_en_mask >> 8))
 				/* mark port B's active interrupt lines */
