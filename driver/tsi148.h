@@ -595,6 +595,7 @@ struct tsi148_chip {
 #define TSI148_LCSR_VEAT_IACK         (1<<16)
 #define TSI148_LCSR_VEAT_DS1          (1<<15)
 #define TSI148_LCSR_VEAT_DS0          (1<<14)
+#define TSI148_LCSR_VEAT_AM_SHIFT     8
 #define TSI148_LCSR_VEAT_AM           (0x3f<<8)
 #define TSI148_LCSR_VEAT_XAM          (0xff<<0)
 
