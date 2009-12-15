@@ -41,6 +41,7 @@ struct vme_bridge_device {
 extern struct vme_bridge_device *vme_bridge;
 extern struct resource *vmepcimem;
 extern void *crg_base;
+extern unsigned int vme_report_bus_errors;
 
 /* Use the standard VME Major */
 #define VME_MAJOR	221

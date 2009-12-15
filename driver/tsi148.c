@@ -370,10 +370,16 @@ void tsi148_handle_pci_error(void)
 void tsi148_handle_vme_error(void)
 {
 	/* Display raw error information */
-	printk(KERN_ERR PFX
-	       "VME bus error at address: %.8x %.8x - attributes: %.8x\n",
-	       ioread32be(&chip->lcsr.veau), ioread32be(&chip->lcsr.veal),
-	       ioread32be(&chip->lcsr.veat));
+	if (vme_report_bus_errors) {
+		unsigned int attr = ioread32be(&chip->lcsr.veat);
+
+		printk(KERN_ERR PFX "VME bus error at address: %.8x %.8x - "
+			"AM: 0x%x - tsi148 attributes: %.8x\n",
+			ioread32be(&chip->lcsr.veau),
+			ioread32be(&chip->lcsr.veal),
+			(attr & TSI148_LCSR_VEAT_AM) >>
+			TSI148_LCSR_VEAT_AM_SHIFT, attr);
+	}
 
 	/* Clear error */
 	iowrite32be(TSI148_LCSR_VEAT_VESCL, &chip->lcsr.veat);

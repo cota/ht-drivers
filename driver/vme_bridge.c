@@ -569,7 +569,7 @@ static int __devinit vme_bridge_init_interrupts(void)
 		   TSI148_LCSR_INT_LM1  | TSI148_LCSR_INT_LM0  |
 		   TSI148_LCSR_INT_MB3  | TSI148_LCSR_INT_MB2  |
 		   TSI148_LCSR_INT_MB1  | TSI148_LCSR_INT_MB0  |
-		   TSI148_LCSR_INT_PERR);
+		   TSI148_LCSR_INT_PERR | TSI148_LCSR_INT_VERR);
 
 	if (vme_bridge->syscon)
 		intmask |= (TSI148_LCSR_INT_IRQ7 | TSI148_LCSR_INT_IRQ6 |
@@ -820,6 +820,10 @@ module_param(vme_destroy_on_remove, int, S_IRUGO);
 MODULE_PARM_DESC(vme_destroy_on_remove, "When set, removing the last mapping "
 		 "on a window also destroy the window");
 
+unsigned int vme_report_bus_errors;
+module_param(vme_report_bus_errors, int, 0644);
+MODULE_PARM_DESC(vme_report_bus_errors, "When set, prints a message to the "
+		"kernel log whenever a VME Bus Error is detected");
 
 MODULE_AUTHOR("Sebastien Dugue");
 MODULE_LICENSE("GPL");
