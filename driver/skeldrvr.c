@@ -904,12 +904,12 @@ static int modules_install(void)
 		mod_ok = AddModule(mcon);
 
 		if (mod_ok) {
-			SK_INFO("module#%d installed OK", modld->ModuleNumber);
+			SK_INFO("Module#%d installed OK", modld->ModuleNumber);
 
 			mcon->InUse = 1;
 			i++; /* ensure that there are no gaps in Wa->Modules */
 		} else {
-			SK_WARN("Error installing module#%d",
+			SK_WARN("Error installing Module#%d",
 				modld->ModuleNumber);
 			rc = -1;
 		}
@@ -957,7 +957,8 @@ char *SkelDrvrInstall(void *infofile)
 			Wa->InstalledModules, Wa->Drvrd->ModuleCount);
 		}
 	} else {
-		SK_INFO("Installed %d modules", Wa->InstalledModules);
+		SK_INFO("Installed %d (out of %d) modules",
+			Wa->InstalledModules, Wa->Drvrd->ModuleCount);
 	}
 	return (char *)Wa;
 out_err:
@@ -1100,7 +1101,8 @@ static void modules_uninstall(void)
 	for (i = 0; i < Wa->InstalledModules; i++) {
 		mcon = &Wa->Modules[i];
 
-		SK_INFO("Uninstalling module#%d..", mcon->ModuleNumber);
+		SK_INFO("Uninstalling Module#%d (out of %d)",
+			mcon->ModuleNumber, Wa->InstalledModules);
 		RemoveModule(mcon);
 	}
 }
