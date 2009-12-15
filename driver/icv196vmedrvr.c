@@ -20,16 +20,6 @@
 #include <icv196vme.h>
 #include <icv196vmeP.h>
 
-#define USER_VBASE 64
-
-#ifdef __lynx__
-#define PURGE_CPUPIPELINE asm("eieio") /* purge cpu pipe line */
-#define ISYNC_CPUPIPELINE asm("sync")  /* synchronise instruction  */
-#else /* __linux__ */
-#define PURGE_CPUPIPELINE
-#define ISYNC_CPUPIPELINE
-#endif
-
 #define X_NO_enable_Module  1
 #define X_NO_disable_Module 1
 #define X_NO_CheckBooking   1
@@ -53,7 +43,7 @@
 #define CHK(a)
 #endif
 
-#define CPRNT(a) cprintf a
+#define CPRNT(a)  cprintf a
 #define ERR_KK(a) kkprintf a
 
 #define ICVDBG_first    0x1
@@ -88,9 +78,6 @@
 #define DBG_PASSIVE(a)  {if (G_dbgflag & ICVDBG_passive)  {cprintf  a;}}
 #define DBG_TIMEOUT(a)  {if (G_dbgflag & ICVDBG_timeout)  {cprintf  a;}}
 #define DBG_INSTAL(a)   {if (G_dbgflag & ICVDBG_install)  {cprintf  a;}}
-
-#define IGNORE_SIG 0
-#define ICV_tout   1000
 
 static char Version[]      = "4.0";
 static char compile_date[] = __DATE__;
@@ -1243,7 +1230,7 @@ int icv196_open(SkelDrvrClientContext *ccon)
 	}
 
 	/* Perform the open */
-	swait(&icv196_statics.sem_drvr, IGNORE_SIG);
+	swait(&icv196_statics.sem_drvr, SEM_SIGRETRY);
 	if (!DevType) { /* Case synchro */
 		Init_UserHdl(UHdl, chan, &icv196_statics);
 		UHdl->UserMode  = icv196_statics.UserMode;
@@ -1275,7 +1262,7 @@ int icv196_close(SkelDrvrClientContext *ccon)
 	}
 
 	/* Perform close */
-	swait(&icv196_statics.sem_drvr, IGNORE_SIG);
+	swait(&icv196_statics.sem_drvr, SEM_SIGRETRY);
 	if (DevType == 0) /* case of Synchro handle */
 		ClrSynchro(UHdl); /* Clear connection established */
 
