@@ -136,7 +136,7 @@ static void handle_pci_error(void)
 static void
 __vme_error_store(struct vme_bus_error *dst, struct vme_bus_error *src)
 {
-	/* We consciously overwrite the previous bus error (if any) */
+	/* Overwrite the previous bus error (if any) */
 	memcpy(dst, src, sizeof(struct vme_bus_error));
 	dst->valid = 1;
 }
