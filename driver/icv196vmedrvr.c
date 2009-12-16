@@ -79,7 +79,7 @@
 #define DBG_TIMEOUT(a)  {if (G_dbgflag & ICVDBG_timeout)  {cprintf  a;}}
 #define DBG_INSTAL(a)   {if (G_dbgflag & ICVDBG_install)  {cprintf  a;}}
 
-static char Version[]      = "4.0";
+static char *Version       = "4.0";
 static char compile_date[] = __DATE__;
 static char compile_time[] = __TIME__;
 static int  G_dbgflag      = 0;
@@ -499,9 +499,10 @@ static void init_statics_once(void)
 	int i;
 
 	if (!icv196_statics.mcntr) {
-		compile_date[11] = 0; /* overwrite LF by 0 = end of string */
+		compile_date[11] = 0;
 		compile_time[9]  = 0;
-		cprintf("V.%s %s %s", Version, compile_date, compile_time);
+		SK_INFO("Vers#%s Compiled@ %s %s",
+			 Version, compile_date, compile_time);
 
 		/* Initialise user'shandle */
 		for (i = 0; i < ICVVME_MaxChan; i++)
@@ -1190,7 +1191,6 @@ char *icv196_install(InsLibModlDesc *md)
 	/* Startup the hardware for that module */
 	icvModule_Init_HW(MCtxt);
 
-	cprintf("\rModule#%d installed\n", icv196_statics.mcntr);
 	return (char *) MCtxt;	/* will save it for isr routine */
 }
 
@@ -1322,24 +1322,24 @@ int icv196_read(void *wa, struct cdcm_file *f,
 	bn = 0;
 	i = count; /* Long word count */
 	do {
-		if ((Evt = PullFrom_Ring (&UHdl->Ring)) != -1) {
+		if ((Evt = PullFrom_Ring(&UHdl->Ring)) != -1) {
 			*buffEvt = Evt;
 			buffEvt++; i--; bn += 1;
 		} else { /* no event in ring, wait if requested */
-			if (!bn && ((UHdl->UserMode & icv_bitwait))) { /* Wait for Lam */
+			if (!bn && (UHdl->UserMode & icv_bitwait)) { /* Wait for Lam */
 				/* Control waiting by t.o. */
 				UHdl->timid = 0;
 				UHdl->timid = timeout(UserWakeup, (char *)UHdl,
 						      (int)UHdl->WaitingTO);
 				swait(&UHdl->Ring.Evtsem, SEM_SIGIGNORE);	/* Wait Lam or Time Out */
 				disable(ps);
-				if (UHdl->timid < 0 ) {	/* time Out occured */
+				if (UHdl->timid < 0) {	/* time Out occured */
 					restore(ps);
 					/* check if any module setting got reset */
 					for (m = 0; m < icv_ModuleNb; m++) {
 						/* Update Module directory */
 						MCtxt = icv196_statics.ModuleCtxtDir[m];
-						if ( MCtxt != NULL) {
+						if (MCtxt) {
 							Line = 0;
 							icvModule_Reinit(MCtxt, Line);
 						}
