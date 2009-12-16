@@ -1272,7 +1272,18 @@ int icv196_close(SkelDrvrClientContext *ccon)
 	return OK;
 }
 
-/* Read Entry Point. Called directly from ske_read */
+/**
+ * @brief Read Entry Point
+ *
+ * @param wa     -- working area (SkelDrvrWorkingArea)
+ * @param f      --
+ * @param buff   --
+ * @param bcount --
+ *
+ * <long-description>
+ *
+ * @return <ReturnValue>
+ */
 int icv196_read(void *wa, struct cdcm_file *f,
 		char *buff, int bcount)
 {
@@ -1896,8 +1907,8 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		/* Check parameters and Set up environnement */
-		group = ((struct icv196T_connect *) arg)->source.field.group;
-		index = ((struct icv196T_connect *) arg)->source.field.index;
+		group = ((struct icv196T_connect *) arg)->source.group;
+		index = ((struct icv196T_connect *) arg)->source.index;
 		mode  = ((struct icv196T_connect *) arg)->mode;
 
 		if (mode & (~(icv_cumul | icv_disable))) {
@@ -1994,8 +2005,8 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		/* Check parameters and Set up environnement */
-		group = ((struct icv196T_connect *) arg)->source.field.group;
-		index = ((struct icv196T_connect *) arg)->source.field.index;
+		group = ((struct icv196T_connect *) arg)->source.group;
+		index = ((struct icv196T_connect *) arg)->source.index;
 
 		if (!icv196_statics.ModuleCtxtDir[group]) {
 			pseterr(EACCES);

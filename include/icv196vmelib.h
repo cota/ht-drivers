@@ -125,26 +125,15 @@ struct icv196T_ModuleInfo {
 	struct icv196T_ModuleParam ModuleInfo;
 };
 
-union icv196U_LogLine {
-	struct {
-		unsigned char group;
-		unsigned char index;
-	} field;
-	struct {
-		unsigned char machine;
-		unsigned char pulse;
-	} field_pls;
-	struct {
-		unsigned char module;
-		unsigned char line;
-	} field_line;
-	unsigned short All;
+struct icv196U_LogLine {
+	unsigned char group;
+	unsigned char index;
 };
 
 
 struct icv196T_connect {
-	union icv196U_LogLine source;
-	int                   mode;
+	struct icv196U_LogLine source;
+	int                    mode;
 };
 
 struct icv196T_Service {
