@@ -394,6 +394,10 @@ void tsi148_handle_vme_error(struct vme_bus_error *error)
 			addru, addrl, error->am, attr);
 	}
 
+	/* Overflow detected: not much we can do about it */
+	if (attr & TSI148_LCSR_VEAT_VEOF)
+		printk(KERN_ERR PFX "VME Bus Exception Overflow Detected\n");
+
 	/* Clear error */
 	iowrite32be(TSI148_LCSR_VEAT_VESCL, &chip->lcsr.veat);
 }
