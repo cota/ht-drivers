@@ -21,6 +21,8 @@
 #ifndef _VME_H
 #define _VME_H
 
+#include <linux/types.h>
+
 /*
  * VME window attributes
  */
@@ -251,6 +253,17 @@ struct vme_dma {
 	struct vme_dma_ctrl	ctrl;
 };
 
+/**
+ * \brief VME Bus Error descriptor
+ * \param address Address of the bus error
+ * \param am Address Modifier of the bus error
+ * \param valid Valid Flag: 0 -> no error, 1 -> error
+ */
+struct vme_bus_error {
+	__u64				address;
+	enum vme_address_modifier	am;
+	int				valid;
+};
 
 
 /*! @name VME single access swapping policy

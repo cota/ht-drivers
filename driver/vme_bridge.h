@@ -23,11 +23,22 @@
 #include <linux/interrupt.h>
 
 #include "tsi148.h"
+#include "vmebus.h"
 
 #define PFX			"VME Bridge: "
 #define DRV_MODULE_NAME		"vmebus"
 #define DRV_MODULE_VERSION	"1.0"
 #define DRV_MODULE_RELDATE	"Jan, 8 2009"
+
+/*
+ * We just keep the last VME error caught, protecting it with a spinlock.
+ * A new VME bus error overwrites it.
+ * This is very simple yet good enough for most (sane) purposes.
+ */
+struct vme_verr {
+	spinlock_t		lock;
+	struct vme_bus_error	error;
+};
 
 struct vme_bridge_device {
 	int			rev;		/* chip revision */
@@ -36,6 +47,7 @@ struct vme_bridge_device {
 	int			syscon;		/* syscon status */
 	struct tsi148_chip	*regs;
 	struct pci_dev		*pdev;
+	struct vme_verr		verr;
 };
 
 extern struct vme_bridge_device *vme_bridge;
@@ -96,6 +108,7 @@ extern ssize_t vme_misc_read(struct file *, char *, size_t, loff_t *);
 extern ssize_t vme_misc_write(struct file *, const char *, size_t, loff_t *);
 extern long vme_misc_ioctl(struct file *, unsigned int, unsigned long);
 extern int vme_bus_error_check(int clear);
+extern int vme_bus_error_check_clear(struct vme_bus_error *);
 
 /* Procfs stuff grouped here for comodity */
 #ifdef CONFIG_PROC_FS

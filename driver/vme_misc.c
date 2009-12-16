@@ -25,6 +25,44 @@ int vme_bus_error_check(int clear)
 }
 EXPORT_SYMBOL_GPL(vme_bus_error_check);
 
+static inline int
+__vme_bus_error_check_clear(struct vme_bus_error *err)
+{
+	struct vme_bus_error *vme_err = &vme_bridge->verr.error;
+
+	if (vme_err->valid && vme_err->am == err->am &&
+		vme_err->address == err->address) {
+
+		vme_err->valid = 0;
+		return 1;
+	}
+
+	return 0;
+}
+
+/**
+ * vme_bus_error_check_clear - check and clear VME bus errors
+ * @bus_error:	bus error to be checked
+ *
+ * Note: the bus error is only cleared if it matches the given bus
+ * error descriptor.
+ */
+int vme_bus_error_check_clear(struct vme_bus_error *err)
+{
+	unsigned long flags;
+	spinlock_t *lock;
+	int ret;
+
+	lock = &vme_bridge->verr.lock;
+
+	spin_lock_irqsave(lock, flags);
+	ret = __vme_bus_error_check_clear(err);
+	spin_unlock_irqrestore(lock, flags);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(vme_bus_error_check_clear);
+
 ssize_t vme_misc_read(struct file *file, char *buf, size_t count,
 			loff_t *ppos)
 {
