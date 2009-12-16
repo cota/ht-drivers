@@ -874,6 +874,21 @@ static int vme_destroy_window_ioctl(int __user *argp)
 	return vme_destroy_window(window_num);
 }
 
+static int vme_bus_error_check_clear_ioctl(struct vme_bus_error __user *argp)
+{
+	struct vme_bus_error err;
+
+	if (copy_from_user(&err, argp, sizeof(struct vme_bus_error)))
+		return -EFAULT;
+
+	err.valid = vme_bus_error_check_clear(&err);
+
+	if (copy_to_user(argp, &err, sizeof(struct vme_bus_error)))
+		return -EFAULT;
+
+	return 0;
+}
+
 /**
  * vme_window_ioctl() - ioctl file method for the VME window device
  * @file: Device file descriptor
@@ -1016,6 +1031,8 @@ long vme_window_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		rc = put_user(vme_bus_error_check(1),
 			      (unsigned int __user *)argp);
 		break;
+	case VME_IOCTL_CHECK_CLEAR_BUS_ERROR:
+		return vme_bus_error_check_clear_ioctl(argp);
 
 	default:
 		rc = -ENOIOCTLCMD;

@@ -332,8 +332,10 @@ struct pdparam_master
 #define VME_IOCTL_GET_DESTROY_ON_REMOVE	_IOR( 'V', 7, unsigned int)
 /** Set the destroy on remove flag */
 #define VME_IOCTL_SET_DESTROY_ON_REMOVE	_IOW( 'V', 8, unsigned int)
-/** Get bus error status */
+/** Get bus error status -- DEPRECATED */
 #define VME_IOCTL_GET_BUS_ERROR		_IOR( 'V', 9, unsigned int)
+/** Check (and possibly clear) the bus error status */
+#define VME_IOCTL_CHECK_CLEAR_BUS_ERROR	_IOWR('V',10, struct vme_bus_error)
 /* \}*/
 
 /**
