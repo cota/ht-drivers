@@ -1103,7 +1103,7 @@ static inline int tsi148_bus_error_chk(struct tsi148_chip *regs, int clear)
 
 
 extern void tsi148_handle_pci_error(void);
-extern void tsi148_handle_vme_error(void);
+extern void tsi148_handle_vme_error(struct vme_bus_error *);
 extern int tsi148_generate_interrupt(int, int, signed long);
 
 extern int tsi148_dma_get_status(struct dma_channel *);

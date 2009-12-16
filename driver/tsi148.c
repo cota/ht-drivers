@@ -22,6 +22,12 @@
 static struct tsi148_chip *chip;
 static struct dma_pool *dma_desc_pool;
 
+static inline void reg_join(u32 high, u32 low, u64 *out)
+{
+	*out = (unsigned long long)high << 32;
+	*out |= low;
+}
+
 /*
  * Procfs support
  */
@@ -364,21 +370,28 @@ void tsi148_handle_pci_error(void)
 /**
  * tsi148_handle_vme_error() - Handle a VME bus error reported by the bridge
  *
- *  This handler simply displays a message on the console and clears
+ * Retrieve and report the offending VME address and Address Modifier, clearing
  * the error.
  */
-void tsi148_handle_vme_error(void)
+void tsi148_handle_vme_error(struct vme_bus_error *error)
 {
+	u32 attr;
+	u32 addru, addrl;
+
+	/* Store the address */
+	addru = ioread32be(&chip->lcsr.veau);
+	addrl = ioread32be(&chip->lcsr.veal);
+	reg_join(addru, addrl, &error->address);
+
+	/* Get the Address Modifier from the attributes */
+	attr = ioread32be(&chip->lcsr.veat);
+	error->am = (attr & TSI148_LCSR_VEAT_AM) >> TSI148_LCSR_VEAT_AM_SHIFT;
+
 	/* Display raw error information */
 	if (vme_report_bus_errors) {
-		unsigned int attr = ioread32be(&chip->lcsr.veat);
-
 		printk(KERN_ERR PFX "VME bus error at address: %.8x %.8x - "
 			"AM: 0x%x - tsi148 attributes: %.8x\n",
-			ioread32be(&chip->lcsr.veau),
-			ioread32be(&chip->lcsr.veal),
-			(attr & TSI148_LCSR_VEAT_AM) >>
-			TSI148_LCSR_VEAT_AM_SHIFT, attr);
+			addru, addrl, error->am, attr);
 	}
 
 	/* Clear error */

@@ -588,6 +588,12 @@ static int __devinit vme_bridge_init_interrupts(void)
 	return 0;
 }
 
+static inline void vme_bus_error_init(struct vme_verr *verr)
+{
+	spin_lock_init(&verr->lock);
+	verr->desc.valid = 0;
+}
+
 /**
  * vme_bridge_init() - Initialize the device
  * @dev: PCI device to register
@@ -626,6 +632,9 @@ static int __devinit vme_bridge_init(struct pci_dev *pdev,
 
 	pci_set_drvdata(pdev, vme_bridge);
 	vme_bridge->pdev = pdev;
+
+	/* initialise the bus error struct */
+	vme_bus_error_init(&vme_bridge->verr);
 
 	dev_info(&pdev->dev, "%s\n", version);
 

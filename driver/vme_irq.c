@@ -135,7 +135,17 @@ static void handle_pci_error(void)
 
 static void handle_vme_error(void)
 {
-	tsi148_handle_vme_error();
+	struct vme_bus_error_desc desc;
+	unsigned long flags;
+	spinlock_t *lock;
+
+	lock = &vme_bridge->verr.lock;
+
+	spin_lock_irqsave(lock, flags);
+	tsi148_handle_vme_error(&desc.error);
+	desc.valid = 1;
+	memcpy(&vme_bridge->verr.desc, &desc, sizeof(desc));
+	spin_unlock_irqrestore(lock, flags);
 
 	int_stats[INT_VERR].count++;
 }
