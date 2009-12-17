@@ -1427,7 +1427,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		for (i = 0; i < ICVVME_MaxChan; i++, UHdl++) {
 			HanLin = &HanInfo->handle[i];
 			l = 0;
-			if (UHdl->usercount == 0)
+			if (!UHdl->usercount)
 				continue;
 			else {
 				HanLin->pid = UHdl->pid;
@@ -1478,17 +1478,17 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		group = ((struct icv196T_UserLine *) arg)->group;
 		index = ((struct icv196T_UserLine *) arg)->index;
 
-		if (icv196_statics.ModuleCtxtDir[group] == NULL) {
+		if (!icv196_statics.ModuleCtxtDir[group]) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
 
-		if (group < 0 || group > (icv_ModuleNb - 1)) {
+		if (!WITHIN_RANGE(0, group, icv_ModuleNb - 1)) {
 			pseterr(EINVAL);
 			return SYSERR;
 		}
 
-		if (index < 0 || index > (icv_LineNb -1)) {
+		if (!WITHIN_RANGE(0, index, icv_LineNb -1)) {
 			pseterr(EINVAL);
 			return SYSERR;
 		}
@@ -1496,7 +1496,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		/* set up Logical line handle pointer */
 		LogIx = CnvrtUserLine((char)group, (char)index);
 
-		if (LogIx < 0 || LogIx > ICV_LogLineNb) {
+		if (!WITHIN_RANGE(0, LogIx, ICV_LogLineNb)) {
 			pseterr(EWOULDBLOCK);
 			return SYSERR;
 		}
@@ -1547,19 +1547,20 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (group < 0 || group > (icv_ModuleNb - 1)) {
+		if (!WITHIN_RANGE(0, group, icv_ModuleNb - 1)) {
 			pseterr(EINVAL);
 			return SYSERR;
 		}
 
-		if (index < 0 || index > (icv_LineNb -1)) {
+		if (!WITHIN_RANGE(0, index, icv_LineNb - 1)) {
 			pseterr(EINVAL);
 			return SYSERR;
 		}
 
 		/* set up Logical line handle pointer */
 		LogIx = CnvrtUserLine((char)group, (char)index);
-		if (LogIx < 0 || LogIx > ICV_LogLineNb) {
+
+		if (!WITHIN_RANGE(0, LogIx, ICV_LogLineNb)) {
 			pseterr(EWOULDBLOCK);
 			return SYSERR;
 		}
@@ -1604,17 +1605,17 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		group = ((struct icv196T_UserLine *) arg)->group;
 		index = ((struct icv196T_UserLine *) arg)->index;
 
-		if (icv196_statics.ModuleCtxtDir[group] == NULL) {
+		if (!icv196_statics.ModuleCtxtDir[group]) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
 
-		if (group < 0 || group > (icv_ModuleNb - 1)) {
+		if (!WITHIN_RANGE(0, group, icv_ModuleNb - 1)) {
 			pseterr(EINVAL);
 			return SYSERR;
 		}
 
-		if (index < 0 || index > (icv_LineNb -1)) {
+		if (!WITHIN_RANGE(0, index, icv_LineNb -1)) {
 			pseterr(EINVAL);
 			return SYSERR;
 		}
@@ -1622,7 +1623,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		/* set up Logical line handle pointer */
 		LogIx = CnvrtUserLine((char)group, (char)index);
 
-		if (LogIx < 0 || LogIx > ICV_LogLineNb) {
+		if (!WITHIN_RANGE(0, LogIx, ICV_LogLineNb)) {
 			pseterr(EWOULDBLOCK);
 			return SYSERR;
 		}
@@ -1667,24 +1668,25 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		group = ((struct icv196T_UserLine *) arg)->group;
 		index = ((struct icv196T_UserLine *) arg)->index;
 
-		if (icv196_statics.ModuleCtxtDir[group] == NULL) {
+		if (!icv196_statics.ModuleCtxtDir[group]) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
 
-		if (group < 0 || group > (icv_ModuleNb - 1)) {
+		if (!WITHIN_RANGE(0, group, icv_ModuleNb - 1)) {
 			pseterr(EINVAL);
 			return SYSERR;
 		}
 
-		if (index < 0 || index > (icv_LineNb -1)) {
+		if (!WITHIN_RANGE(0, index, icv_LineNb -1)) {
 			pseterr(EINVAL);
 			return SYSERR;
 		}
 
 		/* set up Logical line handle pointer */
 		LogIx = CnvrtUserLine((char)group, (char)index);
-		if (LogIx < 0 || LogIx > ICV_LogLineNb) {
+
+		if (!WITHIN_RANGE(0, LogIx, ICV_LogLineNb)) {
 			pseterr(EWOULDBLOCK);
 			return SYSERR;
 		}
@@ -1707,7 +1709,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		/* Read interrupt counters for all lines in the given module */
 		Module = (long)((struct icv196T_Service *) arg)->module;
 		Data   = ((struct icv196T_Service *)arg)->data;
-		if (icv196_statics.ModuleCtxtDir[Module] == NULL) {
+		if (!icv196_statics.ModuleCtxtDir[Module]) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
@@ -1721,7 +1723,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		/* Read reenable flags for all lines in the given module */
 		Module = (long)((struct icv196T_Service *) arg)->module;
 		Data   = ((struct icv196T_Service *)arg)->data;
-		if (icv196_statics.ModuleCtxtDir[Module] == NULL) {
+		if (!icv196_statics.ModuleCtxtDir[Module]) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
@@ -1735,7 +1737,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		/* Read interrupt enable mask for the given module */
 		Module = (long)((struct icv196T_Service *) arg)->module;
 		Data   = ((struct icv196T_Service *)arg)->data;
-		if (icv196_statics.ModuleCtxtDir[Module] == NULL) {
+		if (!icv196_statics.ModuleCtxtDir[Module]) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
@@ -1760,7 +1762,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			Subs = &LHdl->Subscriber[0];
 			for (j = 0; j < LHdl->SubscriberCurNb; j++, Subs++) {
 				if (Subs->Ring) {
-					if (j == 0)
+					if (!j)
 						Data++;
 					continue;
 				}
@@ -1934,7 +1936,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		/* set up Logical line handle pointer */
 		LogIx = CnvrtUserLine((char)group, (char)index);
 
-		if (LogIx < 0 || LogIx > ICV_LogLineNb) {
+		if (!WITHIN_RANGE(0, LogIx, ICV_LogLineNb)) {
 			pseterr(EWOULDBLOCK);
 			return SYSERR;
 		}
