@@ -1305,7 +1305,7 @@ int icv196_read(void *wa, struct cdcm_file *f,
 
 	Chan = minordev(f->dev);
 	if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
-		UHdl = &icv196_statics.ICVHdl[Chan]; /* ICV event handle */
+		UHdl = &icv196_statics.ICVHdl[Chan-1]; /* ICV event handle */
 	} else {
 		pseterr(ENODEV);
 		return SYSERR;
@@ -1464,7 +1464,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			return SYSERR;
 		}
 		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
-			UHdl = &icv196_statics.ICVHdl[Chan];
+			UHdl = &icv196_statics.ICVHdl[Chan-1];
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -1527,7 +1527,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
-			UHdl = &icv196_statics.ICVHdl[Chan];
+			UHdl = &icv196_statics.ICVHdl[Chan-1];
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -1589,7 +1589,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
-			UHdl = &icv196_statics.ICVHdl[Chan];
+			UHdl = &icv196_statics.ICVHdl[Chan-1];
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -1652,7 +1652,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
-			UHdl = &icv196_statics.ICVHdl[Chan];
+			UHdl = &icv196_statics.ICVHdl[Chan-1];
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -1815,7 +1815,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
-			UHdl = &icv196_statics.ICVHdl[Chan];
+			UHdl = &icv196_statics.ICVHdl[Chan-1];
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -1839,7 +1839,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
-			UHdl = &icv196_statics.ICVHdl[Chan]; /* LAM handle */
+			UHdl = &icv196_statics.ICVHdl[Chan-1]; /* LAM handle */
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -1864,7 +1864,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
-			UHdl = &icv196_statics.ICVHdl[Chan];/* LAM handle */
+			UHdl = &icv196_statics.ICVHdl[Chan-1];/* LAM handle */
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -1895,7 +1895,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
-			UHdl = &icv196_statics.ICVHdl[Chan];
+			UHdl = &icv196_statics.ICVHdl[Chan-1];
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -1993,7 +1993,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
-			UHdl = &icv196_statics.ICVHdl[Chan];
+			UHdl = &icv196_statics.ICVHdl[Chan-1];
 		} else {
 			pseterr(ENODEV);
 			return SYSERR;
@@ -2073,7 +2073,7 @@ int icv196_select(struct icv196T_s *s, struct cdcm_file *f,
 	}
 
 	if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
-		UHdl = &s->ICVHdl[Chan]; /* general handle */
+		UHdl = &s->ICVHdl[Chan-1]; /* general handle */
 	}
 
 	switch (which) {
