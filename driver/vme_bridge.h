@@ -38,6 +38,8 @@
 struct vme_verr {
 	spinlock_t		lock;
 	struct vme_bus_error	error;
+	struct mutex		handlers_lock;
+	struct list_head	handlers_list;
 };
 
 struct vme_bridge_device {
@@ -48,6 +50,16 @@ struct vme_bridge_device {
 	struct tsi148_chip	*regs;
 	struct pci_dev		*pdev;
 	struct vme_verr		verr;
+};
+
+typedef void (*vme_berr_handler_t)(struct vme_bus_error *);
+
+struct vme_berr_handler {
+	struct list_head list;
+	struct list_head err_list;
+	struct vme_bus_error error;
+	size_t count;
+	vme_berr_handler_t func;
 };
 
 extern struct vme_bridge_device *vme_bridge;

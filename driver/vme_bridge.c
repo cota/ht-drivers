@@ -592,6 +592,8 @@ static inline void vme_bus_error_init(struct vme_verr *verr)
 {
 	spin_lock_init(&verr->lock);
 	verr->error.valid = 0;
+	mutex_init(&verr->handlers_lock);
+	INIT_LIST_HEAD(&verr->handlers_list);
 }
 
 /**

@@ -55,6 +55,68 @@ __vme_bus_error_check_clear(struct vme_bus_error *err)
 	return 0;
 }
 
+static struct vme_berr_handler *
+__vme_register_berr_handler(struct vme_bus_error *error, size_t count,
+			vme_berr_handler_t func)
+{
+	struct vme_berr_handler *handler;
+
+	handler = kzalloc(sizeof(struct vme_berr_handler), GFP_KERNEL);
+	if (handler == NULL) {
+		printk("shit shit shit");
+		return NULL;
+	}
+
+	memcpy(&handler->error, error, sizeof(struct vme_bus_error));
+	handler->count = count;
+	handler->func = func;
+	list_add_tail(&handler->list, &vme_bridge->verr.handlers_list);
+
+	return handler;
+}
+
+struct vme_berr_handler *
+vme_register_berr_handler(struct vme_bus_error *error, size_t count,
+			vme_berr_handler_t func)
+{
+	struct mutex *lock = &vme_bridge->verr.handlers_lock;
+	struct vme_berr_handler *ret;
+
+	mutex_lock(lock);
+	ret = __vme_register_berr_handler(error, count, func);
+	mutex_unlock(lock);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(vme_register_berr_handler);
+
+static void __vme_unregister_berr_handler(struct vme_berr_handler *handler)
+{
+	struct list_head *handler_pos, *temp;
+	struct vme_berr_handler *entry;
+
+	list_for_each_safe(handler_pos, temp, &vme_bridge->verr.handlers_list) {
+		entry = list_entry(handler_pos, struct vme_berr_handler, list);
+
+		if (entry == handler) {
+			list_del(handler_pos);
+			kfree(entry);
+			return;
+		}
+	}
+	printk(KERN_WARNING PFX "%s: handler not found\n", __func__);
+}
+
+void vme_unregister_berr_handler(struct vme_berr_handler *handle)
+{
+	struct mutex *lock = &vme_bridge->verr.handlers_lock;
+
+	mutex_lock(lock);
+	__vme_unregister_berr_handler(handle);
+	mutex_unlock(lock);
+}
+EXPORT_SYMBOL_GPL(vme_unregister_berr_handler);
+
 /**
  * vme_bus_error_check_clear - check and clear VME bus errors
  * @bus_error:	bus error to be checked
