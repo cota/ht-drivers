@@ -133,26 +133,19 @@ static void handle_pci_error(void)
 	int_stats[INT_PERR].count++;
 }
 
-static void
-__vme_error_store(struct vme_bus_error *dst, struct vme_bus_error *src)
-{
-	/* Overwrite the previous bus error (if any) */
-	memcpy(dst, src, sizeof(struct vme_bus_error));
-	dst->valid = 1;
-}
-
 static void handle_vme_error(void)
 {
-	struct vme_bus_error error;
 	unsigned long flags;
 	spinlock_t *lock;
 
-	tsi148_handle_vme_error(&error);
-
 	lock = &vme_bridge->verr.lock;
 
+	/*
+	 * so what we should do is to always grab the latest error status
+	 * from the hardware.
+	 */
 	spin_lock_irqsave(lock, flags);
-	__vme_error_store(&vme_bridge->verr.error, &error);
+	tsi148_handle_vme_error();
 	spin_unlock_irqrestore(lock, flags);
 
 	int_stats[INT_VERR].count++;

@@ -25,10 +25,25 @@ int vme_bus_error_check(int clear)
 }
 EXPORT_SYMBOL_GPL(vme_bus_error_check);
 
-static inline int
+static inline void __vme_bus_error_update(void)
+{
+	tsi148_handle_vme_error();
+}
+
+static int
 __vme_bus_error_check_clear(struct vme_bus_error *err)
 {
 	struct vme_bus_error *vme_err = &vme_bridge->verr.error;
+
+	__vme_bus_error_update();
+
+	printk("vme_err->valid: %d\n", vme_err->valid);
+	printk("vme_err->am: %x\n", vme_err->am);
+	printk("vme_err->address: %8llx\n", (unsigned long long)vme_err->address);
+
+	printk("err->valid: %d\n", err->valid);
+	printk("err->am: %x\n", err->am);
+	printk("err->address: %8llx\n", (unsigned long long)err->address);
 
 	if (vme_err->valid && vme_err->am == err->am &&
 		vme_err->address == err->address) {

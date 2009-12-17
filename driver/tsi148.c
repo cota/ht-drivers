@@ -367,16 +367,10 @@ void tsi148_handle_pci_error(void)
 	iowrite32be(TSI148_LCSR_EDPAT_EDPCL, &chip->lcsr.edpat);
 }
 
-/**
- * tsi148_handle_vme_error() - Handle a VME bus error reported by the bridge
- *
- * Retrieve and report the offending VME address and Address Modifier, clearing
- * the error.
- */
-void tsi148_handle_vme_error(struct vme_bus_error *error)
+static void tsi148_bus_error_retrieve(struct vme_bus_error *error)
 {
-	u32 attr;
 	u32 addru, addrl;
+	u32 attr;
 
 	/* Store the address */
 	addru = ioread32be(&chip->lcsr.veau);
@@ -386,6 +380,9 @@ void tsi148_handle_vme_error(struct vme_bus_error *error)
 	/* Get the Address Modifier from the attributes */
 	attr = ioread32be(&chip->lcsr.veat);
 	error->am = (attr & TSI148_LCSR_VEAT_AM) >> TSI148_LCSR_VEAT_AM_SHIFT;
+
+	/* mark it as valid */
+	error->valid = 1;
 
 	/* Display raw error information */
 	if (vme_report_bus_errors) {
@@ -400,6 +397,22 @@ void tsi148_handle_vme_error(struct vme_bus_error *error)
 
 	/* Clear error */
 	iowrite32be(TSI148_LCSR_VEAT_VESCL, &chip->lcsr.veat);
+}
+
+/**
+ * tsi148_handle_vme_error() - Handle a VME bus error reported by the bridge
+ *
+ * Retrieve and report the offending VME address and Address Modifier, clearing
+ * the error.
+ */
+void tsi148_handle_vme_error(void)
+{
+	int occurred;
+
+	occurred = tsi148_bus_error_chk(vme_bridge->regs, 0);
+	printk("VMEbus error occured: %d\n", occurred);
+	if (occurred)
+		tsi148_bus_error_retrieve(&vme_bridge->verr.error);
 }
 
 /**
