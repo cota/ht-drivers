@@ -29,7 +29,7 @@ Short file description
 |-- compiletst       - test program compilation script
 |-- examples/        - useful examples on HOWTO do stuff
 |   |
-|   |-- Kbuild            - Kbuild template to use for specific driver
+|   |-- Kbuild.specific   - Kbuild template to use for specific driver
 |   |                       compilation. All possible compilation options
 |   |                       are described here.
 |   |-- Makefile.specific - Specific driver description template
