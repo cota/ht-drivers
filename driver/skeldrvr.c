@@ -1036,12 +1036,12 @@ int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 	 * number as an index into the client contexts array.
 	 */
 	clientnr = minor(flp->dev) - 1;
-	if (clientnr < 0 || clientnr >= SkelDrvrCLIENT_CONTEXTS) {
+	if (!WITHIN_RANGE(0, clientnr, SkelDrvrCLIENT_CONTEXTS - 1)) {
 		pseterr(EFAULT);
 		return SYSERR;
 	}
 
-	ccon = &(Wa->Clients[clientnr]);
+	ccon = &Wa->Clients[clientnr];
 
 	if (ccon->InUse) {
 		pseterr(EBUSY); /* already open by someone else */
@@ -1247,24 +1247,33 @@ int skel_write(void *wa, struct cdcm_file *f, char *buf, int len)
 	return SkelDrvrWrite(wa, f, buf, len);
 }
 
-int SkelDrvrSelect(void        *wa,    /* Working area */
-		   struct cdcm_file *flp,   /* File pointer */
-		   int          wch,   /* Read/Write direction */
-		   struct sel  *ffs) { /* Selection structurs */
+/**
+ * @brief
+ *
+ * @param wa  -- Working area
+ * @param flp -- File pointer
+ * @param wch -- Read/Write direction
+ * @param ffs -- Selection structures
+ *
+ * <long-description>
+ *
+ * @return <ReturnValue>
+ */
+int SkelDrvrSelect(void *wa, struct cdcm_file *flp, int wch, struct sel *ffs)
+{
+	SkelDrvrClientContext *ccon;
+	S32 clientnr;
 
-SkelDrvrClientContext *ccon;
-S32                    clientnr;
+	clientnr = minor(flp->dev) -1;
+	ccon = &Wa->Clients[clientnr];
 
-   clientnr = minor(flp->dev) -1;
-   ccon = &(Wa->Clients[clientnr]);
+	if (wch == SREAD) {
+		ffs->iosem = (S32 *) &ccon->Semaphore; /* Watch out here I hope   */
+		return OK;                             /* the system dosn't swait */
+	}                                              /* the read does it too !! */
 
-   if (wch == SREAD) {
-      ffs->iosem = (S32 *) &(ccon->Semaphore); /* Watch out here I hope   */
-      return OK;                               /* the system dosn't swait */
-   }                                           /* the read does it too !! */
-
-   pseterr(EACCES);         /* Permission denied */
-   return SYSERR;
+	pseterr(EACCES);         /* Permission denied */
+	return SYSERR;
 }
 
 static void get_module_maps_ioctl(SkelDrvrModuleContext *mcon, void *arg)
