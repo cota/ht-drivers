@@ -1,0 +1,18 @@
+Template for skel drivers
+-------------------------
+
+- myDrvr.c: this is the basic driver template -- which is a base to
+	provide the skel infrastructure.
+	This file usually goes into the myModule/driver directory.
+
+- skeluser.h: definitions needed by 'skel' -- such as desired number
+	of contexts, modules, etc.
+	Directory: myModule/driver o myModule/include (as you wish)
+
+- skeluser_ioctl.h: IOCTL numbers for the driver -- note that these
+	shouldn't clash with those of 'skel' (As long as you
+	use letters in the alphabet as the magic number, they won't
+	clash). Note also that there are some names that need to be
+	kept as they are in the template file -- read the comments
+	in the file for further info.
+	Directory: myModule/driver o myModule/include (as you wish)
