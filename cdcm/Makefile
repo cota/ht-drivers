@@ -3,7 +3,7 @@
 #
 
 # Where everything is nested
-ROOTDIR = /acc/src/dsc/drivers/coht
+ROOTDIR = $(PWD)/..
 
 include ./Makefile.specific
 

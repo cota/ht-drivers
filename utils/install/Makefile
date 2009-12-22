@@ -18,7 +18,7 @@ include /acc/src/dsc/co/Make.auto
 PHONY := _all
 _all: all
 
-ROOTDIR := /acc/src/dsc/drivers/coht
+ROOTDIR := ../..
 
 # libraries (and their pathes) to link executable file with
 XTRALIBDIRS = $(ROOTDIR)/utils/user

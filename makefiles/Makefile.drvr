@@ -29,7 +29,7 @@ _all:
 
 # Where everything is nested
 # User can provide it's own, otherwise default will be used
-ROOTDIR := $(if $(ROOTDIR),$(ROOTDIR),/acc/src/dsc/drivers/coht)
+ROOTDIR := $(PWD)/../..
 
 # CPU should be defined
 $(if $(CPU),,$(error CPU not defined))
