@@ -1,0 +1,16 @@
+#!/bin/bash
+################################################################################
+# @file compiledrvr
+#
+# @brief Driver compilation script.
+#
+# @author Yury GEORGIEVSKIY, CERN.
+#
+# @date Created on 13/01/2009
+################################################################################
+
+# compile for Linux
+make clean CPU=L865; make CPU=L865
+
+# compile for Lynx
+make clean CPU=ppc4 && make CPU=ppc4

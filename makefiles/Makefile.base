@@ -1,0 +1,194 @@
+###############################################################################
+# @file Makefile.base
+#
+# @brief Main beast. Incapculates standart CERN make rules.
+#
+# @author Yury GEORGIEVSKIY, CERN
+#
+# Should be include in the makefile _after_ Makefile.specific
+#
+# @date Created on 13/01/2009
+###############################################################################
+
+# First check if needed environment variables are set:
+ifndef CPU
+%::
+	@echo "'CPU' declaration expected."
+	@echo "Exiting..."; exit 1
+
+else # Don't proceed if error
+
+# Do not print "Entering directory ..."
+MAKEFLAGS += --no-print-directory
+
+# Standart CERN Makefile rules
+include /acc/src/dsc/co/Make.auto
+
+.PHONY: abort dummy
+
+abort:
+	@if [ -z "$(ISP)" ]; then \
+		echo "Wrong/unsupported CPU type"; \
+		echo "Exiting..."; exit 1; \
+	else \
+		echo "Current compilation settings: CPU=$(CPU) BSP=$(BSP) ISP=$(ISP)"; \
+	fi
+
+UTILINSTDIR = /acc/local/$(CPU)/drvrutil
+EXECINSTDIR = /acc/dsc
+###############################################################################
+
+BLDTYPES = dbg rls drv
+
+unexport BLDTYPE PASSTARG
+
+# some file extentions
+EXTDLL	= .dll
+EXTSO	= .dll
+EXTLIB	= .a
+EXTOBJ	= .$(CPU).o
+EXTEXE	=
+
+comma = ,
+SRCCSFXS := .c
+SRCCXXSFXS := .cpp .cxx .C .cc .CC
+SRCSFXS := $(SRCCSFXS) $(SRCCXXSFXS)
+FLTSRCFILES = $(filter-out $(comma)%, $(filter $(addprefix %,$(SRCSFXS)),$(SRCFILES)))
+OBJFILES = $(addsuffix $(EXTOBJ),$(notdir $(basename $(FLTSRCFILES)))) $(ADDOBJFILES)
+OBJS = $(addprefix $(OBJDIR)/,$(OBJFILES)) $(ADDOBJS)
+LIBS = $(join $(addsuffix $(OBJDIR)/,$(dir $(LIBFILES))),$(notdir $(LIBFILES)))
+
+# Buildup all include pathes
+INCFLAGS = $(addprefix -I,$(INCDIRS)) $(addprefix -I,$($(BLDTYPE).INCDIRS)) $(ADDINCLUDES)
+
+# Compilation date
+BASECFLAGS   = -Wall -DCOMPILE_TIME=$(shell date --utc +%s)
+BASECXXFLAGS = -Wall -Wno-reorder
+
+# debug/optimization flags
+dbg.BLDTFLAGS =  -DDEBUG -D_DEBUG
+rls.BLDTFLAGS = -O2
+drv.BLDTFLAGS =  # Drivers are build without debug and optimization
+BLDTFLAGS = $($(BLDTYPE).BLDTFLAGS)
+
+# next 3 are not used for now, but we keep them 'just-in-case-if...'
+BASELDSHFLAGS = $(LDSHFLAGS) $(HOSTLDSHFLAGS) $(BLDTFLAGS) $(ADDLDSHFLAGS)
+BASELDFLAGS   = $(LDFLAGS) $(HOSTLDFLAGS) $(BLDTFLAGS) $(ADDLDFLAGS)
+BASEARFLAGS   = $(ARFLAGS) $(HOSTARFLAGS) $(ADDARFLAGS)
+
+# C++ flags
+CXXFLAGS = $(BASECXXFLAGS) $(HOSTCXXFLAGS) $(DEFFLAGS) $(INCFLAGS) $(BLDTFLAGS) $(ADDCXXFLAGS)
+
+# C flags
+CFLAGS = $(BASECFLAGS) $(HOSTCFLAGS) $(DEFFLAGS) $(INCFLAGS) $(BLDTFLAGS) $(ADDCFLAGS)
+
+# Just a reminder.
+# $(COMPILE.c) == $(CC) $(CFLAGS) $(CPPFLAGS) -c
+# $(OUTPUT_OPTION) == -o $@
+# %.$(CPU).o: %.c
+#       $(COMPILE.c) $< $(OUTPUT_OPTION)
+
+vpath %$(EXTOBJ) $(OBJDIR)
+
+############################################################################
+# Our Primary target
+############################################################################
+all:
+	@$(MAKE) DLVRYPLS=$(word 2, $(ACCS)) build-subdirs build
+
+# quiet
+build::
+	@:
+############################################################################
+
+
+############################################################################
+# Cleaning up
+############################################################################
+clean clear::
+	@$(MAKE) $@loc-subdirs $@loc
+
+# Stub goals for cleaning up
+# Dummy echoing to suppress "Nothing to be done for clean/clear" message
+cleanloc clearloc::
+	@echo -n
+############################################################################
+
+
+############################################################################
+# To build depend files
+############################################################################
+ifndef BLDTYPE
+depend dep::
+	@$(MAKE) BLDTYPE=dbg depend-subdirs depend
+	@$(MAKE) BLDTYPE=rls depend-subdirs depend
+else
+depend dep::
+	@if [ ! -z "$(strip $(FLTSRCFILES))" ]; then \
+	    echo "$(CXX) -MM $(BASECXXFLAGS) $(FLTSRCFILES) > .$@-$(BLDTYPE)";\
+	    $(CXX) -MM $(BASECXXFLAGS) $(FLTSRCFILES) > .$@-$(BLDTYPE);\
+	fi
+endif # BLDTYPE
+############################################################################
+
+# Compiled files goes here
+OBJDIR = $(CPU)/$(KVER)
+$(OBJDIR):
+	mkdir -p $@
+
+# Ensure lowecase drivername
+DRIVER_NAME := $(shell echo $(DRIVER_NAME) | tr "[:upper:]" "[:lower:]")
+
+# Driver and install prog goes here.
+# This name is defined _only_ if user in not alredy define it with preferable
+# one in the Makefile.specific. Driver name is lowercase-ensured.
+FINAL_DEST ?= object_$(DRIVER_NAME)
+object_%:
+	-mkdir -p ../$@
+
+# Next two rules are Installation Rules
+install::
+	@if [ $(words $(ACCS)) != 3 ]; then \
+		echo "Number of delivery places is out-of-order."; \
+		echo "Expected - 3 places (as of 01/2008). Curren - $(words $(ACCS)) places."; \
+		echo "This Makefile is out-of-date!"; \
+		echo "Exiting..."; \
+		exit 1; \
+	elif [ ! $(DLVRYPLS) ]; then \
+		echo "Deliver to the test machine: 'make $(word 1, $(ACCS)).install CPU=$(CPU)'"; \
+		echo "Deliver to the operational machine: 'make $(word 2, $(ACCS)).install CPU=$(CPU)'"; \
+		echo "Deliver to the LHC machine: 'make $(word 3, $(ACCS)).install CPU=$(CPU)'"; \
+		echo "Exiting..."; \
+		exit 1; \
+	fi
+
+# lab.% oper.%. oplhc.% (See 'Make.common' file for current delivery places)
+$(addsuffix .%,$(ACCS))::
+	@$(MAKE) DLVRYPLS=$(basename $@) $*-subdirs $*
+
+# Descent all the goals into subdirectories
+%-subdirs::
+	@for dir in $(SUBDIRS) _dummy_dir_ ; \
+	do \
+	    if [ $$dir != _dummy_dir_ -a -d $$dir ]; then \
+		echo "---------[ Processing '$$dir' directory ]--------------"; \
+		echo "$(MAKE) -C $$dir $*-subdirs $*" ; \
+		$(MAKE) -C $$dir $*-subdirs $*; \
+		if [ $$? -eq 2 ]; then exit 1; fi; \
+	    fi; \
+	done
+
+
+# For producing object files. Just an example of possible redefinition.
+#OUTPUT_OPTION +=; mv $*.$(CPU).o $(OBJDIR)/$@
+
+# Include dependancy file (if any)
+ifneq ($(wildcard .depend-$(BLDTYPE)),)
+include .depend-$(BLDTYPE)
+endif
+
+ifndef BLDTYPE
+BLDTYPE = dbg
+endif
+
+endif #CPU not defined condition ends

@@ -1,0 +1,149 @@
+>#+TITLE:   Driver delivery schema.
+#+OPTIONS: H:3 num:t toc:t \n:t @:t ::t |:t ^:t -:t f:t *:t TeX:t LaTeX:nil skip:t d:nil tags:not-in-toc
+#+STARTUP: hidestars
+
+* Pathes
+        |      | linux          | lynx           |
+        |------+----------------+----------------|
+        | /    | <              | <              |
+        | CPU  | ppc4           | L864           |
+        |      |                | L865           |
+        |------+----------------+----------------|
+        | ACCS | lab oper oplhc | lab oper oplhc |
+        |------+----------------+----------------|
+        | KVER | 4.0.0          | 2.6.24.7-rt21  |
+        |      |                | 2.6.24.7-rt27  |
+        |      |                | 2.6.29.1-rt7   |
+        |      |                | 2.6.29.4-rt15  |
+        |      |                | 2.6.29.6-rt23  |
+
+
+	$(ACCS) == { lab, oper, oplhc }
+	$(CPU)  == { ppc4, L864, L865 }
+	$(KVER) == { 4.0.0, 2.6.24.7-rt21, 2.6.24.7-rt27, 2.6.29.1-rt7,
+		     2.6.29.4-rt15, 2.6.29.6-rt23 }
+
+* Specific delivery
+1. Driver
+   /acc/dsc/$(ACCS)/$(CPU)/$(KVER)/<DriverName>
+
+   which on FEC corresponds to
+   /usr/local/drivers/<DriverName>
+
+2. Test prog
+   /acc/dsc/$(ACCS)/$(CPU)/bin
+
+   which on FEC corresponds to
+   /usr/local/bin
+
+3. Library
+   /acc/local/$(CPU)/lib/<DriverName>
+
+   which on FEC corresponds to
+   /usr/local/lib/<DriverName>
+
+4. Header files
+   /acc/local/$(CPU)/include/<DriverName>
+
+   which on FEC corresponds to
+   /usr/local/include/<DriverName>
+
+* General programs delivery
+5. instprog
+   /acc/dsc/$(ACCS)/$(CPU)/bin/instprog
+
+   which on FEC corresponds to
+   /usr/local/bin/instprog
+
+6. dgmodinst
+7. dgmoduninst
+   /acc/dsc/$(ACCS)/$(CPU)/bin/dgmod[inst/uninst]
+
+   which on FEC corresponds to
+   /usr/local/bin/dgmod[inst/uninst]
+
+8. libdal.a
+   /acc/local/$(CPU)/lib/libdal.a
+
+   which on FEC corresponds to
+   /usr/local/lib/libdal.a
+
+9. Header files
+   /acc/local/$(CPU)/include/dg
+
+   which on FEC corresponds to
+   /usr/local/include/dg
+
+* DriverGen issues
+
+* CTR issues
+  -- Several CTR modules declared in the DB.
+        | Module | Driver | directory | Inst script |
+        |--------+--------+-----------+-------------|
+        | /      | <      | <         | <           |
+        | CTRI   | CTRP   | ctr       | ctrinstall  |
+        | CTRP   | CTRP   | ctr       | ctrinstall  |
+        | CTRV   | CTRV   | ctr       | ctrvinstall |
+** Examples
+  CTR delivered in
+  /acc/dsc/lab/L865/2.6.24.7-rt27/{ctrp, ctrv}
+
+  Scripts called are in
+  /acc/dsc/lab/L865/2.6.24.7-rt27/ctr/{ctrinstall, ctrvinstall}
+
+  on FEC is
+  /usr/local/drivers/ctr/{ctrinstall, ctrvinstall}
+
+  With the new installation schema, {ctrinstall && ctrvinstall} will
+  host a script to descend into the
+  /usr/local/drivers/{ctrp, ctrv}
+  and call instprog (from /usr/bin) with the parameters:
+  instprog -sCTRV -nctr <-- for CTRV
+  instprog -sCTRP -nctr <-- for CTRP
+
+* Compilation notes
+  Several command line options can be provided in the command line during
+  compilation. These are:
+	-- CPU  {L864, L865, ppc4}
+	-- KVER All supported FEC kernels are in /acc/sys/$(CPU)/usr/src/kernels
+		and (if you want to compile for local SLC5 machine) are in
+		/usr/src/kernels.
+	-- KSRC {/acc/sys/$(CPU)/usr/src/kernels, /usr/src/kernels}
+
+  Note, that if you are compiling for FEC -- KSRC should __not__ be provided
+  in the make command line parameters.
+
+  If you are compiling for the local machine -- KSRC __should__ be provided
+
+  I.e. /usr/src/kernels is not a standard kernel path, while
+  /acc/sys/$(CPU)/usr/src/kernels is a standard kernel path for FEC kernels.
+
+  To compile the driver -- cdcm and library (if used )should be compiled first
+  for given kernel:
+	1. cd cdcm
+	2. make (provide CPU, KVER, KSRC if needed)
+	   It will build you CDCM && "library" (in cdcm/utils/driver)
+
+  Then compile your driver:
+	1. cd driver
+	2. make (provide CPU, KVER, KSRC if needed)
+  To compile for SLC4 -- you should be on the SLC4 machine.
+  Won't work from SLC5!
+
+** CTR compilation for local kernel Example:
+   Let's compile CTRP for local SLC5 machine.
+   One should provide KVER of the current machine `uname -r`
+   Kernel src files can be found in [/usr/src/kernels]
+
+   So we should set KVER=2.6.18-164.el5 and KSRC=/usr/src/kernels
+   Now we should compile driver utils library (which is in cdcm/utils/driver)
+   To do this:
+	-> cd coht/cdcm
+	-> make utils CPU=L865 KSRC=/usr/src/kernels KVER=2.6.18-164.el5
+
+   Compile CTRP:
+	-> cd coht/ctr/driver_pci
+	-> make CPU=L865 KSRC=/usr/src/kernels KVER=2.6.18-164.el5
+
+   Deliver it:
+        -> make deliver lab CPU=L865 KSRC=/usr/src/kernels KVER=2.6.18-164.el5

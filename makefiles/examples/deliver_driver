@@ -1,0 +1,18 @@
+# HOWTO deliver drivers to the CERN-predefined standart pathes
+
+
+#  User should _always_ provide CPU variable.
+#+ In the command line, or in Makefile.specific
+#+ If KVER is not provided - default one will be taken.
+
+#  Will deliver the driver with default KVER or KVER from Makefile.specific
+#+ (if it is set there)
+make deliver CPU=L865
+
+# Will deliver with user-defined CPU && KVER
+make deliver CPU=L865 KVER=2.6.24.7-rt27
+
+#  Deliver with CPU && KVER that are taken from the Makefile.specific
+#+ Note, that if CPU is not provided (in Makefile.specific or command line) -
+#+ will error-terminate.
+make deliver

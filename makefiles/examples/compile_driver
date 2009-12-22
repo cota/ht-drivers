@@ -1,0 +1,16 @@
+# HOWTO compile drivers.
+#
+#  User should _always_ provide CPU variable.
+#+ In the command line, or in Makefile.specific
+
+#  Will perform compilation with default KVER or KVER from Makefile.specific
+#+ (if it is set there)
+make CPU=L865
+
+# Will compile with user-defined CPU && KVER
+make CPU=L865 KVER=2.6.24.7-rt27
+
+#  Compile with CPU && KVER that are taken from the Makefile.specific
+#+ Note, that if CPU is not provided (in Makefile.specific or command line) -
+#+ will error-terminate.
+make

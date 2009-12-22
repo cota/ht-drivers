@@ -1,0 +1,89 @@
+###############################################################################
+# @file Makefile.lces
+#
+# @brief Builds up Linux driver and installation program for CES BSP Linux.
+#
+# @author Yury GEORGIEVSKIY, CERN.
+#
+# @b NOTE
+# Don't use this makefile directly!
+# It should be included through Makefile.drvr _ONLY_
+#
+# @date Created on 13/01/2009
+###############################################################################
+include ../../makefiles/Makefile.base
+
+# special build type. For choose correct debug/optimization flags
+BLDTYPE = drv
+
+###############################################################################
+# Workaround to import Sugar Hat Linux cross-compilation environment into the
+# kernel makefile (as of makefile 3.80)
+###############################################################################
+
+# 1. Take the environment file and get rid of wrong symbols
+ALL_SHL_VARS = $(shell sed -e 's/\"//g' -e 's/export//g' -e '/^\#/d' /acc/sys/Lces/sugarhatlinux-3.0.0-env-eldk-ppc_6xx.sh > /tmp/shlvcompvars; chmod 666 /tmp/shlvcompvars)
+
+# 2. include file with properly corrected lines.
+define import_shl_defs
+include /tmp/shlvcompvars
+endef
+
+# 3. define new non-constant construct, which is the result of
+#    evaluating other variables and functions
+$(eval $(call import_shl_defs, $(ALL_SHL_VARS)))
+
+###############################################################################
+
+CPPFLAGS += -D__DEBUG__
+
+PWD:=$(shell pwd)
+CPU:=$(shell echo $(KERNEL_SOURCE) | awk -F/ '{print $$4}' )
+BSP:=$(shell echo $(KERNEL_SOURCE) | awk -F/ '{print $$7}' | sed s@linux-@@ )
+#BAKS = ,* *~ *.bak *.BAK .es1* .B* %*% .ec1 .ek1 .*~ core a.out *JNL *.lst \\\#*\\\# .nfs* *%
+BAKS = ,* *~ *.bak *.BAK .B* %*% .ec1 .ek1 .*~ core a.out *JNL *.lst \\\#*\\\# .nfs* *%
+
+# What will be finally created
+DRIVERS   = ../$(FINAL_DEST)/$(DRIVER_NAME)$(DRIVER_TYPE)Drvr.$(CPU).o
+EXEC_OBJS = $(DRIVER_NAME)Inst.$(CPU)
+
+# Invokes the kernel build system to come back to the current
+# directory and build module kernel object (.ko)
+$(obj-m:.o=.ko) drvr: $(OBJDIR) $(FINAL_DEST)
+	. /acc/sys/Lces/sugarhatlinux-3.0.0-env-eldk-ppc_6xx.sh; \
+	$(MAKE) -C $(KERNEL_SRC) \
+	0=$(PWD)/$(OBJDIR) \
+	M=$(PWD) \
+	modules
+	@if [ -d $(OBJDIR)/.tmp_versions ]; then rm -r $(OBJDIR)/.tmp_versions; fi
+	@mv -f .tmp_versions/ *.o .*.o.cmd .*.ko.cmd *.mod.c $(OBJDIR)
+	@mv *.ko $(DRIVERS)
+
+install:: $(obj-m:.o=.ko)
+	for a in $(ACCS); do echo dsc_install $^ /acc/dsc/$$a/$(CPU)/$(BSP)/newfip/; done
+
+# now handle installation programm
+vpath %.c ../../cdcm
+
+SRCFILES = \
+	$(wildcard *Inst.c) \
+	cdcmUninstInst.c
+
+# Filter out installation objects
+INSTPROGOBJS = $(filter $(addprefix %Inst,$(EXTOBJ)), $(OBJFILES))
+
+$(EXEC_OBJS): $(INSTPROGOBJS)
+
+INCDIRS = \
+	../include \
+	../../common/include \
+	../..
+
+# Build up installation routine
+inst:: $(OBJDIR) $(FINAL_DEST) $(EXEC_OBJS)
+	mv $(INSTPROGOBJS) $(OBJDIR)
+	mv $(EXEC_OBJS) ../$(FINAL_DEST)
+
+cleanloc clearloc:: abort
+	$(MAKE) -C $(KERNEL_SRC) M=$(PWD) clean
+	$(RM) $(BAKS) ERROR

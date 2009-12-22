@@ -1,0 +1,47 @@
+###############################################################################
+# @file Kbuild.lynx
+#
+# @brief Lynx driver compilation settings
+#
+# @author Yury GEORGIEVSKIY, CERN.
+#
+# @date Created on 13/01/2009
+#
+# @b NOTE See examples/out-of-tree-cdcm for more information on howto
+#         compile with test CDCM branches.
+###############################################################################
+CDCM_D  ?= ../../cdcm
+XML_D    = ../../utils/driver
+SKEL_D   = ../../skel/driver
+
+EXTRA_DRVR_SRC_FILES += \
+	$(CDCM_D)/cdcmBoth.c
+
+ifeq ($(CONFIG_BUS_PCI), y)
+	ADDCFLAGS = -DCONFIG_BUS_PCI
+	EXTRA_DRVR_SRC_FILES += \
+		$(CDCM_D)/cdcmPciDmaLynx.c
+else ifeq ($(CONFIG_BUS_VME), y)
+	ADDCFLAGS = -DCONFIG_BUS_VME
+else
+	EXTRA_DRVR_SRC_FILES += $(CDCM_D)/cdcmPciDmaLynx.c
+endif
+
+ifeq ($(IS_SKEL), y)
+# Get all *.c files from there
+SKELSRCF = $(wildcard $(SKEL_D)/*.c)
+
+# Kill all ',backup' skel files
+EXTRA_DRVR_SRC_FILES += $(filter-out $(SKEL_D)/$(comma)%, $(filter $(addprefix %, $(SRCSFXS)),$(SKELSRCF)))
+endif
+
+ifeq ($(USE_XML), y)
+EXTRA_DRVR_SRC_FILES += $(XML_D)/libinstkernel.c
+endif
+
+#EXTRA_DRVR_OBJS = $(addsuffix $(EXTOBJ), $(notdir $(basename $(EXTRA_DRVR_SRC_FILES))))
+EXTRA_DRVR_OBJS = $(addsuffix $(EXTOBJ), $(basename $(EXTRA_DRVR_SRC_FILES)))
+
+INCDIRS += \
+	$(SKEL_D) \
+	$(XML_D)

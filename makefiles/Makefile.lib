@@ -1,0 +1,47 @@
+###############################################################################
+# @file Makeflie.lib
+#
+# @brief Library compilation.
+#
+# @author Yury GEORGIEVSKIY, CERN.
+#
+# @date Created on 13/01/2009
+###############################################################################
+
+# Makefile from current directory supress one from upper level
+-include $(shell if [ -e ./Makefile.specific ]; then echo ./Makefile.specific; \
+	else echo ../Makefile.specific; fi)
+
+-include ../../makefiles/Makefile.base
+
+ADDCFLAGS += $(STDFLAGS) -g -DDRIVER_NAME=\"$(DRIVER_NAME)\"
+
+# We need to redefine next variable to compile the library...
+OUTPUT_OPTION +=; mv $*.$(CPU).o $(OBJDIR)
+
+INCDIRS = \
+	../include \
+	../../include
+
+SRCFILES = \
+	$(wildcard *.c)
+
+LIBRARIES = $(OBJDIR)/lib$(DRIVER_NAME).$(CPU).a
+
+$(LIBRARIES): $(OBJFILES)
+	$(AR) -rv  $@ $(XTRA_USR_LIBS) $(addprefix $(OBJDIR)/, $^)
+	$(RANLIB) $@
+
+build:: abort $(OBJDIR) $(LIBRARIES) move_objs
+
+# Move compiled files to proper place
+move_objs:
+	mv $(LIBRARIES) ../$(FINAL_DEST)
+
+# Local cleaning
+cleanloc clearloc:: abort
+	@ if [ -n "$(ISP)" ]; then \
+		rm -rf $(ISP)* ; \
+	fi
+	-rm -f $(LIBRARIES)
+	find ./ -name '*~' | xargs rm -f

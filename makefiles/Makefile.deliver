@@ -1,0 +1,42 @@
+###############################################################################
+# @file Makefile.deliver
+#
+# @brief CERN delivery
+#
+# @author Yury GEORGIEVSKIY, CERN.
+#
+# @date Created on 28/05/2009
+###############################################################################
+
+# We need ACCS && BSPS
+include /acc/src/dsc/co/Make.common
+
+wrong-dest := $(filter-out $(strip $(ACCS)) deliver all,$(MAKECMDGOALS))
+__destination = $(filter $(strip $(ACCS)),$(MAKECMDGOALS))
+destination := $(if $(__destination), $(__destination),)
+
+# quiet down
+$(destination):
+	@:
+
+deliver:
+	$(if $(wrong-dest), \
+		$(error wrong delivery place(s) "$(wrong-dest)"),)
+	$(if $(destination),, \
+		$(error you should explicitly specify destination "$(ACCS)"))
+	@for a in $(destination); do \
+		tmp_dir="/acc/dsc/$$a/$(CPU)/$(KVER)/$(DRIVER_NAME)"; \
+		if [ -w $$tmp_dir ]; then \
+			echo -e "\nDelivering $(notdir $(DRIVER)) in $$tmp_dir"; \
+			dsc_install $(DRIVER) $$tmp_dir; \
+		elif [ ! -e $$tmp_dir ]; then \
+			echo -e "\nCreating $$tmp_dir directory..."; \
+			mkdir $$tmp_dir; \
+			echo -e "Delivering $(notdir $(DRIVER)) in $$tmp_dir"; \
+			dsc_install $(DRIVER) $$tmp_dir; \
+		elif [ -e $$tmp_dir ]; then \
+			echo -e "\nCan't deliver $(notdir $(DRIVER)) in $$tmp_dir"; \
+			echo -e "You don't write permissions!"; \
+		fi; \
+	done
+	@echo ""

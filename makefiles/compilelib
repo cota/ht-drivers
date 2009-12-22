@@ -1,0 +1,10 @@
+#!/bin/bash
+################################################################################
+# @file compilelib
+#
+# @brief Script to compile driver library.
+#
+# @author Yury GEORGIEVSKIY, CERN.
+#
+# @date Created on 13/01/2009
+################################################################################

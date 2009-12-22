@@ -1,0 +1,64 @@
+Makefiles to build complete driver framework are located in this directory.
+
+
+Short file description
+----------------------
+.
+|-- Kbuild           - general Kbuild, included by the
+|                      driver-specific Kbuild file
+|-- Kbuild.include   - Generic definitions, used to build Linux drivers
+|-- Kbuild.linux     - Kbuild for compiling Linux drivers.
+|                      Included through general Kbuild
+|-- Kbuild.lynx      - Kbuild for compiling Lynx drivers.
+|                      Included through general Kbuild
+|-- Makefile         - Makefile to compile driver bunch
+|-- Makefile.base    - holds general rules along with standart CERN rules
+|-- Makefile.deliver - driver bench delivery
+|-- Makefile.drvr    - main driver compilation
+|-- Makefile.inst    - Build up driver installation program
+|-- Makefile.lces    - Builds up Linux driver and installation program for
+|                      CES BSP Linux. SCHEDULED FOR DELETION!
+|-- Makefile.lib     - Driver library compilation
+|-- Makefile.linux   - Linux driver compilation. Included through Makeflie.drvr
+|-- Makefile.lynx    - Lynx driver compilation. Included through Makeflie.drvr
+|-- Makefile.tst     - Test programs compilation.
+|-- README.1ST       - this file
+|-- abs2rel.sh       - absolute to relative path converter script
+|-- compiledrvr      - driver compilation script
+|-- compilelib       - library compilation script
+|-- compiletst       - test program compilation script
+|-- examples/        - useful examples on HOWTO do stuff
+|   |
+|   |-- Kbuild.specific   - Kbuild template to use for specific driver
+|   |                       compilation. All possible compilation options
+|   |                       are described here.
+|   |-- Makefile.specific - Specific driver description template
+|   |-- compile_driver    - howto compile driver
+|   |-- deliver_driver    - howto deliver driver
+|   `-- out-of-tree-cdcm  - howto compile driver with local CDCM copy
+|
+`-- rmdrvr           - driver cleaning up
+
+
+
+Tips
+----
+
+1. Makefile.specific from the current directory suppressing one from ../
+   directory (see ctr driver for example).
+
+2. Driver name is always lowercase.
+
+3. Any archive (*.a) from object_<driver_name> is automatically linked with
+   test program.
+
+
+
+Not tracked files
+-----------------
+
+Makefile.libtst
+Makefile.paramount
+
+
+
