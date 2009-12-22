@@ -1,0 +1,18 @@
+Utilities are located in this directory.
+
+driver/      <- Driver-space utilities to use by any Linux driver. Including:
+	     	1. Info table loader.
+	     	2. PLX code, that can be used by the drivers to work
+		   with PLX chips.
+		3. XML driver description parser library. Kernel mode.
+
+extest/      <- extensible test-program -- generic test-program infrastructure.
+
+fpga_loader/ <- FPGA loader.
+
+install/     <- Generic driver installation program.
+
+user/        <- User-space utilities to use by user-space progs
+		(test, installation etc...). Including:
+		1. XML driver description parser library. User mode.
+		2. Test suite for XML driver description parser library.
