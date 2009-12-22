@@ -1,0 +1,152 @@
++-------------------------------------------------+
+|  Author:          Yury Georgievskiy, CERN	  |
+|  Creation date:   01.06.2006                    |
+|  Current version: 3 (as of 17.12.2007)          |
+|  State:           Techical note                 |
++-------------------------------------------------+
+
+
+###############################################################################
+#                       CDCM technical notes.                                 #
+###############################################################################
+
+First of all - pay in mind, that it's (still) not perfect.
+There are some rules and limitations on HOWTO use CDCM.
+One should take care following this rules and limitations.
+
+Here comes the 'limitation list'
+
+1. 'struct file' that is passed into the common part of the LynxOS-like code
+    is screwed up in case of Linux!! It's adapted partially.
+
+
+2. Stream task limitatioins.
+----------------------------
+   For now there is no way to emulate LynxOS threads completely.
+   The 'oblitary code demand' concerns a function that is passed as a payload
+   function to 'ststart' call (firs parameter of ststart).
+   Let's examain it in more details:
+   Usually, a stream task payload is looped in a cycle, doing it's work.
+   The demand for this functions is that
+   EACH TIME BEFORE TO JUMP TO THE BEGINNING OF THE LOOP - ONE SHOULD INSERT
+   A PREDEFINED CDCM MACRO IN IT'S CODE.
+   The macro is 'CDCM_LOOP_AGAIN'.
+
+   The only perpose of this macro is to be able to quit (or to kill, as you
+   prefer) system thread on Linux platform. Othervise it's not possible to get
+   out of the 'for' loop. Note that we are speaking only about Linux platform.
+   Want to know why? Here you go:
+   It's not possible to add signal handler to kernel thread in Linux.
+   They will never been called. Signals are delivered only on exit from kernel
+   mode (which happens either at the end of a syscall or after interrupt, which
+   may have caused the signal), scheduling being a special case ot this.
+   Since kernel thread never leaves a kernel mode, the code to run signal
+   handlers is never executed.
+
+   Here are some examples that illustrates how stream task should look like
+   in CDCM:
+
+----------------------------------+---------------------------------
+	Normal Lynx thread        |        CDCM adapted Lynx thread
+----------------------------------+---------------------------------
+                                  |
+   void kthread(void param) {     |   void kthread(void param) {
+	  for (;;) {              |          for (;;) {
+	    ....                  |            ...
+	    /* do the job */      |            /* do the job */
+	    ...                   |            ...
+	  }                       |            CDCM_LOOP_AGAIN;
+	}                         |          }
+                                  |        }
+----------------------------------+---------------------------------
+                                  |
+   void kthread(void param) {     |   void kthread(void param) {
+	  do {                    |          do {
+	    ...                   |            ...
+	    /* payload */         |            /* payload */
+	    ...                   |            ...
+	  } while (1)             |            CDCM_LOOP_AGAIN;
+	}                         |          } while (1)
+                                  |        }
+----------------------------------+---------------------------------
+                                  |
+   void kthread(void param) {     |    void kthread(void param) {
+	tag:                      |         tag:
+	...                       |         ...
+	/* do the job here */     |         /* do the job here */
+	...                       |         ...
+	goto tag;                 |         CDCM_LOOP_AGAIN;
+	}                         |         goto tag;
+                                  |         }
+----------------------------------+---------------------------------
+
+   As you can see - all 'adapted' functions contain CDCM_LOOP_AGAIN macro just
+   before the end of the loop cycle. This is the bottleneck of thread stub
+   implementation, because already existing driver code will not be completely
+   portable. It should be affected (CDCM_LOOP_AGAIN macro insertion) to be
+   able to run under Linux.
+
+
+3. Copy data to/from user address space.
+----------------------------------------
+   Special CDCM functions can be used when transferring data to/from user
+   address space. These functions are:
+
+   A. cdcm_copy_from_user(void *to, void *from, int size)
+   B. cdcm_copy_to_user(void *to, void *from, int size)
+
+4. DMA API
+----------
+Documentation to be written.
+
+5. Interrupt handler
+--------------------
+Documentation to be written.
+
+6. Return values to user-space
+------------------------------
+Programs that run in user space always see -1 as the error return value.
+They need to access the errno variable to find out what happened; this is
+imposed by the POSIX standard.
+For CDCM-compliant drivers we follow the LynxOs approach:
+* If an error happens, first set pseterr(code), where code is one of the
+POSIX error codes defined in include/errno.h.
+* Once the error code has been set, return SYSERR.
+
+Note that the procedure below refers _only_ to the communication between
+the kernel and user-space, which is defined by POSIX (i.e. this standard
+does not make requirements on how the kernel operates internally).
+
+Sources: LynxOS man, ldd3@pp66.
+
+7. Timeouts
+-----------
+Timeouts respect the original LynxOs interface (man timeout).
+The interval passed to the timeout is the number of ticks we want to wait.
+Since all the LynxOS boxes we run have 100 ticks per second (i.e. 1 tick
+every 10ms), we have decided that timeout assumes that value when getting the
+ticks interval from the user. This does _not_ mean that all our machines
+are configured with tickspersec=100 (NB. tickspersec is HZ in Linux); it
+means that irrespective of the machine you're running on, if you want
+to wait, say 40ms, then you give to timeout() an interval of 4 ticks.
+
+8. I/O operations
+-----------------
+I/O operations to/from hardware must be done using the provided helpers
+cdcm_io{read,write}{8,16,32}(). The address fed to these helpers is a void
+pointer, *not* volatile. The reason is well explained in the Linux kernel
+documentation ('Documentation/volatile-considered-harmful.txt'). Basically
+proceeding this way has two benefits:
+- Code portability
+- No memory barriers needed (since they are included in the helpers)
+
+Bear in mind endianness issues when dealing with hardware: use the
+provided helpers to swap according to the host machine endianness and that
+of the hardware (cdcm_cpu_to_le{16,32,64},etc.).
+
+Use fixed-width types to describe hardware (ideally use standard C99 types).
+
+In the (rare) case you need a memory barrier, use the helpers provided
+(cdcm_{mb,rmb,wmb}) and insert a comment to explain why you need the barrier.
+
+For further info check the file cdcmIo.h.

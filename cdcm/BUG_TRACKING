@@ -1,0 +1,103 @@
+$Id: BUG_TRACKING,v 1.3 2007/12/19 09:02:58 ygeorgie Exp $
++-------------------------------------------------+
+|  Author:          Yury Georgievskiy from AB/CO  |
+|  Creation date:   14.03.2007                    |
+|  State:           CDCM Bug Tracker.             |
++-------------------------------------------------+
+
+Latest exterminated bug description is on top.
+
+                             +----------+
+-----------------------------| 26.11.07 |--------------------------------------
+                             +----------+
+swait() bug fixing.
+
+  Was not working properly because of wrong wait condition logic on the
+'wq_tflag'. First, it's type changed to 'atomic_t' as it should be 100% atomic.
+Second, 'wq_tflag' is treated differantly. Before - if it was '-1', then
+'sreset()' was call on the semaphore. Now - if it is < 0 (less then zero), then
+we consider it to be waken up by 'sreset()'.
+Another words, now we wait on the semaphore while 'wq_tflag' is zero. As soon
+as 'swait()' or 'sreset()' are called - code execution after wait_event
+condition will be proceeded.
+-------------------------------------------------------------------------------
+
+                             +----------+
+-----------------------------| 16.03.07 |--------------------------------------
+                             +----------+
+swait() wait condition correction.
+
+  Two types of wait conditions were split on two more, depending if swait()
+was called from the thread or normal process. Before the conditions look like:
+
+1. #define WC_SSI (semptr->wq_tflag > 0 || semptr->wq_tflag == -1 || ( (stptr) ? (stptr->thr_sem == current->pid) : 1) )
+
+2. #define WC_SSO (semptr->wq_tflag > 0 || semptr->wq_tflag == -1 || ( (stptr) ? (stptr->thr_sem == current->pid) : 1) )
+
+   The problem was in the third condition variables. If it was not a thread,
+i.e. normal process, then it was always 1 and we were never falling into the
+wait loop as the condition was always true.
+   The solution taken - was just to split in two cases: threads and normal
+process.
+-------------------------------------------------------------------------------
+
+
+                             +----------+
+-----------------------------| 14.03.07 |--------------------------------------
+                             +----------+
+ssignal() <-> swait() inconsistency tracked down.
+
+   These are Lynx synchronization functions, namely semaphores.
+Current Lynx semaphores implementation is operating using Linux sleeping
+algorithms and incapsulate the following Lynx API functions:
+
+ 1. swait
+ 2. ssignal
+ 3. sreset
+
+   They are implemented using the following Linux API functions:
+
+ 1. wait_event_exclusive
+ 2. wait_event_interruptible_exclusive (not function but definition)
+ 3. wake_up
+
+   The reason to use 'sleeping algorithms' is that it should be possible to
+use above functions (swait, ssignal and sreset) inside the kernel threads. So
+it's not possible to use Linux semaphores and spinlocks to implement them.
+
+   They are working tightly together. Normal operational scenario includes
+calling of swait() on a user semaphore. ssignal() or sreset() should be 
+normally called afterwards by the user to release the semaphore.
+
+   Each Lynx semaphore is described by cdcmsem_t structure, which in turn are
+linked together in the global linked list of all currently used semaphores.
+
+   The bug itself consists in wrong semaphore incrementation but _only_ in case
+if current semaphore value is zero (i.e. it's taken but no one is waiting on
+it). Now let's digg _really_ deep in technical details:
+
+   During call to swait() current semaphore value is checked. If it's more
+than zero - it's value just decremented by one and we are not falling into
+the wait state (i.e. wait_event_exclusive() or 
+wait_event_interruptible_exclusive() are not called), as semaphore is not
+blocked, and just return from the swait(). This bug was tracked down using
+semaphore that was initialized to 1 (one). After the first call to swait()
+it's value becomes 0 (zero). Some time after ssignal() is called, where
+wake_up() function is called to wake up anyone who is currently waiting on the
+semaphore. Here we were receiving inconsistency, as semaphore was signalled but
+current sem value was not incremented by one, as it was expected to be
+incremented later, when some waiting process will get out of
+wait_event_exclusive() or wait_event_interruptible_exclusive() in the swait()
+function. As it was not happening, current semaphore value was wrong and next
+call to swait() on the same semaphore lead us to fall into the wrong path where
+the callee was going to wait on non occupyed semaphore. Moreover, it is
+immediately waked up by the previously call to wake_up(). More than moreover,
+after that we can fall in the 'normally not reachable' state while checking
+wq_tflag variable, depending on it's current state.
+
+   The solution found (with help of VMETRO) was to add the current semaphore
+value checking in ssignal(). And if it is zero, then just increment it by one
+and not call the wake_up() function. Like this semaphore is kept in a correct
+state and we are not falling into the wrong path during the next calls to
+swait() function on the given semaphore.
+-------------------------------------------------------------------------------
