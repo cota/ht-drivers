@@ -1,0 +1,64 @@
+* ALL possible command line parameters
+  insprog <*.xml> [ -fall | -fexclude ] <name> -o"option string" -n<noden> ...
+	  -s <name> -o"option string" -n<noden> ...
+
+  Can have multuple <name> and -s<name> parameters.
+
+* Parameters
+  -s<name>  -- Special installation mode request. All driver
+	       parameters will be passed to the driver during
+	       dr_install(), but not during cdv_install() call.
+	       Valid ONLY for Linux device drivers.
+
+  <name>    -- Specify driver to be installed in a Normal manner.
+
+  -o"str"   -- Option string to pass to the driver during init_module()
+               system call.
+	       Valid ONLY for Linux device drivers.
+
+  -n<noden> -- Extra symbolic link node name to create.
+               Normally, DEF_CLIENT_CTXT_AM (16 as of 29.07.2009) nodes are
+	       created with names <mod_name>1 .. <mod_name>16
+
+	       In this case -- DEF_CLIENT_CTXT_AM symlinks with names
+	       <noden>1 .. <noden>16 will also be created and will point to
+	       corresponding module nodes <mod_name>1 .. <mod_name>16.
+
+	       If there are already <noden>1 .. <noden>16 -- then
+	       <noden>17 .. <noden>32 will be created. They will point to
+	       corresponding module nodes <mod_name>1 .. <mod_name>16.
+
+* Force flags
+  -fall     -- Tells to install all the drivers found in the xml config file.
+               Multiple -s <name> params can present in the command line to
+	       specify the drivers, that should be istalled using special
+	       installation mode.
+
+  -fexclude -- Will install all the drivers, exept one provided in the command
+               line.
+
+* Examples
+  1. -> instprog
+     Will install everything from `uname -n`.xml config file
+
+  2. -> instprog my.xml
+     Install everything from my.xml config file
+
+  3. -> instprog --all CTRP -nctr -o"option for CTR" -sMIL1553
+                 VD80 -o"vd80 option"
+     Install everything from `uname -n`.xml
+     MIL1553 goes through special installation.
+     Pass the option for CTRP driver.
+     Create symlink nodes for CTRP driver.
+     Pass the option for VD80.
+
+  4. -> instprog my.xml -sMIL1553 VD80 -sCTRP
+     Install only MIL1553 and VD80 from my.xml
+     MIL1553 -- special one.
+     VD80    -- uses normal installation schema.
+     CTRP    -- special installation request.
+
+  5. -> instprog --exclude MIL1553 VD80 CTRV
+     Install everything, exept MIL1553, VD80 and CTRV drivers
+     from `uname -n`.xml config file.
+     Pass the option for VD80 driver.
