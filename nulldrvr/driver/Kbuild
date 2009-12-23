@@ -1,0 +1,15 @@
+###############################################################################
+# @file Kbuild
+#
+# @brief Specific kbuild for compiling null driver
+#
+# @author Yury GEORGIEVSKIY. CERN BE/CO
+#
+# @date Created on 14/01/2009
+###############################################################################
+# Extra driver compilation flags
+ccflags-y := \
+	-Wno-strict-prototypes
+
+# include standart general kbuild
+include $(M)/../../makefiles/Kbuild
