@@ -1,0 +1,41 @@
+test/testctr.c:149:	if ((vme_buf = mmap(0, MODULE_VME_SIZE, PROT_READ, MAP_PRIVATE, fd,
+test/testctr.c-150-			    desc.pci_addrl)) == MAP_FAILED) {
+test/testctr.c-151-		printf("Failed to mmap: %s\n", strerror(errno));
+test/testctr.c-152-		goto out_mmap_err;
+test/testctr.c-153-	}
+test/testctr.c-154-
+test/testctr.c-155-	/* Now test read access */
+test/testctr.c-156-	for (i = 1; i <= 5; i++) {
+test/testctr.c-157-		test = swapbe(vme_buf[i]);
+test/testctr.c-158-
+test/testctr.c-159-		printf("Read 0x%08x at address 0x%08x\n",
+test/testctr.c-160-		       test, MODULE_VME_ADDR + i*4);
+test/testctr.c-161-	}
+test/testctr.c-162-
+test/testctr.c-163-	/* Check for a bus error */
+test/testctr.c-164-	if (ioctl(fd, VME_IOCTL_GET_BUS_ERROR, &bus_err) < 0) {
+test/testctr.c-165-		printf("Failed to get bus error status: %s\n", strerror(errno));
+test/testctr.c-166-		goto out_err;
+test/testctr.c-167-	}
+test/testctr.c-168-
+test/testctr.c-169-	if (bus_err)
+test/testctr.c-170-		printf("Bus error occured\n");
+test/testctr.c-171-
+test/testctr.c-172-
+test/testctr.c-173-	sleep(10);
+test/testctr.c-174-
+test/testctr.c-175-
+test/testctr.c-176-
+test/testctr.c-177-	if (munmap(vme_buf, MODULE_VME_SIZE))
+test/testctr.c-178-		printf("Failed to unmap: %s\n", strerror(errno));
+test/testctr.c-179-
+test/testctr.c-180-
+test/testctr.c-181-out_mmap_err:
+test/testctr.c-182-	if (ioctl(fd, VME_IOCTL_RELEASE_MAPPING, &desc) < 0)
+test/testctr.c-183-		printf("Failed to release mapping: %s\n", strerror(errno));
+test/testctr.c-184-
+test/testctr.c-185-out_err:
+test/testctr.c-186-	/* Restore flags */
+test/testctr.c-187-	if (ioctl(fd, VME_IOCTL_SET_CREATE_ON_FIND_FAIL, &org_force_create) < 0)
+test/testctr.c-188-		printf("Failed to restore force create flag: %s\n",
+test/testctr.c-189-		       strerror(errno));
