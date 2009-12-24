@@ -31,6 +31,11 @@
 #define MAX(X,Y) (((X) < (Y)) ? (Y) : (X))
 #endif
 
+/**< size of an array */
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+#endif
+
 /**< macro that returns true if MIN <= ARG <= MAX */
 #define WITHIN_RANGE(MIN,ARG,MAX) ( ((MAX) >= (ARG)) && ((MIN) <= (ARG)) )
 
