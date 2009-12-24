@@ -415,7 +415,7 @@ static struct icvT_RingAtom *PushTo_Ring(struct T_RingBuffer *Ring,
 		Ring->reader = Ring->writer = 0;
 
 		/* push an event to signal purge of buffer */
-		Atom = &(Ring->Buffer[0]);
+		Atom = &Ring->Buffer[0];
 		Atom->Subscriber = NULL;
 		Atom->Evt.All= 0;
 		Atom->Evt.Word.w1 = -1;
@@ -509,8 +509,8 @@ static void init_statics_once(void)
 			Init_UserHdl(&icv196_statics.ICVHdl[i], i+1,
 				     &icv196_statics);
 
-		/* Initialize management tables */
-		Init_Dir(&icv196_statics); /* Initialize Directories */
+		/* Initialize Directories */
+		Init_Dir(&icv196_statics);
 	}
 }
 
@@ -648,8 +648,7 @@ static struct T_Subscriber *LineUnBooking(struct T_UserHdl *UHdl,
 	Subs = &LHdl->Subscriber[0];
 
 	for (i = 0; i < ns; i++, Subs++) {
-		if ( (Subs->Ring == NULL)
-		     || (Subs->Ring != UHdlRing))
+		if (!Subs->Ring || Subs->Ring != UHdlRing)
 			continue;
 
 		/* subscriber found: now get rid of connection */
@@ -685,8 +684,7 @@ static struct T_Subscriber *CheckBooking(struct T_UserHdl *UHdl,
 	Subs = &LHdl->Subscriber[0];
 
 	for (i = 0; i < ns; i++, Subs++) {
-		if ( (Subs->Ring == NULL)
-		     || (Subs->Ring != UHdlRing))
+		if (!Subs->Ring || Subs->Ring != UHdlRing)
 			continue;
 
 		val = Subs;
@@ -1918,11 +1916,6 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (!icv196_statics.ModuleCtxtDir[group]) {
-			pseterr(EACCES);
-			return SYSERR;
-		}
-
 		if (!WITHIN_RANGE(0, group, icv_ModuleNb - 1)) {
 			pseterr(EINVAL);
 			return SYSERR;
@@ -1930,6 +1923,11 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 
 		if (!WITHIN_RANGE(0, index, icv_LineNb - 1)) {
 			pseterr(EINVAL);
+			return SYSERR;
+		}
+
+		if (!icv196_statics.ModuleCtxtDir[group]) {
+			pseterr(EACCES);
 			return SYSERR;
 		}
 
