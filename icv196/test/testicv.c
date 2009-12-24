@@ -1,12 +1,19 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <time.h>
-#include <file.h>
+#include <sys/file.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <smem.h>
-#include <icvioctl.h>
+#include <skeluser_ioctl.h>
 #include <icv196vmelib.h>
-/*#include "icv196vmeP.h"*/
-/*#include "/u/dscps/rtfclty/gpsynchrolib.h" */
+
+/* #include "icv196vmeP.h"*/
+/* #include "/u/dscps/rtfclty/gpsynchrolib.h" */
 
 #define SIZE 50
 #define addr = 0x00500000
@@ -15,16 +22,13 @@
 #define ICV_nboards 4
 
 extern int errno;
-static char path[] =  "/dev/icv196service";
+static char path[] =  "/dev/icv196vme.1";
 static int  service_fd = 0;
 static int  synchro_fd = 0;
 
 static int  module = 0;
 static int  old_module = 0;
 static char choice[10];
-
-extern int gpevtconnect();
-extern int gpevtdisconnect();
 
 void get_input(char *ch, int *inp)
 {
@@ -57,65 +61,53 @@ void get_input(char *ch, int *inp)
 	printf("input not correct\n");
 }
 
-int connect(int *fd, short group, short index, short mode)
+/**
+ * @brief 
+ *
+ * @param fd     -- open driver node file descriptor
+ * @param module -- module index [0 - 7]
+ * @param line   -- line index [0 - 15]
+ * @param mode   -- cumulative[1]/non-cumulative[0] mode
+ *
+ * <long-description>
+ *
+ * @return <ReturnValue>
+ */
+int icv196_connect(int *fd, short module, short line, short mode)
 {
+	struct icv196T_connect conn;
 
-	union U_short {
-		short wordshort;
-		struct {
-			char w1;
-			char w2;
-		} elt;
-	};
+	conn.source.group = module;
+	conn.source.index = line;
+	conn.mode = mode;
 
-    int  L_type;
-    int  L_val;
-    int  L_dev;
-    union U_short L_ws;
-    short arg[2];
-
-    L_type = Evtsrce_icv196;
-    L_val = 0;
-    L_ws.elt.w1 = group;
-    L_ws.elt.w2 = index;
-
-    arg[0] = L_ws.wordshort;
-    arg[1] = mode;
-
-    L_dev = gpevtconnect(L_type, L_val, &arg[0]);
-    if ( (L_dev <=0))
-      return(-1);
-    *fd = L_dev;
-    return (0);
+	/* TODO */
+	return ioctl(synchro_fd, ICVVME_connect, &conn);
 }
 
 
-int disconnect(short group, short index)
+/**
+ * @brief
+ *
+ * @param fd     -- open driver node file descriptor
+ * @param module -- module index [0 - 7]
+ * @param line   -- line index [0 - 15]
+ * @param mode   -- cumulative[1]/non-cumulative[0] mode
+ *
+ * <long-description>
+ *
+ * @return <ReturnValue>
+ */
+
+int icv196_disconnect(short module, short line)
 {
-	union U_short {
-		short wordshort;
-		struct {
-			char w1;
-			char w2;
-		} elt;
-	};
+	struct icv196T_connect conn;
 
-    int  L_type;
-    int  L_dev;
-    union U_short L_ws;
-    short arg[2];
+	conn.source.group = group;
+	conn.source.index = index;
 
-    L_type = Evtsrce_icv196;
-    L_ws.elt.w1 = group;
-    L_ws.elt.w2 = index;
-
-    arg[0] = L_ws.wordshort;
-    arg[1] = 0;
-
-    L_dev = gpevtdisconnect(L_type, &arg[0]);
-    if ( (L_dev <=0))
-      return(-1);
-    return (0);
+	/* TODO */
+	return ioctl(synchro_fd, ICVVME_disconnect, &conn);
 }
 
 int main(int argc, char *argv[], char *envp[])
@@ -142,11 +134,11 @@ int main(int argc, char *argv[], char *envp[])
 
     if ((service_fd = open(path, O_RDONLY)) < 0) {
 	perror("could not open file %s\n");
-	return;
+	exit(EXIT_FAILURE);
     }
 
     do {
-	get_input(&choice, &input);
+	get_input(choice, &input);
 
 	switch (input) {
 
@@ -174,7 +166,7 @@ int main(int argc, char *argv[], char *envp[])
 	    }
 	    printf("INTERRUPT COUNTER VALUES ON BOARD NR. %d:\n", module);
 	    for (i = 0; i < ICV_nln; i++) {
-		printf("line %2d: %3d    ", i, arg.data[i]);
+		printf("line %2d: %3ld", i, arg.data[i]);
 		if (((i+1) % 4) == 0 && i != 0)
 		    printf("\n");
 	    }
@@ -192,7 +184,7 @@ int main(int argc, char *argv[], char *envp[])
 	    printf("REENABLE INTERRUPT FLAGS ON BOARD NR. %d: ( 1 = reenable on,  2 = reenable off )\n", module);
 
 	    for (i = 0; i < ICV_nln; i++) {
-		printf("line %2d: %2d   ", i, arg.data[i]);
+		printf("line %2d: %2ld", i, arg.data[i]);
 		if (((i+1) % 4) == 0 && i != 0)
 		    printf("\n");
 	    }
@@ -228,19 +220,19 @@ int main(int argc, char *argv[], char *envp[])
 
 	    for (i = 0; i < icv_ModuleNb; i++, Info_P++) {
 		printf("MODULE INFO FOR MODULE NR. %d:\n", i);
-		if (Info_P -> ModuleFlag == NULL) {
+		if (!Info_P->ModuleFlag) {
 		    printf("module not installed\n\n");
 		    continue;
 		}
-		printf("module base address: 0x%x\n", Info_P -> ModuleInfo.base);
+		printf("module base address: 0x%lx\n", Info_P->ModuleInfo.base);
 
-		printf("module address space size in bytes: %d\n", Info_P ->
-					     ModuleInfo.size);
+		printf("module address space size in bytes: %ld\n",
+		       Info_P->ModuleInfo.size);
 
 		printf("module interrupt vectors:\n");
 
 		for (j = 0; j < icv_LineNb; j++) {
-		    printf("line %2d:%d  ", j, Info_P -> ModuleInfo.vector[j]);
+		    printf("line %2d:%d  ", j, Info_P->ModuleInfo.vector);
 
 		    if (((j+1) % 6) == 0 && j != 0)
 			printf("\n");
@@ -250,7 +242,7 @@ int main(int argc, char *argv[], char *envp[])
 		printf("module interrupt levels:\n");
 
 		for (j = 0; j < icv_LineNb; j++) {
-		    printf("line %2d:%d  ", j, Info_P -> ModuleInfo.level[j]);
+		    printf("line %2d:%d  ", j, Info_P->ModuleInfo.level);
 		    if (((j+1) % 6) == 0 && j != 0)
 			printf("\n");
 		}
@@ -279,7 +271,7 @@ int main(int argc, char *argv[], char *envp[])
 	    Info_H++;
 	    for (i = 1;i < ICVVME_MaxChan; i++, Info_H++) {
 		printf("HANDLE INFO FOR HANDLE NR. %d:   ", i);
-		if (Info_H -> pid == NULL) {
+		if (!Info_H->pid) {
 		    printf("handle not used\n\n");
 		    continue;
 		}
@@ -325,8 +317,8 @@ int main(int argc, char *argv[], char *envp[])
 		break;
 	    }
 	    dir = arg.data[0];
-	    printf("I/O GROUPS (DIRECTION) ON BOARD NR. %d:
-		   (0:input, 1:output) \n", module);
+	    printf("I/O GROUPS (DIRECTION) ON BOARD NR. %d:"
+		   "(0:input, 1:output) \n", module);
 	    for (i = 0; i <= 11; i++) {
 		printf("group%2d:%2d  ", i, dir & grp_mask);
 		dir >>= 1;
@@ -348,8 +340,8 @@ int main(int argc, char *argv[], char *envp[])
 		printf("line number out of range\n");
 		break;
 	    }
-	    if (status[module][i] == 0) {
-		connect(&synchro_fd, module, i, 0);
+	    if (!status[module][i]) {
+		icv196_connect(&synchro_fd, module, i, 0);
 		status[module][i] = synchro_fd;
 	    }
 	    synchro_fd = status[module][i];
@@ -375,7 +367,7 @@ int main(int argc, char *argv[], char *envp[])
 		break;
 	    }
 	    if (status[module][i] == 0) {
-		connect(&synchro_fd, module, i, 0);
+		icv196_connect(&synchro_fd, module, i, 0);
 		status[module][i] = synchro_fd;
 	    }
 	    synchro_fd = status[module][i];
@@ -400,7 +392,7 @@ int main(int argc, char *argv[], char *envp[])
 		break;
 	    }
 	    if (status[module][i] == 0) {
-		connect(&synchro_fd, module, i, 0);
+		icv196_connect(&synchro_fd, module, i, 0);
 		status[module][i] = synchro_fd;
 	    }
 	    synchro_fd = status[module][i];
@@ -425,7 +417,7 @@ int main(int argc, char *argv[], char *envp[])
 		break;
 	    }
 	    if (status[module][i] == 0) {
-		connect(&synchro_fd, module, i, 0);
+		icv196_connect(&synchro_fd, module, i, 0);
 		status[module][i] = synchro_fd;
 	    }
 	    synchro_fd = status[module][i];
@@ -461,7 +453,7 @@ int main(int argc, char *argv[], char *envp[])
 	    {
 		if (*evt != 0)
 		{
-		    printf("evt. nr. %2d: 0x%x    ", i, *evt);
+		    printf("evt. nr. %2d: 0x%lx    ", i, *evt);
 		    if (((i+1) % 2) == 0 && i != 0)
 			printf("\n");
 		}
@@ -483,7 +475,7 @@ int main(int argc, char *argv[], char *envp[])
 		break;
 	    }
 	    if (status[module][i] == 0) {
-		connect(&synchro_fd, module, i, 0);
+		icv196_connect(&synchro_fd, module, i, 0);
 		status[module][i] = synchro_fd;
 	    }
 	    synchro_fd = status[module][i];
@@ -508,7 +500,7 @@ int main(int argc, char *argv[], char *envp[])
 		break;
 	    }
 	    if (status[module][i] == 0) {
-		connect(&synchro_fd, module, i, 0);
+		icv196_connect(&synchro_fd, module, i, 0);
 		status[module][i] = synchro_fd;
 	    }
 	    synchro_fd = status[module][i];
@@ -534,10 +526,12 @@ int main(int argc, char *argv[], char *envp[])
 
     for (i = 0; i < icv_ModuleNb; i++)
 	for (j = 0; j < icv_LineNb; j++)
-	    if (status[i][j] != 0) disconnect(i,j);
+	    if (status[i][j] != 0) icv196_disconnect(i,j);
 
     if ((retval = close(service_fd)) < 0) {
 	perror("could not close file %s\n");
-	return;
+	exit(EXIT_FAILURE);
     }
+
+    exit(EXIT_SUCCESS);
 }
