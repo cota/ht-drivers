@@ -282,11 +282,7 @@ struct icv196T_UserLine UserLineAdd[ICV_LogLineNb] = {
        {ICV_Group7, ICV_Index15}, {ICV_Group7, ICV_Index16},
 };
 
-/*
-  static table
-  This shows the structure of the static table of the driver dynamically
-  allocated  by the install subroutine of the driver.
-*/
+/* static table */
 struct icv196T_s {
 	int usercounter; /* User counter */
 	int sem_drvr;    /* semaphore for exclusive access to static table */
@@ -300,11 +296,11 @@ struct icv196T_s {
 	/* Sizing: depend  on needs of user interface */
 	short SubscriberMxNb;
 
-	/*  User handle: as many as device created at install */
+	/* User handle: as many as device created at install */
 	struct T_UserHdl ServiceHdl; /* sharable user service handle */
 	struct T_UserHdl ICVHdl[ICVVME_MaxChan]; /* user handle for synchro */
 
-	/*  ring buffer to serialise event coming from the modules */
+	/* ring buffer to serialise event coming from the modules */
 	struct T_RingBuffer RingGlobal;
 	long Buffer_Evt[GlobEvt_nb]; /* To put event in a sequence */
 
@@ -584,8 +580,18 @@ static struct T_LogLineHdl *Init_LineHdl(int lli, struct T_LineCtxt *LCtxt)
 	return LHdl;
 }
 
-/* Establish connection for a channel with a given logical line */
-static struct T_Subscriber *LineBooking(struct T_UserHdl *UHdl,
+/**
+ * @brief Establish connection for a channel with a given logical line
+ *
+ * @param UHdl --
+ * @param LHdl --
+ * @param mode --
+ *
+ * <long-description>
+ *
+ * @return <ReturnValue>
+ */
+static struct T_Subscriber* LineBooking(struct T_UserHdl *UHdl,
 					struct T_LogLineHdl *LHdl,
 					int mode)
 {
@@ -1689,6 +1695,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			return SYSERR;
 		}
 
+		/* TODO. Check if index is correct */
 		if ((LHdl = icv196_statics.LineHdlDir[LogIx]) == NULL) {
 			/* Line not in config */
 			pseterr(EINVAL);
@@ -1939,6 +1946,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			return SYSERR;
 		}
 
+		/* TODO. Check if index is correct */
 		if ((LHdl = icv196_statics.LineHdlDir[LogIx]) == NULL) {
 			/* Line not in config */
 			pseterr(EINVAL);

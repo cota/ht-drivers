@@ -57,8 +57,10 @@
 #define SETBIT(ar,n)  ar[(n) / 8] |= (  0x1 << ( (n) & 0x7))
 #define TESTBIT(ar,n) ar[(n) / 8] &  (  0x1 << ( (n) & 0x7))
 
-/* Ring buffer management
-   ----------------------
+/*
+  Ring buffer management
+  ----------------------
+
    The buffer size must be a power of 2 To follow ring buffer
    management principle based on a wrapping of the index in the ring
    buffer by increasing the index modulo a power of 2 (role of the mask
@@ -106,17 +108,16 @@ struct T_Subscriber {
 	struct icvT_RingAtom *CumulEvt; /* Cumulative event pointer */
 	short mode; /* 2 -- normal, 1 -- cumulative,
 		       0 -- default (that is cumulative(1) for PLS line,
-		                     and normal(2) for ) */
+		                     and normal(2) for ??? ) */
 	short EvtCounter; /* line event counter for this user */
 };
-
 
 /* Ring buffer manager */
 struct T_RingBuffer {
 	struct T_UserHdl *UHdl; /* owner of the ring buffer */
 	struct icvT_RingAtom *Buffer; /* Buffer of atom */
-	int Evtsem;	  /* semaphore to synchronise and count evt */
-	short   mask; /* mask to manage buffer wrapping */
+	int   Evtsem; /* semaphore to synchronise and count evt */
+	short mask;   /* mask to manage buffer wrapping */
 	short reader; /* current index for reading */
 	short writer; /* current index for writing */
 };
@@ -186,11 +187,9 @@ struct T_ModuleCtxt {
 	short          old_CsDir; /* Previous state of I/O Direction reg */
 	unsigned short startflag; /*  */
 	unsigned short int_en_mask; /*  */
-
-	/* context of the lines */
-	unsigned char Vect; /* for each line a Int. vector */
-	unsigned char Lvl;  /* for each line an Int. level */
-	struct T_LineCtxt LineCtxt[icv_LineNb];
+	unsigned char  Vect; /* Int. vector */
+	unsigned char  Lvl;  /* Int. level */
+	struct T_LineCtxt LineCtxt[icv_LineNb]; /* context of the lines */
 };
 
 /* write z8536 Status register */

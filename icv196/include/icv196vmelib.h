@@ -61,19 +61,29 @@ struct icv196_DioPorts {
 	unsigned short             cs_dir;
 };
 
-
-/*-----------------------------------------------------------------
-	    structure for connect from application program
------------------------------------------------------------------*/
+/**
+ * @brief structure for connect from application program
+ *
+ * @param module -- module number
+ * @param line   -- line number
+ * @param mode   -- cumulative [1] / non-cumulative [0]
+ */
 struct icv196T_UserConnect {
 	unsigned char module;
 	unsigned char line;
 	short         mode;
 };
 
-/*-----------------------------------------------------------------
-       structure of an event seen from an application program
------------------------------------------------------------------*/
+/**
+ * @brief structure of an event seen from an application program
+ *
+ * @param count  -- event counter
+ *                  Depens on mode parameter
+ *                  (cumulative [1] / non-cumulative [0]) in icv196T_UserConnect
+ *                  structure.
+ * @param module -- module, where the interrupt occured
+ * @param line   -- line in the module, where the interrupt occurred
+ */
 struct icv196T_UserEvent {
 	short         count;
 	unsigned char module;
