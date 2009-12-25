@@ -857,7 +857,7 @@ static void ClrSynchro(struct T_UserHdl *UHdl)
 		cancel_timeout(UHdl->timid);
 
 	/* scan map byte array */
-	for (i = 0, cptr = &UHdl->Cmap[0]; i < ICV_mapByteSz; i++, cptr++) {
+	for (i = 0, cptr = UHdl->Cmap; i < ICV_mapByteSz; i++, cptr++) {
 		if ((w = *cptr & 255) != 0) {
 			*cptr = 0; /* Clear bits */
 			for (j = 7; j >= 0; j--, w <<= 1 ) {
@@ -900,7 +900,6 @@ static void Init_LineCtxt(int line, int type, struct T_ModuleCtxt *MCtxt)
 	struct T_LineCtxt *LCtxt = &MCtxt->LineCtxt[line];
 	int LogIndex;
 
-	LCtxt->s = MCtxt->s;
 	LCtxt->MCtxt = MCtxt;
 	LCtxt->Line = line;
 	LCtxt->Type = type;

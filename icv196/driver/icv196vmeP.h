@@ -162,7 +162,6 @@ struct T_UserHdl {
   this depends on the type of module
 */
 struct T_LineCtxt {
-	struct icv196T_s *s;
 	struct T_ModuleCtxt *MCtxt;
 	struct T_LogLineHdl *LHdl; /* Line handle linked to */
 	int   Type; /* to stand specificity of lines: pls or icv */
