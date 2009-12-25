@@ -284,7 +284,7 @@ struct icv196T_UserLine UserLineAdd[ICV_LogLineNb] = {
 
 /* static table */
 struct icv196T_s {
-	int usercounter; /* User counter */
+	int usercounter; /* total user amount conntected to the driver */
 	int sem_drvr;    /* semaphore for exclusive access to static table */
 	int timid;       /* Interval timer Identification */
 	int interval;    /* Timerinterval */
@@ -470,10 +470,10 @@ static void Init_UserHdl(struct T_UserHdl *UHdl, int chanel)
 	UHdl->sel_sem   = NULL; /* clear the semaphore for the select */
 
 	/* clear up  bit map of established connection */
-	for (i = 0, cptr = &UHdl->Cmap[0]; i < ICV_mapByteSz; i++)
+	for (i = 0, cptr = UHdl->Cmap; i < ICV_mapByteSz; i++)
 		*cptr++ = 0;
 
-	Init_Ring(UHdl, &UHdl->Ring, &UHdl->Atom[0], Evt_msk);
+	Init_Ring(UHdl, &UHdl->Ring, UHdl->Atom, Evt_msk);
 }
 
 /* initialize driver statics table */
@@ -524,7 +524,7 @@ static void Init_LineSubscribers(struct T_LogLineHdl *LHdl)
 		mode = icv_queuleuleu; /*default for fpi line a la
 					 queue leuleu */
 
-	Subs = &LHdl->Subscriber[0];
+	Subs = LHdl->Subscriber;
 	for (i = 0; i < LHdl->SubscriberMxNb; i++, Subs++) {
 		Subs->LHdl = LHdl;
 		Subs->CumulEvt = NULL; /* to prevent active event processing */
@@ -584,7 +584,7 @@ static struct T_Subscriber* LineBooking(struct T_UserHdl *UHdl,
 
 	LCtxt = LHdl->LineCtxt;
 	ns = LHdl->SubscriberMxNb;
-	Subs = &LHdl->Subscriber[0];
+	Subs = LHdl->Subscriber;
 	disable(ps);
 
 	for (i = 0; i < ns; i++, Subs++) {
@@ -633,7 +633,7 @@ static struct T_Subscriber *LineUnBooking(struct T_UserHdl *UHdl,
 	UHdlRing = &UHdl->Ring;
 	disable(ps);
 	ns = LHdl->SubscriberMxNb;
-	Subs = &LHdl->Subscriber[0];
+	Subs = LHdl->Subscriber;
 
 	for (i = 0; i < ns; i++, Subs++) {
 		if (!Subs->Ring || Subs->Ring != UHdlRing)
@@ -669,7 +669,7 @@ static struct T_Subscriber *CheckBooking(struct T_UserHdl *UHdl,
 	UHdlRing = &UHdl->Ring;
 	disable(ps);
 	ns = LHdl->SubscriberMxNb;
-	Subs = &LHdl->Subscriber[0];
+	Subs = LHdl->Subscriber;
 
 	for (i = 0; i < ns; i++, Subs++) {
 		if (!Subs->Ring || Subs->Ring != UHdlRing)
@@ -1253,26 +1253,20 @@ int icv196_close(SkelDrvrClientContext *ccon)
 int icv196_read(void *wa, struct cdcm_file *f,
 		char *buff, int bcount)
 {
-	int count, Chan;
 	struct T_UserHdl  *UHdl;
 	long   *buffEvt;
 	struct T_ModuleCtxt *MCtxt;
 	int i, m;
 	long Evt;
-	int bn;
+	int bn, count;
 	ulong ps;
 	int Line;
+	int Chan = minordev(f->dev);
 
-	Chan = minordev(f->dev);
 	if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
 		UHdl = &icv196_statics.ICVHdl[Chan-1]; /* ICV event handle */
 	} else {
 		pseterr(ENODEV);
-		return SYSERR;
-	}
-
-	if (!UHdl) { /* Abnormal status system corruption */
-		pseterr(EWOULDBLOCK);
 		return SYSERR;
 	}
 
@@ -1418,21 +1412,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		break;
 	case ICVVME_setreenable:
 		/* Set reenable flag to allow continuous interrupts */
-		/* Check channel number and Set up Handle pointer */
-		if (!Chan) { /* no connect on channel 0 */
-			pseterr(EACCES);
-			return SYSERR;
-		}
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
-			UHdl = &icv196_statics.ICVHdl[Chan-1];
-		} else {
-			pseterr(ENODEV);
-			return SYSERR;
-		}
-		if (!UHdl) {  /* Abnormal status system corruption */
-			pseterr(EWOULDBLOCK);
-			return SYSERR;
-		}
+		UHdl = &icv196_statics.ICVHdl[Chan];
 
 		/* Check parameters and Set up environnement */
 		group = ((struct icv196T_UserLine *) arg)->group;
@@ -1479,24 +1459,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		/* Clear reenable flag.
 		   After an interrupt, further interrupts are inhibited
 		   until the line is enabled again */
-
-		/* Check channel number and Set up Handle pointer */
-		if (!Chan) { /* no connect on channel 0 */
-			pseterr(EACCES);
-			return SYSERR;
-		}
-
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
-			UHdl = &icv196_statics.ICVHdl[Chan-1];
-		} else {
-			pseterr(ENODEV);
-			return SYSERR;
-		}
-
-		if (!UHdl) {  /* Abnormal status system corruption */
-			pseterr(EWOULDBLOCK);
-			return SYSERR;
-		}
+		UHdl = &icv196_statics.ICVHdl[Chan];
 
 		/* Check parameters and Set up environnement */
 		group = ((struct icv196T_UserLine *) arg)->group;
@@ -1542,24 +1505,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 	case ICVVME_disable:
 		/* Disable interrupt. Interrupts on the given logical
 		   line are disabled */
-
-		/* Check channel number and Set up Handle pointer */
-		if (!Chan) { /* no connect on channel 0 */
-			pseterr(EACCES);
-			return SYSERR;
-		}
-
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
-			UHdl = &icv196_statics.ICVHdl[Chan-1];
-		} else {
-			pseterr(ENODEV);
-			return SYSERR;
-		}
-
-		if (!UHdl) {  /* Abnormal status system corruption */
-			pseterr(EWOULDBLOCK);
-			return SYSERR;
-		}
+		UHdl = &icv196_statics.ICVHdl[Chan];
 
 		/* Check parameters and Set up environnement */
 		group = ((struct icv196T_UserLine *) arg)->group;
@@ -1605,24 +1551,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 	case ICVVME_enable:
 		/* Enable interrupt.
 		   Interrupts on the given logical line are enabled */
-
-		/* Check channel number and Set up Handle pointer */
-		if (!Chan) { /* no connect on channel 0 */
-			pseterr(EACCES);
-			return (SYSERR);
-		}
-
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
-			UHdl = &icv196_statics.ICVHdl[Chan-1];
-		} else {
-			pseterr(ENODEV);
-			return SYSERR;
-		}
-
-		if (!UHdl) {  /* Abnormal status system corruption */
-			pseterr(EWOULDBLOCK);
-			return SYSERR;
-		}
+		UHdl = &icv196_statics.ICVHdl[Chan];
 
 		/* Check parameters and Set up environnement */
 		group = ((struct icv196T_UserLine *) arg)->group;
@@ -1770,48 +1699,14 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		break;
 	case ICVVME_nowait:
 		/* Set nowait mode on the read function */
-
-		/* Check channel number and Set up Handle pointer */
-		if (!Chan) { /* no such function on channel 0 */
-			pseterr(EACCES);
-			return SYSERR;
-		}
-
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
-			UHdl = &icv196_statics.ICVHdl[Chan-1];
-		} else {
-			pseterr(ENODEV);
-			return SYSERR;
-		}
-
-		if (!UHdl) { /* system corruption */
-			pseterr(EWOULDBLOCK);
-			return SYSERR;
-		}
+		UHdl = &icv196_statics.ICVHdl[Chan];
 
 		/* reset flag wait */
 		UHdl->UserMode &= (~((short) icv_bitwait));
 		break;
 	case ICVVME_wait:
 		/* Set wait mode on the read function */
-
-		/* Check channel number and Set up Handle pointer */
-		if (!Chan) { /* no such function on channel 0 */
-			pseterr(EACCES);
-			return SYSERR;
-		}
-
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
-			UHdl = &icv196_statics.ICVHdl[Chan-1]; /* LAM handle */
-		} else {
-			pseterr(ENODEV);
-			return SYSERR;
-		}
-
-		if (!UHdl) { /* system corruption */
-			pseterr(EWOULDBLOCK);
-			return SYSERR;
-		}
+		UHdl = &icv196_statics.ICVHdl[Chan];
 
 		UHdl->UserMode |= ((short)icv_bitwait); /* set flag wait */
 		break;
@@ -1819,24 +1714,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		/* Set Time out for waiting Event.
 		   Monitor duration of wait on interrupt event before
 		   time out  declared */
-
-		/* Check channel number and Set up Handle pointer */
-		if (!Chan) { /* no such function on channel 0 */
-			pseterr(EACCES);
-			return SYSERR;
-		}
-
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
-			UHdl = &icv196_statics.ICVHdl[Chan-1];/* LAM handle */
-		} else {
-			pseterr(ENODEV);
-			return SYSERR;
-		}
-
-		if (!UHdl) { /* system corruption */
-			pseterr(EWOULDBLOCK);
-			return SYSERR;
-		}
+		UHdl = &icv196_statics.ICVHdl[Chan];
 
 		if (( *( (int *) arg)) < 0) {
 			pseterr(EINVAL);
@@ -1851,23 +1729,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 	case ICVVME_connect:
 		/* connect function */
 		err = 0;
-		/* Check channel number and Set up Handle pointer */
-		if (!Chan) { /* no connect on channel 0 */
-			pseterr(EACCES);
-			return SYSERR;
-		}
-
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
-			UHdl = &icv196_statics.ICVHdl[Chan-1];
-		} else {
-			pseterr(ENODEV);
-			return SYSERR;
-		}
-
-		if (!UHdl) {  /* Abnormal status system corruption */
-			pseterr(EWOULDBLOCK);
-			return SYSERR;
-		}
+		UHdl = &icv196_statics.ICVHdl[Chan];
 
 		/* Check parameters and Set up environnement */
 		group = ((struct icv196T_connect *) arg)->source.group;
@@ -1949,24 +1811,8 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		break;
 	case ICVVME_disconnect:
 		/* disconnect function */
+		UHdl = &icv196_statics.ICVHdl[Chan];
 		err = 0;
-		/* Check channel number and Set up Handle pointer */
-		if (!Chan) { /* no disconnect on channel 0 */
-			pseterr(EACCES);
-			return SYSERR;
-		}
-
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
-			UHdl = &icv196_statics.ICVHdl[Chan-1];
-		} else {
-			pseterr(ENODEV);
-			return SYSERR;
-		}
-
-		if (!UHdl) { /* Abnormal status system corruption! */
-			pseterr(EWOULDBLOCK);
-			return SYSERR;
-		}
 
 		/* Check parameters and Set up environnement */
 		group = ((struct icv196T_connect *) arg)->source.group;
@@ -2026,18 +1872,14 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 int icv196_select(struct icv196T_s *s, struct cdcm_file *f,
 		 int which, struct sel *se)
 {
-	int   Chan;
+	int Chan = minordev(f->dev);
 	struct T_UserHdl *UHdl = NULL;
-
-	Chan = minordev(f->dev);
-
-	if (!Chan) { /* no select on channel 0 */
-		pseterr(EACCES);
-		return SYSERR;
-	}
 
 	if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
 		UHdl = &s->ICVHdl[Chan-1]; /* general handle */
+	} else {
+		pseterr(EACCES);
+		return SYSERR;
 	}
 
 	switch (which) {
@@ -2141,7 +1983,7 @@ int icv196_isr(void *arg)
 			/* scan the subscriber table to send them the event */
 			ns = LHdl->SubscriberMxNb;
 			cs = LHdl->SubscriberCurNb;
-			Subs= &LHdl->Subscriber[0];
+			Subs= LHdl->Subscriber;
 
 			for (j = 0; j < ns && cs > 0; j++, Subs++) {
 				if (!Subs->Ring)
