@@ -1301,12 +1301,6 @@ int icv196_read(void *wa, struct cdcm_file *f,
 	ulong ps;
 	int Line;
 
-	/* Check parameters and Set up channel environnement */
-	if (wbounds((int)buff) == EFAULT) {
-		pseterr(EFAULT);
-		return SYSERR;
-	}
-
 	Chan = minordev(f->dev);
 	if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
 		UHdl = &icv196_statics.ICVHdl[Chan-1]; /* ICV event handle */
@@ -2124,7 +2118,7 @@ int icv196_isr(void *arg)
 	static unsigned short input[16] = { 0 }; /* input array */
 
 	s = MCtxt->s; /* statics table */
-	m = MCtxt->Module;
+	m = MCtxt->Module; /* module index */
 
 	if (!(WITHIN_RANGE(0, m, icv_ModuleNb-1)))
 		return SYSERR;
@@ -2135,7 +2129,7 @@ int icv196_isr(void *arg)
 	if (!MCtxt->startflag) {
 		/* reset the input array the first
 		   time the routine is entered */
-		for (i = 0; i <= 15; i++)
+		for (i = 0; i < ARRAY_SIZE(input); i++)
 			input[i] = 0;
 
 		MCtxt->startflag = 1;
