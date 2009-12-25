@@ -539,7 +539,6 @@ static struct T_LogLineHdl *Init_LineHdl(int lli, struct T_LineCtxt *LCtxt)
 	union  icv196U_UserLine UserLine;
 
 	LHdl = icv196_statics.LineHdlDir[lli] = &icv196_statics.LineHdl[lli];
-	LHdl->s = &icv196_statics;
 	LHdl->LogIndex = lli;
 	LHdl->LineCtxt = LCtxt;	/* Link Line handle and Line context */
 

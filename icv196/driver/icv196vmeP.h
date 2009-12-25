@@ -124,7 +124,6 @@ struct T_RingBuffer {
 
 /* Logical line handle */
 struct T_LogLineHdl {
-	struct icv196T_s *s;
 	int LogIndex; /* logical line index (one of ICV_Lxxx) */
 	struct T_LineCtxt *LineCtxt;
 	union icvU_Evt Event_Pattern; /* Pattern of event build at
