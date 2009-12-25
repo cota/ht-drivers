@@ -315,7 +315,9 @@ struct icv196T_s {
 } icv196_statics = {
 	.sem_drvr = 1, /* to protect global ressources management sequences */
 	.UserTO   = 6000, /* default T.O. for waiting Trigger */
-	.UserMode = icv_bitwait /* set flag wait for read = wait */
+	.UserMode = icv_bitwait, /* set flag wait for read = wait */
+	.ModuleCtxtDir = { [0 ... icv_ModuleNb-1] = 0 },
+	.ModuleCtxt = { [0 ... icv_ModuleNb-1] = { 0 } }
 };
 
 /* to come out of waiting event */
@@ -360,18 +362,6 @@ static void GetUserLine(int logindex, struct icv196T_UserLine *add)
 {
 	add->group = UserLineAdd[logindex].group;
 	add->index = UserLineAdd[logindex].index;
-}
-
-/* Initialise the directory tables */
-static void Init_Dir(struct icv196T_s *s)
-{
-	int i;
-
-	for (i = 0; i < icv_ModuleNb; i++)
-		s->ModuleCtxtDir[i] = NULL; /* Default value */
-
-	for (i = 0; i < ICV_LogLineNb; i++)
-		s->LineHdlDir[i] = NULL; /* Default value */
 }
 
 /* Initialise Ring buffer descriptor */
@@ -504,9 +494,6 @@ static void init_statics_once(void)
 		for (i = 0; i < ICVVME_MaxChan; i++)
 			Init_UserHdl(&icv196_statics.ICVHdl[i], i+1,
 				     &icv196_statics);
-
-		/* Initialize Directories */
-		Init_Dir(&icv196_statics);
 	}
 }
 
@@ -1540,7 +1527,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		group = ((struct icv196T_UserLine *) arg)->group;
 		index = ((struct icv196T_UserLine *) arg)->index;
 
-		if (icv196_statics.ModuleCtxtDir[group] == NULL) {
+		if (!icv196_statics.ModuleCtxtDir[group]) {
 			pseterr(EACCES);
 			return SYSERR;
 		}
@@ -2158,7 +2145,7 @@ int icv196_isr(void *arg)
 		mask = 1;
 		mdev = z8536_rd_val(Data_Breg); /* read portB's data reg */
 		for (i = 8; i <= 15; i++) {
-			if (mdev & mask & (MCtxt -> int_en_mask >> 8))
+			if (mdev & mask & (MCtxt->int_en_mask >> 8))
 				/* mark port B's active interrupt lines */
 				input[i] = 1;
 			mask <<= 1;
