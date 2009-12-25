@@ -30,10 +30,6 @@
 #define icv_ModuleNb  8 /* Max Number of icv modules */
 #define ICV_LogLineNb (icv_ModuleNb * icv_LineNb + 1) /* logical lines number + 1 */
 
-/* limit of the ressources */
-#define ICVVME_MaxChan 8 /* number of file handle in the pool
-			    (max number of simultaneous users) */
-
 /* Channel to read the PLS telegram */
 #define ICVVME_ServiceChan   0
 /* Channel to get synchronised with icv int */
@@ -126,7 +122,7 @@ struct icv196T_HandleLines {
 };
 
 struct icv196T_HandleInfo {
-	struct icv196T_HandleLines handle[ICVVME_MaxChan];
+	struct icv196T_HandleLines handle[SkelDrvrCLIENT_CONTEXTS];
 };
 
 /* structure passed at gethandleinfo ioctl call */

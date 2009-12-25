@@ -254,7 +254,7 @@ int main(int argc, char *argv[], char *envp[])
 	case 6:
 
 	    Info_H = (struct icv196T_HandleLines *)&(arg4.handle[0]);
-	    for (i = 0; i < ICVVME_MaxChan; i++, Info_H++)  {
+	    for (i = 0; i < SkelDrvrCLIENT_CONTEXTS; i++, Info_H++)  {
 		Info_H -> pid = 0;
 		for (j = 0; j < ICV_LogLineNb; j++)  {
 		    Info_H -> lines[j].group = 0xff;
@@ -269,7 +269,7 @@ int main(int argc, char *argv[], char *envp[])
 
 	    Info_H = (struct icv196T_HandleLines *)&(arg4.handle[0]);
 	    Info_H++;
-	    for (i = 1;i < ICVVME_MaxChan; i++, Info_H++) {
+	    for (i = 1; i < SkelDrvrCLIENT_CONTEXTS; i++, Info_H++) {
 		printf("HANDLE INFO FOR HANDLE NR. %d:   ", i);
 		if (!Info_H->pid) {
 		    printf("handle not used\n\n");

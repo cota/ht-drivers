@@ -297,8 +297,7 @@ struct icv196T_s {
 	short SubscriberMxNb;
 
 	/* User handle: as many as device created at install */
-	struct T_UserHdl ServiceHdl; /* sharable user service handle */
-	struct T_UserHdl ICVHdl[ICVVME_MaxChan]; /* user handle for synchro */
+	struct T_UserHdl ICVHdl[SkelDrvrCLIENT_CONTEXTS]; /* user handle */
 
 	/* ring buffer to serialise event coming from the modules */
 	struct T_RingBuffer RingGlobal;
@@ -491,8 +490,8 @@ static void init_statics_once(void)
 			 Version, compile_date, compile_time);
 
 		/* Initialise user'shandle */
-		for (i = 0; i < ICVVME_MaxChan; i++)
-			Init_UserHdl(&icv196_statics.ICVHdl[i], i+1,
+		for (i = 0; i < SkelDrvrCLIENT_CONTEXTS; i++)
+			Init_UserHdl(&icv196_statics.ICVHdl[i], i,
 				     &icv196_statics);
 	}
 }
@@ -1195,69 +1194,54 @@ int icv196_uninstall(struct icv196T_s *s)
 /* Open Entry Point */
 int icv196_open(SkelDrvrClientContext *ccon)
 {
-	short DevType = 0; /* 0 -- normal, 1 -- service channel */
-	struct T_UserHdl *UHdl = NULL;
-	int   chan = ccon->ClientIndex + 1; /* convert to minor dev */
+	struct T_UserHdl *UHdl;
+	int   chan = ccon->ClientIndex; /* [0 - 15] */
 
-	if (chan == ICVVME_ServiceChan) {
-		UHdl = &icv196_statics.ServiceHdl;
-		DevType = 1;
-	} else if (WITHIN_RANGE(ICVVME_IcvChan01, chan, ICVVME_MaxChan)) {
-		if (ccon->cdcmf->access_mode & FWRITE) {
-			/* write is not supported */
-			pseterr(EACCES);
-			return SYSERR;
-		}
-		UHdl = &icv196_statics.ICVHdl[chan-1];
-	} else {
+	UHdl = &icv196_statics.ICVHdl[chan];
+	if (UHdl->usercount) { /* channel already open */
 		pseterr(EACCES);
 		return SYSERR;
 	}
 
-	if (!DevType && UHdl->usercount) { /* synchro channel already open */
+	/* TODO! Support write? */
+	if (ccon->cdcmf->access_mode & FWRITE) {
+		/* write is not supported */
 		pseterr(EACCES);
 		return SYSERR;
 	}
 
 	/* Perform the open */
 	swait(&icv196_statics.sem_drvr, SEM_SIGRETRY);
-	if (!DevType) { /* Case synchro */
-		Init_UserHdl(UHdl, chan, &icv196_statics);
-		UHdl->UserMode  = icv196_statics.UserMode;
-		UHdl->WaitingTO = icv196_statics.UserTO;
-		UHdl->pid       = ccon->Pid;
-	}
+
+	Init_UserHdl(UHdl, chan, &icv196_statics);
+	UHdl->UserMode  = icv196_statics.UserMode;
+	UHdl->WaitingTO = icv196_statics.UserTO;
+	UHdl->pid       = ccon->Pid;
 
 	icv196_statics.usercounter++; /* Update user counter value */
 	UHdl->usercount++;
+
 	ssignal(&icv196_statics.sem_drvr);
+
 	return OK;
 }
 
 /* Close Entry Point */
 int icv196_close(SkelDrvrClientContext *ccon)
 {
-	short DevType = 0;
-	struct T_UserHdl *UHdl = NULL;
-	int chan = ccon->ClientIndex + 1; /* convert to minor dev */
+	struct T_UserHdl *UHdl;
+	int chan = ccon->ClientIndex; /* [0 - 15] */
 
-	if (chan == ICVVME_ServiceChan) {
-		UHdl = &icv196_statics.ServiceHdl;
-		DevType = 1;
-	} else if (WITHIN_RANGE(ICVVME_IcvChan01, chan, ICVVME_MaxChan)) {
-		UHdl = &icv196_statics.ICVHdl[chan-1];
-	} else {
-		pseterr(EACCES);
-		return SYSERR;
-	}
+	UHdl = &icv196_statics.ICVHdl[chan];
 
 	/* Perform close */
 	swait(&icv196_statics.sem_drvr, SEM_SIGRETRY);
-	if (DevType == 0) /* case of Synchro handle */
-		ClrSynchro(UHdl); /* Clear connection established */
+
+	ClrSynchro(UHdl); /* Clear connection established */
 
 	icv196_statics.usercounter--; /* Update user counter value */
 	UHdl->usercount--;
+
 	ssignal(&icv196_statics.sem_drvr);
 
 	return OK;
@@ -1289,7 +1273,7 @@ int icv196_read(void *wa, struct cdcm_file *f,
 	int Line;
 
 	Chan = minordev(f->dev);
-	if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+	if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
 		UHdl = &icv196_statics.ICVHdl[Chan-1]; /* ICV event handle */
 	} else {
 		pseterr(ENODEV);
@@ -1409,7 +1393,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 	case ICVVME_gethandleinfo:
 		HanInfo = (struct icv196T_HandleInfo *)arg;
 		UHdl = icv196_statics.ICVHdl; /* point to first user handle */
-		for (i = 0; i < ICVVME_MaxChan; i++, UHdl++) {
+		for (i = 0; i < SkelDrvrCLIENT_CONTEXTS; i++, UHdl++) {
 			HanLin = &HanInfo->handle[i];
 			l = 0;
 			if (!UHdl->usercount)
@@ -1448,7 +1432,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			pseterr(EACCES);
 			return SYSERR;
 		}
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
 			UHdl = &icv196_statics.ICVHdl[Chan-1];
 		} else {
 			pseterr(ENODEV);
@@ -1511,7 +1495,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
 			UHdl = &icv196_statics.ICVHdl[Chan-1];
 		} else {
 			pseterr(ENODEV);
@@ -1574,7 +1558,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
 			UHdl = &icv196_statics.ICVHdl[Chan-1];
 		} else {
 			pseterr(ENODEV);
@@ -1637,7 +1621,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			return (SYSERR);
 		}
 
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
 			UHdl = &icv196_statics.ICVHdl[Chan-1];
 		} else {
 			pseterr(ENODEV);
@@ -1802,7 +1786,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
 			UHdl = &icv196_statics.ICVHdl[Chan-1];
 		} else {
 			pseterr(ENODEV);
@@ -1826,7 +1810,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
 			UHdl = &icv196_statics.ICVHdl[Chan-1]; /* LAM handle */
 		} else {
 			pseterr(ENODEV);
@@ -1851,7 +1835,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
 			UHdl = &icv196_statics.ICVHdl[Chan-1];/* LAM handle */
 		} else {
 			pseterr(ENODEV);
@@ -1882,7 +1866,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
 			UHdl = &icv196_statics.ICVHdl[Chan-1];
 		} else {
 			pseterr(ENODEV);
@@ -1981,7 +1965,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			return SYSERR;
 		}
 
-		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+		if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
 			UHdl = &icv196_statics.ICVHdl[Chan-1];
 		} else {
 			pseterr(ENODEV);
@@ -2061,7 +2045,7 @@ int icv196_select(struct icv196T_s *s, struct cdcm_file *f,
 		return SYSERR;
 	}
 
-	if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, ICVVME_MaxChan)) {
+	if (WITHIN_RANGE(ICVVME_IcvChan01, Chan, SkelDrvrCLIENT_CONTEXTS)) {
 		UHdl = &s->ICVHdl[Chan-1]; /* general handle */
 	}
 
