@@ -30,8 +30,6 @@
 #define icv_ModuleNb  8 /* Max Number of icv modules */
 #define ICV_LogLineNb (icv_ModuleNb * icv_LineNb + 1) /* logical lines number + 1 */
 
-/* Channel to read the PLS telegram */
-#define ICVVME_ServiceChan   0
 /* Channel to get synchronised with icv int */
 #define ICVVME_IcvChan01 1
 #define ICVVME_IcvChan02 2

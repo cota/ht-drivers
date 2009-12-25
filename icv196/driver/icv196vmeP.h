@@ -144,9 +144,8 @@ struct T_LogLineHdl {
   structure associated to each minor device
 */
 struct T_UserHdl {
-	struct icv196T_s *s;
 	short usercount;
-	int   chanel;
+	int   chanel; /* channel index */
 	long  count;
 	int   timid;
 	int   pid;       /* process id  */

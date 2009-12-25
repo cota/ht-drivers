@@ -459,13 +459,11 @@ static unsigned long PullFrom_Ring(struct T_RingBuffer *Ring)
 }
 
 /* init user Handle */
-static void Init_UserHdl(struct T_UserHdl *UHdl, int chanel,
-			 struct icv196T_s *s)
+static void Init_UserHdl(struct T_UserHdl *UHdl, int chanel)
 {
 	int i;
 	char *cptr;
 
-	UHdl->s         = s;
 	UHdl->chanel    = chanel;
 	UHdl->pid       = 0;
 	UHdl->usercount = 0; /* clear current user number */
@@ -491,8 +489,7 @@ static void init_statics_once(void)
 
 		/* Initialise user'shandle */
 		for (i = 0; i < SkelDrvrCLIENT_CONTEXTS; i++)
-			Init_UserHdl(&icv196_statics.ICVHdl[i], i,
-				     &icv196_statics);
+			Init_UserHdl(&icv196_statics.ICVHdl[i], i);
 	}
 }
 
@@ -850,20 +847,16 @@ static void ClrSynchro(struct T_UserHdl *UHdl)
 {
 	ulong ps;
 	int i, j;
-	struct icv196T_s    *s;
 	struct T_LineCtxt   *LCtxt;
 	struct T_LogLineHdl *LHdl;
-	struct T_RingBuffer *UHdlRing;
 	struct T_Subscriber *Subs;
 	unsigned char w;
 	char *cptr;
 
-	s = UHdl->s;
-	UHdlRing = &UHdl->Ring;
 	if (UHdl->timid >= 0)
 		cancel_timeout(UHdl->timid);
 
-	/* scan map byte array  */
+	/* scan map byte array */
 	for (i = 0, cptr = &UHdl->Cmap[0]; i < ICV_mapByteSz; i++, cptr++) {
 		if ((w = *cptr & 255) != 0) {
 			*cptr = 0; /* Clear bits */
@@ -872,7 +865,7 @@ static void ClrSynchro(struct T_UserHdl *UHdl)
 				if (!w)
 					break;
 				if ( ((char) w) < 0 ) {	/* line connected */
-					if ( (LHdl = s->LineHdlDir[(i*8 + j)])
+					if ( (LHdl = icv196_statics.LineHdlDir[(i*8 + j)])
 					     == NULL) {
 						/* DBG(("icv196:Clrsynchro: log line not in directory \n")); */
 						continue;
@@ -1213,7 +1206,7 @@ int icv196_open(SkelDrvrClientContext *ccon)
 	/* Perform the open */
 	swait(&icv196_statics.sem_drvr, SEM_SIGRETRY);
 
-	Init_UserHdl(UHdl, chan, &icv196_statics);
+	Init_UserHdl(UHdl, chan);
 	UHdl->UserMode  = icv196_statics.UserMode;
 	UHdl->WaitingTO = icv196_statics.UserTO;
 	UHdl->pid       = ccon->Pid;

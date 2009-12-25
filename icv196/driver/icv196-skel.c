@@ -269,7 +269,7 @@ void SkelUserClientRelease(SkelDrvrClientContext *ccon)
 SkelUserReturn SkelUserIoctls(SkelDrvrClientContext *ccon,
 			      SkelDrvrModuleContext *mcon, int cm, char *arg)
 {
-	icv196_ioctl(ccon->ClientIndex + 1, cm, arg);
+	icv196_ioctl(ccon->ClientIndex, cm, arg);
 	return SkelUserReturnNOT_IMPLEMENTED;
 }
 
