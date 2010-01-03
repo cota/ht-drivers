@@ -340,7 +340,7 @@ static int UserWakeup(void *data)
 /* Convert a user line address in a logical line index */
 static int CnvrtUserLine(char grp, char index)
 {
-	return (int) ((grp * ICV_IndexNb) + index);
+	return (int) ((grp * icv_LineNb) + index);
 }
 
 /**
@@ -684,7 +684,7 @@ static struct T_Subscriber *CheckBooking(struct T_UserHdl *UHdl,
 }
 #endif
 
-/* to enable interrupt from a line called from service level */
+/* to enable interrupt from a line */
 static void enable_Line(struct T_LineCtxt *LCtxt)
 {
 	ulong ps;
@@ -1636,7 +1636,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		*Data = MCtxt->int_en_mask;
 		break;
 	case ICVVME_iosem:
-		/* Read io semaphores for all lines in the given module */
+		/* Read i/o semaphores for all lines in the given module */
 		Module = (long)((struct icv196T_Service *) arg)->module;
 		Data   = ((struct icv196T_Service *)arg)->data;
 		if (!icv196_statics.ModuleCtxtDir[Module]) {
@@ -1645,7 +1645,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		MCtxt = &icv196_statics.ModuleCtxt[Module];
-		LCtxt = &MCtxt->LineCtxt[0];
+		LCtxt = MCtxt->LineCtxt;
 
 		for (i = 0; i < icv_LineNb; i++, LCtxt++) {
 			LHdl = LCtxt->LHdl;
@@ -1686,7 +1686,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 		break;
 	case ICVVME_readio:
-		/* Read direction of input/output ports */
+		/* Read direction of i/o ports */
 		Module = (long)((struct icv196T_Service *)arg)->module;
 		Data   = ((struct icv196T_Service *)arg)->data;
 		if (!icv196_statics.ModuleCtxtDir[Module]) {

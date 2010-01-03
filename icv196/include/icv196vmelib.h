@@ -21,10 +21,7 @@
 #ifndef  _icv196vmelib
 #define  _icv196vmelib
 
-/* definition link to configuration */
-/* module specification */
-#define icv_LineNb  16 /* number of line per module */
-#define ICV_IndexNb 16 /* index number in a group */
+#define icv_LineNb  16 /* number of lines per module */
 
 /* limits of the configuration */
 #define icv_ModuleNb  8 /* Max Number of icv modules */
@@ -110,51 +107,51 @@ union icv196U_UserLine {
 };
 
 struct icv196T_UserLine {
-	unsigned char group;
-	unsigned char index;
+	unsigned char group;	/**<  */
+	unsigned char index;	/**<  */
 };
 
 struct icv196T_HandleLines {
-	int pid;
-	struct icv196T_UserLine lines[ICV_LogLineNb];
+	int pid;		/**<  */
+	struct icv196T_UserLine lines[ICV_LogLineNb]; /**<  */
 };
 
 struct icv196T_HandleInfo {
-	struct icv196T_HandleLines handle[SkelDrvrCLIENT_CONTEXTS];
+	struct icv196T_HandleLines handle[SkelDrvrCLIENT_CONTEXTS]; /**<  */
 };
 
 /* structure passed at gethandleinfo ioctl call */
 struct icv196T_ModuleInfo {
-	int ModuleFlag;
-	struct icv196T_ModuleParam ModuleInfo;
+	int ModuleFlag;		/**<  */
+	struct icv196T_ModuleParam ModuleInfo; /**<  */
 };
 
 struct icv196U_LogLine {
-	unsigned char group;
-	unsigned char index;
+	unsigned char group;	/**<  */
+	unsigned char index;	/**<  */
 };
 
 
 struct icv196T_connect {
-	struct icv196U_LogLine source;
-	int                    mode;
+	struct icv196U_LogLine source; /**<  */
+	int                    mode;   /**<  */
 };
 
 struct icv196T_Service {
-	unsigned char module;
-	unsigned char line;
-	unsigned long data[ICV_IndexNb];
+	unsigned char module;	/**<  */
+	unsigned char line;	/**<  */
+	unsigned long data[icv_LineNb]; /**<  */
 };
 
 /* structure of a user line Address */
 struct icv196T_LineUserAdd {
-	char group;
-	char index;
+	char group;		/**<  */
+	char index;		/**<  */
 };
 
 struct T_icv196Arg {
-	struct icv196T_LineUserAdd Add;
-	short   mode;
+	struct icv196T_LineUserAdd Add; /**<  */
+	short mode;			/**<  */
 };
 
 #ifdef __cplusplus

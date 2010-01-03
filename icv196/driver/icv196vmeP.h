@@ -183,7 +183,7 @@ struct T_ModuleCtxt {
 	short         *VME_CsDir; /* ICV196 I/O Direction reg */
 	short          old_CsDir; /* Previous state of I/O Direction reg */
 	unsigned short startflag; /*  */
-	unsigned short int_en_mask; /*  */
+	unsigned short int_en_mask; /* 16-line interrupt bit mask */
 	unsigned char  Vect; /* Int. vector */
 	unsigned char  Lvl;  /* Int. level */
 	struct T_LineCtxt LineCtxt[icv_LineNb]; /* context of the lines */
