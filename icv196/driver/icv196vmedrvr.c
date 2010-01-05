@@ -1675,17 +1675,16 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		grp = *Data++;
 		dir = *Data;
 
-		if (!WITHIN_RANGE(0, grp, 11))
+		if (!WITHIN_RANGE(0, grp, 11) || !WITHIN_RANGE(0, dir, 1))
 			return SYSERR;
 
 		group_mask = 1 << grp;
-		if (dir) { /* output */
-			icv196_wr(MCtxt->old_CsDir | group_mask, VME_CsDir); /* TODO. check */
-			MCtxt->old_CsDir = MCtxt->old_CsDir | group_mask;
-		} else { /* input */
-			icv196_wr(MCtxt->old_CsDir & ~group_mask , VME_CsDir);  /* TODO. check */
-			MCtxt->old_CsDir = MCtxt->old_CsDir & ~group_mask;
-		}
+		if (dir) /* output */
+			MCtxt->old_CsDir |= group_mask;
+		else /* input */
+			MCtxt->old_CsDir &=  ~group_mask;
+
+		icv196_wr(MCtxt->old_CsDir, VME_CsDir); /* TODO. check */
 		break;
 	case ICVVME_readio:
 		/* Read direction of i/o ports */
