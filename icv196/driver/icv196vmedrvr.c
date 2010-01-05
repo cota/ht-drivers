@@ -1974,63 +1974,60 @@ int icv196_isr(void *arg)
 
 	/* loop on active line */
 	for (i = 0; i < icv_LineNb; i++) {
-		if (input[i]) {
-			/* active line */
-			input[i] = 0;
-			LCtxt = &MCtxt->LineCtxt[i];
-			LCtxt->loc_count++;
-			LHdl = LCtxt->LHdl;
+		if (!input[i])	/* line not active */
+			continue;
 
-			/* Build the Event */
-			Atom.Evt.All = LHdl->Event_Pattern.All;
-			/* scan the subscriber table to send them the event */
-			ns = LHdl->SubscriberMxNb;
-			cs = LHdl->SubscriberCurNb;
-			Subs= LHdl->Subscriber;
+		/* line is active */
+		input[i] = 0;
+		LCtxt = &MCtxt->LineCtxt[i];
+		LCtxt->loc_count++;
+		LHdl = LCtxt->LHdl;
 
-			for (j = 0; j < ns && cs > 0; j++, Subs++) {
-				if (!Subs->Ring)
-					/* subscriber passive */
-					continue;
-				cs--; /* nb of subbscribers to find out
-					 in Subs table */
-				UHdl = Subs->Ring->UHdl;
-				if (( count = Subs->EvtCounter) != -1) {
-					Sw1 = (unsigned short) count;
-					Sw1++;
-					if ((short)Sw1 < 0)
-						Sw1 = 1;
-					Subs->EvtCounter = Sw1; /* keep counter
-								   positive */
-				}
+		/* Build the Event */
+		Atom.Evt.All = LHdl->Event_Pattern.All;
+		/* scan the subscriber table to send them the event */
+		ns   = LHdl->SubscriberMxNb;
+		cs   = LHdl->SubscriberCurNb;
+		Subs = LHdl->Subscriber;
 
-				/* give the event according to subscriber status  */
-				if (Subs->mode == icv_queuleuleu) {
-					/* mode a la queueleuleu */
-					Atom.Subscriber = NULL;
-					Atom.Evt.Word.w1 = Sw1; /* set up event counter */
+		for (j = 0; j < ns && cs > 0; j++, Subs++) {
+			if (!Subs->Ring) /* subscriber passive */
+				continue;
+			cs--; /* nb of subbscribers to find out in Subs table */
+			UHdl = Subs->Ring->UHdl;
+			if ((count = Subs->EvtCounter) != -1) {
+				Sw1 = (unsigned short) count;
+				Sw1++;
+				if ((short)Sw1 < 0)
+					Sw1 = 1;
+				Subs->EvtCounter = Sw1; /* keep counter positive */
+			}
+
+			/* give the event according to subscriber status  */
+			if (Subs->mode == icv_queuleuleu) {
+				/* mode a la queueleuleu */
+				Atom.Subscriber = NULL;
+				Atom.Evt.Word.w1 = Sw1; /* set up event counter */
+				RingAtom = PushTo_Ring(Subs->Ring, &Atom);
+			} else { /* cumulative mode */
+				if (count < 0) { /* no event in Ring */
+					Subs->EvtCounter = 1; /* init counter of Subscriber */
+					Atom.Subscriber  = Subs; /* Link event to subscriber */
+					Atom.Evt.Word.w1 = 1;     /* set up event counter */
 					RingAtom = PushTo_Ring(Subs->Ring, &Atom);
-				} else { /* cumulative mode */
-					if (count < 0) { /* no event in Ring */
-						Subs->EvtCounter = 1; /* init counter of Subscriber */
-						Atom.Subscriber  = Subs; /* Link event to subscriber */
-						Atom.Evt.Word.w1 = 1;     /* set up event counter */
-						RingAtom = PushTo_Ring(Subs->Ring, &Atom);
-						Subs->CumulEvt = RingAtom; /* link to cumulative event, used to disconnect */
-					}
+					Subs->CumulEvt = RingAtom; /* link to cumulative event, used to disconnect */
 				}
-				/* process case user stuck on select semaphore */
-				if (UHdl->sel_sem)
-					ssignal(UHdl->sel_sem);
+			}
+			/* process case user stuck on select semaphore */
+			if (UHdl->sel_sem)
+				ssignal(UHdl->sel_sem);
 
-			} /* for/subscriber */
+		} /* for/subscriber */
 
-			/* Enable the line before leaving */
-			if (LCtxt->intmod == icv_ReenableOff)
-				disable_Line(LCtxt);
-			/*break */
-		} /* if line active */
-	} /*  for / line */
+		/* Enable the line before leaving */
+		if (LCtxt->intmod == icv_ReenableOff)
+			disable_Line(LCtxt);
+	} /* for/line */
 
 	/* clear IP bit on portB */
 	z8536_wr_val(CSt_Breg, CoSt_ClIpIus);
