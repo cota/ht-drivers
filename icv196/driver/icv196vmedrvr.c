@@ -925,7 +925,6 @@ static struct T_ModuleCtxt* Init_ModuleCtxt(InsLibModlDesc *md)
 	int type, i;
 
 	/* init context table */
-	MCtxt->s = &icv196_statics;
 	MCtxt->sem_module = 1;	/* semaphore for exclusive access */
 	MCtxt->Module = icv196_statics.mcntr;
 	MCtxt->dflag = 0;
@@ -1911,7 +1910,6 @@ int icv196_isr(void *arg)
 {
 	SkelDrvrModuleContext *mcon  = arg;
 	struct T_ModuleCtxt   *MCtxt = mcon->UserData;
-	struct icv196T_s      *s;
 	struct T_UserHdl      *UHdl;
 	struct T_LineCtxt     *LCtxt;
 	struct T_LogLineHdl   *LHdl;
@@ -1924,13 +1922,12 @@ int icv196_isr(void *arg)
 	unsigned char mdev, mask, status;
 	static unsigned short input[16] = { 0 }; /* input array */
 
-	s = MCtxt->s; /* statics table */
 	m = MCtxt->Module; /* module index */
 
 	if (!(WITHIN_RANGE(0, m, icv_ModuleNb-1)))
 		return SYSERR;
 
-	if (!s->ModuleCtxtDir[m])
+	if (!icv196_statics.ModuleCtxtDir[m])
 		return SYSERR;
 
 	if (!MCtxt->startflag) {
