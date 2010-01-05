@@ -79,10 +79,10 @@
   ---------------------------
   A physical line is accessed by a user via a logical line associated to
   a table called logical line handle.
-  it is pointed at from the corresponding physical line context in the device
+  It is pointed at from the corresponding physical line context in the device
   table. This link is set up at initialisation of the device and will allow to
   translate the line trigger in the logical chanel event.
-  it manages the device-independent part of the line
+  It manages the device-independent part of the line.
 */
 
 /* Subtable in a logical line handle */
@@ -167,7 +167,7 @@ struct T_LineCtxt {
 	short Line; /* Line index [0 - 15] */
 	int   status;
 	int   intmod;
-	int   loc_count;
+	int   loc_count; /**< interrupt counter (-1 -- line disabled) */
 	short Reset;
 };
 
@@ -183,10 +183,10 @@ struct T_ModuleCtxt {
 	short         *VME_CsDir; /* ICV196 I/O Direction reg */
 	short          old_CsDir; /* Previous state of I/O Direction reg */
 	unsigned short startflag; /*  */
-	unsigned short int_en_mask; /* 16-line interrupt bit mask */
+	unsigned short int_en_mask; /* 16-lines interrupt bit mask */
 	unsigned char  Vect; /* Int. vector */
 	unsigned char  Lvl;  /* Int. level */
-	struct T_LineCtxt LineCtxt[icv_LineNb]; /* context of the lines */
+	struct T_LineCtxt LineCtxt[icv_LineNb]; /* 16-lines context */
 };
 
 /* write z8536 Status register */

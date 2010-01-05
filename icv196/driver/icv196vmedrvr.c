@@ -9,6 +9,9 @@
  *
  * @date Created on 18/11/2009
  *
+ * See "Z8636 CIO Counter/Timer and Parallel I/O Unit" manual for more
+ * details on Z8636 controller.
+ *
  * @section license_sec License
  *          Released under the GPL
  */
@@ -1804,7 +1807,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			return SYSERR;
 		}
 
-		/*  enable line interrupt */
+		/* enable line interrupt */
 		if (LCtxt->status == icv_Disabled)
 			enable_Line(LCtxt);
 		LCtxt->loc_count = 0;
