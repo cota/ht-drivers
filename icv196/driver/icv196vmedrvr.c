@@ -1196,13 +1196,6 @@ int icv196_open(SkelDrvrClientContext *ccon)
 		return SYSERR;
 	}
 
-	/* TODO! Support write? */
-	if (ccon->cdcmf->access_mode & FWRITE) {
-		/* write is not supported */
-		pseterr(EACCES);
-		return SYSERR;
-	}
-
 	/* Perform the open */
 	swait(&icv196_statics.sem_drvr, SEM_SIGRETRY);
 
