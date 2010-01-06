@@ -15,7 +15,7 @@ include Makefile.specific
 
 # Where everything is nested
 # User can provide it's own, otherwise default will be used
-ROOTDIR := $(if $(ROOTDIR),$(ROOTDIR),/acc/src/dsc/drivers/coht)
+ROOTDIR := $(if $(ROOTDIR),$(ROOTDIR),..)
 
 # Standart driver directory tree layout
 SUBDIRS = \
