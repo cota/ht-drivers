@@ -13,6 +13,8 @@
 #include <skeluser_ioctl.h>
 #include <icv196vmelib.h>
 
+#include <general_both.h>
+
 /* #include "icv196vmeP.h"*/
 /* #include "/u/dscps/rtfclty/gpsynchrolib.h" */
 
@@ -163,7 +165,7 @@ int main(int argc, char *argv[], char *envp[])
 			}
 			printf("INTERRUPT COUNTER VALUES ON BOARD NR. %d:\n", module);
 			for (i = 0; i < ICV_nln; i++) {
-				printf("line %2d: %3ld", i, arg.data[i]);
+				printf("line %2d: %3ld ", i, arg.data[i]);
 				if (((i+1) % 4) == 0 && i != 0)
 					printf("\n");
 			}
@@ -306,16 +308,16 @@ int main(int argc, char *argv[], char *envp[])
 				printf("group[%2d] %2d\n", i, dir & 1);
 				dir >>= 1;
 			}
-			printf("\n\n<enter> to continue");
-			getchar();
+			printf("\n\n<enter> to continue"); getchar();
 			break;
 		case 9:
-			printf("number of line to access \n" );
-			printf("on module nr. %d ? \n", module );
-			scanf("%s", line);
+			printf("line index to access\n");
+			printf("on module#%d\n", module);
+			printf("[0 -- 15] --> ");
+			scanf("%s", line); getchar();
 
 			i = atoi(line);
-			if ((i < 0) || (i >= icv_LineNb)) {
+			if (!WITHIN_RANGE(0, i, icv_LineNb-1)) {
 				printf("line number out of range\n");
 				break;
 			}
@@ -398,13 +400,13 @@ int main(int argc, char *argv[], char *envp[])
 			}
 			break;
 		case 13:
-			if (synchro_fd == 0) {
+			if (!synchro_fd) {
 				printf("no line to read from\n");
 				break;
 			}
-			for (i=0; i < SIZE; i++) buff[i] = 0;
+			memset(buff, 0, sizeof(buff));
 			count = 32;
-			if ((retval = read (synchro_fd, buff, count)) < 0) {
+			if ((retval = read(synchro_fd, buff, count)) < 0) {
 				perror("could not read\n");
 				break;
 			}
@@ -415,15 +417,13 @@ int main(int argc, char *argv[], char *envp[])
 				printf("\n");
 				break;
 			}
-			for (i = 0; i < 8; i++, evt++)
-				{
-					if (*evt != 0)
-						{
-							printf("evt. nr. %2d: 0x%lx    ", i, *evt);
-							if (((i+1) % 2) == 0 && i != 0)
-								printf("\n");
-						}
+			for (i = 0; i < 8; i++, evt++) {
+				if (*evt != 0) {
+					printf("evt. nr. %2d: 0x%lx    ", i, *evt);
+					if (((i+1) % 2) == 0 && i != 0)
+						printf("\n");
 				}
+			}
 			printf("\n");
 			break;
 		case 14:
