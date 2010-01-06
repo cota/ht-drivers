@@ -995,12 +995,13 @@ static void reset_queue(SkelDrvrClientContext *ccon)
  * @return 0 - on success
  * @return -1 - on failure
  */
-int client_init(SkelDrvrClientContext *ccon, int clientnr)
+int client_init(SkelDrvrClientContext *ccon, int clientnr, struct cdcm_file *flp)
 {
 	int client_ok;
 
 	bzero((void *)ccon, sizeof(SkelDrvrClientContext));
 
+	ccon->cdcmf       = flp; /* save file pointer */
 	ccon->ClientIndex = clientnr;
 	ccon->Timeout     = SkelDrvrDEFAULT_CLIENT_TIMEOUT;
 	ccon->InUse       = 1;
@@ -1049,10 +1050,8 @@ int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 	}
 
 	/* Initialise the client's context */
-	ccon->cdcmf = flp;
-	if (client_init(ccon, clientnr))
+	if (client_init(ccon, clientnr, flp))
 		return SYSERR; /* client_init must set errno */
-
 	return OK;
 }
 
