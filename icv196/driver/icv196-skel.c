@@ -261,16 +261,12 @@ void SkelUserClientRelease(SkelDrvrClientContext *ccon)
  * @param cm - IOCTL number
  * @param arg - pointer to the user's argument
  *
- * @todo rcnt and wcnt should be removed -- they're already checked in
- * skeldrvr.c
- *
  * @return SkelUserReturn
  */
 SkelUserReturn SkelUserIoctls(SkelDrvrClientContext *ccon,
 			      SkelDrvrModuleContext *mcon, int cm, char *arg)
 {
-	icv196_ioctl(ccon->ClientIndex, cm, arg);
-	return SkelUserReturnNOT_IMPLEMENTED;
+	return icv196_ioctl(ccon->ClientIndex, cm, arg);
 }
 
 struct skel_conf SkelConf = {

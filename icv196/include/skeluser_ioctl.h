@@ -43,7 +43,7 @@
 #define ICVVME_disable       ICV_IOW(13, struct icv196T_UserLine)
 #define ICVVME_iosem         ICV_IOWR(14, struct icv196T_Service)
 #define ICVVME_readio        ICV_IOWR(15, struct icv196T_Service)
-#define ICVVME_setio         ICV_IOW(16, struct icv196T_Service)
+#define ICVVME_setio         ICV_IOWR(16, struct icv196T_Service)
 #define ICVVME_intenmask     ICV_IOWR(17, struct icv196T_Service)
 #define ICVVME_reenflags     ICV_IOWR(18, struct icv196T_Service)
 #define ICVVME_gethandleinfo ICV_IOR(19, struct icv196T_HandleInfo)

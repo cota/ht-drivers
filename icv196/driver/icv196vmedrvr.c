@@ -1675,7 +1675,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		if (dir) /* output */
 			MCtxt->old_CsDir |= group_mask;
 		else /* input */
-			MCtxt->old_CsDir &=  ~group_mask;
+			MCtxt->old_CsDir &= ~group_mask;
 
 		icv196_wr(MCtxt->old_CsDir, VME_CsDir); /* TODO. check */
 		break;
@@ -1683,6 +1683,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		/* Read direction of i/o ports */
 		Module = (long)((struct icv196T_Service *)arg)->module;
 		Data   = ((struct icv196T_Service *)arg)->data;
+
 		if (!icv196_statics.ModuleCtxtDir[Module]) {
 			pseterr(EACCES);
 			return SYSERR;
