@@ -1,25 +1,22 @@
-/*
-   __________________________________________________________________
-  |                                                                 |
-  |   file name :       icv196vmelib.h                              |
-  |                                                                 |
-  |   created: 26-mar-1992 Alain Gagnaire                           |
-  |   updated: 22-nov-1993 A. G.                                    |
-  |                                                                 |
-  |_________________________________________________________________|
-  |                                                                 |
-  |   .h file to compile icv196lib file                             |
-  |                                                                 |
-  |_________________________________________________________________|
+/**
+ * @file icv196vmelib.h
+ *
+ * @brief
+ *
+ * Created on 26-mar-1992 Alain Gagnaire
+ *
+ * @author Copyright (C) 2010 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
+ *
+ * @date Created on 06/01/2010
+ *
+ * @section license_sec License
+ *          Released under the GPL
+ */
 
-  update :
-  ========
-
-  22-nov-1993 Alain GAGNAIRE : add icv196_DioPorts declaration
-  10-may-1994 A.G.: update to stand 8 modules
-*/
 #ifndef  _icv196vmelib
 #define  _icv196vmelib
+
+#include <skeluser.h>
 
 #define icv_LineNb  16 /* number of lines per module */
 

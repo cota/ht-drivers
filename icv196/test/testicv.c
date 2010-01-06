@@ -62,7 +62,7 @@ void get_input(char *ch, int *inp)
 }
 
 /**
- * @brief 
+ * @brief
  *
  * @param fd     -- open driver node file descriptor
  * @param module -- module index [0 - 7]
@@ -75,14 +75,16 @@ void get_input(char *ch, int *inp)
  */
 int icv196_connect(int *fd, short module, short line, short mode)
 {
+	/* TODO */
+#if 0
 	struct icv196T_connect conn;
 
 	conn.source.group = module;
 	conn.source.index = line;
 	conn.mode = mode;
-
-	/* TODO */
 	return ioctl(synchro_fd, ICVVME_connect, &conn);
+#endif
+	return -1;
 }
 
 /**
@@ -97,23 +99,24 @@ int icv196_connect(int *fd, short module, short line, short mode)
  *
  * @return <ReturnValue>
  */
-
 int icv196_disconnect(short module, short line)
 {
+	/* TODO */
+#if 0
 	struct icv196T_connect conn;
 
 	conn.source.group = group;
 	conn.source.index = index;
-
-	/* TODO */
 	return ioctl(synchro_fd, ICVVME_disconnect, &conn);
+#endif
+	return -1;
 }
 
 int main(int argc, char *argv[], char *envp[])
 {
 	int retval, i, j, dir, stat, grp_nr, grp_mask = 1;
-	char buff[SIZE], line[10];
-	int status[icv_ModuleNb][icv_LineNb];
+	char buff[SIZE] = { 0 } , line[10];
+	int status[icv_ModuleNb][icv_LineNb] = { { 0 } };
 	int input, count;
 	char board[2];
 	long *evt;
@@ -124,17 +127,12 @@ int main(int argc, char *argv[], char *envp[])
 	struct icv196T_ModuleInfo *Info_P;
 	struct icv196T_HandleLines *Info_H;
 
-	for (i = 0; i < SIZE; i++)
-		buff[i] = 0;
-
-	for (i = 0; i < icv_ModuleNb; i++)
-		for (j = 0; j < icv_LineNb; j++)
-			status[i][j] = 0;
-
-	if ((service_fd = open(path, O_RDONLY)) < 0) {
+	if ((service_fd = open(path, O_RDWR)) < 0) {
 		perror("could not open file %s\n");
 		exit(EXIT_FAILURE);
 	}
+
+	synchro_fd = service_fd; /* TODO */
 
 	do {
 		get_input(choice, &input);
@@ -292,13 +290,11 @@ int main(int argc, char *argv[], char *envp[])
 				break;
 			}
 			dir = arg.data[0];
-			printf("I/O GROUPS (DIRECTION) ON BOARD NR. %d:"
+			printf("I/O groups direction on module#%d:"
 			       "(0:input, 1:output) \n", module);
 			for (i = 0; i <= 11; i++) {
-				printf("group%2d:%2d  ", i, dir & grp_mask);
+				printf("group[%2d] %2d\n", i, dir & 1);
 				dir >>= 1;
-				if (((i+1) % 6) == 0 && i != 0)
-					printf("\n");
 			}
 			printf("\n");
 			break;
