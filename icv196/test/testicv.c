@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -34,7 +35,8 @@ void get_input(char *ch, int *inp)
 {
     char *p;
 
-    printf("   ----------------------------------------------------------------\n");
+    printf("   +--------------------------------------------------------------+\n");
+    printf("   |  0: exit                                                     |\n");
     printf("   |  1: change the ICV board being accessed (current board: %d)   |\n", module);
     printf("   |  2: read all interrupt counters                              |\n");
     printf("   |  3  read all reenable flags                                  |\n");
@@ -43,14 +45,17 @@ void get_input(char *ch, int *inp)
     printf("   |  6: read handle info (lines connected to by a user)          |\n");
     printf("   |  7: set I/O direction  (does not concern interrupts)         |\n");
     printf("   |  8: read I/O direction (does not concern interrupts)         |\n");
-    printf("   |  9/10 set/clear reenable flag                                |\n");
-    printf("   | 11/12: enable/disable line                                   |\n");
-    printf("   | 13: read an event (enable interrupt line first)              |\n");
-    printf("   | 14/15: configure blocking (default)/nonblocking read         |\n");
-    printf("   |  0: exit                                                     |\n");
-    printf("   |  Nb: functions  9-15 automatically connect to the interr-line|\n");
-    printf("   ----------------------------------------------------------------\n");
+    printf("   |  9/10:  set/clear reenable flag                              |\n");
+    printf("   |  11/12: enable/disable line                                  |\n");
+    printf("   |  13:    read an event (enable interrupt line first)          |\n");
+    printf("   |  14/15: configure blocking (default)/nonblocking read        |\n");
+    printf("   |                                                              |\n");
+    printf("   |  Nb: functions 9-15 automatically connect to interrupt-line  |\n");
+    printf("   +--------------------------------------------------------------+\n\n");
+    printf("--> ");
     scanf("%s", ch);
+    getchar();			/* eat up \n */
+
     for (p = ch; *p != '\0'; p++)
 	if (!isdigit((int)*p)) {
 	    *inp = -1;
@@ -272,17 +277,22 @@ int main(int argc, char *argv[], char *envp[])
 			arg.module = module;
 
 			printf("Group index to be set [0 - 11] -> ");
-			scanf("%d", &grp_nr);
+			scanf("%d", &grp_nr);  getchar();
 			arg.data[0] = grp_nr;
 
 			printf("Direction [0 -- input, 1 -- output] -> ");
-			scanf("%d", &dir);
+			scanf("%d", &dir); getchar();
 			arg.data[1] = dir;
 
 			if (ioctl(service_fd, ICVVME_setio, &arg) < 0)
 				perror("ICVVME_setio ioctl failed");
+			else
+				printf("Done\n");
+
+			printf("\n\n<enter> to continue"); getchar();
 			break;
 		case 8:
+			memset(&arg, 0, sizeof(arg));
 			arg.module = module;
 
 			if (ioctl(service_fd, ICVVME_readio, &arg) < 0) {
@@ -290,13 +300,14 @@ int main(int argc, char *argv[], char *envp[])
 				break;
 			}
 			dir = arg.data[0];
-			printf("I/O groups direction on module#%d:"
-			       "(0:input, 1:output) \n", module);
+			printf("I/O groups direction on module#%d"
+			       " (0:input, 1:output)\n", module);
 			for (i = 0; i <= 11; i++) {
 				printf("group[%2d] %2d\n", i, dir & 1);
 				dir >>= 1;
 			}
-			printf("\n");
+			printf("\n\n<enter> to continue");
+			getchar();
 			break;
 		case 9:
 			printf("number of line to access \n" );
