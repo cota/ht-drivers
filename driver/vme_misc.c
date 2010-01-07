@@ -42,6 +42,80 @@ __vme_bus_error_check_clear(struct vme_bus_error *err)
 }
 
 /**
+ * vme_register_berr_handler() - register a VME Bus Error handler
+ * @error:	Bus Error descriptor: Initial Address + Address Modifier
+ * @size:	Size of the address range of interest. The Initial Address
+ * 		is the address provided in @error.
+ * @func:	Handler function for the bus errors in the range above.
+ *
+ * NOTE: the handler function will be called in interrupt context.
+ * Return the address of the registered handler on success, ERR_PTR otherwise.
+ */
+struct vme_berr_handler *
+vme_register_berr_handler(struct vme_bus_error *error, size_t size,
+			vme_berr_handler_t func)
+{
+	spinlock_t *lock = &vme_bridge->verr.lock;
+	struct vme_berr_handler *handler;
+	unsigned long flags;
+
+	if (!size) {
+		printk(KERN_WARNING PFX "%s: size cannot be 0.\n", __func__);
+		return ERR_PTR(-EINVAL);
+	}
+
+	handler = kzalloc(sizeof(struct vme_berr_handler), GFP_KERNEL);
+	if (handler == NULL) {
+		printk(KERN_ERR PFX "Unable to allocate Bus Error Handler\n");
+		return ERR_PTR(-ENOMEM);
+	}
+
+	spin_lock_irqsave(lock, flags);
+
+	memcpy(&handler->error, error, sizeof(struct vme_bus_error));
+	handler->size = size;
+	handler->func = func;
+	list_add_tail(&handler->h_list, &vme_bridge->verr.h_list);
+
+	spin_unlock_irqrestore(lock, flags);
+
+	return handler;
+}
+EXPORT_SYMBOL_GPL(vme_register_berr_handler);
+
+static void __vme_unregister_berr_handler(struct vme_berr_handler *handler)
+{
+	struct list_head *h_pos, *temp;
+	struct vme_berr_handler *entry;
+
+	list_for_each_safe(h_pos, temp, &vme_bridge->verr.h_list) {
+		entry = list_entry(h_pos, struct vme_berr_handler, h_list);
+
+		if (entry == handler) {
+			list_del(h_pos);
+			kfree(entry);
+			return;
+		}
+	}
+	printk(KERN_WARNING PFX "%s: handler not found\n", __func__);
+}
+
+/**
+ * vme_unregister_berr_handler - Unregister a VME Bus Error Handler
+ * @handler:	Address of the registered handler to be removed.
+ */
+void vme_unregister_berr_handler(struct vme_berr_handler *handler)
+{
+	spinlock_t *lock = &vme_bridge->verr.lock;
+	unsigned long flags;
+
+	spin_lock_irqsave(lock, flags);
+	__vme_unregister_berr_handler(handler);
+	spin_unlock_irqrestore(lock, flags);
+}
+EXPORT_SYMBOL_GPL(vme_unregister_berr_handler);
+
+/**
  * vme_bus_error_check_clear - check and clear VME bus errors
  * @bus_error:	bus error to be checked
  *

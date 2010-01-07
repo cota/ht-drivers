@@ -34,10 +34,12 @@
  * We just keep the last VME error caught, protecting it with a spinlock.
  * A new VME bus error overwrites it.
  * This is very simple yet good enough for most (sane) purposes.
+ * A linked list of handlers is kept for async notification of bus errors.
  */
 struct vme_verr {
 	spinlock_t			lock;
 	struct vme_bus_error_desc	desc;
+	struct list_head		h_list;
 };
 
 struct vme_bridge_device {
@@ -48,6 +50,20 @@ struct vme_bridge_device {
 	struct tsi148_chip	*regs;
 	struct pci_dev		*pdev;
 	struct vme_verr		verr;
+};
+
+/**
+ * struct vme_berr_handler - VME bus error handler descriptor
+ * @h_list:	handler's list entry
+ * @offset:	VME Bus error descriptor (Initial address + Address Modifier)
+ * @size:	Size of the VME address range of interest
+ * @func:	Handler function
+ */
+struct vme_berr_handler {
+	struct list_head	h_list;
+	struct vme_bus_error	error;
+	size_t			size;
+	vme_berr_handler_t	func;
 };
 
 extern struct vme_bridge_device *vme_bridge;

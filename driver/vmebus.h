@@ -360,6 +360,7 @@ struct pdparam_master
 /*
  * Those definitions are for drivers only and are not visible to userspace.
  */
+typedef void (*vme_berr_handler_t)(struct vme_bus_error *);
 
 /* API for new drivers */
 extern int vme_request_irq(unsigned int, int (*)(void *),
@@ -378,6 +379,9 @@ extern int vme_do_dma(struct vme_dma *);
 
 
 extern int vme_bus_error_check(int);
+extern struct vme_berr_handler *
+vme_register_berr_handler(struct vme_bus_error *, size_t, vme_berr_handler_t);
+extern void vme_unregister_berr_handler(struct vme_berr_handler *);
 
 /* API providing an emulation of the CES VME driver for legacy drivers */
 extern unsigned long find_controller(unsigned long, unsigned long,

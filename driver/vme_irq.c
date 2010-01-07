@@ -133,6 +133,25 @@ static void handle_pci_error(void)
 	int_stats[INT_PERR].count++;
 }
 
+static int
+vme_berr_match(struct vme_bus_error *error, struct vme_berr_handler *handler)
+{
+	struct vme_bus_error *err = &handler->error;
+
+	return error->am == err->am && error->address >= err->address &&
+		error->address < err->address + handler->size;
+}
+
+static void __vme_dispatch_berr(struct vme_bus_error *error)
+{
+	struct vme_berr_handler *handler;
+
+	list_for_each_entry(handler, &vme_bridge->verr.h_list, h_list) {
+		if (vme_berr_match(error, handler))
+			handler->func(error);
+	}
+}
+
 static void handle_vme_error(void)
 {
 	struct vme_bus_error_desc desc;
@@ -145,6 +164,7 @@ static void handle_vme_error(void)
 	tsi148_handle_vme_error(&desc.error);
 	desc.valid = 1;
 	memcpy(&vme_bridge->verr.desc, &desc, sizeof(desc));
+	__vme_dispatch_berr(&desc.error);
 	spin_unlock_irqrestore(lock, flags);
 
 	int_stats[INT_VERR].count++;
