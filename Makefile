@@ -18,7 +18,7 @@ drvr:
 # We need to copy the vmebus driver symbols file to use its exported symbols
 # because KBUILD_EXTRA_SYMBOLS is not there yet to use in 2.6.24.7-rt21
 drvrtest: drvr includes
-	cp $(DRVDIR)/Module.symvers $(DRVTESTDIR)
+	cp $(DRVDIR)/$(CPU)/$(KVER)/Module.symvers $(DRVTESTDIR)
 	make -C $(KERN_DIR) M=$(DRVTESTDIR)
 
 lib:
