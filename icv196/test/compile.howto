@@ -1,5 +1,5 @@
 # for Linux:
-gcc -I../include -I../../include testicv.c -o test
+gcc -I../include -I../../include -L../object_icv196vme testicv.c -o test -licv196vme.L865
 
 # for Lynx:
 /ps/sys/620/ppc/cdk/linux-elf-ppc/usr/bin/gcc -g -Wall -I/ps/sys/620/ppc/sys/include/kernel -I/ps/sys/620/ppc/sys/include/io -I/ps/sys/620/ppc/sys/include/family/ppc -I../include testicv.c -o test

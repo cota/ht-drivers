@@ -20,7 +20,8 @@
 #include <stdio.h>
 #include <errno.h>
 #include <time.h>
-#include "icv196vmelib.h"
+#include <icv196vmelib.h>
+#include <skeluser_ioctl.h>
 
 static int fdid_icvservice = -1; /* currently open on service handle */
 static char Hdlservice[] = "/dev/icv196service";
@@ -60,22 +61,24 @@ int icv196_get_info(int m, int buff_sz, struct icv196T_ModuleInfo *buff)
 	int function;
 	int cc;
 
-   if (fdid_icvservice < 0) {
-     if ((cc = open( Hdlservice, O_RDONLY, 0755)) < 0){
-       perror("icv196GetSlotInfo:open");
-       return -1;
-     }
-     fdid_icvservice = cc;
-   }
-   function = ICVVME_getmoduleinfo;
-		/* set up argument field for ioctl call  */
-		/* Call the driver to perform the function */
-   if ((cc = ioctl(fdid_icvservice, function, (char *)buff)) < 0){
-     perror("icv196GetSlotInfo:ioctl:");
-     return(cc);
-   }
-		/* Give back data in user array */
-   return 0;
+	if (fdid_icvservice < 0) {
+		if ((cc = open( Hdlservice, O_RDONLY, 0755)) < 0){
+			perror("icv196GetSlotInfo:open");
+			return -1;
+		}
+		fdid_icvservice = cc;
+	}
+	function = ICVVME_getmoduleinfo;
+
+	/* set up argument field for ioctl call  */
+	/* Call the driver to perform the function */
+	if ((cc = ioctl(fdid_icvservice, function, (char *)buff)) < 0){
+		perror("icv196GetSlotInfo:ioctl:");
+		return cc;
+	}
+
+	/* Give back data in user array */
+	return 0;
 }
 
 /**
@@ -92,21 +95,24 @@ int icv196_get_info(int m, int buff_sz, struct icv196T_ModuleInfo *buff)
  */
 int icv196_set_to(int fdid, int *val)
 {
-   int function;
-   int L_val;
-   int cc;
+	int function;
+	int L_val;
+	int cc;
 
-   function = ICVVME_setupTO;
-		/* set up argument field for ioctl call  */
-   L_val = *val;
- 		/* Call the driver to perform the function */
-   if ((cc = ioctl(fdid,function,(char *)&L_val)) < 0){
-     perror("icv196SetTO:ioctl:");
-     return(cc);
-   }
-		/* Give back data in user array */
-   *val = L_val;
-   return 0;
+	function = ICVVME_setupTO;
+
+	/* set up argument field for ioctl call  */
+	L_val = *val;
+
+	/* Call the driver to perform the function */
+	if ((cc = ioctl(fdid,function,(char *)&L_val)) < 0){
+		perror("icv196SetTO:ioctl:");
+		return(cc);
+	}
+
+	/* Give back data in user array */
+	*val = L_val;
+	return 0;
 }
 
 
