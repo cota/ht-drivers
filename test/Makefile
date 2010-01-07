@@ -3,7 +3,7 @@ CPU=L865
 SRCS =	create_window.c destroy_window.c setflag.c \
 	test_mapping.c testctr.c testctr2.c testctr_ces.c \
 	testvd80.c vd80spd.c vd80spd-dma.c mm6390-dma.c \
-	testvd802.c hsm-dma.c
+	testvd802.c hsm-dma.c berrtest.c
 
 include /acc/src/dsc/co/Make.auto
 
@@ -36,6 +36,7 @@ libvd80doc: libvd80.c libvd80.h vd80.h
 
 mm6390-dma.$(CPU): mm6390-dma.c $(LIBVMEBUS)
 hsm-dma.$(CPU): hsm-dma.c $(LIBVMEBUS)
+berrtest.$(CPU): berrtest.c $(LIBVMEBUS)
 
 doc: libvd80doc
 
