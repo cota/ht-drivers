@@ -920,7 +920,8 @@ static void Init_LineCtxt(int line, int type, struct T_ModuleCtxt *MCtxt)
 */
 static struct T_ModuleCtxt* Init_ModuleCtxt(InsLibModlDesc *md)
 {
-	InsLibVmeAddressSpace *vmeinfo = (InsLibVmeAddressSpace *)md->ModuleAddress;
+	InsLibVmeAddressSpace *vmeinfo = ((InsLibVmeModuleAddress*)md->ModuleAddress)->VmeAddressSpace;
+
 	struct T_ModuleCtxt *MCtxt = &icv196_statics.ModuleCtxt[icv196_statics.mcntr];
 	int type, i;
 
@@ -1345,7 +1346,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 	int    Type, LogIx, grp, dir, group_mask, Iw1, Flag;
 	unsigned long *Data;
 
-	DBG_IOCTL(("icv196:ioctl: function code = %x \n", fct));
+	//printk("%s() function code = %x \n", __FUNCTION__, fct);
 
 	switch (fct) {
 	case ICVVME_getmoduleinfo:
