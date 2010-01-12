@@ -467,10 +467,10 @@ static void Init_UserHdl(struct T_UserHdl *UHdl, int chanel)
 	int i;
 	char *cptr;
 
-	UHdl->chanel    = chanel;
-	UHdl->pid       = 0;
-	UHdl->usercount = 0; /* clear current user number */
-	UHdl->sel_sem   = NULL; /* clear the semaphore for the select */
+	UHdl->chanel  = chanel;
+	UHdl->pid     = 0;
+	UHdl->inuse   = 0; /* not in use */
+	UHdl->sel_sem = NULL; /* clear the semaphore for the select */
 
 	/* clear up  bit map of established connection */
 	for (i = 0, cptr = UHdl->Cmap; i < ICV_mapByteSz; i++)
@@ -1192,7 +1192,7 @@ int icv196_open(SkelDrvrClientContext *ccon)
 	int   chan = ccon->ClientIndex; /* [0 - 15] */
 
 	UHdl = &icv196_statics.ICVHdl[chan];
-	if (UHdl->usercount) { /* channel already open */
+	if (UHdl->inuse) { /* channel already open */
 		pseterr(EACCES);
 		return SYSERR;
 	}
@@ -1206,7 +1206,7 @@ int icv196_open(SkelDrvrClientContext *ccon)
 	UHdl->pid       = ccon->Pid;
 
 	icv196_statics.usercounter++; /* Update user counter value */
-	UHdl->usercount++;
+	UHdl->inuse++;
 
 	ssignal(&icv196_statics.sem_drvr);
 
@@ -1227,7 +1227,7 @@ int icv196_close(SkelDrvrClientContext *ccon)
 	ClrSynchro(UHdl); /* Clear connection established */
 
 	icv196_statics.usercounter--; /* Update user counter value */
-	UHdl->usercount--;
+	UHdl->inuse--;
 
 	ssignal(&icv196_statics.sem_drvr);
 
@@ -1377,7 +1377,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		for (i = 0; i < SkelDrvrCLIENT_CONTEXTS; i++, UHdl++) {
 			HanLin = &HanInfo->handle[i];
 			l = 0;
-			if (!UHdl->usercount)
+			if (!UHdl->inuse)
 				continue;
 			else {
 				HanLin->pid = UHdl->pid;

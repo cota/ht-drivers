@@ -137,7 +137,7 @@ struct T_LogLineHdl {
   structure associated to each minor device
 */
 struct T_UserHdl {
-	short usercount;
+	short inuse;
 	int   chanel; /* channel index */
 	long  count;
 	int   timid;
