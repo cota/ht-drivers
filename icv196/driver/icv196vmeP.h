@@ -1,24 +1,20 @@
-/*
-  _________________________________________________________________
- |                                                                 |
- |   file name :        icv196vmeP.h                               |
- |                                                                 |
- |   created:     21-mar-1992 Alain Gagnaire, F. Berlin            |
- |   last update: 02-dec-1992 A. gagnaire                          |
- |_________________________________________________________________|
- |                                                                 |
- |   private header file for the icv196vme                         |
- |                                                                 |
- |_________________________________________________________________|
-
- updated:
- =======
- 21-mar-1992 A.G., F.B.: version integrated with the event handler common to
-                   sdvme, and fpiplsvme driver
- 02dec-1992 A.G. : add element in struct : CumulEvt in T_Subscriber
-                                           SubscriberCurnb in T_LogLineHdl
- 10-may-1994 A.G.: update to stand 8 modules
-*/
+/**
+ * @file icv196vmeP.h
+ *
+ * @brief private header file for the icv196 driver
+ *
+ * Created on 21-mar-1992 Alain Gagnaire, F. Berlin
+ * <long description>
+ *
+ * @author Copyright (C) 2010 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
+ *
+ * @date Created on 12/01/2010
+ *
+ * @section license_sec License
+ *          Released under the GPL
+ */
+#ifndef _ICV_196_VME_P_H_INCLUDE_
+#define _ICV_196_VME_P_H_INCLUDE_
 
 /*
   On the design of the driver for interrupt
@@ -48,8 +44,6 @@
   These structures an declaration don't depend on hardware module which
   provides the interrupt.
 */
-#ifndef _ICV_196_VME_P_H_INCLUDE_
-#define _ICV_196_VME_P_H_INCLUDE_
 
 /* define some macroes to manage bit map of the connection */
 /* to operate othe bit given by its number in a byte table map  */
@@ -215,16 +209,107 @@ struct T_ModuleCtxt {
  })
 
 
-/* write icv196 16bit register */
-#define icv196_wr(v, reg)			\
+/* ---- [write icv196 register (1 or 2 bytes)] ---- */
+#define icv196_wr_8(v, reg)			\
+({						\
+        cdcm_iowrite8(v, MCtxt->reg);		\
+ })
+
+#define icv196_wr_16(v, reg)			\
 ({						\
         cdcm_iowrite16be(v, MCtxt->reg);	\
  })
+/* ------------------------------------------------ */
 
-/* read icv196 16bit register */
-#define icv196_rd(reg)				\
+
+/* ---- [read icv196 register (1 or 2 bytes)] ---- */
+#define icv196_rd_8(reg)			\
+({						\
+        cdcm_ioread8(MCtxt->reg);		\
+ })
+
+#define icv196_rd_16(reg)			\
 ({						\
         cdcm_ioread16be(MCtxt->reg);		\
  })
+/* ----------------------------------------------- */
+
+
+/* -------- [write groups (1 or 2 bytes long)] ---------------- */
+#define icv196_grp_wr_8(v, grp)						\
+({									\
+	long offs;							\
+									\
+	if (grp&1) { /* odd */						\
+		offs = grp + 1;						\
+	} else { /* even */						\
+		offs = grp + 3;						\
+	}								\
+									\
+	cdcm_iowrite8(v, (void*) ((long)MCtxt->SYSVME_Add + offs)); \
+ })
+
+#define icv196_grp_wr_16(v, grp)					\
+({									\
+	long offs;							\
+	union icv196_DoubleGroups {					\
+		unsigned short grp;					\
+		struct {						\
+			unsigned char grp1;				\
+			unsigned char grp2;				\
+		} grps;							\
+	} grps = { 0 };							\
+									\
+	if (grp&1) { /* odd */						\
+		grps.grps.grp2 = v;					\
+		offs = grp + 1;						\
+	} else { /* even */						\
+		grps.grps.grp1 = v;					\
+		offs = grp + 2;						\
+	}								\
+									\
+	cdcm_iowrite16be(grps.grp, (void*) ((long)MCtxt->SYSVME_Add + offs)); \
+ })
+/* ------------------------------------------------------------ */
+
+/* ------------ [read groups (1 or 2 bytes long)] ------------- */
+#define icv196_grp_rd_8(grp)					\
+({								\
+        long offs;						\
+        if (grp&1) /* odd */					\
+                offs = grp + 1;					\
+        else /* even */						\
+                offs = grp + 3;					\
+								\
+	cdcm_ioread8((void*) ((long)MCtxt->SYSVME_Add + offs)); \
+ })
+
+#define icv196_grp_rd_16(grp)						\
+({									\
+	long offs;							\
+	unsigned char _res;						\
+        union icv196_DoubleGroups {					\
+                unsigned short grp;					\
+                struct {						\
+                        unsigned char grp1;				\
+                        unsigned char grp2;				\
+                } grps;							\
+        } grps = { 0 };							\
+									\
+        if (grp&1) /* odd */						\
+                offs = grp + 1;						\
+        else /* even */							\
+                offs = grp + 2;						\
+									\
+	grps.grp = cdcm_ioread16((void*) ((long)MCtxt->SYSVME_Add + offs)); \
+									\
+	if (grp&1) /* odd */						\
+                _res = grps.grps.grp2;					\
+        else /* even */							\
+		_res = grps.grps.grp1;					\
+									\
+	_res;								\
+ })
+/* ------------------------------------------------------------ */
 
 #endif	/* _ICV_196_VME_P_H_INCLUDE_ */
