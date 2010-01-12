@@ -246,29 +246,20 @@ struct T_ModuleCtxt {
 		offs = grp + 3;						\
 	}								\
 									\
-	cdcm_iowrite8(v, (void*) ((long)MCtxt->SYSVME_Add + offs)); \
+	cdcm_iowrite8(v, (void*) ((long)MCtxt->SYSVME_Add + offs));	\
  })
 
 #define icv196_grp_wr_16(v, grp)					\
 ({									\
 	long offs;							\
-	union icv196_DoubleGroups {					\
-		unsigned short grp;					\
-		struct {						\
-			unsigned char grp1;				\
-			unsigned char grp2;				\
-		} grps;							\
-	} grps = { 0 };							\
 									\
 	if (grp&1) { /* odd */						\
-		grps.grps.grp2 = v;					\
 		offs = grp + 1;						\
 	} else { /* even */						\
-		grps.grps.grp1 = v;					\
 		offs = grp + 2;						\
 	}								\
 									\
-	cdcm_iowrite16be(grps.grp, (void*) ((long)MCtxt->SYSVME_Add + offs)); \
+	cdcm_iowrite16be(v, (void*) ((long)MCtxt->SYSVME_Add + offs));	\
  })
 /* ------------------------------------------------------------ */
 
@@ -287,28 +278,13 @@ struct T_ModuleCtxt {
 #define icv196_grp_rd_16(grp)						\
 ({									\
 	long offs;							\
-	unsigned char _res;						\
-        union icv196_DoubleGroups {					\
-                unsigned short grp;					\
-                struct {						\
-                        unsigned char grp1;				\
-                        unsigned char grp2;				\
-                } grps;							\
-        } grps = { 0 };							\
 									\
         if (grp&1) /* odd */						\
                 offs = grp + 1;						\
         else /* even */							\
                 offs = grp + 2;						\
 									\
-	grps.grp = cdcm_ioread16((void*) ((long)MCtxt->SYSVME_Add + offs)); \
-									\
-	if (grp&1) /* odd */						\
-                _res = grps.grps.grp2;					\
-        else /* even */							\
-		_res = grps.grps.grp1;					\
-									\
-	_res;								\
+	cdcm_ioread16((void*) ((long)MCtxt->SYSVME_Add + offs));	\
  })
 /* ------------------------------------------------------------ */
 
