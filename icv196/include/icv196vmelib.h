@@ -12,7 +12,6 @@
  * @section license_sec License
  *          Released under the GPL
  */
-
 #ifndef  _icv196vmelib
 #define  _icv196vmelib
 
@@ -104,8 +103,8 @@ union icv196U_UserLine {
 };
 
 struct icv196T_UserLine {
-	unsigned char group;	/**<  */
-	unsigned char index;	/**<  */
+	unsigned char group;	/**< [0 -- 11] */
+	unsigned char index;	/**< [0 -- 15] */
 };
 
 struct icv196T_HandleLines {
@@ -154,17 +153,15 @@ struct T_icv196Arg {
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* to get information about the lines used by the icv196test test program */
-int icv196GetInfo(int  m, int  buff_sz, struct icv196T_ModuleInfo *buff);
-
-/*
-  set time out for waiting Event on read of synchronization channel
-  the synchronization is requested by mean of the general purpose
-  function gpevtconnect see in real time facilities: rtfclty/gpsynchrolib.c
-*/
-int icv196SetTO(int fdid,	/* file Id returned by sdevtconnect */
-		int *val);	/* at call: new TO, at return the old one */
+	int icv196_get_handle(void);
+	int icv196_put_handle(int h);
+	int icv196_init_channel(int h, int module, int grp, int size, int dir);
+	int icv196_read_channel(int h, int module, int grp, char *data);
+	int icv196_write_channel(int h, int module, int grp, char *data);
+	int icv196_connect(int h, short module, short line, short mode);
+	int icv196_disconnect(int h, short module, short line);
+	int icv196_get_info(int h, int m, int buff_sz, struct icv196T_ModuleInfo *buff);
+	int icv196_set_to(int h, int *val);
 
 #ifdef __cplusplus
 }

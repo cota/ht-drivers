@@ -18,111 +18,62 @@
 /* #include "icv196vmeP.h"*/
 /* #include "/u/dscps/rtfclty/gpsynchrolib.h" */
 
-#define SIZE 50
 //#define addr = 0x00500000
-#define Evtsrce_icv196 2
-#define ICV_nln 16
-#define ICV_nboards 4
+//#define Evtsrce_icv196 2
+#define ICV_nln     16
+#define ICV_nboards 8  /* MAX allowed modules */
 
 extern int errno;
-static char path[] =  "/dev/icv196vme.1";
-static int  service_fd = 0;
-static int  synchro_fd = 0;
+static int service_fd = 0;
+static int synchro_fd = 0;
 
-static int  module = 0;
+static int  module     = 0;
 static int  old_module = 0;
+
 static char choice[10];
 
 void get_input(char *ch, int *inp)
 {
-    char *p;
+	char *p;
 
-    printf("   +--------------------------------------------------------------+\n");
-    printf("   |  0: exit                                                     |\n");
-    printf("   |  1: change the ICV board being accessed (current board: %d)   |\n", module);
-    printf("   |  2: read all interrupt counters                              |\n");
-    printf("   |  3  read all reenable flags                                  |\n");
-    printf("   |  4: read interrupt enable mask                               |\n");
-    printf("   |  5: read module info (VME address, interr. vect.  etc.)      |\n");
-    printf("   |  6: read handle info (lines connected to by a user)          |\n");
-    printf("   |  7: set I/O direction  (does not concern interrupts)         |\n");
-    printf("   |  8: read I/O direction (does not concern interrupts)         |\n");
-    printf("   |  9/10:  set/clear reenable flag                              |\n");
-    printf("   |  11/12: enable/disable line                                  |\n");
-    printf("   |  13:    read an event (enable interrupt line first)          |\n");
-    printf("   |  14/15: configure blocking (default)/nonblocking read        |\n");
-    printf("   |                                                              |\n");
-    printf("   |  Nb: functions 9-15 automatically connect to interrupt-line  |\n");
-    printf("   +--------------------------------------------------------------+\n\n");
-    printf("--> ");
-    scanf("%s", ch);
-    getchar();			/* eat up \n */
+	printf("   +--------------------------------------------------------------+\n");
+	printf("   |  0: exit                                                     |\n");
+	printf("   |  1: change the ICV board being accessed (current board: %d)   |\n", module);
+	printf("   |  2: read all interrupt counters                              |\n");
+	printf("   |  3  read all reenable flags                                  |\n");
+	printf("   |  4: read interrupt enable mask                               |\n");
+	printf("   |  5: read module info (VME address, interr. vect.  etc.)      |\n");
+	printf("   |  6: read handle info (lines connected to by a user)          |\n");
+	printf("   |  7: read group                                               |\n");
+	printf("   |  8: write group                                              |\n");
+	printf("   |  9: set I/O direction  (does not concern interrupts)         |\n");
+	printf("   |  10: read I/O direction (does not concern interrupts)        |\n");
+	printf("   |  11/12:  set/clear reenable flag                             |\n");
+	printf("   |  13/14: enable/disable line                                  |\n");
+	printf("   |  15:    read an event (enable interrupt line first)          |\n");
+	printf("   |  16/17: configure blocking (default)/nonblocking read        |\n");
+	printf("   |                                                              |\n");
+	printf("   |  Nb: functions 11-17 automatically connect to interrupt-line |\n");
+	printf("   +--------------------------------------------------------------+\n\n");
+	printf("--> ");
+	scanf("%s", ch);
+	getchar();			/* eat up \n */
 
-    for (p = ch; *p != '\0'; p++)
-	if (!isdigit((int)*p)) {
-	    *inp = -1;
-	    return;
-	}
-    *inp =  atoi(ch);
-    if ((*inp < 0) || (*inp > 16))
-	printf("input not correct\n");
-}
+	for (p = ch; *p != '\0'; p++)
+		if (!isdigit((int)*p)) {
+			*inp = -1;
+			return;
+		}
 
-/**
- * @brief
- *
- * @param fd     -- open driver node file descriptor
- * @param module -- module index [0 - 7]
- * @param line   -- line index [0 - 15]
- * @param mode   -- cumulative[1]/non-cumulative[0] mode
- *
- * <long-description>
- *
- * @return <ReturnValue>
- */
-int icv196_connect(int *fd, short module, short line, short mode)
-{
-	/* TODO */
-#if 0
-	struct icv196T_connect conn;
-
-	conn.source.group = module;
-	conn.source.index = line;
-	conn.mode = mode;
-	return ioctl(synchro_fd, ICVVME_connect, &conn);
-#endif
-	return -1;
-}
-
-/**
- * @brief
- *
- * @param fd     -- open driver node file descriptor
- * @param module -- module index [0 - 7]
- * @param line   -- line index [0 - 15]
- * @param mode   -- cumulative[1]/non-cumulative[0] mode
- *
- * <long-description>
- *
- * @return <ReturnValue>
- */
-int icv196_disconnect(short module, short line)
-{
-	/* TODO */
-#if 0
-	struct icv196T_connect conn;
-
-	conn.source.group = group;
-	conn.source.index = index;
-	return ioctl(synchro_fd, ICVVME_disconnect, &conn);
-#endif
-	return -1;
+	*inp =  atoi(ch);
+	if ((*inp < 0) || (*inp > 16))
+		printf("input not correct\n");
 }
 
 int main(int argc, char *argv[], char *envp[])
 {
 	int retval, i, j, dir, stat, grp_nr, grp_mask = 1;
-	char buff[SIZE] = { 0 } , line[10];
+	char buff[50] = { 0 } , line[10];
 	int status[icv_ModuleNb][icv_LineNb] = { { 0 } };
 	int input, count;
 	char board[2];
@@ -134,8 +85,9 @@ int main(int argc, char *argv[], char *envp[])
 	struct icv196T_ModuleInfo *Info_P;
 	struct icv196T_HandleLines *Info_H;
 
-	if ((service_fd = open(path, O_RDWR)) < 0) {
-		perror("could not open file %s\n");
+	service_fd = icv196_get_handle();
+	if (service_fd < 0) {
+		fprintf(stderr, "Can't get library handle...\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -275,25 +227,46 @@ int main(int argc, char *argv[], char *envp[])
 				printf("\n");
 			}
 			break;
-		case 7:
-			arg.module = module;
+		case 7:		/* read from the group */
+			memset(buff, 0, sizeof(buff));
+			printf("Group index to read [0 - 11] -> ");
+			scanf("%d", &grp_nr);  getchar();
 
+			if (icv196_read_channel(service_fd, module, grp_nr, buff))
+                                printf("Failed\n");
+                        else
+                                printf("Done\n");
+                        printf("\n\n<enter> to continue"); getchar();
+			break;
+		case 8:		/* write into the group */
+			memset(buff, 0, sizeof(buff));
+			printf("Group index to write [0 - 11] -> ");
+			scanf("%d", &grp_nr);  getchar();
+
+			printf("Data to write (byte) --> ");
+			scanf("%hd", (short*)buff);  getchar();
+
+			if (icv196_write_channel(service_fd, module, grp_nr, buff))
+				printf("Failed\n");
+                        else
+                                printf("Done\n");
+                        printf("\n\n<enter> to continue"); getchar();
+
+			break;
+		case 9:
 			printf("Group index to be set [0 - 11] -> ");
 			scanf("%d", &grp_nr);  getchar();
-			arg.data[0] = grp_nr;
 
 			printf("Direction [0 -- input, 1 -- output] -> ");
 			scanf("%d", &dir); getchar();
-			arg.data[1] = dir;
 
-			if (ioctl(service_fd, ICVVME_setio, &arg) < 0)
-				perror("ICVVME_setio ioctl failed");
+			if (icv196_init_channel(service_fd, module, grp_nr, 1, dir))
+				printf("Failed\n");
 			else
 				printf("Done\n");
-
 			printf("\n\n<enter> to continue"); getchar();
 			break;
-		case 8:
+		case 10:
 			memset(&arg, 0, sizeof(arg));
 			arg.module = module;
 
@@ -310,7 +283,7 @@ int main(int argc, char *argv[], char *envp[])
 			}
 			printf("\n\n<enter> to continue"); getchar();
 			break;
-		case 9:
+		case 11:
 			printf("line index to access\n");
 			printf("on module#%d\n", module);
 			printf("[0 -- 15] --> ");
@@ -322,57 +295,13 @@ int main(int argc, char *argv[], char *envp[])
 				break;
 			}
 			if (!status[module][i]) {
-				icv196_connect(&synchro_fd, module, i, 0);
+				icv196_connect(synchro_fd, module, i, 0);
 				status[module][i] = synchro_fd;
 			}
 			synchro_fd = status[module][i];
 			arg2.group = module;
 			arg2.index = i;
 			if ((retval = ioctl(synchro_fd, ICVVME_setreenable , &arg2)) < 0) {
-				perror("could not do ioctl\n");
-				break;
-			}
-			break;
-		case 10:
-			printf("number of line to access \n" );
-			printf("on module nr. %d ? \n", module );
-			scanf("%s", line);
-
-			i = atoi(line);
-			if ((i < 0) || (i >= icv_LineNb)) {
-				printf("line number out of range\n");
-				break;
-			}
-			if (status[module][i] == 0) {
-				icv196_connect(&synchro_fd, module, i, 0);
-				status[module][i] = synchro_fd;
-			}
-			synchro_fd = status[module][i];
-			arg2.group = module;
-			arg2.index = i;
-			if ((retval = ioctl(synchro_fd, ICVVME_clearreenable , &arg2)) < 0) {
-				perror("could not do ioctl\n");
-				break;
-			}
-			break;
-		case 11:
-			printf("number of line to access \n" );
-			printf("on module nr. %d ? \n", module );
-			scanf("%s", line);
-
-			i = atoi(line);
-			if ((i < 0) || (i >= icv_LineNb)) {
-				printf("line number out of range\n");
-				break;
-			}
-			if (status[module][i] == 0) {
-				icv196_connect(&synchro_fd, module, i, 0);
-				status[module][i] = synchro_fd;
-			}
-			synchro_fd = status[module][i];
-			arg2.group = module;
-			arg2.index = i;
-			if ((retval = ioctl(synchro_fd, ICVVME_enable , &arg2)) < 0) {
 				perror("could not do ioctl\n");
 				break;
 			}
@@ -388,7 +317,53 @@ int main(int argc, char *argv[], char *envp[])
 				break;
 			}
 			if (status[module][i] == 0) {
-				icv196_connect(&synchro_fd, module, i, 0);
+				icv196_connect(synchro_fd, module, i, 0);
+				status[module][i] = synchro_fd;
+			}
+			synchro_fd = status[module][i];
+			arg2.group = module;
+			arg2.index = i;
+			if ((retval = ioctl(synchro_fd, ICVVME_clearreenable , &arg2)) < 0) {
+				perror("could not do ioctl\n");
+				break;
+			}
+			break;
+		case 13:
+			printf("Line index to access on module#%d\n", module);
+			printf("[0 -- 15] --> ");
+			scanf("%s", line); getchar();
+
+			i = atoi(line);
+			if (!WITHIN_RANGE(0, i, icv_LineNb-1)) {
+				printf("idx out of range\n");
+				break;
+			}
+
+#if 0
+			if (status[module][i] == 0) {
+				icv196_connect(synchro_fd, module, i, 0);
+				status[module][i] = synchro_fd;
+			}
+			synchro_fd = status[module][i];
+#endif
+
+			arg2.group = module;
+			arg2.index = i;
+			if (ioctl(synchro_fd, ICVVME_enable , &arg2) < 0)
+				perror("ICVVME_enable ioctl failed");
+			break;
+		case 14:
+			printf("number of line to access \n" );
+			printf("on module nr. %d ? \n", module );
+			scanf("%s", line);
+
+			i = atoi(line);
+			if ((i < 0) || (i >= icv_LineNb)) {
+				printf("line number out of range\n");
+				break;
+			}
+			if (status[module][i] == 0) {
+				icv196_connect(synchro_fd, module, i, 0);
 				status[module][i] = synchro_fd;
 			}
 			synchro_fd = status[module][i];
@@ -399,7 +374,7 @@ int main(int argc, char *argv[], char *envp[])
 				break;
 			}
 			break;
-		case 13:
+		case 15:
 			if (!synchro_fd) {
 				printf("no line to read from\n");
 				break;
@@ -426,7 +401,7 @@ int main(int argc, char *argv[], char *envp[])
 			}
 			printf("\n");
 			break;
-		case 14:
+		case 16:
 			printf("number of line to access \n" );
 			printf("on module nr. %d ? \n", module );
 			scanf("%s", line);
@@ -437,7 +412,7 @@ int main(int argc, char *argv[], char *envp[])
 				break;
 			}
 			if (status[module][i] == 0) {
-				icv196_connect(&synchro_fd, module, i, 0);
+				icv196_connect(synchro_fd, module, i, 0);
 				status[module][i] = synchro_fd;
 			}
 			synchro_fd = status[module][i];
@@ -448,7 +423,7 @@ int main(int argc, char *argv[], char *envp[])
 				break;
 			}
 			break;
-		case 15:
+		case 17:
 			printf("number of line to access \n" );
 			printf("on module nr. %d ? \n", module );
 			scanf("%s", line);
@@ -459,7 +434,7 @@ int main(int argc, char *argv[], char *envp[])
 				break;
 			}
 			if (status[module][i] == 0) {
-				icv196_connect(&synchro_fd, module, i, 0);
+				icv196_connect(synchro_fd, module, i, 0);
 				status[module][i] = synchro_fd;
 			}
 			synchro_fd = status[module][i];
@@ -480,12 +455,10 @@ int main(int argc, char *argv[], char *envp[])
 
 	for (i = 0; i < icv_ModuleNb; i++)
 		for (j = 0; j < icv_LineNb; j++)
-			if (status[i][j] != 0) icv196_disconnect(i,j);
+			if (status[i][j] != 0) icv196_disconnect(synchro_fd, i, j);
 
-	if ((retval = close(service_fd)) < 0) {
-		perror("could not close file %s\n");
+	if (icv196_put_handle(service_fd))
 		exit(EXIT_FAILURE);
-	}
 
 	exit(EXIT_SUCCESS);
 }
