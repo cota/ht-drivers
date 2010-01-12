@@ -464,17 +464,13 @@ static unsigned long PullFrom_Ring(struct T_RingBuffer *Ring)
 /* init user Handle */
 static void Init_UserHdl(struct T_UserHdl *UHdl, int chanel)
 {
-	int i;
-	char *cptr;
-
 	UHdl->chanel  = chanel;
 	UHdl->pid     = 0;
 	UHdl->inuse   = 0; /* not in use */
 	UHdl->sel_sem = NULL; /* clear the semaphore for the select */
 
-	/* clear up  bit map of established connection */
-	for (i = 0, cptr = UHdl->Cmap; i < ICV_mapByteSz; i++)
-		*cptr++ = 0;
+	/* clear up bit map of established connection */
+	bzero(UHdl->Cmap, ARRAY_SIZE(UHdl->Cmap));
 
 	Init_Ring(UHdl, &UHdl->Ring, UHdl->Atom, Evt_msk);
 }
@@ -889,7 +885,7 @@ static void ClrSynchro(struct T_UserHdl *UHdl)
 
 	sreset(&UHdl->Ring.Evtsem); /* clear semaphore */
 
-	for (i = 0, cptr = &UHdl->Cmap[0]; i < ICV_mapByteSz; i++)
+	for (i = 0, cptr = UHdl->Cmap; i < ICV_mapByteSz; i++)
 		*cptr++ = 0;
 }
 
@@ -979,8 +975,7 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 	/* set interrupt level for this module */
 	cdcm_iowrite8(~l, MCtxt->VME_IntLvl); /* TODO Check if writing correctly */
 
-	/* TODO Check if writing correctly */
-	icv196_wr(0, VME_CsDir); /* set all I/O ports to input */
+	icv196_wr_16(0, VME_CsDir); /* set all I/O ports to input */
 
 	MCtxt->old_CsDir = 0;
 	MCtxt->startflag = 0;
