@@ -141,7 +141,7 @@ struct T_UserHdl {
 	int   chanel; /* channel index */
 	long  count;
 	int   timid;
-	int   pid;       /* process id  */
+	int   pid;       /* process id */
 	int   *sel_sem;	/* semaphore for select */
 	int   WaitingTO;
 	short UserMode;
@@ -284,7 +284,7 @@ struct T_ModuleCtxt {
         else /* even */							\
                 offs = grp + 2;						\
 									\
-	cdcm_ioread16((void*) ((long)MCtxt->SYSVME_Add + offs));	\
+	cdcm_ioread16be((void*) ((long)MCtxt->SYSVME_Add + offs));	\
  })
 /* ------------------------------------------------------------ */
 
