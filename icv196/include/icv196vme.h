@@ -79,7 +79,6 @@ struct icvT_RingAtom {
 	union  icvU_Evt Evt;
 };
 
-
 /* Structure to address hardware of the icvpls vme module */
 /* structures linked to ioctl interface */
 
@@ -236,19 +235,7 @@ struct icvT_RingAtom {
 #define ICV_L815  0176
 #define ICV_L816  0177
 
-/* Group value */
-#define ICV_Group0 0
-#define ICV_Group1 1
-#define ICV_Group2 2
-#define ICV_Group3 3
-#define ICV_Group4 4
-#define ICV_Group5 5
-#define ICV_Group6 6
-#define ICV_Group7 7
-
-#define ICV_GroupNb (ICV_Group7 + 1) /* Module number */
-
-#define ICV_mapByteSz (ICV_GroupNb << 1) /* 2 byte per module; 16 lines */
+#define ICV_mapByteSz (icv_ModuleNb << 1) /* 2 byte per module; 16 lines */
 
 /* Index value */
 #define ICV_Index00 000

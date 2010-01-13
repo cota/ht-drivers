@@ -103,7 +103,7 @@ union icv196U_UserLine {
 };
 
 struct icv196T_UserLine {
-	unsigned char group;	/**< [0 -- 11] */
+	unsigned char group;	/**<  */
 	unsigned char index;	/**< [0 -- 15] */
 };
 
