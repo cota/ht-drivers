@@ -367,23 +367,15 @@ static void GetUserLine(int logindex, struct icv196T_UserLine *add)
 }
 
 /* Initialise Ring buffer descriptor */
-static void Init_Ring(struct T_UserHdl *UHdl, struct T_RingBuffer *Ring,
-		      struct icvT_RingAtom *Buf, short mask)
+static void Init_Ring(struct T_UserHdl *UHdl)
 {
-	short   i;
-	struct icvT_RingAtom *ptr;
+	UHdl->Ring.UHdl   = UHdl;
+	UHdl->Ring.Buffer = UHdl->Atom;
+	UHdl->Ring.Evtsem = 0;
+	UHdl->Ring.mask   = Evt_msk;
+	UHdl->Ring.reader = UHdl->Ring.writer = 0;
 
-	Ring->UHdl   = UHdl;
-	Ring->Buffer = Buf;
-	Ring->Evtsem = 0;
-	Ring->mask   = mask;
-	Ring->reader = Ring->writer = 0;
-	ptr = &Buf[mask];
-
-	for (i = mask; i >= 0; i--, ptr--) {
-		ptr->Subscriber = NULL;
-		ptr->Evt.All = 0;
-	}
+	bzero((char*)UHdl->Atom, ARRAY_SIZE(UHdl->Atom));
 }
 
 /*
@@ -472,7 +464,7 @@ static void Init_UserHdl(struct T_UserHdl *UHdl, int chanel)
 	/* clear up bit map of established connection */
 	bzero(UHdl->Cmap, ARRAY_SIZE(UHdl->Cmap));
 
-	Init_Ring(UHdl, &UHdl->Ring, UHdl->Atom, Evt_msk);
+	Init_Ring(UHdl);
 }
 
 /* initialize driver statics table */
@@ -885,8 +877,7 @@ static void ClrSynchro(struct T_UserHdl *UHdl)
 
 	sreset(&UHdl->Ring.Evtsem); /* clear semaphore */
 
-	for (i = 0, cptr = UHdl->Cmap; i < ICV_mapByteSz; i++)
-		*cptr++ = 0;
+	bzero(UHdl->Cmap, ARRAY_SIZE(UHdl->Cmap));
 }
 
 /*
@@ -1673,7 +1664,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		else /* input */
 			MCtxt->old_CsDir &= ~group_mask;
 
-		icv196_wr(MCtxt->old_CsDir, VME_CsDir); /* TODO. check */
+		icv196_wr_16(MCtxt->old_CsDir, VME_CsDir);
 		break;
 	case ICVVME_readio:
 		/* Read direction of i/o ports */
