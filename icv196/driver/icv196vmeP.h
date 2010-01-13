@@ -45,11 +45,11 @@
   provides the interrupt.
 */
 
-/* define some macroes to manage bit map of the connection */
-/* to operate othe bit given by its number in a byte table map  */
-#define CLRBIT(ar,n)  ar[(n) / 8] &= (~(0x1 << ( (n) & 0x7)))
-#define SETBIT(ar,n)  ar[(n) / 8] |= (  0x1 << ( (n) & 0x7))
-#define TESTBIT(ar,n) ar[(n) / 8] &  (  0x1 << ( (n) & 0x7))
+/* define some macroes to manage bit map of the connection
+   to operate on the bit given by its number in a byte table map */
+#define CLRBIT(ar,  n)  ar[n / 8] &= (~(1 << (n & 7)))
+#define SETBIT(ar,  n)  ar[n / 8] |= (  1 << (n & 7))
+#define TESTBIT(ar, n)  ar[n / 8] &  (  1 << (n & 7))
 
 /*
   Ring buffer management
@@ -96,7 +96,7 @@
   table.
 */
 struct T_Subscriber {
-	struct T_LogLineHdl * LHdl;
+	struct T_LogLineHdl *LHdl;
 	struct T_RingBuffer *Ring; /* Point at the user Handle
 				      providing the Ring buffer */
 	struct icvT_RingAtom *CumulEvt; /* Cumulative event pointer */
