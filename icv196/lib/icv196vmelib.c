@@ -146,27 +146,43 @@ int icv196_disconnect(int h, short module, short line)
 
 int icv196_read_channel(int h, int module, int grp, char *data)
 {
-	struct icv196T_Service arg = { 0 };
-
-	arg.module  = module;
-	arg.line    = grp;
-
-	if (ioctl(h, ICV196_GR_READ, &arg) < 0) {
-		perror("ICV196_GR_READ ioctl failed");
-		return -1;
-	}
-	return 0;
-}
-
-int icv196_write_channel(int h, int module, int grp, char *data)
-{
+	int rc;
+	short *shd = (short*) data;
 	struct icv196T_Service arg = { 0 };
 
 	arg.module  = module;
 	arg.line    = grp;
 	arg.data[0] = *data;
 
-	printf("Data to write is %hd\n", *data);
+	rc = ioctl(h, ICV196_GR_READ, &arg);
+	if (rc < 0) {
+		perror("ICV196_GR_READ ioctl failed");
+		return -1;
+	}
+
+	if (rc == 1)
+		*data = (char)arg.data[0];
+	else
+		*shd = (short)arg.data[0];
+
+	return rc;
+}
+
+int icv196_write_channel(int h, int module, int grp, char *data)
+{
+	short *shd = (short*) data;
+	struct icv196T_Service arg = { 0 };
+
+	arg.module  = module;
+	arg.line    = grp;
+	arg.data[0] = *data;
+	arg.data[1] = *&data[3];
+
+	if (arg.data[1] == 1)	/* size */
+		arg.data[0] = *data;
+	else
+		arg.data[0] = *shd;
+
 	if (ioctl(h, ICV196_GR_WRITE, &arg) < 0) {
 		perror("ICV196_GR_WRITE ioctl failed");
 		return -1;
@@ -193,7 +209,7 @@ int icv196_write_channel(int h, int module, int grp, char *data)
  * within [0 -- 11] range.
  *
  * If group size is 2 bytes -- group index (@b grp param) can be @b only
- * @e even indexes
+ * @e odd indexes [1, 3, 5, 7, 9, 11]
  *
  * @return -1 -- failed
  * @return  0 -- OK

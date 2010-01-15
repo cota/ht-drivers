@@ -1,5 +1,5 @@
 # for Linux:
-gcc -g -Wall -I../include -I../../include -L../object_icv196vme testicv.c -o test.L865 -licv196vme.L865
+gcc -g -Wall -I. -I../include -I../../include -L../object_icv196vme gp.c testicv.c -o test.L865 -licv196vme.L865
 
 # for Lynx:
-/ps/sys/620/ppc/cdk/linux-elf-ppc/usr/bin/gcc -g -Wall -I/ps/sys/620/ppc/sys/include/kernel -I/ps/sys/620/ppc/sys/include/io -I/ps/sys/620/ppc/sys/include/family/ppc -I../include -I../../include -L../object_icv196vme testicv.c -o test.ppc4 -licv196vme.ppc4
+/ps/sys/620/ppc/cdk/linux-elf-ppc/usr/bin/gcc -g -Wall -I/ps/sys/620/ppc/sys/include/kernel -I/ps/sys/620/ppc/sys/include/io -I/ps/sys/620/ppc/sys/include/family/ppc -I. -I../include -I../../include -L../object_icv196vme gp.c testicv.c -o test.ppc4 -licv196vme.ppc4
