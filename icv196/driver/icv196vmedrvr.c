@@ -578,7 +578,7 @@ static struct T_Subscriber* LineBooking(struct T_UserHdl *UHdl,
 {
 	ulong ps;
 	int i, ns = LHdl->SubscriberMxNb;
-	struct T_Subscriber *Subs = LHdl->Subscriber, *val = NULL;
+	struct T_Subscriber *Subs = LHdl->Subscriber, *new = NULL;
 	struct T_LineCtxt *LCtxt = LHdl->LineCtxt;
 
 	disable(ps);
@@ -587,9 +587,8 @@ static struct T_Subscriber* LineBooking(struct T_UserHdl *UHdl,
 		if (Subs->Ring) /* subscriber occupied, scan on */
 			continue;
 
-		/* allocated this element */
+		new = Subs; /* found free one, take it */
 		LHdl->SubscriberCurNb++; /* update current subscriber number */
-		val = Subs; /* found a place */
 		Subs->Ring = &UHdl->Ring; /* link to Ring buffer */
 		Subs->CumulEvt = NULL;
 
@@ -612,7 +611,7 @@ static struct T_Subscriber* LineBooking(struct T_UserHdl *UHdl,
 	}
 
 	restore(ps);
-	return val;
+	return new;
 }
 
 /* Rub out connection of a chanel from a given logical line */
@@ -620,14 +619,12 @@ static struct T_Subscriber *LineUnBooking(struct T_UserHdl *UHdl,
 					  struct T_LogLineHdl *LHdl)
 {
 	ulong ps;
-	int i, ns;
-	struct T_Subscriber *Subs;
+	int i, ns = LHdl->SubscriberMxNb;
+	struct T_Subscriber *Subs = LHdl->Subscriber;
 	struct T_Subscriber *val = NULL;
 	struct T_RingBuffer *UHdlRing = &UHdl->Ring;
 
 	disable(ps);
-	ns = LHdl->SubscriberMxNb;
-	Subs = LHdl->Subscriber;
 
 	for (i = 0; i < ns; i++, Subs++) {
 		if (!Subs->Ring || Subs->Ring != UHdlRing)
@@ -964,9 +961,7 @@ int icvModule_Init_HW(struct T_ModuleCtxt *MCtxt)
 	z8536_wr(b_RESET); /* reset the board */
 	z8536_wr(0); /* go from <reset state> to <state 0> (normal operation) */
 
-	/* set interrupt level for this module */
-	cdcm_iowrite8(~l, MCtxt->VME_IntLvl); /* TODO Check if writing correctly */
-
+	icv196_wr_8(~l, VME_IntLvl); /* set interrupt level for this module */
 	icv196_wr_16(0, VME_CsDir); /* set all I/O ports to input */
 
 	MCtxt->old_CsDir = 0;
@@ -1096,8 +1091,8 @@ static void enable_Module(struct T_ModuleCtxt *MCtxt)
 #endif
 
 /*
-  Check if module lost its status, reinitialise it if yes
-  to face a  reset without system crash
+  Check if module lost its status, reinitialise it if yes.
+  To face a reset without system crash.
 */
 int icvModule_Reinit(struct T_ModuleCtxt *MCtxt, int line)
 {
@@ -1279,7 +1274,7 @@ int icv196_read(void *wa, struct cdcm_file *f,
 				UHdl->timid = 0;
 				UHdl->timid = timeout(UserWakeup, (char *)UHdl,
 						      (int)UHdl->WaitingTO);
-				swait(&UHdl->Ring.Evtsem, SEM_SIGIGNORE);	/* Wait Lam or Time Out */
+				swait(&UHdl->Ring.Evtsem, SEM_SIGIGNORE); /* Wait Lam or Time Out */
 				disable(ps);
 				if (UHdl->timid < 0) {	/* time Out occured */
 					restore(ps);

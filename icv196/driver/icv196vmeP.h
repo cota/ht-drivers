@@ -69,7 +69,7 @@
 
 /* these structures  are used to buffer the event */
 /*
-  Logical logical line handle
+  Logical line handle
   ---------------------------
   A physical line is accessed by a user via a logical line associated to
   a table called logical line handle.
@@ -133,6 +133,21 @@ struct T_LogLineHdl {
 };
 
 /*
+  Structure of a physical line context:
+  this depends on the type of module
+*/
+struct T_LineCtxt {
+	struct T_ModuleCtxt *MCtxt;
+	struct T_LogLineHdl *LHdl; /* Line handle linked to */
+	int   Type; /* to stand specificity of lines: pls or icv */
+	short Line; /* Line index [0 - 15] */
+	int   status;	 /**< icv_Disabled /icv_Enabled */
+	int   intmod;	 /**< icv_ReenableOn / icv_ReenableOff */
+	int   loc_count; /**< interrupt counter (-1 -- line disabled) */
+	short Reset;
+};
+
+/*
   User Handle
   structure associated to each minor device
 */
@@ -150,23 +165,9 @@ struct T_UserHdl {
 	struct icvT_RingAtom Atom[Evt_nb]; /* Buffer of Ring buffer */
 };
 
-/*
-  Structure of a physical line context:
-  this depends on the type of module
-*/
-struct T_LineCtxt {
-	struct T_ModuleCtxt *MCtxt;
-	struct T_LogLineHdl *LHdl; /* Line handle linked to */
-	int   Type; /* to stand specificity of lines: pls or icv */
-	short Line; /* Line index [0 - 15] */
-	int   status;	 /**< icv_Disabled /icv_Enabled */
-	int   intmod;	 /**< icv_ReenableOn / icv_ReenableOff */
-	int   loc_count; /**< interrupt counter (-1 -- line disabled) */
-	short Reset;
-};
-
+/* module context */
 struct T_ModuleCtxt {
-	int            sem_module; /* mutex semaphore */
+	int            sem_module; /* semaphore */
 	int            dflag;      /* debug flag */
 	short          Module;     /* Module index [0 - 7] */
 	int            VME_size;   /* original info table values */
