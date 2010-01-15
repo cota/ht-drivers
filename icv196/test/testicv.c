@@ -645,11 +645,14 @@ static void transmit_data(int fd, struct gpfd *gpfd)
 			continue;
 		}
 
+		usleep(500); /* delay for HW to do the job */
+
 		buff[0] = 2;
 		if (icv196_read_channel(fd, module, rd_grp, buff) < 0) {
 			printf("icv196_read_channel() failed\n");
 			continue;
 		}
+		usleep(500); /* delay for HW to do the job */
 
 		/* safe received values and put them in the file */
 		gpfd->gpv[i].conv = *bptr;
