@@ -17,11 +17,9 @@
 
 #include <skeluser.h>
 
-#define icv_LineNb  16 /* number of lines per module */
-
-/* limits of the configuration */
-#define icv_ModuleNb  8 /* Max Number of icv modules */
-#define ICV_LogLineNb (icv_ModuleNb * icv_LineNb + 1) /* logical lines number + 1 */
+#define icv_LineNb    16 /* number of lines per module */
+#define icv_ModuleNb  8  /* Max Number of modules */
+#define ICV_LogLineNb (icv_ModuleNb * icv_LineNb + 1) /* total number of logical lines + 1 */
 
 /* Channel to get synchronised with icv int */
 #define ICVVME_IcvChan01 1
