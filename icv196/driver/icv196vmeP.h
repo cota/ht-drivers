@@ -137,11 +137,11 @@ struct T_LogLineHdl {
   this depends on the type of module
 */
 struct T_LineCtxt {
-	struct T_ModuleCtxt *MCtxt;
+	struct T_ModuleCtxt *MCtxt; /* module this line belongs to */
 	struct T_LogLineHdl *LHdl; /* Line handle linked to */
 	int   Type; /* to stand specificity of lines: pls or icv */
 	short Line; /* Line index [0 - 15] */
-	int   status;	 /**< icv_Disabled /icv_Enabled */
+	int   status;	 /**< icv_Disabled / icv_Enabled */
 	int   intmod;	 /**< icv_ReenableOn / icv_ReenableOff */
 	int   loc_count; /**< interrupt counter (-1 -- line disabled) */
 	short Reset;

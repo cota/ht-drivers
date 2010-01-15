@@ -285,7 +285,7 @@ struct icv196T_UserLine UserLineAdd[ICV_LogLineNb] = {
        {7, ICV_Index15}, {7, ICV_Index16},
 };
 
-/* static table */
+/* driver static table */
 struct icv196T_s {
 	int usercounter; /* total user amount conntected to the driver */
 	int sem_drvr;    /* semaphore for exclusive access to static table */
@@ -294,9 +294,9 @@ struct icv196T_s {
 
 	/* extention to stand interrupt processing */
 	int   UserTO;   /* User time out, by waiting for ICV */
-	short UserMode; /* ? */
+	short UserMode; /* user mode flags */
 
-	/* Sizing: depend  on needs of user interface */
+	/* Sizing: depend on needs of user interface */
 	short SubscriberMxNb;
 
 	/* User handle: as many as device created at install */
@@ -1486,14 +1486,14 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 
 		/* Check parameters and Set up environnement */
 		Module = ((struct icv196T_UserLine *) arg)->group;
-		index = ((struct icv196T_UserLine *) arg)->index;
+		Line = ((struct icv196T_UserLine *) arg)->index;
 
 		if (!WITHIN_RANGE(0, Module, icv_ModuleNb - 1)) {
 			pseterr(EINVAL);
 			return SYSERR;
 		}
 
-		if (!WITHIN_RANGE(0, index, icv_LineNb - 1)) {
+		if (!WITHIN_RANGE(0, Line, icv_LineNb - 1)) {
 			pseterr(EINVAL);
 			return SYSERR;
 		}
@@ -1504,7 +1504,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		/* set up Logical line handle pointer */
-		LogIx = CnvrtUserLine(Module, index);
+		LogIx = CnvrtUserLine(Module, Line);
 
 		if (!WITHIN_RANGE(0, LogIx, ICV_LogLineNb)) {
 			pseterr(EWOULDBLOCK);
@@ -1532,14 +1532,14 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 
 		/* Check parameters and Set up environnement */
 		Module = ((struct icv196T_UserLine *) arg)->group;
-		index = ((struct icv196T_UserLine *) arg)->index;
+		Line = ((struct icv196T_UserLine *) arg)->index;
 
 		if (!WITHIN_RANGE(0, Module, icv_ModuleNb - 1)) {
 			pseterr(EINVAL);
 			return SYSERR;
 		}
 
-		if (!WITHIN_RANGE(0, index, icv_LineNb - 1)) {
+		if (!WITHIN_RANGE(0, Line, icv_LineNb - 1)) {
 			pseterr(EINVAL);
 			return SYSERR;
 		}
@@ -1550,7 +1550,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 		}
 
 		/* set up Logical line handle pointer */
-		LogIx = CnvrtUserLine(Module, index);
+		LogIx = CnvrtUserLine(Module, Line);
 
 		if (!WITHIN_RANGE(0, LogIx, ICV_LogLineNb)) {
 			pseterr(EWOULDBLOCK);
