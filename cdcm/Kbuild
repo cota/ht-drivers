@@ -1,3 +1,13 @@
+##############################################################################
+# @file Kbuild
+#
+# @brief Kbuild for compiling CDCM.
+#
+# @author Copyright (C) 2009 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
+#
+# @date Created on 26/08/2009
+###############################################################################
+
 # Include generic definitions
 include $(ROOTDIR)/makefiles/Kbuild.include
 

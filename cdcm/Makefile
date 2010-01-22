@@ -1,6 +1,12 @@
+##############################################################################
+# @file Makefile
 #
-# Makefile to build CDCM and driver utils (including XML library)
+# @brief Makefile to build CDCM and driver utils (including XML library)
 #
+# @author Copyright (C) 2009 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
+#
+# @date Created on 26/08/2009
+###############################################################################
 
 # Where everything is nested
 ROOTDIR = $(PWD)/..
