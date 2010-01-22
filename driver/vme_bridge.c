@@ -704,7 +704,9 @@ static int __devinit vme_bridge_init(struct pci_dev *pdev,
 	if (vme_slotnum == -1)
 		vme_slotnum = tsi148_get_slotnum(vme_bridge->regs);
 
-	if ((vme_slotnum < 1) || (vme_slotnum > 21))
+	if (!vme_slotnum)
+		printk(KERN_INFO PFX "on VME slot 0, i.e. no VME64x backplane");
+	else if (vme_slotnum < 0 || vme_slotnum > 21)
 		printk(KERN_WARNING PFX "Weird VME slot %d\n", vme_slotnum);
 
 	vme_bridge->slot = vme_slotnum;
