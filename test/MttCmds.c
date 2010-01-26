@@ -50,10 +50,12 @@ static int xsvf_iDebugLevel = 0;
 static char *editor = "e";
 
 #ifdef __linux__
-static char *defaultconfigpath = "/dsrc/drivers/mtt/test/mttconfig.linux";
+static char *defaultconfigpath = "/dsrc/drivers/mttn/test/mttconfig.linux";
 #else
 static char *defaultconfigpath = "/dsc/data/mtt/Mtt.conf";
 #endif
+
+#define FILE_MTT_OBJ "/tmp/Mtt.obj"
 
 static char *configpath = NULL;
 static char localconfigpath[LN];
@@ -272,10 +274,10 @@ static MemDsc memdsc[MEMDSC] = {
    { "ProgMem   ",812,8192 }
  };
 
-#define LRGNS 8
+#define LRGNS 9
 static char *LrgNames[LRGNS] = {
    "RUNC ","RMSK ","WMSK ","SSEC ",
-   "SMSC ","WVME ","EVNT ","STAT "
+   "SMSC ","WVME ","EVNT ","STAT ","TTYP "
  };
 
 /* ======================================================================== */
@@ -2699,11 +2701,7 @@ FILE *fp;
    }
 
    bzero((void *) fname, LN);
-   if (GetFile("Mtt.obj") == NULL) {
-      printf("Can't find file: Mtt.obj\n");
-      return arg;
-   }
-   strcpy(fname,path);
+   strcpy(fname,FILE_MTT_OBJ);
    fp = fopen(fname,"w");
    if (fp == NULL) {
       printf("Can't open file: %s for write\n",fname);
@@ -2796,12 +2794,7 @@ int n, earg, laset;
    if ((v->Type == Close)
    ||  (v->Type == Terminator)) {
 
-      bzero((void *) fname, LN);
-      if (GetFile("Mtt.obj") == NULL) {
-	 printf("Can not find file: Mtt.obj\n");
-	 return earg;
-      }
-      strcpy(fname,path);
+      strcpy(fname,FILE_MTT_OBJ);
 
    } else {
 
@@ -2917,12 +2910,7 @@ MttDrvrTaskBuf tbuf;
    }
    if (tn == UNSET) tn = tasknum; /* Default is current working task */
 
-   bzero((void *) fname, LN);
-   if (GetFile("Mtt.obj") == NULL) {
-      printf("Can't find file: Mtt.obj\n");
-      return arg;
-   }
-   strcpy(fname,path);
+   strcpy(fname,FILE_MTT_OBJ);
    fp = fopen(fname,"w");
    if (fp == NULL) {
       printf("Can't open file: %s for write\n",fname);
@@ -3086,12 +3074,7 @@ FileType ft;
    if ((v->Type == Close)
    ||  (v->Type == Terminator)) {
 
-      bzero((void *) fname, LN);
-      if (GetFile("Mtt.obj") == NULL) {
-	 printf("Can not find file: Mtt.cpp\n");
-	 return earg;
-      }
-      strcpy(fname,path);
+      strcpy(fname,FILE_MTT_OBJ);
 
    } else {
 
@@ -3157,12 +3140,7 @@ FileType ft;
    if ((v->Type == Close)
    ||  (v->Type == Terminator)) {
 
-      bzero((void *) fname, LN);
-      if (GetFile("Mtt.obj") == NULL) {
-	 printf("Can not find file: Mtt.cpp\n");
-	 return earg;
-      }
-      strcpy(fname,path);
+      strcpy(fname,FILE_MTT_OBJ);
 
    } else {
 
@@ -3556,14 +3534,7 @@ int n, earg;
    at = v->Type;
    if ((v->Type == Close)
    ||  (v->Type == Terminator)) {
-
-      bzero((void *) fname, LN);
-      if (GetFile("Mtt.xsvf") == NULL) {
-	 printf("Can not find file: Mtt.xsvf: VHDL version\n");
-	 return earg;
-      }
-      strcpy(fname,path);
-
+      strcpy(fname,"/usr/local/drivers/mttn/Mtt.xsvf");
    } else {
 
       bzero((void *) fname, LN);
@@ -3607,42 +3578,6 @@ AtomType  at;
    return arg;
 }
 
-/* ======================================= */
-/* Run reflective memory test program      */
-
-int XmemTest(int arg) {
-
-char *cp, cmd[LN];
-
-   arg++;
-
-   if (tgmMch == TgmLHC) {
-      cp = GetFile("xmemtest");
-      if (cp) {
-	 sprintf(cmd,"xterm 2>/dev/null -e %s",cp);
-	 printf("Launching: %s\n",cmd);
-	 Launch(cmd);
-      }
-   } else printf("XmemTest:LHC network only\n");
-   return arg;
-}
-
-/* ======================================= */
-/* Run reflective daemon test program      */
-
-int XmemDiag(int arg) {
-
-char *cp, cmd[LN];
-
-   arg++;
-   cp = GetFile("xmemdiag");
-   if (cp) {
-      sprintf(cmd,"xterm 2>/dev/null -e %s",cp);
-      printf("Launching: %s\n",cmd);
-      Launch(cmd);
-   }
-   return arg;
-}
 
 /* ======================================= */
 /* Run ctrtest program                     */
@@ -3688,169 +3623,6 @@ int ListFiles(int arg) {
    return arg;
 }
 
-/* ============================= */
-/* Get host identity (M, A or B) */
-
-int GetHostId(int arg) {
-
-int i;
-char *cp, fname[LN], ln[LN];
-FILE *fp;
-
-   arg++;
-   cp = GetFile("Mtt.hostconfig");
-   strcpy(fname,path);
-   fp = fopen(fname,"r");
-   if (fp == NULL) {
-      printf("Can't open file: %s for read\n",fname);
-      return arg;
-   }
-
-   cp = fgets(ln,LN,fp);
-   for (i=0; i<strlen(ln); i++) if (ln[i]=='\n') { ln[i] = 0; break; }
-
-   if (cp) printf("Found host identity: %s in file: %s\n",ln,fname);
-   else    printf("Can't read from file: %s\n",fname);
-   fclose(fp);
-   return arg;
-}
-
-/* ============================= */
-/* Launch survey task            */
-
-int LaunchSurvey(int arg) {
-ArgVal   *v;
-AtomType  at;
-char txt[LN];
-char hid;
-
-   arg++;
-
-   hid = 'A';
-   v = &(vals[arg]);
-   at = v->Type;
-   if (at == Alpha) {
-      arg++;
-      hid = v->Text[0];
-   }
-
-   sprintf(txt,"xterm 2>/dev/null -e %s %c",GetFile("mttsvy"),hid);
-   printf("Launching:%s\n",txt);
-   Launch(txt);
-
-   sprintf(txt,"xterm 2>/dev/null -e %s %c",GetFile("tsksvy"),hid);
-   printf("Launching:%s\n",txt);
-   Launch(txt);
-
-   sprintf(txt,"xterm 2>/dev/null -e %s %c",GetFile("tgmsvy"),hid);
-   printf("Launching:%s\n",txt);
-   Launch(txt);
-
-   return arg;
-}
-
-/* ========================= */
-/* Show log in shared memory */
-
-int ShowLogMem(int arg) {
-ArgVal   *v;
-AtomType  at;
-int i, idx, cnt;
-unsigned long smemky;
-MttDrvrTime t;
-LogEntry *evp;
-
-   arg++;
-
-   cnt = 20;
-
-   v = &(vals[arg]);
-   at = v->Type;
-   if (at == Numeric) {
-      arg++;
-      if (v->Number <= LOG_ENTRIES) {
-	 cnt = v->Number;
-      }
-   }
-
-   if (GetLogTable() == NULL) {
-      smemky = GetKey(LOG_NAME);
-      printf("Can't attach to shared memory, Id:%d [0x%x], Name:%s\n",
-	     (int) smemky,
-	     (int) smemky,
-	     LOG_NAME);
-      printf("Probably mttlog isn't running on this DSC\n");
-      return arg;
-   }
-
-   idx=event_log->NextEntry - cnt;
-   for (i=0; i<cnt; i++, idx++) {
-      if (idx >= event_log->NextEntry) break;
-      evp = &(event_log->Entry[idx]);
-      if ((strlen(evp->Text)) && (evp->Text[0] != '\n')) {
-	 bzero((void *) &t, sizeof(MttDrvrTime));
-	 t.Second = evp->Time;
-	 printf("%03d:%s %s\n",idx,TimeToStr(&t),evp->Text);
-      } else printf("\n");
-   }
-
-   return arg;
-}
-
-/* ========================= */
-/* Show log in disc file     */
-
-int ShowLogFile(int arg) {
-ArgVal   *v;
-AtomType  at;
-int i, idx, cnt, cc;
-LogEntries entries;
-MttDrvrTime t;
-LogEntry *evp;
-FILE *fp;
-
-   arg++;
-   cnt = 20;
-
-   v = &(vals[arg]);
-   at = v->Type;
-   if (at == Numeric) {
-      arg++;
-      if (v->Number <= LOG_ENTRIES) {
-	 cnt = v->Number;
-      }
-   }
-
-   sprintf(log_name,"%s",GetFile(LOG_NAME));
-   fp = fopen(log_name,"r");
-   if (fp == NULL) {
-      printf("Can't open file: %s for read\n",log_name);
-      perror("Open error");
-      return arg;
-   }
-
-   bzero((void *) &entries, sizeof(LogEntries));
-   cc = fread(&entries, sizeof(LogEntries), 1, fp);
-   if (cc) {
-      idx=entries.NextEntry - cnt;
-      for (i=0; i<cnt; i++, idx++) {
-	 if (idx > entries.NextEntry) break;
-	 evp = &(entries.Entry[idx]);
-	 if ((strlen(evp->Text)) && (evp->Text[0] != '\n')) {
-	    bzero((void *) &t, sizeof(MttDrvrTime));
-	    t.Second = evp->Time;
-	    printf("%03d:%s %s\n",idx,TimeToStr(&t),evp->Text);
-	 } else printf("\n");
-      }
-   } else {
-      printf("Can't read file: %s Empty\n",log_name);
-      perror("Read error");
-      printf("Probably mttlog isn't running on this DSC\n");
-   }
-
-   fclose(fp);
-   return arg;
-}
 
 /* ========================= */
 /* Make a CTF table          */
@@ -4036,71 +3808,3 @@ FILE *fp;
    return earg;
 }
 
-/* ======================================= */
-/* Send table name to cmtsrv message queue */
-
-#define MAX_NAME_SIZE 32
-
-int SendNameMQ(int arg) {
-ArgVal   *v;
-AtomType  at;
-char mes[MAX_NAME_SIZE +1], *cp;
-int n, earg;
-
-ssize_t ql;
-mqd_t q;
-
-   arg++;
-
-   for (earg=arg; earg<pcnt; earg++) {
-      v = &(vals[earg]);
-      if ((v->Type == Close)
-      ||  (v->Type == Terminator)) break;
-   }
-
-   v = &(vals[arg]);
-   at = v->Type;
-
-   if ((v->Type == Close)
-   ||  (v->Type == Terminator)) {
-
-      printf("No message to send\n");
-      return earg;
-
-   } else {
-
-      bzero((void *) mes, MAX_NAME_SIZE);
-
-      n = 0;
-      cp = &(cmdbuf[v->Pos]);
-      do {
-	 at = atomhash[(int) (*cp)];
-	 if ((at != Seperator)
-	 &&  (at != Close)
-	 &&  (at != Terminator))
-	    mes[n++] = *cp;
-	 mes[n] = 0;
-	 cp++;
-      } while ((at != Close) && (at != Terminator));
-   }
-
-   q = mq_open("/tmp/cmtsrv",O_WRONLY);
-   if (q == (mqd_t) -1) {
-      printf("ERROR:Can not open message queue:cmtsrv\n");
-      printf("ERROR:Server is probably not running\n");
-      perror("cmtsrv");
-      return earg;
-   }
-
-   ql = mq_send(q,mes,MAX_NAME_SIZE,0);
-   mq_close(q);
-   if (ql == -1) {
-      printf("ERROR:Message:%s:Not sent\n",mes);
-      perror("cmtsrv");
-      return earg;
-   }
-
-   printf("Sent:%s:To message Queue:cmtsrv:OK\n",mes);
-
-   return earg;
-}

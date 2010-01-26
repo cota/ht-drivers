@@ -71,22 +71,14 @@ int FilterTable();          /* Filter the CTR event history by table */
 int ReloadJtag();           /* Upload VHDL bit stream */
 int MemIo();                /* Raw IO */
 
-int XmemTest();             /* Reflective memory test program */
-int XmemDiag();             /* Reflective memory daemon test program */
 int CtrTest();              /* Ctr hardware test program */
 int TimTest();              /* TimLib test program */
 
-int GetHostId();            /* Get the identity of this DSC (M, A or B) */
-
 int LaunchVideo();          /* Launch Video displays */
-
-int ShowLogFile();          /* Show saved MTT Log entries in disc file */
-int ShowLogMem();           /* Show latest MTT Log in shared memory */
 
 int ListFiles();            /* Execute ls -l in CWD */
 
 int MakeCtfTable();         /* Make a CTF timing table */
-int SendNameMQ();           /* Send tablename to cmtsrv message queue */
 
 static void IErr();
 
@@ -138,8 +130,6 @@ typedef enum {
    CmdSTATUS,               /* Get the module status */
    CmdSEND,                 /* Send and event out now */
 
-   CmdGHID,                 /* Get host identity (M, A or B) */
-
    CmdTASK,                 /* Get/Set the working task */
    CmdNTASK,                /* Select the next task */
    CmdPTASK,                /* Select the previous task */
@@ -168,20 +158,15 @@ typedef enum {
    CmdDASM,                 /* Disassemble program */
    CmdEMUL,                 /* Emulate program binary */
    CmdCOMPLE,               /* Compile event table */
-   CmdSMQ,                  /* Send table to cmt server message queue */
    CmdFILTER,               /* Filter CTR event history by table */
    CmdCTFT,                 /* Build a CTF timing table */
 
    CmdJTAG,                 /* Upload VHDL bit stream */
    CmdRIO,                  /* Raw IO */
 
-   CmdXTEST,                /* Launch reflective memory test program */
-   CmdXDIAG,                /* Launch reflective daemon test program */
    CmdCTRT,                 /* Launch ctrtest hardware test program */
    CmdTIMT,                 /* Launch timtest timlib test program */
 
-   CmdSLF,                  /* Show saved MTT Log entries in disc file */
-   CmdSLM,                  /* Show latest MTT Log in shared memory */
    CmdLSF,                  /* List files */
 
    CmdCMDS } CmdId;
@@ -231,8 +216,6 @@ static Cmd cmds[CmdCMDS] = {
    { CmdSTATUS,  "rst",   "Get status"               ,""                   ,GetStatus         },
    { CmdSEND,    "sev",   "Send and event out now"   ,"Frame"              ,SendEvent         },
 
-   { CmdGHID,    "hid",   "Get host id (M, A or B)"  ,""                   ,GetHostId  },
-
    { CmdTASK,    "tn",    "Get/Set the working task" ,"Task"               ,GetSetTask },
    { CmdNTASK,   "nt",    "Select the next task"     ,""                   ,NextTask   },
    { CmdPTASK,   "pt",    "Select the previous task" ,""                   ,PrevTask   },
@@ -261,21 +244,16 @@ static Cmd cmds[CmdCMDS] = {
    { CmdDASM,    "ds",    "Disassemble program"      ,"FileName"              ,DisAsm         },
    { CmdEMUL,    "em",    "Emulate program binary"   ,"FileName"              ,EmuProg        },
    { CmdCOMPLE,  "ct",    "Compile event table"      ,"FileName"              ,CompileTable   },
-   { CmdSMQ,     "smq",   "Cmt server message queue" ,"FileName"              ,SendNameMQ     },
    { CmdFILTER,  "ft",    "Look for table in history","FileName"              ,FilterTable    },
    { CmdCTFT,    "ctf",   "Build a CTF timing table" ,"Prod,Meas,Intv"        ,MakeCtfTable   },
 
    { CmdJTAG,    "jtag",  "Jtag, VHDL reload"        ,"FileName"           ,ReloadJtag },
    { CmdRIO,     "rio",   "Raw memory IO"            ,"Address"            ,MemIo      },
 
-   { CmdXTEST,   "xt",    "xmem test prog"           ,""                   ,XmemTest },
-   { CmdXDIAG,   "xd",    "xmem daemon test prog"    ,""                   ,XmemDiag },
    { CmdCTRT,    "ctrt",  "ctr hardware test prog"   ,""                   ,CtrTest  },
    { CmdTIMT,    "timt",  "timtest timlib test prog" ,""                   ,TimTest  },
 
-   { CmdSLF,     "slf",   "Show MTTLog history file" ,"Count"              ,ShowLogFile },
-   { CmdSLM,     "slm",   "Show MTTLog in memory"    ,"Count"              ,ShowLogMem  },
-   { CmdLSF,     "ls",    "List files in CWD"        ,""                   ,ListFiles   }
+    { CmdLSF,     "ls",    "List files in CWD"        ,""                   ,ListFiles   }
 
    };
 

@@ -15,6 +15,7 @@
 #include "asmP.h"
 
 static int debug = 0;
+static int quiet=0;
 static char *source;
 
 struct stat assStat;
@@ -1556,12 +1557,15 @@ int main (int argc, char *argv[])
     bzero (ass, FN_SIZE);
     bzero (obj, FN_SIZE);
 
-    printf ("\nasm: Version: %s %s\n", __DATE__, __TIME__);
-
     if (argc < 2)
         Help ();
 
     for (i = 1; i < argc; i++) {
+    	if ( strcmp(argv[i],"-q")==0) {
+    		// Quiet mode
+    		quiet=1;
+    		continue;
+    	}
         ft = GetFileType (argv[i]);
         switch (ft) {
         case INVALID:
@@ -1571,32 +1575,27 @@ int main (int argc, char *argv[])
 
         case ASM:
             strcpy (ass, argv[i]);
-            if (i == 1) {
-                assemble = 1;
-                if (stat (ass, &assStat) == -1) {
-                    fprintf (stderr, "asm: Can't get file statistics: %s for read\n", ass);
-                    perror ("asm");
-                    exit (1);
-                }
-                if (assStat.st_size < 2) {
-                    fprintf (stderr, "asm: File: %s is empty\n", ass);
-                    exit (1);
-                }
-                assFile = fopen (ass, "r");
-                if (assFile == NULL) {
-                    fprintf (stderr, "asm: Can't open: %s for read\n", ass);
-                    perror ("asm");
-                    exit (1);
-                }
-                break;
-            }
-            fprintf (stderr, "asm: Source file: %s must be supplied as first argument\n", argv[i]);
-            Help ();
+			assemble = 1;
+			if (stat (ass, &assStat) == -1) {
+				fprintf (stderr, "asm: Can't get file statistics: %s for read\n", ass);
+				perror ("asm");
+				exit (1);
+			}
+			if (assStat.st_size < 2) {
+				fprintf (stderr, "asm: File: %s is empty\n", ass);
+				exit (1);
+			}
+			assFile = fopen (ass, "r");
+			if (assFile == NULL) {
+				fprintf (stderr, "asm: Can't open: %s for read\n", ass);
+				perror ("asm");
+				exit (1);
+			}
             break;
 
         case OBJ:
             strcpy (obj, argv[i]);
-            if (i == 1) {
+            if (assemble == 0) {
                 assemble = 2;
                 if (stat (obj, &objStat) == -1) {
                     fprintf (stderr, "asm: Can't get file statistics: %s for read\n", obj);
@@ -1626,6 +1625,9 @@ int main (int argc, char *argv[])
         }
     }
 
+    if ( !quiet)
+    	printf ("\nasm: Version: %s %s\n", __DATE__, __TIME__);
+
     if (assemble == 0) {
         fprintf (stderr, "asm: No source or object file supplied\n");
         Help ();
@@ -1654,7 +1656,8 @@ int main (int argc, char *argv[])
             }
         }
 
-        printf ("\nasm: Assemble Source: %s (%d bytes) Object: %s\n", ass, (int) assStat.st_size, obj);
+        if ( !quiet)
+        	printf ("\nasm: Assemble Source: %s (%d bytes) Object: %s\n", ass, (int) assStat.st_size, obj);
 
         sourceSize = assStat.st_size + 16;
         source = (char *) malloc (sourceSize);
@@ -1672,7 +1675,8 @@ int main (int argc, char *argv[])
                 break;
             source[i] = c;
         }
-        printf ("asm: Pass 1: %d characters %d lines read from: %s\n", i, sourceLines, ass);
+        if ( !quiet)
+        	printf ("asm: Pass 1: %d characters %d lines read from: %s\n", i, sourceLines, ass);
         object = (Instruction *) malloc (sizeof (Instruction) * sourceLines);
         if (source == NULL) {
             fprintf (stderr, "asm: Not enough memory to hold object\n");
@@ -1683,14 +1687,16 @@ int main (int argc, char *argv[])
 
         if (!Assemble (source, &prog, 0)) {
             if (fwix) {
-                printf ("asm: Pass 2: Process: %d forward references\n", fwix);
+                if ( !quiet)
+                	printf ("asm: Pass 2: Process: %d forward references\n", fwix);
                 for (i = 0; i < fwix; i++)
                     forward[i].Inst->Src1 = forward[i].Symb->Value;
             }
-            printf ("asm: %s Compiled OK\n\n", ass);
+            if ( !quiet)
+            	printf ("asm: %s Compiled OK\n\n", ass);
         }
         else
-            printf ("asm: %s [%d] Compilation errors detected\n\n", ass, error_count);
+            fprintf (stderr,"asm: %s [%d] Compilation errors detected\n\n", ass, error_count);
         fclose (assFile);
 
         WriteObject (&prog, objFile);
@@ -1701,12 +1707,14 @@ int main (int argc, char *argv[])
 
     }
     else {
-        printf ("\nasm: Dissasemble Source Object: %s\n\n", obj);
+        if ( !quiet)
+        	printf ("\nasm: Dissasemble Source Object: %s\n\n", obj);
 
         ReadObject (objFile, &prog);
         fclose (objFile);
         DisAssemble (&prog);
-        printf ("\nasm: %d Instructions dissasembled\n\n", (int) prog.InstructionCount);
+        if ( !quiet)
+        	printf ("\nasm: %d Instructions dissasembled\n\n", (int) prog.InstructionCount);
     }
     exit (0);
 }
