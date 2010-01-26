@@ -2,14 +2,14 @@
 # Makefile to produce standard CTX1 test applications
 #================================================================
 
-include /ps/dsc/src/co/Make.auto
+include /acc/dsc/src/co/Make.auto
 
 ACCS=tst
 CFLAGS = -g -I. -I$(ENV_PREFIX)/usr/include/headers_ppc \
-	 -I/ps/local/ppc/include -I/ps/local/ppc/include/ces \
-	 -I/ps/sys/ppc/usr/include/headers_ppc -I/ps/sys/ppc/sys/include/kernel \
-	 -I/ps/sys/ppc/sys/dheaders \
-	 -I/ps/sys/ppc/sys/include/family/$(CPU) -Wall \
+	 -I/acc/local/ppc/include -I/acc/local/ppc/include/ces \
+	 -I/acc/sys/ppc/usr/include/headers_ppc -I/acc/sys/ppc/sys/include/kernel \
+	 -I/acc/sys/ppc/sys/dheaders \
+	 -I/acc/sys/ppc/sys/include/family/$(CPU) -Wall \
 	 -DCOMPILE_TIME=$(COMPILE_TIME)
 LDLIBS = -lvme
 ALL  = jtag.$(CPU)

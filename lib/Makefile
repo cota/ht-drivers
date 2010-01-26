@@ -65,7 +65,7 @@ $(BINS1): $(OBJS1)
 INSTALL_FILES=$(BINS1) $(HDRS1)
 INSTALL_DIR=mttn
 install: $(INSTALL_FILES)
-	@p=/ps/local/$(CPU)/$(INSTALL_DIR);\
+	@p=/acc/local/$(CPU)/$(INSTALL_DIR);\
 	echo "===============================";\
 	echo "Installing in $$p :";\
 	for f in $^; do \
