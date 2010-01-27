@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 		/* sleep so that the bus error gets picked up by the driver */
 		sleep(1);
 
-		berr = vme_bus_error_check_clear(&mapping, vme_addr, AM);
+		berr = vme_bus_error_check_clear(&mapping, vme_addr);
 		if (berr < 0) {
 			printf("vmebus: check_clear_berr failed\n");
 			exit(EXIT_FAILURE);
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 				(unsigned long long)vme_addr);
 		}
 
-		berr = vme_bus_error_check_clear(&mapping, vme_addr, AM);
+		berr = vme_bus_error_check_clear(&mapping, vme_addr);
 		if (berr < 0) {
 			printf("vmebus: check_clear_berr failed\n");
 			exit(EXIT_FAILURE);

@@ -59,10 +59,9 @@ int vme_bus_error_check(struct vme_mapping *desc)
 }
 
 /**
- * \brief Check and clear a VME bus error
+ * \brief Check and clear a VME bus error from a given address and mapping
  * \param desc VME mapping descriptor
  * \param address VME address to be checked
- * \param am VME address modifier of the address to be checked
  *
  * \return 0 if no bus error occured, 1 if bus error occured or -1 on
  *         any other error (with errno set appropriately).
@@ -70,14 +69,13 @@ int vme_bus_error_check(struct vme_mapping *desc)
  * Note that the VME bus error is cleared _only_ if it matches the
  * given address/am pair.
  */
-int vme_bus_error_check_clear(struct vme_mapping *vme_desc, __u64 address,
-			enum vme_address_modifier am)
+int vme_bus_error_check_clear(struct vme_mapping *vme_desc, __u64 address)
 {
 	struct vme_bus_error_desc desc;
 
 	desc.valid = 0;
 	desc.error.address	= address;
-	desc.error.am		= am;
+	desc.error.am		= vme_desc->am;
 
 	if (ioctl(vme_desc->fd, VME_IOCTL_CHECK_CLEAR_BUS_ERROR, &desc) < 0) {
 #ifdef DEBUG

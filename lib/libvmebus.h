@@ -48,8 +48,7 @@ static inline unsigned int swapbe32(unsigned int val)
 
 
 extern int vme_bus_error_check(struct vme_mapping *desc);
-extern int vme_bus_error_check_clear(struct vme_mapping *desc, __u64 address,
-				enum vme_address_modifier am);
+extern int vme_bus_error_check_clear(struct vme_mapping *desc, __u64 address);
 
 /* VME address space mapping - CES library emulation */
 extern unsigned long find_controller(unsigned long vmeaddr, unsigned long len,
