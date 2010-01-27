@@ -4,7 +4,7 @@ include /acc/src/dsc/co/Make.auto
 
 SRCS=	libvmebus.c
 
-CFLAGS=	-Wall -DDEBUG -g -I../include
+CFLAGS=	-Wall -g -I../include
 
 LIBVMEBUS = libvmebus.$(CPU).a
 
