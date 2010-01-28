@@ -55,6 +55,9 @@ struct window window_table[TSI148_NUM_OUT_WINDOWS];
  *
  * @pid_nr:	pid number
  * @name:	name of the process
+ * @file:	struct file to identify the owner of the mapping. Set it to
+ *		NULL when the request comes from the kernel. In that case
+ *		@pid_nr and @name won't be filled in.
  *
  * @note	on the name length.
  *		As it's not only the process name that is stored here, but also
@@ -63,6 +66,7 @@ struct window window_table[TSI148_NUM_OUT_WINDOWS];
 struct vme_taskinfo {
 	pid_t	pid_nr;
 	char	name[MODULE_NAME_LEN];
+	struct file	*file;
 };
 
 /**
@@ -155,8 +159,15 @@ static int vme_window_proc_show_mapping(char *page, int num,
 
 	p += sprintf(p, "(0x%02x)%s / D%2d %5s\n",
 		     desc->am, amod[desc->am], desc->data_width, pfs);
-	p += sprintf(p, "        client: %d %s\n",
-		(int)mapping->client.pid_nr, mapping->client.name);
+	p += sprintf(p, "        client: ");
+
+	if (mapping->client.pid_nr)
+		p += sprintf(p, "%d ", (unsigned int)mapping->client.pid_nr);
+
+	if (mapping->client.name[0])
+		p += sprintf(p, "%s", mapping->client.name);
+
+	p += sprintf(p, "\n");
 
 	return p - page;
 }
@@ -269,7 +280,6 @@ int vme_window_proc_show(char *page, char **start, off_t off, int count,
 int vme_window_release(struct inode *inode, struct file *file)
 {
 	int i;
-	struct task_struct *p = current;
 	struct window *window;
 	struct mapping *mapping;
 	struct mapping *tmp;
@@ -286,7 +296,7 @@ int vme_window_release(struct inode *inode, struct file *file)
 		list_for_each_entry_safe(mapping, tmp,
 					 &window->mappings, list) {
 
-			if (task_pid_nr(p) == mapping->client.pid_nr) {
+			if (mapping->client.file == file) {
 				/*
 				 * OK, that mapping is held by the process
 				 * release it.
@@ -308,15 +318,17 @@ try_next:
  * add_mapping() - Helper function to add a mapping to a window
  * @window: Window to add the mapping to
  * @desc: Mapping descriptor
+ * @file: owner of the mapping (NULL if it comes from the kernel)
  *
  * It is assumed that the window mutex is held on entry to this function.
  */
-static int add_mapping(struct window *window, struct vme_mapping *desc)
+static int
+add_mapping(struct window *window, struct vme_mapping *desc, struct file *file)
 {
 	struct mapping *mapping;
 
 		/* Create a logical mapping for this hardware window */
-	if ((mapping = kmalloc(sizeof(struct mapping), GFP_KERNEL)) == NULL) {
+	if ((mapping = kzalloc(sizeof(struct mapping), GFP_KERNEL)) == NULL) {
 		printk(KERN_ERR PFX "%s - "
 		       "Failed to allocate mapping\n", __func__);
 		return -ENOMEM;
@@ -325,13 +337,14 @@ static int add_mapping(struct window *window, struct vme_mapping *desc)
 	/* Save the window descriptor for this window. */
 	memcpy(&mapping->desc, desc, sizeof(struct vme_mapping));
 
-	/*
-	 * Set the client of this mapping.
-	 * This may end up being wrong if this is called from other
-	 * drivers at module load time.
-	 */
-	mapping->client.pid_nr = task_pid_nr(current);
-	strcpy(mapping->client.name, current->comm);
+	/* Store the task's info only if the request comes from user-space */
+	if (file) {
+		mapping->client.file = file;
+		mapping->client.pid_nr = task_pid_nr(current);
+		strcpy(mapping->client.name, current->comm);
+	} else {
+		strcpy(mapping->client.name, "kernel");
+	}
 
 	/* Insert mapping at end of window mappings list */
 	list_add_tail(&mapping->list, &window->mappings);
@@ -346,13 +359,15 @@ static int add_mapping(struct window *window, struct vme_mapping *desc)
  * remove_mapping() - Helper function to remove a mapping from a window
  * @window: Window to remove the mapping from
  * @desc: Mapping descriptor
+ * @file: struct file of the owner of the mapping (NULL if the kernel owns it)
  *
  * The specified descriptor is searched into the window mapping list by
  * only matching the VME address, the size and the virtual address.
  *
  * It is assumed that the window mutex is held on entry to this function.
  */
-static int remove_mapping(struct window *window, struct vme_mapping *desc)
+static int
+remove_mapping(struct window *window, struct vme_mapping *desc, struct file *file)
 {
 	struct mapping *mapping;
 	struct mapping *tmp;
@@ -363,7 +378,8 @@ static int remove_mapping(struct window *window, struct vme_mapping *desc)
 		    (mapping->desc.vme_addrl == desc->vme_addrl) &&
 		    (mapping->desc.sizeu == desc->sizeu) &&
 		    (mapping->desc.sizel == desc->sizel) &&
-		    (mapping->desc.kernel_va == desc->kernel_va)) {
+		    (mapping->desc.kernel_va == desc->kernel_va) &&
+		    (!file || mapping->client.file == file)) {
 			/* Found the matching mapping */
 			list_del(&mapping->list);
 			kfree(mapping);
@@ -667,24 +683,8 @@ out_unlock:
 }
 EXPORT_SYMBOL_GPL(vme_destroy_window);
 
-/**
- * vme_find_mapping() - Find a window matching the specified descriptor
- * @match: Descriptor of the window to look for
- * @force: Force window creation if no match was found.
- *
- *  Try to find a window matching the specified descriptor. If a window is
- * found, then its number is returned in the &struct vme_mapping parameter.
- *
- *  If no window match and force is set, then a new window is created
- * to hold that mapping.
- *
- * This function is used by the VME_IOCTL_FIND_MAPPING ioctl from
- * user applications but can also be used by drivers stacked on top
- * of this one.
- *
- *  Returns 0 on success, or a standard kernel error code.
- */
-int vme_find_mapping(struct vme_mapping *match, int force)
+static int
+__vme_find_mapping(struct vme_mapping *match, int force, struct file *file)
 {
 	int i;
 	int rc = 0;
@@ -755,7 +755,7 @@ try_next:
 		match->window_num = i;
 
 		/* Add the new mapping to the window */
-		rc = add_mapping(window, match);
+		rc = add_mapping(window, match, file);
 
 		mutex_unlock(&window->lock);
 
@@ -805,28 +805,13 @@ try_next:
 
 
 	/* And add that mapping to it */
-	rc = add_mapping(window, match);
+	rc = add_mapping(window, match, file);
 
 	return rc;
 }
-EXPORT_SYMBOL_GPL(vme_find_mapping);
 
-/**
- * vme_release_mapping() - Release a mapping allocated with vme_find_mapping
- *
- * @desc: Descriptor of the mapping to release
- *
- * Release a VME mapping. If the mapping is the last one on that window and
- * force is set then the window is also destroyed.
- *
- * This function is used by the VME_IOCTL_RELEASE_MAPPING ioctl from
- * user applications but can also be used by drivers stacked on top
- * of this one.
- *
- * @return 0                          - on success.
- * @return standard kernel error code - if failed.
- */
-int vme_release_mapping(struct vme_mapping *desc, int force)
+static int
+__vme_release_mapping(struct vme_mapping *desc, int force, struct file *file)
 {
 	int window_num = desc->window_num;
 	struct window *window;
@@ -846,7 +831,7 @@ int vme_release_mapping(struct vme_mapping *desc, int force)
 	}
 
 	/* Remove the mapping */
-	rc = remove_mapping(window, desc);
+	rc = remove_mapping(window, desc, file);
 
 	if (rc)
 		goto out_unlock;
@@ -861,6 +846,50 @@ out_unlock:
 	mutex_unlock(&window->lock);
 
 	return rc;
+}
+
+/**
+ * vme_find_mapping() - Find a window matching the specified descriptor
+ * @match: Descriptor of the window to look for
+ * @force: Force window creation if no match was found.
+ *
+ *  Try to find a window matching the specified descriptor. If a window is
+ * found, then its number is returned in the &struct vme_mapping parameter.
+ *
+ *  If no window match and force is set, then a new window is created
+ * to hold that mapping.
+ *
+ * This function is used by the VME_IOCTL_FIND_MAPPING ioctl from
+ * user applications but can also be used by drivers stacked on top
+ * of this one.
+ *
+ *  Returns 0 on success, or a standard kernel error code.
+ */
+int vme_find_mapping(struct vme_mapping *match, int force)
+{
+	return __vme_find_mapping(match, force, NULL);
+}
+EXPORT_SYMBOL_GPL(vme_find_mapping);
+
+/**
+ * vme_release_mapping() - Release a mapping allocated with vme_find_mapping
+ *
+ * @desc: Descriptor of the mapping to release
+ * @force: force window destruction
+ *
+ * Release a VME mapping. If the mapping is the last one on that window and
+ * force is set then the window is also destroyed.
+ *
+ * This function is used by the VME_IOCTL_RELEASE_MAPPING ioctl from
+ * user applications but can also be used by drivers stacked on top
+ * of this one.
+ *
+ * @return 0                          - on success.
+ * @return standard kernel error code - if failed.
+ */
+int vme_release_mapping(struct vme_mapping *desc, int force)
+{
+	return __vme_release_mapping(desc, force, NULL);
 }
 EXPORT_SYMBOL_GPL(vme_release_mapping);
 
@@ -980,7 +1009,7 @@ long vme_window_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				   sizeof(struct vme_mapping)))
 			return -EFAULT;
 
-		rc = vme_find_mapping(&desc, vme_create_on_find_fail);
+		rc = __vme_find_mapping(&desc, vme_create_on_find_fail, file);
 
 		if (rc)
 			return rc;
@@ -1004,7 +1033,7 @@ long vme_window_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				   sizeof(struct vme_mapping)))
 			return -EFAULT;
 
-		rc = vme_release_mapping(&desc, vme_destroy_on_remove);
+		rc = __vme_release_mapping(&desc, vme_destroy_on_remove, file);
 
 		break;
 
@@ -1082,7 +1111,6 @@ int vme_window_mmap(struct file *file, struct vm_area_struct *vma)
 {
 	int i;
 	int rc = -EINVAL;
-	struct task_struct *p = current;
 	struct window *window;
 	struct mapping *mapping;
 	unsigned int addr;
@@ -1106,9 +1134,9 @@ int vme_window_mmap(struct file *file, struct vm_area_struct *vma)
 			 * The mapping matches if:
 			 *   - The start addresses match
 			 *   - The size match
-			 *   - The pid match
+			 *   - The 'struct file's match
 			 */
-			if ((task_pid_nr(p) == mapping->client.pid_nr) &&
+			if (mapping->client.file == file &&
 			    (mapping->desc.pci_addrl == addr) &&
 			    (mapping->desc.sizel == size)) {
 				rc = vme_remap_pfn_range(vma);
