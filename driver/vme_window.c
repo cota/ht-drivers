@@ -683,6 +683,46 @@ out_unlock:
 }
 EXPORT_SYMBOL_GPL(vme_destroy_window);
 
+/*
+ * In order to save windows in the bridge, we map the whole address space
+ * onto a single window, so that subsequent mappings of the same kind will
+ * all be attached to it.
+ */
+static void vme_optimize_window_size(struct vme_mapping *desc)
+{
+	unsigned int resize = 0;
+
+	switch (desc->am) {
+	case VME_A24_USER_MBLT:
+	case VME_A24_USER_DATA_SCT:
+	case VME_A24_USER_PRG_SCT:
+	case VME_A24_USER_BLT:
+	case VME_A24_SUP_MBLT:
+	case VME_A24_SUP_DATA_SCT:
+	case VME_A24_SUP_PRG_SCT:
+	case VME_A24_SUP_BLT:
+		resize = 0x1000000;
+		break;
+	case VME_A16_USER:
+	case VME_A16_LCK:
+	case VME_A16_SUP:
+		resize = 0x10000;
+		break;
+	default:
+		break;
+	}
+
+	if (!resize)
+		return;
+
+	printk(KERN_INFO PFX "window %d: optimizing size to 0x%08x\n",
+		desc->window_num, resize);
+	desc->sizeu = 0;
+	desc->sizel = resize;
+	desc->vme_addru = 0;
+	desc->vme_addrl = 0;
+}
+
 static int
 __vme_find_mapping(struct vme_mapping *match, int force, struct file *file)
 {
@@ -789,6 +829,7 @@ try_next:
 	memcpy(&wnd, match, sizeof(struct vme_mapping));
 
 	wnd.window_num = i;
+	vme_optimize_window_size(&wnd);
 
 	rc = vme_create_window(&wnd);
 
