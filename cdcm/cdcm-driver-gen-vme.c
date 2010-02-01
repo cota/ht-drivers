@@ -315,19 +315,19 @@ int dg_cdv_install(char *name, struct file_operations *fops, char *dnm)
 
 	dname = strrchr(name, '/') + 1; /* device name is the info file name */
 
-	maj = register_chrdev(0, dname, fops);
-	if (maj < 0) {
-		PRNT_ABS_ERR("Can't register %s character device", dname);
-		cc = maj;
-		goto out2;
-	}
-
 	st = entry_points.dldd_install((void*)it);
 	if (st == (char*)SYSERR) {
 		PRNT_ABS_ERR("Installation vector failed for %s device.",
 			     dname);
 		cc = -EAGAIN;
-		goto out1;
+		goto out_err;
+	}
+
+	maj = register_chrdev(0, dname, fops);
+	if (maj < 0) {
+		PRNT_ABS_ERR("Can't register %s character device", dname);
+		cc = maj;
+		goto out_err;
 	}
 
 	/* we can get info _only_ after it came from dldd_install,
@@ -355,21 +355,18 @@ int dg_cdv_install(char *name, struct file_operations *fops, char *dnm)
 	if (cc) {
 		PRNT_ABS_ERR("Can't add %s device (maj %d) in the"
 			     " device linked list.\n", dname, maj);
-		goto out1;
+
+		/* remove ourselfs from sysfs */
+		for (i = 0; i < info->chan; i++)
+			device_destroy(cdcm_class, MKDEV(maj, i));
+
+		unregister_chrdev(maj, dname);
+	} else {
+		/* all OK, return allocated major dev number */
+		cc = maj;
 	}
 
-
-	/* all OK, return allocated major dev number */
-	cc = maj;
-	goto out2;
-
- out1:
-	/* remove ourselfs from sysfs */
-	for (i = 0; i < info->chan; i++)
-		device_destroy(cdcm_class, MKDEV(maj, i));
-
-	unregister_chrdev(maj, dname);
- out2:
+ out_err:
 	kfree(it);
 	return cc;
 
