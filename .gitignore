@@ -56,6 +56,9 @@ include/linux/version.h
 include/linux/utsrelease.h
 include/linux/bounds.h
 
+# generated objects
+object_*
+
 # stgit generated dirs
 patches-*
 
