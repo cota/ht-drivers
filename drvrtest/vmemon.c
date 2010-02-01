@@ -45,7 +45,7 @@ module_param_array(base_addr, int, &base_addr_num, 0);
 
 static int window_size[VMEMON_MAPPINGS_MAX];
 static int window_size_num;
-MODULE_PARM_DESC(window_size, "Enumeration of data widths to map");
+MODULE_PARM_DESC(window_size, "Enumeration of window sizes to map");
 module_param_array(window_size, int, &window_size_num, 0);
 
 static long kaddr[VMEMON_MAPPINGS_MAX];
