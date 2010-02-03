@@ -87,23 +87,52 @@ int vme_bus_error_check_clear(struct vme_mapping *vme_desc, __u64 address)
 	return desc.valid;
 }
 
+static off_t __page_addr(off_t address)
+{
+	long pagemask = sysconf(_SC_PAGESIZE) - 1;
+
+	return address & ~pagemask;
+}
+
+static size_t __page_aligned_size(struct vme_mapping *desc)
+{
+	return desc->pci_addrl + desc->sizel - __page_addr(desc->pci_addrl);
+}
+
+static size_t __page_aligned_size_incr(struct vme_mapping *desc)
+{
+	return desc->pci_addrl - __page_addr(desc->pci_addrl);
+}
+
+/*
+ * Note that the caller might want to map a non-page-aligned region.
+ * In order to comply with the alignment requirements of mmap, we map a larger,
+ * page-aligned region and then store the mapped address of the requested
+ * non-page-aligned region.
+ */
 static int vme_mmap(struct vme_mapping *desc)
 {
 	void *addr;
+	size_t size;
+	off_t page_addr;
 
-	addr = mmap(0, desc->sizel, PROT_READ | PROT_WRITE, MAP_SHARED,
-		desc->fd, desc->pci_addrl);
+	page_addr = __page_addr(desc->pci_addrl);
+	size = __page_aligned_size(desc);
+
+	addr = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, desc->fd, page_addr);
 
 	if (addr == MAP_FAILED)
 		return -1;
 
-	desc->user_va = addr;
+	desc->user_va = addr + __page_aligned_size_incr(desc);
 	return 0;
 }
 
 static int vme_munmap(struct vme_mapping *desc)
 {
-	return munmap(desc->user_va, desc->sizel);
+	void *addr = desc->user_va - __page_aligned_size_incr(desc);
+
+	return munmap(addr, __page_aligned_size(desc));
 }
 
 /**
@@ -318,12 +347,6 @@ unsigned long return_controller(struct vme_mapping *desc)
  * \param desc  -- a struct vme_mapping descriptor describing the mapping
  * \param force -- flag indicating whether a new window should be created if
  *                 needed.
- *
- * desc->sizel (window size) and desc->vme_addrl (VME bus start address)
- * should comply with mmap(2) rules, i.e:
- * 1. MIN window size allowed is a pagesize as returned by getpagesize(2)
- * 2. offset (VME bus start address) should be a multiple of the page size
- *    as returned by getpagesize(2).
  *
  * \return a userspace virtual address for the mapping or NULL on error
  *         (in that case errno is set appropriately).
