@@ -87,6 +87,25 @@ int vme_bus_error_check_clear(struct vme_mapping *vme_desc, __u64 address)
 	return desc.valid;
 }
 
+static int vme_mmap(struct vme_mapping *desc)
+{
+	void *addr;
+
+	addr = mmap(0, desc->sizel, PROT_READ | PROT_WRITE, MAP_SHARED,
+		desc->fd, desc->pci_addrl);
+
+	if (addr == MAP_FAILED)
+		return -1;
+
+	desc->user_va = addr;
+	return 0;
+}
+
+static int vme_munmap(struct vme_mapping *desc)
+{
+	return munmap(desc->user_va, desc->sizel);
+}
+
 /**
  * \brief Map a VME address space into the user address space
  * \param vmeaddr VME physical start address of the mapping
@@ -127,7 +146,6 @@ unsigned long find_controller(unsigned long vmeaddr, unsigned long len,
 	int org_force_create;
 	int force_create = 1;
 	int fd;
-	void *addr = NULL;
 
 	/* Allocate our mapping descriptor */
 	if ((desc = calloc(1, sizeof(struct vme_mapping))) == NULL)
@@ -186,6 +204,8 @@ unsigned long find_controller(unsigned long vmeaddr, unsigned long len,
 	if ((fd = open(VME_MWINDOW_DEV, O_RDWR)) < 0)
 		goto out_free;
 
+	desc->fd = fd;
+
 	/* Save the force create flag */
 	if (ioctl(fd, VME_IOCTL_GET_CREATE_ON_FIND_FAIL, &org_force_create) < 0)
 		goto out_free;
@@ -199,13 +219,8 @@ unsigned long find_controller(unsigned long vmeaddr, unsigned long len,
 		goto out_restore_flag;
 
 	/* Now mmap the area */
-	if ((addr = mmap(0, desc->sizel, PROT_READ | PROT_WRITE, MAP_SHARED,
-			 fd, desc->pci_addrl)) == MAP_FAILED)
+	if (vme_mmap(desc))
 		goto out_restore_flag;
-
-	/* Save the address and file descriptor */
-	desc->user_va = addr;
-	desc->fd = fd;
 
 	/*
 	 * Save the descriptor address into the struct pdparam_master sgmin
@@ -222,7 +237,7 @@ unsigned long find_controller(unsigned long vmeaddr, unsigned long len,
 	       desc->vme_addrl, desc->sizel, desc->am, desc->data_width);
 #endif
 
-	return (unsigned long)addr;
+	return (unsigned long)desc->user_va;
 
 
 out_restore_flag:
@@ -231,7 +246,7 @@ out_restore_flag:
 out_free:
 	free(desc);
 
-	return (unsigned long)addr;
+	return 0;
 }
 
 /**
@@ -259,7 +274,7 @@ unsigned long return_controller(struct vme_mapping *desc)
 		return -1;
 	}
 
-	if (munmap(desc->user_va, desc->sizel)) {
+	if (vme_munmap(desc)) {
 		printf("libvmebus: %s - failed to munmap\n", __func__);
 		ret = -1;
 	}
@@ -317,10 +332,11 @@ void *vme_map(struct vme_mapping *desc, int force)
 {
 	int fd;
 	int org_force_create;
-	void *addr = NULL;
 
 	if ((fd = open(VME_MWINDOW_DEV, O_RDWR)) < 0)
 		return NULL;
+
+	desc->fd = fd;
 
 	/* Save the force create flag */
 	if (ioctl(fd, VME_IOCTL_GET_CREATE_ON_FIND_FAIL, &org_force_create) < 0)
@@ -335,13 +351,8 @@ void *vme_map(struct vme_mapping *desc, int force)
 		goto out_restore_flag;
 
 	/* Now mmap the area */
-	if ((addr = mmap(0, desc->sizel, PROT_READ | PROT_WRITE, MAP_SHARED,
-			 fd, desc->pci_addrl)) == MAP_FAILED)
+	if (vme_mmap(desc))
 		goto out_restore_flag;
-
-	/* Save the address and file descriptor */
-	desc->user_va = addr;
-	desc->fd = fd;
 
 	/* Restore the force create flag */
 	ioctl(fd, VME_IOCTL_SET_CREATE_ON_FIND_FAIL, &org_force_create);
@@ -352,7 +363,7 @@ void *vme_map(struct vme_mapping *desc, int force)
 	       desc->vme_addrl, desc->sizel, desc->am, desc->data_width);
 #endif
 
-	return addr;
+	return desc->user_va;
 
 
 out_restore_flag:
@@ -386,7 +397,7 @@ int vme_unmap(struct vme_mapping *desc, int force)
 		return -1;
 	}
 
-	if (munmap(desc->user_va, desc->sizel)) {
+	if (vme_munmap(desc)) {
 		printf("libvmebus: %s - failed to munmap\n", __func__);
 		ret = -1;
 	}
