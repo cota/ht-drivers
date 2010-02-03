@@ -403,6 +403,17 @@ struct cmd_desc *get_cmdd(enum def_cmd_id cmd_id)
 	return NULL;
 }
 
+static void atoms_init(struct atom *atoms, unsigned int elems)
+{
+	int i;
+
+	bzero((void *)atoms, elems * sizeof(struct atom));
+
+	for (i = 0; i < elems; i++) {
+		atoms[i].type = Terminator;
+	}
+}
+
 /**
  * do_cmd - Execute command described in @atoms
  *
@@ -427,6 +438,7 @@ static int do_cmd(int idx, struct atom *atoms)
 	 * test what happens when inside a (loop), there is an error.
 	 * Would it catch it or not? Would it break badly?
 	 */
+	atoms_init(args_copy, MAX_ARG_COUNT + 1);
 
 	while (1) {
 		ap = &atoms[idx];
@@ -1275,7 +1287,7 @@ int extest_init(int argc, char *argv[])
 				"%s@%s [%02d] > " DEFAULT_COLOR,
 				__drivername, host, cmdindx++);
 		cmd = get_command(prompt); /* get user input (lsh interface) */
-		bzero((void *)cmd_atoms, sizeof(cmd_atoms));
+		atoms_init(cmd_atoms, MAX_ARG_COUNT);
 		get_atoms(cmd, cmd_atoms); /* split cmd into atoms */
 		do_cmd(0, cmd_atoms); /* execute atoms */
 	}
