@@ -28,6 +28,16 @@ static int nr_isrs; //!< counts how many isrs have already been installed
 
 static void *pci_bar_mappings[6]; /* keep track of bar mappings */
 
+static inline int cdcm_dev_list_find(struct pci_dev *dev)
+{
+	struct cdcm_dev_info *dit = NULL;
+
+	list_for_each_entry(dit, &cdcmStatT.cdcm_dev_list, di_list) {
+		if (dit->di_pci == dev)
+			return 1;
+	}
+	return 0;
+}
 
 /**
  * @brief Claims access to a specified device. LynxOs DRM Services for PCI.
@@ -48,17 +58,23 @@ int drm_get_handle(int buslayer_id, int vendor_id, int device_id,
 		   struct drm_node_s **node_h)
 {
 	struct cdcm_dev_info *dit = NULL;
-	struct pci_dev *pprev = (list_empty(&cdcmStatT.cdcm_dev_list)) ?
-		NULL :
-		list_last_entry(&cdcmStatT.cdcm_dev_list,
-				struct cdcm_dev_info, di_list)->di_pci;
-
-	struct pci_dev *pcur = pci_get_device(vendor_id, device_id, pprev);
+	struct pci_dev *pprev = NULL;
+	struct pci_dev *pcur;
 
 	cdcm_err = 0; /* reset */
 
-	if (!pcur)
-		return DRM_ENODEV; /* not found */
+	/*
+	 * search first vendor/device id matching device not registered
+	 * by cdcdm
+	 */
+	while (1) {
+		pcur = pci_get_device(vendor_id, device_id, pprev);
+		if (!pcur)
+			return DRM_ENODEV;
+		if (!cdcm_dev_list_find(pcur))
+			break;
+		pprev = pcur;
+	}
 
 	if (pci_enable_device(pcur)) {
 		printk("Error enabling %s pci device %p\n",
