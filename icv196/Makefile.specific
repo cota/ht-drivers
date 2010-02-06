@@ -40,6 +40,9 @@ USE_PLX9030 = n
 # If driver has plx9656 and wants to use its standart operations
 USE_PLX9656 = n
 
+# Test program is not using extended test program
+USE_EXTEST = n
+
 # You can change ROOTDIR to locate your own path with cdcm, skel, utils etc..
 # ROOTDIR =
 
