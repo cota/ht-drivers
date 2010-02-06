@@ -1139,6 +1139,41 @@ static int vme_remap_pfn_range(struct vm_area_struct *vma)
 				  vma->vm_page_prot);
 }
 
+/*
+ * Check that a particular VME mapping corresponds to a region to be mmapped.
+ *
+ * mmap() works with whole pages. Thus we need to see VME mappings as blocks
+ * of pages, even if that means we see them bigger than they really are.
+ */
+static int vme_check_mmap_region(int windownr, struct vme_mapping *mapping,
+			unsigned int addr, unsigned int size)
+{
+	struct vme_mapping *window = &window_table[windownr].desc;
+	unsigned int aligned_start;
+	unsigned int aligned_end;
+	unsigned int end;
+
+	/* check that the requested region doesn't stick out of the window */
+	if (addr < window->pci_addrl ||
+	    addr + size > window->pci_addrl + window->sizel) {
+		return 0;
+	}
+
+	/* compute the page-aligned boundaries of the VME mapping */
+	aligned_start = mapping->pci_addrl & PAGE_MASK;
+	end = mapping->pci_addrl + mapping->sizel;
+	if (end & (~PAGE_MASK))
+		aligned_end = (end & PAGE_MASK) + PAGE_SIZE;
+	else
+		aligned_end = end;
+
+	/* and compare these boundaries to those of the requested region */
+	if (aligned_start == addr && aligned_end == addr + size)
+		return 1;
+
+	return 0;
+}
+
 /**
  * vme_window_mmap() - Map to userspace a VME address mapping
  * @file: Device file descriptor
@@ -1171,15 +1206,9 @@ int vme_window_mmap(struct file *file, struct vm_area_struct *vma)
 		list_for_each_entry(mapping, &window->mappings, list) {
 			addr = vma->vm_pgoff << PAGE_SHIFT;
 			size = vma->vm_end - vma->vm_start;
-			/*
-			 * The mapping matches if:
-			 *   - The start addresses match
-			 *   - The size match
-			 *   - The 'struct file's match
-			 */
+
 			if (mapping->client.file == file &&
-			    (mapping->desc.pci_addrl == addr) &&
-			    (mapping->desc.sizel == size)) {
+			    vme_check_mmap_region(i, &mapping->desc, addr, size)) {
 				rc = vme_remap_pfn_range(vma);
 				mutex_unlock(&window->lock);
 
