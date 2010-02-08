@@ -10,7 +10,7 @@
 
 # Kept only for backward compatibility with 2.6.9. will be removed
 ifneq ($(KERNELRELEASE),)
-include $(M)/Kbuild
+	include $(M)/Kbuild
 else
 
 # Makefile from current directory supress one from upper level

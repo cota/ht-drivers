@@ -42,7 +42,6 @@ include $(shell if [ -e $(M)/Makefile.specific ]; then \
 		echo $(M)/../Makefile.specific; \
 	fi)
 
-
 # Include generic definitions
 include $(ROOTDIR)/makefiles/Kbuild.include
 

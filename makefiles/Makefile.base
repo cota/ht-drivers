@@ -1,13 +1,16 @@
 ###############################################################################
 # @file Makefile.base
 #
-# @brief Main beast. Incapculates standart CERN make rules.
+# @brief Generic rules used to compile driver-gen driver framework
 #
-# @author Yury GEORGIEVSKIY, CERN
+# Automatically generated for driver-gen Cvorb driver
 #
-# Should be include in the makefile _after_ Makefile.specific
+# @author Copyright (C) 2003-2010 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
 #
-# @date Created on 13/01/2009
+# @date Created on 22/01/2010
+#
+# @section license_sec License
+#          Released under the GPL
 ###############################################################################
 
 # First check if needed environment variables are set:
@@ -21,7 +24,7 @@ else # Don't proceed if error
 # Do not print "Entering directory ..."
 MAKEFLAGS += --no-print-directory
 
-# Standart CERN Makefile rules
+# Standard CERN Make rules
 include /acc/src/dsc/co/Make.auto
 
 .PHONY: abort dummy
@@ -42,12 +45,12 @@ BLDTYPES = dbg rls drv
 
 unexport BLDTYPE PASSTARG
 
-# some file extentions
-EXTDLL	= .dll
-EXTSO	= .dll
-EXTLIB	= .a
-EXTOBJ	= .$(CPU).o
-EXTEXE	=
+# generic definitions
+EXTDLL  = .dll
+EXTSO   = .so
+EXTLIB  = .a
+EXTOBJ  = .$(CPU).o
+EXTEXE  =
 
 comma = ,
 SRCCSFXS := .c
@@ -71,22 +74,16 @@ rls.BLDTFLAGS = -O2
 drv.BLDTFLAGS =  # Drivers are build without debug and optimization
 BLDTFLAGS = $($(BLDTYPE).BLDTFLAGS)
 
-# next 3 are not used for now, but we keep them 'just-in-case-if...'
+# next 3 are not used for now, but are kept for 'just-in-case-if...'
 BASELDSHFLAGS = $(LDSHFLAGS) $(HOSTLDSHFLAGS) $(BLDTFLAGS) $(ADDLDSHFLAGS)
 BASELDFLAGS   = $(LDFLAGS) $(HOSTLDFLAGS) $(BLDTFLAGS) $(ADDLDFLAGS)
 BASEARFLAGS   = $(ARFLAGS) $(HOSTARFLAGS) $(ADDARFLAGS)
 
-# C++ flags
+# for C++
 CXXFLAGS = $(BASECXXFLAGS) $(HOSTCXXFLAGS) $(DEFFLAGS) $(INCFLAGS) $(BLDTFLAGS) $(ADDCXXFLAGS)
 
-# C flags
+# for C
 CFLAGS = $(BASECFLAGS) $(HOSTCFLAGS) $(DEFFLAGS) $(INCFLAGS) $(BLDTFLAGS) $(ADDCFLAGS)
-
-# Just a reminder.
-# $(COMPILE.c) == $(CC) $(CFLAGS) $(CPPFLAGS) -c
-# $(OUTPUT_OPTION) == -o $@
-# %.$(CPU).o: %.c
-#       $(COMPILE.c) $< $(OUTPUT_OPTION)
 
 vpath %$(EXTOBJ) $(OBJDIR)
 

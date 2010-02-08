@@ -17,6 +17,8 @@
 
 -include ../../makefiles/Makefile.base
 
+vpath %.c ./  ../../utils/user ../../utils/extest
+
 INSTDIR    = $(addsuffix /$(DLVRYPLS)/$(CPU), $(EXECINSTDIR))
 ADDCFLAGS  = $(STDFLAGS) -DDRIVER_NAME=\"$(DRIVER_NAME)\"
 
@@ -31,8 +33,6 @@ XTRALIBS   = -lreadline
 LDLIBS     = \
 	   $(LOCAL_LIBS) \
 	   $(XTRALIBS)
-
-vpath %.c ./  ../../utils/user ../../utils/extest
 
 SRCFILES = $(wildcard *.c)
 
@@ -50,8 +50,7 @@ else
 SRCFILES += cmd_generic.c
 endif
 
-endif
-# end USE_EXTEST
+endif # end USE_EXTEST
 
 ifeq ($(CPU), ppc4)
 SRCFILES    += extra_for_lynx.c

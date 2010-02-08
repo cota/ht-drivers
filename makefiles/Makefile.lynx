@@ -22,17 +22,6 @@ ADDINCLUDES = $(KERN_INCLUDES)
 #+ This name is defined _only_ if user in not alredy define it
 DRVR_DIR ?= driver
 
-# We need to re-define next 2 variables to compile the drivers...
-# Note, that normally, OUTPUT_OPTION should be declared like this:
-# OUTPUT_OPTION +=; mv $*.$(CPU).o $(OBJDIR)
-# But it's NOT working this way, because $@ parameter is vanishing somehow
-# from the definition of the OUTPUT_OPTION (-o $@).
-# Because of this - it should be defined either like:
-# OUTPUT_OPTION = $(OUTPUT_OPTION); mv $*.$(CPU).o $(OBJDIR)
-# or like this (as it's done below):
-# OUTPUT_OPTION +=$@; mv $*.$(CPU).o $(OBJDIR)
-# It's working in this case.
-
 # What will be finally created
 DRIVER = $(OBJDIR)/$(DRIVER_NAME).ko
 
@@ -65,8 +54,17 @@ endif
 	$(QCC)
 	$(Q)$(COMPILE.c) $< $(OUTPUT_OPTION)
 
+# We need to re-define OUTPUT_OPTION to compile the drivers...
+# Note, that normally, it should be declared like this:
+# OUTPUT_OPTION +=; mv $*.$(CPU).o $(OBJDIR)
+# But it's NOT working this way, because $@ parameter is vanishing somehow
+# from the definition of the OUTPUT_OPTION (-o $@).
+# Because of this - it should be defined either like:
+# OUTPUT_OPTION = $(OUTPUT_OPTION); mv $*.$(CPU).o $(OBJDIR)
+# or like this (as it's done below):
+# OUTPUT_OPTION +=$@; mv $*.$(CPU).o $(OBJDIR)
+# It's working in this case.
 $(DRIVER): OUTPUT_OPTION +=$(KFLAGS); mv $*.$(CPU).o $(OBJDIR)
-
 
 # Get all *.c files from current dir. ,*.c will be sorted-out in Makefile.base
 SRCFILES += $(wildcard $(PWD)/*.c)

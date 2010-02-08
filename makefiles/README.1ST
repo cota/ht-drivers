@@ -1,5 +1,4 @@
-Makefiles to build complete driver framework are located in this directory.
-
+Makefiles to build driver framework are located in this directory.
 
 Short file description
 ----------------------
@@ -59,6 +58,3 @@ Not tracked files
 
 Makefile.libtst
 Makefile.paramount
-
-
-

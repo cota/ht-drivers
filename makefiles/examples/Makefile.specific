@@ -52,7 +52,7 @@ USE_PLX9656 = n
 #+ ../object_<drvr_name> dir. Prefix ../ is always added to it.
 # FINAL_DEST =
 
-# To change driver src directory from standart one (drier)
+# To change driver src directory from standart one (driver)
 # DRVR_DIR =
 
 #  To override standard kernel dir location

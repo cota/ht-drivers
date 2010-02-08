@@ -17,7 +17,7 @@ include Makefile.specific
 # User can provide it's own, otherwise default will be used
 ROOTDIR := $(if $(ROOTDIR),$(ROOTDIR),..)
 
-# Standart driver directory tree layout
+# Standard driver directory tree layout
 SUBDIRS = \
 	lib \
 	driver \

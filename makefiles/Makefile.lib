@@ -9,8 +9,11 @@
 ###############################################################################
 
 # Makefile from current directory supress one from upper level
--include $(shell if [ -e ./Makefile.specific ]; then echo ./Makefile.specific; \
-	else echo ../Makefile.specific; fi)
+include $(shell if [ -e ./Makefile.specific ]; then \
+		echo ./Makefile.specific; \
+	else \
+		echo ../Makefile.specific; \
+	fi)
 
 -include ../../makefiles/Makefile.base
 
