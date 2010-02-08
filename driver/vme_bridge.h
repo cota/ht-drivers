@@ -27,8 +27,8 @@
 
 #define PFX			"VME Bridge: "
 #define DRV_MODULE_NAME		"vmebus"
-#define DRV_MODULE_VERSION	"1.1"
-#define DRV_MODULE_RELDATE	"Jan, 25 2010"
+#define DRV_MODULE_VERSION	"1.2"
+#define DRV_MODULE_RELDATE	"Feb, 08 2010"
 
 /*
  * We just keep the last VME error caught, protecting it with a spinlock.
