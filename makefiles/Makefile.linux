@@ -56,7 +56,6 @@ all: $(OBJDIR) $(FINAL_DEST)
 	@ln -sf ../$(DRVR_DIR)/$(DRIVER) ../$(FINAL_DEST)/$(DRIVER_NAME).$(KVER).ko
 
 # CERN delivery
-include $(ROOTDIR)/makefiles/Makefile.deliver
 
 # Guess what
 clean clear:
