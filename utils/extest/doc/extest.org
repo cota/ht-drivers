@@ -26,14 +26,13 @@
      handlers
    + Support for multi-command input: several commands can be issued
      in a single text stream
-   + Interactive: support for input history and basic keystrokes (backspace,
-     arrow keys)
+   + Interactive: support for input history and advanced keystrokes, provided
+     by GNU readline.
    + Non-Interactive: a stream of commands can also be piped to /extest/
    + (Optional)Built-in support for /skel/-based drivers: /extest/ works
      "out of the box" for testing /skel/'s standard calls
    + Portable: written in C usind standard UNIX libraries only[fn:: It has
-     been tested on Linux and LynxOS]. In particular, the interactive mode is
-     based on /curses/
+     been tested on Linux and LynxOS]--with the exception of GNU readline.
    + Free Software (GPL)
 
 * /extest/ for Users
@@ -370,7 +369,6 @@ ln -s ../../makefiles/compiletst compiletst
     + cmd\_{skel,generic}: handlers for the built-in commands; the generic
       part is still to be written---probably we'll use something based
       on the concept of generic IOCTL's used in mil1553's PCI driver.
-    + lite\_shell.c: All the glue needed to provide the /curses/-based CLI.
     + extest.h: public API header file.
     + extest\_common.h: main (internal) header file; it has all the important
       (and non-public) definitions.
@@ -402,9 +400,6 @@ ln -s ../../makefiles/compiletst compiletst
        springs to mind.
 
   + Not important (/fancy stuff/)
-     * Interactive mode: support Emacs-like keystrokes (these are the default
-       keystrokes in =bash=, like C-a (beginning of line), C-e (end of line),
-       etc.)
      * Interactive mode: auto-completion of commands. This could be easily
        implemented by doing first a /quicksort/ of the available commands---then
        finding the related commands could be done in an optimal way.
