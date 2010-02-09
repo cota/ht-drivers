@@ -4,7 +4,8 @@ include $(ROOTDIR)/makefiles/Kbuild.include
 # Extra CC flags && needed pathes
 ccflags-y += \
 	-Wno-strict-prototypes \
-	-I$(ROOTDIR)/utils
+	-I$(ROOTDIR)/utils \
+	-I/acc/local/$(CPU)/include
 
 # CDCM files
 cdcm-y := $(OBJFILES)
