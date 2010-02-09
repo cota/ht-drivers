@@ -13,29 +13,13 @@
 #          Released under the GPL
 ###############################################################################
 
-# First check if needed environment variables are set:
-ifndef CPU
-%::
-	@echo "'CPU' declaration expected."
-	@echo "Exiting..."; exit 1
-
-else # Don't proceed if error
-
 # Do not print "Entering directory ..."
 MAKEFLAGS += --no-print-directory
 
 # Standard CERN Make rules
 include /acc/src/dsc/co/Make.auto
 
-.PHONY: abort dummy
 
-abort:
-	@if [ -z "$(ISP)" ]; then \
-		echo "Wrong/unsupported CPU type"; \
-		echo "Exiting..."; exit 1; \
-	else \
-		echo "Current compilation settings: CPU=$(CPU) BSP=$(BSP) ISP=$(ISP)"; \
-	fi
 
 UTILINSTDIR = /acc/local/$(CPU)/drvrutil
 EXECINSTDIR = /acc/dsc
@@ -188,4 +172,3 @@ ifndef BLDTYPE
 BLDTYPE = dbg
 endif
 
-endif #CPU not defined condition ends
