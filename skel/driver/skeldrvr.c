@@ -383,9 +383,9 @@ static void Reset(SkelDrvrModuleContext *mcon)
 
 	SkelUserHardwareReset(mcon);
 
-	cdcm_read_lock(&connected->rwlock, flags);
+	cdcm_spin_lock_irqsave(&connected->lock, flags);
 	SkelUserEnableInterrupts(mcon, connected->enabled_ints);
-	cdcm_read_unlock(&connected->rwlock, flags);
+	cdcm_spin_unlock_irqrestore(&connected->lock, flags);
 
 	sreset(&mcon->Semaphore);
 	ssignal(&mcon->Semaphore);
@@ -453,7 +453,7 @@ static inline void put_queues(const SkelDrvrReadBuf *rb, const uint32_t cmask)
 	}
 }
 
-/* Note: call this function with @connected's rwlock held */
+/* Note: call this function with @connected's lock held */
 static inline void __fill_clients_queues(const SkelDrvrModConn *connected,
 					 const SkelDrvrReadBuf *rb,
 					 const uint32_t imask)
@@ -491,9 +491,9 @@ static inline void fill_clients_queues(SkelDrvrModConn *connected,
 {
 	unsigned long flags;
 
-	cdcm_read_lock(&connected->rwlock, flags);
+	cdcm_spin_lock_irqsave(&connected->lock, flags);
 	__fill_clients_queues(connected, rb, imask);
-	cdcm_read_unlock(&connected->rwlock, flags);
+	cdcm_spin_unlock_irqrestore(&connected->lock, flags);
 }
 
 /**
@@ -621,7 +621,7 @@ static void Connect(SkelDrvrClientContext *ccon, SkelDrvrConnection *conx)
 	cmsk = 1 << ccon->ClientIndex;
 	imsk = conx->ConMask;
 
-	cdcm_write_lock_irqsave(&connected->rwlock, flags);
+	cdcm_spin_lock_irqsave(&connected->lock, flags);
 	for (j = 0; j < SkelDrvrINTERRUPTS; j++) {
 		if (!(imsk & (1 << j)))
 			continue;
@@ -629,7 +629,7 @@ static void Connect(SkelDrvrClientContext *ccon, SkelDrvrConnection *conx)
 		connected->enabled_ints |= imsk;
 		SkelUserEnableInterrupts(mcon, connected->enabled_ints);
 	}
-	cdcm_write_unlock_irqrestore(&connected->rwlock, flags);
+	cdcm_spin_unlock_irqrestore(&connected->lock, flags);
 }
 
 /**
@@ -666,7 +666,7 @@ static void DisConnect(SkelDrvrClientContext *ccon, SkelDrvrConnection *conx)
 	cmsk = 1 << ccon->ClientIndex;
 	imsk = conx->ConMask;
 
-	cdcm_write_lock_irqsave(&connected->rwlock, flags);
+	cdcm_spin_lock_irqsave(&connected->lock, flags);
 
 	for (j = 0; j < SkelDrvrINTERRUPTS; j++) {
 		/* check interrupt mask and that there are clients connected */
@@ -684,7 +684,7 @@ static void DisConnect(SkelDrvrClientContext *ccon, SkelDrvrConnection *conx)
 		SkelUserEnableInterrupts(mcon, connected->enabled_ints);
 	}
 
-	cdcm_write_unlock_irqrestore(&connected->rwlock, flags);
+	cdcm_spin_unlock_irqrestore(&connected->lock, flags);
 }
 
 /**
@@ -721,8 +721,8 @@ static inline void set_mcon_defaults(SkelDrvrModuleContext *mcon)
 	/* initialise the spinlock */
 	cdcm_spin_lock_init(&mcon->lock);
 
-	/* initialise the connection's rwlock */
-	cdcm_rwlock_init(&mcon->Connected.rwlock);
+	/* initialise the connection's lock */
+	cdcm_spin_lock_init(&mcon->Connected.lock);
 
 	/* initialise the mutex */
 	cdcm_mutex_init(&mcon->mutex);
@@ -1595,7 +1595,7 @@ unsigned long flags;
 	   for (i = 0; i < SkelDrvrMODULE_CONTEXTS; i++) {
 		   SkelDrvrModConn *connected = &Wa->Modules[i].Connected;
 
-		   cdcm_read_lock(&connected->rwlock, flags);
+		   cdcm_spin_lock_irqsave(&connected->lock, flags);
 		   for (j = 0; j < SkelDrvrINTERRUPTS; j++) {
 			   if (!(connected->clients[j] & cmsk))
 				   continue;
@@ -1604,7 +1604,7 @@ unsigned long flags;
 			   if (++(ccn->Size) >= SkelDrvrCONNECTIONS)
 				   break;
 		   }
-		   cdcm_read_unlock(&connected->rwlock, flags);
+		   cdcm_spin_unlock_irqrestore(&connected->lock, flags);
 	   }
 	   return OK;
 	   break;

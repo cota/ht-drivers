@@ -65,12 +65,12 @@ typedef struct {
 
 /**
  * \brief keep client's connections on a module
- * @rwlock - read/write lock to protect the struct
+ * @lock - protects the struct
  * @connected - each interrupt has a mask of connected clients
  * @enabled_ints - mask of enabled interrupts
  */
 typedef struct {
-	cdcm_rwlock_t	rwlock;
+	cdcm_spinlock_t	lock;
 	uint32_t	clients[SkelDrvrINTERRUPTS];
 	uint32_t	enabled_ints;
 } SkelDrvrModConn;
