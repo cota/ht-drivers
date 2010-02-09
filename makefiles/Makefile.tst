@@ -74,8 +74,17 @@ $(EXEC_OBJS): $(OBJFILES)
 
 _build: $(EXEC_OBJS) $(OBJDIR) move_objs
 
+linux:
+	@echo -e "\nCompiling for Linux:"
+	$(Q)$(MAKE) _build CPU=L865
 
+lynx:
+	@echo -e "\nCompiling for Lynx:"
+	$(Q)$(MAKE) _build CPU=ppc4
 
+all:
+	$(Q)$(MAKE) linux
+	$(Q)$(MAKE) lynx
 
 # Move compiled files to proper place
 move_objs:
