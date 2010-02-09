@@ -68,31 +68,20 @@ INCDIRS = \
 	../../utils/extest \
 	/acc/local/$(CPU)/include
 
-
-ADDINCLUDES = $(KERN_INCLUDES)
-
 EXEC_OBJS = $(DRIVER_NAME)Tst.$(CPU)
 
 $(EXEC_OBJS): $(OBJFILES)
 
-build:: abort $(FINAL_DEST) $(OBJDIR) $(EXEC_OBJS) move_objs ../$(FINAL_DEST)/testprog.$(CPU)
+_build: $(EXEC_OBJS) $(OBJDIR) move_objs
+
+
+
 
 # Move compiled files to proper place
 move_objs:
-	mv $(OBJFILES) $(OBJDIR)
+	$(Q)mv $(OBJFILES) $(OBJDIR)
+	$(Q)mv $(EXEC_OBJS) ../$(FINAL_DEST)
 
-
-../$(FINAL_DEST)/testprog.$(CPU):
-	@if [ -e "$$@" ]; then \
-		rm -f $@ ; \
-	echo "ln -s ../test/$(EXEC_OBJS) $@"; \
-	ln -s  ../test/$(EXEC_OBJS) $@; \
-	fi
-
-install:: abort
-	$(CP) -p $(EXEC_OBJS) $(INSTDIR)/$(BSP)/$(FINAL_DEST)
-	ln -fs ../$(BSP)/$(FINAL_DEST)/$(DRIVER_NAME)Test $(INSTDIR)/drvrutil/$(DRIVER_NAME)Test
-	ln -fs ../drvrutil/$(DRIVER_NAME)Test $(INSTDIR)/bin/$(DRIVER_NAME)Test
 
 cleanloc clearloc:: abort
 	@ if [ -n "$(OBJDIR)" ]; then \
