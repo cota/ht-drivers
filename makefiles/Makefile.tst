@@ -15,7 +15,7 @@
 		echo ../Makefile.specific; \
 	fi)
 
--include ../../makefiles/Makefile.base
+include ../Makefile
 
 vpath %.c ./  ../../utils/user ../../utils/extest
 
