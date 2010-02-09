@@ -61,8 +61,8 @@ endif
 # It's working in this case.
 $(DRIVER): OUTPUT_OPTION +=$(KFLAGS); mv $*.$(CPU).o $(OBJDIR)
 
-# Get all *.c files from current dir. ,*.c will be sorted-out in Makefile.base
-SRCFILES += $(wildcard $(PWD)/*.c)
+# Get all *.c files from current dir. ,*.c will be sorted-out in Kbuild.include
+DRVRSRCFILES += $(wildcard $(shell pwd)/*.c)
 
 # Filter out driver objects
 DRVROBJS = $(OBJFILES) $(EXTRA_DRVR_OBJS)
