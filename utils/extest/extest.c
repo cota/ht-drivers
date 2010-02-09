@@ -132,7 +132,7 @@ struct cmd_desc def_cmd[CmdUSR] = {
 	},
 	[_CmdSRVDBG]
 	{
-		0, _CmdSRVDBG, "_dbg_", "lite shell (lsh) debugging", "", 0,
+		0, _CmdSRVDBG, "_dbg_", "debugging", "", 0,
 		_hndl_dbg, .list = LIST_HEAD_INIT(def_cmd[_CmdSRVDBG].list)
 	},
 	[CmdQUIT]
@@ -658,8 +658,8 @@ static char* devnode(int basename, int idx)
 /**
  * extest_cleanup - clean up the session
  *
- * This is just called before exiting; it closes the lite shell CLI
- * and also closes any device driver files that were opened
+ * This is just called before exiting.
+ * It closes any device driver files that were opened
  */
 static void extest_cleanup()
 {
@@ -886,7 +886,7 @@ void print_modules(void)
 }
 
 /**
- * __getchar - get a character from stdin via lite shell (lsh)
+ * __getchar - get a character from stdin
  *
  * @param c - pointer to the address where the character will be put
  */
@@ -926,8 +926,6 @@ int hndl_illegal(struct cmd_desc* cmdd, struct atom *atoms)
  *
  * @param cmdd  command description
  * @param atoms command atoms list
- *
- * This is a hidden command for developer to debug lsh operation.
  *
  * @return >= 0 - on success
  * @return tst_prg_err_t - on failure
