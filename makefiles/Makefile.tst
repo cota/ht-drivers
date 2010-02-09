@@ -19,7 +19,6 @@
 
 vpath %.c ./  ../../utils/user ../../utils/extest
 
-INSTDIR    = $(addsuffix /$(DLVRYPLS)/$(CPU), $(EXECINSTDIR))
 ADDCFLAGS  = $(STDFLAGS) -DDRIVER_NAME=\"$(DRIVER_NAME)\"
 
 # libraries (and their pathes) to link executable file with
@@ -82,9 +81,6 @@ build:: abort $(FINAL_DEST) $(OBJDIR) $(EXEC_OBJS) move_objs ../$(FINAL_DEST)/te
 move_objs:
 	mv $(OBJFILES) $(OBJDIR)
 
-# we should redefine Make.auto rule to get rid of name dependencies
-%.$(CPU): $(OBJFILES)
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 ../$(FINAL_DEST)/testprog.$(CPU):
 	@if [ -e "$$@" ]; then \

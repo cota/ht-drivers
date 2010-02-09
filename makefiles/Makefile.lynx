@@ -49,11 +49,6 @@ $(DRIVER): CC = $(QCC); $(KERN_CC)
   Q   = @
 endif
 
-# Redefine
-%.$(CPU).o: %.c
-	$(QCC)
-	$(Q)$(COMPILE.c) $< $(OUTPUT_OPTION)
-
 # We need to re-define OUTPUT_OPTION to compile the drivers...
 # Note, that normally, it should be declared like this:
 # OUTPUT_OPTION +=; mv $*.$(CPU).o $(OBJDIR)

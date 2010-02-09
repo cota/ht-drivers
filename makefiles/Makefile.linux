@@ -15,20 +15,12 @@
 # Include generic definitions
 include $(ROOTDIR)/makefiles/Kbuild.include
 
-# Ensure lowecase drivername
-DRIVER_NAME := $(shell echo $(DRIVER_NAME) | tr "[:upper:]" "[:lower:]")
 
 # Quiet you!
 MAKEFLAGS += --no-print-directory
 
 # Default target is the driver
 _all: all
-
-#  .ko delivery point
-#+ This name is defined _only_ if user in not alredy define it
-FINAL_DEST ?= object_$(DRIVER_NAME)
-$(FINAL_DEST):
-	-mkdir -p ../$@
 
 #  Driver source directory
 #+ This name is defined _only_ if user in not alredy define it
