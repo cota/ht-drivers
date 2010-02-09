@@ -42,7 +42,11 @@ $(OBJDIR):
 # Filter out all objects files from current directory - getting rid
 # of ',name.c' backup files
 comma = ,
+ifeq ($(CPU), ppc4)
+EXTOBJ  = .$(CPU).o
+else
 EXTOBJ	= .o
+endif
 SRCSFXS = .c
 DRVRSRCFILES = $(wildcard $(M)/*.c)
 FLTSRCFILES = $(filter-out $(M)/$(comma)%, $(filter $(addprefix %, $(SRCSFXS)),$(DRVRSRCFILES)))
