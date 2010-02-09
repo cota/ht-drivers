@@ -3,6 +3,7 @@ Makefiles to build driver framework are located in this directory.
 Short file description
 ----------------------
 .
+|-- include.mk       - include/ directory Makefile
 |-- Kbuild           - general Kbuild, included by the
 |                      driver-specific Kbuild file
 |-- Kbuild.include   - Generic definitions, used to build Linux drivers
