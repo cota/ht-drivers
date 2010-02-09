@@ -167,11 +167,11 @@ static void client_timeout(SkelDrvrClientContext *ccon)
 	SkelDrvrQueue	*q = &ccon->Queue;
 	unsigned long	flags;
 
-	cdcm_write_lock_irqsave(&q->rwlock, flags);
+	cdcm_spin_lock_irqsave(&q->lock, flags);
 	ccon->Timer = 0;
 	ccon->Queue.Size   = 0;
 	ccon->Queue.Missed = 0;
-	cdcm_write_unlock_irqrestore(&q->rwlock, flags);
+	cdcm_spin_unlock_irqrestore(&q->lock, flags);
 
 	report_client(ccon, SkelDrvrDebugFlagWARNING, "Client Timeout");
 }
@@ -400,7 +400,7 @@ static void GetStatus(SkelDrvrModuleContext *mcon,
 }
 
 /*
- * call with the queue's rwlock held
+ * call with the queue's lock held
  */
 static inline void __q_put(const SkelDrvrReadBuf *rb, SkelDrvrClientContext *ccon)
 {
@@ -425,9 +425,9 @@ static inline void q_put(const SkelDrvrReadBuf *rb, SkelDrvrClientContext *ccon)
 {
 	unsigned long flags;
 
-	cdcm_write_lock_irqsave(&ccon->Queue.rwlock, flags);
+	cdcm_spin_lock_irqsave(&ccon->Queue.lock, flags);
 	__q_put(rb, ccon);
-	cdcm_write_unlock_irqrestore(&ccon->Queue.rwlock, flags);
+	cdcm_spin_unlock_irqrestore(&ccon->Queue.lock, flags);
 }
 
 /**
@@ -969,7 +969,7 @@ out_err:
 	return (char *)SYSERR;
 }
 
-/* Note: call with the queue's rwlock held */
+/* Note: call with the queue's lock held */
 static void __reset_queue(SkelDrvrClientContext *ccon)
 {
 	SkelDrvrQueue *q = &ccon->Queue;
@@ -985,9 +985,9 @@ static void reset_queue(SkelDrvrClientContext *ccon)
 {
 	unsigned long flags;
 
-	cdcm_write_lock_irqsave(&ccon->Queue.rwlock, flags);
+	cdcm_spin_lock_irqsave(&ccon->Queue.lock, flags);
 	__reset_queue(ccon);
-	cdcm_write_unlock_irqrestore(&ccon->Queue.rwlock, flags);
+	cdcm_spin_unlock_irqrestore(&ccon->Queue.lock, flags);
 }
 
 /*
@@ -1013,7 +1013,7 @@ int client_init(SkelDrvrClientContext *ccon, int clientnr, struct cdcm_file *flp
 
 	cdcm_spin_lock_init(&ccon->lock);
 
-	cdcm_rwlock_init(&ccon->Queue.rwlock);
+	cdcm_spin_lock_init(&ccon->Queue.lock);
 	reset_queue(ccon);
 
 	/* user's client initialisation bottom-half */
@@ -1140,7 +1140,7 @@ SkelDrvrClientContext *get_ccon(struct cdcm_file *f)
 	return &Wa->Clients[clientnr];
 }
 
-/* Note: call with the queue's rwlock held */
+/* Note: call with the queue's lock held */
 static void __q_get(SkelDrvrReadBuf *rb, SkelDrvrQueue *q)
 {
 	*rb = q->Entries[q->RdPntr];
@@ -1159,9 +1159,9 @@ static void q_get(SkelDrvrReadBuf *rb, SkelDrvrClientContext *ccon)
 	SkelDrvrQueue *q = &ccon->Queue;
 	unsigned long flags;
 
-	cdcm_write_lock_irqsave(&q->rwlock, flags);
+	cdcm_spin_lock_irqsave(&q->lock, flags);
 	__q_get(rb, q);
-	cdcm_write_unlock_irqrestore(&q->rwlock, flags);
+	cdcm_spin_unlock_irqrestore(&q->lock, flags);
 }
 
 static int SkelDrvrRead(void *wa, struct cdcm_file *flp, char *u_buf, int len)
@@ -1174,10 +1174,10 @@ static int SkelDrvrRead(void *wa, struct cdcm_file *flp, char *u_buf, int len)
 	ccon = get_ccon(flp);
 	q = &ccon->Queue;
 
-	cdcm_write_lock_irqsave(&q->rwlock, flags);
+	cdcm_spin_lock_irqsave(&q->lock, flags);
 	if (q->QueueOff)
 		__reset_queue(ccon);
-	cdcm_write_unlock_irqrestore(&q->rwlock, flags);
+	cdcm_spin_unlock_irqrestore(&q->lock, flags);
 
 	/* wait for something new in the queue */
 	if (tswait(&ccon->Semaphore, SEM_SIGABORT, ccon->Timeout)) {
@@ -1346,9 +1346,9 @@ static int get_queue_size(SkelDrvrQueue *q)
 	unsigned long flags;
 	int retval;
 
-	cdcm_read_lock_irqsave(&q->rwlock, flags);
+	cdcm_spin_lock_irqsave(&q->lock, flags);
 	retval = q->Size;
-	cdcm_read_unlock_irqrestore(&q->rwlock, flags);
+	cdcm_spin_unlock_irqrestore(&q->lock, flags);
 
 	return retval;
 }
@@ -1358,10 +1358,10 @@ static int get_queue_overflow(SkelDrvrQueue *q)
 	unsigned long flags;
 	int retval;
 
-	cdcm_write_lock_irqsave(&q->rwlock, flags);
+	cdcm_spin_lock_irqsave(&q->lock, flags);
 	retval = q->Missed;
 	q->Missed = 0;
-	cdcm_write_unlock_irqrestore(&q->rwlock, flags);
+	cdcm_spin_unlock_irqrestore(&q->lock, flags);
 
 	return retval;
 }
@@ -1371,9 +1371,9 @@ static int get_queue_flag(SkelDrvrQueue *q)
 	unsigned long flags;
 	int retval;
 
-	cdcm_read_lock_irqsave(&q->rwlock, flags);
+	cdcm_spin_lock_irqsave(&q->lock, flags);
 	retval = q->QueueOff;
-	cdcm_read_unlock_irqrestore(&q->rwlock, flags);
+	cdcm_spin_unlock_irqrestore(&q->lock, flags);
 
 	return retval;
 }
@@ -1382,9 +1382,9 @@ static void set_queue_flag(SkelDrvrQueue *q, int value)
 {
 	unsigned long flags;
 
-	cdcm_write_lock_irqsave(&q->rwlock, flags);
+	cdcm_spin_lock_irqsave(&q->lock, flags);
 	q->QueueOff = !!value;
-	cdcm_write_unlock_irqrestore(&q->rwlock, flags);
+	cdcm_spin_unlock_irqrestore(&q->lock, flags);
 }
 
 int SkelDrvrIoctl(void             *wa,    /* Working area */

@@ -19,7 +19,7 @@
 /* Up to 32 incomming events per client are queued */
 
 typedef struct {
-	cdcm_rwlock_t	rwlock;
+	cdcm_spinlock_t	lock;
 	int		QueueOff;
    U16             Missed;
 	int		Size;
