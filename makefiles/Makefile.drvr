@@ -30,9 +30,19 @@ _all:
 # Where everything is nested
 # User can provide it's own, otherwise default will be used
 ROOTDIR := $(PWD)/../..
+ifeq ($(CPU),)
+_all:
+	@$(MAKE) CPU=L865
+	@$(MAKE) CPU=ppc4
 
-# CPU should be defined
-$(if $(CPU),,$(error CPU not defined))
+deliver:
+	@$(MAKE) _deliver $(filter-out deliver, $(MAKECMDGOALS)) CPU=L865
+	@$(MAKE) _deliver $(filter-out deliver, $(MAKECMDGOALS)) CPU=ppc4
+
+# quiet down $(ACCS) -- {lab, oper, oplhc}
+$(filter-out deliver, $(MAKECMDGOALS)):
+	@:
+endif
 
 # CES Linux
 ifeq ($(CPU), Lces)
