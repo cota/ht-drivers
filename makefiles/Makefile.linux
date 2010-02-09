@@ -48,6 +48,9 @@ all: $(OBJDIR) $(FINAL_DEST)
 	@ln -sf ../$(DRVR_DIR)/$(DRIVER) ../$(FINAL_DEST)/$(DRIVER_NAME).$(KVER).ko
 
 # CERN delivery
+include ../$(ROOTDIR)/makefiles/deliver.mk
+deliver:
+	$(Q)$(MAKE) _deliver $(filter $(strip $(ACCS)),$(MAKECMDGOALS)) CPU=L865
 
 # Guess what
 clean clear:

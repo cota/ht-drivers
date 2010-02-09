@@ -91,6 +91,11 @@ move_objs:
 	$(Q)mv $(OBJFILES) $(OBJDIR)
 	$(Q)mv $(EXEC_OBJS) ../$(FINAL_DEST)
 
+# CERN delivery
+include ../$(ROOTDIR)/makefiles/deliver.mk
+deliver:
+	$(Q)$(MAKE) _deliver $(filter $(strip $(ACCS)) all, $(MAKECMDGOALS)) CPU=L865
+	$(Q)$(MAKE) _deliver $(filter $(strip $(ACCS)) all, $(MAKECMDGOALS)) CPU=ppc4
 
 cleanloc clearloc:: abort
 	@ if [ -n "$(OBJDIR)" ]; then \
