@@ -35,7 +35,7 @@ endif
 
 # Get all local libs (in object_ directory) user wants to compile with
 LOCAL_LIBS = $(patsubst ../$(FINAL_DEST)/lib%.a, -l%, $(wildcard ../$(FINAL_DEST)/*.$(CPU).a))
-XTRALIBS   = -lxml2 -lz
+XTRALIBS   = -lxml2 -lz -lreadline
 LDLIBS     = \
 	   $(LOCAL_LIBS) \
 	   $(XTRALIBS)
@@ -49,7 +49,6 @@ SRCFILES = $(wildcard *.c)
 ifneq ($(USE_EXTEST), n)
 SRCFILES += \
 	extest.c \
-	lite_shell.c \
 	cmd_generic.c
 endif
 # end USE_EXTEST
@@ -68,7 +67,8 @@ INCDIRS = \
 	../../utils/ \
 	../../utils/user \
 	../../include \
-	../../utils/extest
+	../../utils/extest \
+	/acc/local/$(CPU)/include
 
 
 ADDINCLUDES = $(KERN_INCLUDES)

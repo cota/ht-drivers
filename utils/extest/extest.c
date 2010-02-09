@@ -32,12 +32,14 @@
 #include <sys/param.h>
 #include <unistd.h>
 
+#include <readline/readline.h>
+#include <readline/history.h>
+
 #include <libinst.h>
 
 /* local includes */
 #include <err.h>
 #include <general_usr.h>
-#include <lite_shell.h>
 
 /* declare tcmd_glob_list and tst_glob_d (which are in cmd_shell.h) */
 #define VAR_DECLS
@@ -130,7 +132,7 @@ struct cmd_desc def_cmd[CmdUSR] = {
 	},
 	[_CmdSRVDBG]
 	{
-		0, _CmdSRVDBG, "_dbg_", "lite shell (lsh) debugging", "", 0,
+		0, _CmdSRVDBG, "_dbg_", "debugging", "", 0,
 		_hndl_dbg, .list = LIST_HEAD_INIT(def_cmd[_CmdSRVDBG].list)
 	},
 	[CmdQUIT]
@@ -656,14 +658,13 @@ static char* devnode(int basename, int idx)
 /**
  * extest_cleanup - clean up the session
  *
- * This is just called before exiting; it closes the lite shell CLI
- * and also closes any device driver files that were opened
+ * This is just called before exiting.
+ * It closes any device driver files that were opened
  */
 static void extest_cleanup()
 {
 	if (_DNFD != F_CLOSED)
 		close(_DNFD);
-	close_keyboard();
 }
 
 /**
@@ -885,7 +886,7 @@ void print_modules(void)
 }
 
 /**
- * __getchar - get a character from stdin via lite shell (lsh)
+ * __getchar - get a character from stdin
  *
  * @param c - pointer to the address where the character will be put
  */
@@ -925,8 +926,6 @@ int hndl_illegal(struct cmd_desc* cmdd, struct atom *atoms)
  *
  * @param cmdd  command description
  * @param atoms command atoms list
- *
- * This is a hidden command for developer to debug lsh operation.
  *
  * @return >= 0 - on success
  * @return tst_prg_err_t - on failure
@@ -1011,17 +1010,17 @@ out:
  */
 int hndl_history(struct cmd_desc* cmdd, struct atom *atoms)
 {
-	hel_t *cmdp = get_history_list(NULL); /* command pointer */
+	HIST_ENTRY **list;
 	int i;
 
 	if (atoms == (struct atom*)VERBOSE_HELP) {
 		printf("%s - display command history\n", cmdd->name);
 		goto out;
 	}
-	for (i = 0; i < HIS_SZ; i++) {
-		if (!*cmdp[i])
-			break;
-		printf("Cmd[%02d] %s\n", i, cmdp[i]);
+	list = history_list();
+	if (list) {
+		for (i = 0; list[i]; i++)
+			printf("Cmd[%02d] %s\n", i, list[i]->line);
 	}
 out:
 	return 1;
@@ -1250,6 +1249,25 @@ static int extest_open_fd(void)
 }
 #endif /* __SKEL_EXTEST */
 
+/* add a line to the history if it's not a duplicate of the previous */
+static void extest_add_history(char *line)
+{
+	HIST_ENTRY *prev;
+	int save_it;
+
+	if (!line[0])
+		return;
+
+	using_history();
+	prev = previous_history();
+	/* save it if there's no previous line or if they're different */
+	save_it = !prev || strcmp(line, prev->line);
+	using_history();
+
+	if (save_it)
+		add_history(line);
+}
+
 /**
  * extest_init - Initialise extest
  *
@@ -1273,7 +1291,7 @@ int extest_init(int argc, char *argv[])
 	process_options(argc, argv);
 	build_cmd_list(user_cmds, 1); /* add specific commands */
 	gethostname(host, 32);
-	init_keyboard(); /* lsh interface */
+	using_history();
 	if (extest_open_fd())
 		goto out_err;
 	while(1) {
@@ -1286,10 +1304,14 @@ int extest_init(int argc, char *argv[])
 			snprintf(prompt, sizeof(prompt), WHITE_ON_BLACK
 				"%s@%s [%02d] > " DEFAULT_COLOR,
 				__drivername, host, cmdindx++);
-		cmd = get_command(prompt); /* get user input (lsh interface) */
+		cmd = readline(prompt);
+		if (!cmd)
+			exit(1);
+		extest_add_history(cmd);
 		atoms_init(cmd_atoms, MAX_ARG_COUNT);
 		get_atoms(cmd, cmd_atoms); /* split cmd into atoms */
 		do_cmd(0, cmd_atoms); /* execute atoms */
+		free(cmd);
 	}
 out_err:
 	/* error occurs */

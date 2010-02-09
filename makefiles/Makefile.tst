@@ -27,7 +27,7 @@ LOADLIBES  := $(addprefix -L,$(XTRALIBDIRS)) $(LOADLIBES) -lutils.$(CPU) \
 
 # Get all local libs (in object_ directory) user wants to compile with
 LOCAL_LIBS = $(patsubst ../$(FINAL_DEST)/lib%.a, -l%, $(wildcard ../$(FINAL_DEST)/*.$(CPU).a))
-XTRALIBS   =
+XTRALIBS   = -lreadline
 LDLIBS     = \
 	   $(LOCAL_LIBS) \
 	   $(XTRALIBS)
@@ -40,8 +40,7 @@ SRCFILES = $(wildcard *.c)
 # unless USE_EXTEST is set to 'n'
 ifneq ($(USE_EXTEST), n)
 SRCFILES += \
-	extest.c \
-	lite_shell.c
+	extest.c
 
 # if the driver is skel, we'll compile in all the skel handlers
 ifeq ($(IS_SKEL), y)
@@ -68,7 +67,8 @@ INCDIRS = \
 	../../utils \
 	../../utils/user \
 	../../include \
-	../../utils/extest
+	../../utils/extest \
+	/acc/local/$(CPU)/include
 
 
 ADDINCLUDES = $(KERN_INCLUDES)
