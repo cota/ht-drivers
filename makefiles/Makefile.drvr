@@ -13,6 +13,9 @@ ifneq ($(KERNELRELEASE),)
 	include $(M)/Kbuild
 else
 
+# Do not print "Entering directory ..."
+# MAKEFLAGS += --no-print-directory
+
 # Makefile from current directory supress one from upper level
 include $(shell if [ -e ./Makefile.specific ]; then \
 		echo ./Makefile.specific; \
