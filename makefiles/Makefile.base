@@ -122,22 +122,6 @@ cleanloc clearloc::
 ############################################################################
 
 
-############################################################################
-# To build depend files
-############################################################################
-ifndef BLDTYPE
-depend dep::
-	@$(MAKE) BLDTYPE=dbg depend-subdirs depend
-	@$(MAKE) BLDTYPE=rls depend-subdirs depend
-else
-depend dep::
-	@if [ ! -z "$(strip $(FLTSRCFILES))" ]; then \
-	    echo "$(CXX) -MM $(BASECXXFLAGS) $(FLTSRCFILES) > .$@-$(BLDTYPE)";\
-	    $(CXX) -MM $(BASECXXFLAGS) $(FLTSRCFILES) > .$@-$(BLDTYPE);\
-	fi
-endif # BLDTYPE
-############################################################################
-
 # Compiled files goes here
 OBJDIR = $(CPU)/$(KVER)
 $(OBJDIR):
@@ -167,11 +151,6 @@ object_%:
 
 # For producing object files. Just an example of possible redefinition.
 #OUTPUT_OPTION +=; mv $*.$(CPU).o $(OBJDIR)/$@
-
-# Include dependancy file (if any)
-ifneq ($(wildcard .depend-$(BLDTYPE)),)
-include .depend-$(BLDTYPE)
-endif
 
 ifndef BLDTYPE
 BLDTYPE = dbg
