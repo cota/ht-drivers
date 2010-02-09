@@ -74,12 +74,11 @@ LIBS = $(join $(addsuffix $(OBJDIR)/,$(dir $(LIBFILES))),$(notdir $(LIBFILES)))
 # Buildup all include pathes
 INCFLAGS = $(addprefix -I,$(INCDIRS)) $(addprefix -I,$($(BLDTYPE).INCDIRS)) $(ADDINCLUDES)
 
-# Compilation date
 BASECFLAGS   = -Wall -DCOMPILE_TIME=$(shell date --utc +%s)
 BASECXXFLAGS = -Wall -Wno-reorder
 
 # debug/optimization flags
-dbg.BLDTFLAGS =  -DDEBUG -D_DEBUG
+dbg.BLDTFLAGS = -g -DDEBUG -D_DEBUG
 rls.BLDTFLAGS = -O2
 drv.BLDTFLAGS =  # Drivers are build without debug and optimization
 BLDTFLAGS = $($(BLDTYPE).BLDTFLAGS)
