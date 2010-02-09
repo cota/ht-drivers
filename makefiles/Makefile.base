@@ -152,27 +152,6 @@ DRIVER_NAME := $(shell echo $(DRIVER_NAME) | tr "[:upper:]" "[:lower:]")
 FINAL_DEST ?= object_$(DRIVER_NAME)
 object_%:
 	-mkdir -p ../$@
-
-# Next two rules are Installation Rules
-install::
-	@if [ $(words $(ACCS)) != 3 ]; then \
-		echo "Number of delivery places is out-of-order."; \
-		echo "Expected - 3 places (as of 01/2008). Curren - $(words $(ACCS)) places."; \
-		echo "This Makefile is out-of-date!"; \
-		echo "Exiting..."; \
-		exit 1; \
-	elif [ ! $(DLVRYPLS) ]; then \
-		echo "Deliver to the test machine: 'make $(word 1, $(ACCS)).install CPU=$(CPU)'"; \
-		echo "Deliver to the operational machine: 'make $(word 2, $(ACCS)).install CPU=$(CPU)'"; \
-		echo "Deliver to the LHC machine: 'make $(word 3, $(ACCS)).install CPU=$(CPU)'"; \
-		echo "Exiting..."; \
-		exit 1; \
-	fi
-
-# lab.% oper.%. oplhc.% (See 'Make.common' file for current delivery places)
-$(addsuffix .%,$(ACCS))::
-	@$(MAKE) DLVRYPLS=$(basename $@) $*-subdirs $*
-
 # Descent all the goals into subdirectories
 %-subdirs::
 	@for dir in $(SUBDIRS) _dummy_dir_ ; \
