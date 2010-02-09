@@ -26,22 +26,12 @@ INCDIRS = \
 SRCFILES = \
 	$(wildcard *.c)
 
-LIBRARIES = $(OBJDIR)/lib$(DRIVER_NAME).$(CPU).a
+LIBRARIES = lib$(DRIVER_NAME).$(CPU).a
 
 $(LIBRARIES): $(OBJFILES)
-	$(AR) -rv  $@ $(XTRA_USR_LIBS) $(addprefix $(OBJDIR)/, $^)
-	$(RANLIB) $@
+	$(Q)$(AR) -rv $@ $(XTRA_USR_LIBS) $^
+	$(Q)$(RANLIB) $@
+	$(Q)$(RM) $(OBJFILES)
 
-build:: abort $(OBJDIR) $(LIBRARIES) move_objs
-
-# Move compiled files to proper place
-move_objs:
-	mv $(LIBRARIES) ../$(FINAL_DEST)
-
-# Local cleaning
-cleanloc clearloc:: abort
-	@ if [ -n "$(ISP)" ]; then \
-		rm -rf $(ISP)* ; \
-	fi
-	-rm -f $(LIBRARIES)
-	find ./ -name '*~' | xargs rm -f
+_build: $(LIBRARIES)
+	$(Q)mv $(LIBRARIES) ../$(FINAL_DEST)
