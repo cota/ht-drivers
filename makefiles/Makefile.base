@@ -127,17 +127,6 @@ build::
 ############################################################################
 
 
-############################################################################
-# Cleaning up
-############################################################################
-clean clear::
-	@$(MAKE) $@loc-subdirs $@loc
-
-# Stub goals for cleaning up
-# Dummy echoing to suppress "Nothing to be done for clean/clear" message
-cleanloc clearloc::
-	@echo -n
-############################################################################
 
 
 
@@ -153,6 +142,8 @@ cleanloc clearloc::
 	    fi; \
 	done
 
+# Cleaning up
+clean clear:
 
 # For producing object files. Just an example of possible redefinition.
 #OUTPUT_OPTION +=; mv $*.$(CPU).o $(OBJDIR)/$@
