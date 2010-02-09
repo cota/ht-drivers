@@ -20,8 +20,8 @@ ROOTDIR := $(if $(ROOTDIR),$(ROOTDIR),..)
 # Standard driver directory tree layout
 SUBDIRS = \
 	lib \
-	driver \
+	include \
 	test \
-	include
+	driver
 
 include $(ROOTDIR)/makefiles/Makefile.base
