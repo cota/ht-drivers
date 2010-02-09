@@ -126,20 +126,20 @@ build::
 	@:
 ############################################################################
 
+COMPILE  = $(MAKE) -C $$dir $(MAKECMDGOALS)
 
 
 
 
-# Descent all the goals into subdirectories
-%-subdirs::
+# Descend into subdirectories
+%-subdirs:
 	@for dir in $(SUBDIRS) _dummy_dir_ ; \
 	do \
-	    if [ $$dir != _dummy_dir_ -a -d $$dir ]; then \
-		echo "---------[ Processing '$$dir' directory ]--------------"; \
-		echo "$(MAKE) -C $$dir $*-subdirs $*" ; \
-		$(MAKE) -C $$dir $*-subdirs $*; \
+	  if [ $$dir != _dummy_dir_ -a -d $$dir ]; then \
+		echo -e "\n---------[ Processing '$$dir' directory ]--------------"; \
+		$(COMPILE); \
 		if [ $$? -eq 2 ]; then exit 1; fi; \
-	    fi; \
+	  fi; \
 	done
 
 # Cleaning up
