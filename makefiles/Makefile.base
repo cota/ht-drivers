@@ -19,8 +19,38 @@ MAKEFLAGS += --no-print-directory
 # Standard CERN Make rules
 include /acc/src/dsc/co/Make.auto
 
+# Extremely simplified Quiet/Verbose
+ifdef V
+  ifeq ("$(origin V)", "command line")
+    VERBOSE = $(V)
+  endif
+endif
+ifndef VERBOSE
+  VERBOSE = 0
+endif
 
+ifeq ($(VERBOSE),1)
+  Q   =
+  LD  = $(LINK.o)
+  QLD =
+  QNM =
+  CCL = $(CC)
+else
+   Q   = @
 
+  _LD := $(LINK.o)
+   LD  = @echo 'LD   $@'; $(_LD)
+
+  _CC := $(CC)
+   CC  = @echo 'CC   $@'; $(_CC)
+
+   CCL = @echo 'CC   $%'; $(_CC)
+
+  QNM  = @echo 'KSYM $@'
+
+  _AR := $(AR)
+   AR  = @echo 'AR   $@'; $(_AR) 2>&1>&/dev/null
+endif
 
 
 unexport BLDTYPE PASSTARG
