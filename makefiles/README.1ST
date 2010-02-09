@@ -12,7 +12,7 @@ Short file description
 |                      Included through general Kbuild
 |-- Makefile         - Makefile to compile driver bunch
 |-- Makefile.base    - holds general rules along with standart CERN rules
-|-- Makefile.deliver - driver bench delivery
+|-- deliver.mk       - driver framework CERN delivery
 |-- Makefile.drvr    - main driver compilation
 |-- Makefile.inst    - Build up driver installation program
 |-- Makefile.lces    - Builds up Linux driver and installation program for
