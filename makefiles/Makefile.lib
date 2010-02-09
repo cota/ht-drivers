@@ -15,10 +15,9 @@ include $(shell if [ -e ./Makefile.specific ]; then \
 		echo ../Makefile.specific; \
 	fi)
 
-
-ADDCFLAGS += $(STDFLAGS) -g -DDRIVER_NAME=\"$(DRIVER_NAME)\"
 include ../Makefile
 
+ADDCFLAGS += $(STDFLAGS) -DDRIVER_NAME=\"$(DRIVER_NAME)\"
 
 INCDIRS = \
 	../include \
