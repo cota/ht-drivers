@@ -21,11 +21,7 @@ include /acc/src/dsc/co/Make.auto
 
 
 
-UTILINSTDIR = /acc/local/$(CPU)/drvrutil
-EXECINSTDIR = /acc/dsc
-###############################################################################
 
-BLDTYPES = dbg rls drv
 
 unexport BLDTYPE PASSTARG
 
