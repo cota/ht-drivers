@@ -52,6 +52,25 @@ else
    AR  = @echo 'AR   $@'; $(_AR) 2>&1>&/dev/null
 endif
 
+# General settings
+# Ensure lowercase driver name
+DRIVER_NAME := $(shell echo $(DRIVER_NAME) | tr "[:upper:]" "[:lower:]")
+
+# Compiled executables, libraries && drivers goes in this directory.
+# This name will be defined *only* if it is not yet defined by the user.
+# It can be done in driver-specific makefile (Makefile.specific)
+FINAL_DEST ?= object_$(DRIVER_NAME)
+$(FINAL_DEST):
+	$(Q)mkdir -p ../$@
+
+# Compiled files goes here
+OBJDIR = $(CPU)_$(BLDTYPE)
+$(CPU)_%:
+	$(Q)mkdir -p $@
+
+# Redefine implicit rule
+%.$(CPU).o: %.c
+	$(Q)$(COMPILE.c) $< $(OUTPUT_OPTION)
 
 unexport BLDTYPE PASSTARG
 
@@ -121,20 +140,7 @@ cleanloc clearloc::
 ############################################################################
 
 
-# Compiled files goes here
-OBJDIR = $(CPU)/$(KVER)
-$(OBJDIR):
-	mkdir -p $@
 
-# Ensure lowecase drivername
-DRIVER_NAME := $(shell echo $(DRIVER_NAME) | tr "[:upper:]" "[:lower:]")
-
-# Driver and install prog goes here.
-# This name is defined _only_ if user in not alredy define it with preferable
-# one in the Makefile.specific. Driver name is lowercase-ensured.
-FINAL_DEST ?= object_$(DRIVER_NAME)
-object_%:
-	-mkdir -p ../$@
 # Descent all the goals into subdirectories
 %-subdirs::
 	@for dir in $(SUBDIRS) _dummy_dir_ ; \
