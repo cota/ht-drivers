@@ -13,8 +13,7 @@
 ###############################################################################
 
 # Include generic definitions
-include $(ROOTDIR)/makefiles/Kbuild.include
-
+include ../$(ROOTDIR)/makefiles/Kbuild.include
 
 # Quiet you!
 MAKEFLAGS += --no-print-directory
@@ -31,9 +30,10 @@ DRIVER  = $(OBJDIR)/$(DRIVER_NAME).ko
 
 # Let's roll
 all: $(OBJDIR) $(FINAL_DEST)
+	@echo -e "\nCompiling driver for $(KVER) Linux kernel:\n"
 # 1. compile the driver
-	$(MAKE) -C $(KSRC) M=$(PWD) CPU=$(CPU) \
-	ROOTDIR=$(ROOTDIR) modules
+	$(MAKE) -C $(KSRC) M=$(shell pwd) CPU=$(CPU) \
+	ROOTDIR=$(shell cd ../$(ROOTDIR) && pwd && echo) modules
 
 # 2. Remove .tmp_version subdir, if already exists
 	@if [ -d $(OBJDIR)/.tmp_versions ]; then \
@@ -51,5 +51,5 @@ all: $(OBJDIR) $(FINAL_DEST)
 
 # Guess what
 clean clear:
-	$(MAKE) -C $(KSRC) M=$(PWD) ROOTDIR=$(ROOTDIR) clean
+	$(MAKE) -C $(KSRC) M=$(shell pwd) ROOTDIR=$(shell cd ../$(ROOTDIR) && pwd && echo) clean
 	$(RM) -rf $(OBJDIR)

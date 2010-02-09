@@ -27,9 +27,6 @@ _all:
 # For debugging
 #SHELL += -x
 
-# Where everything is nested
-# User can provide it's own, otherwise default will be used
-ROOTDIR := $(PWD)/../..
 ifeq ($(CPU),)
 _all:
 	@$(MAKE) CPU=L865
@@ -42,12 +39,14 @@ deliver:
 # quiet down $(ACCS) -- {lab, oper, oplhc}
 $(filter-out deliver, $(MAKECMDGOALS)):
 	@:
+else
+  include ../Makefile
 endif
 
 # CES Linux
 ifeq ($(CPU), Lces)
 	OSREL = ces
-	include $(ROOTDIR)/makefiles/Makefile.lces
+	include ../$(ROOTDIR)/makefiles/Makefile.lces
 endif
 
 # SLC4
@@ -55,7 +54,7 @@ ifeq ($(CPU), L864)
 	ifeq ($(KVER),)
 		KVER = 2.6.24.4-rt4
 	endif
-	include $(ROOTDIR)/makefiles/Makefile.linux
+	include ../$(ROOTDIR)/makefiles/Makefile.linux
 endif
 
 # SLC5
@@ -63,13 +62,13 @@ ifeq ($(CPU), L865)
 	ifeq ($(KVER),)
 		KVER = 2.6.24.7-rt27
 	endif
-	include $(ROOTDIR)/makefiles/Makefile.linux
+	include ../$(ROOTDIR)/makefiles/Makefile.linux
 endif
 
 # Lynx
 ifeq ($(CPU), ppc4)
 	KVER = 4.0.0
-	include $(ROOTDIR)/makefiles/Makefile.lynx
+	include ../$(ROOTDIR)/makefiles/Makefile.lynx
 endif
 
 PHONY += FORCE

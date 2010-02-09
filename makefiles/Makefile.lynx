@@ -12,8 +12,8 @@
 # @date Created on 13/01/2009
 ###############################################################################
 
-include ../../makefiles/Makefile.base
-include ../../makefiles/Kbuild.lynx
+include ../$(ROOTDIR)/makefiles/Kbuild.lynx
+include ../$(ROOTDIR)/makefiles/Kbuild.include
 
 ADDCFLAGS  += $(STDFLAGS) -DCPU=\"$(CPU)\"
 ADDINCLUDES = $(KERN_INCLUDES)
