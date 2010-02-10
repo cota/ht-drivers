@@ -1,4 +1,5 @@
 SUBDIRS = \
+	utils \
 	cdcm \
 	icv196
 
