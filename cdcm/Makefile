@@ -9,7 +9,7 @@
 ###############################################################################
 
 # Where everything is nested
-ROOTDIR = $(PWD)/..
+ROOTDIR = $(shell pwd)/..
 
 include ./Makefile.specific
 
@@ -32,7 +32,7 @@ _all: cdcm
 # CDCM only
 cdcm:
 	@-rm -rf ./$(CPU)/$(KVER)
-	$(MAKE) -C $(KSRC) M=$(PWD) CPU=$(CPU) \
+	$(MAKE) -C $(KSRC) M=$(shell pwd) CPU=$(CPU) \
 	ROOTDIR=$(ROOTDIR) modules
 	@-rm -r .*.cmd Module.symvers .tmp_versions/
 	@-rm -rf ./Module.markers ./modules.order
