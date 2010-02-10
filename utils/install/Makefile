@@ -21,7 +21,7 @@ _all: all
 ROOTDIR := ../..
 
 # libraries (and their pathes) to link executable file with
-XTRALIBDIRS = $(ROOTDIR)/utils/user
+XTRALIBDIRS = ../$(ROOTDIR)/utils/user/object
 LOADLIBES  := $(addprefix -L,$(XTRALIBDIRS)) $(LOADLIBES) -lutils.$(CPU)
 
 XTRALIBS    = -lxml2 -lz -g
