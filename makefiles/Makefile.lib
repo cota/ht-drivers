@@ -28,8 +28,8 @@ SRCFILES = \
 
 LIBRARIES = lib$(DRIVER_NAME).$(CPU).a
 
-$(LIBRARIES): $(OBJFILES)
-	$(Q)$(AR) -rv $@ $(XTRA_USR_LIBS) $^
+$(LIBRARIES): $(OBJFILES) $(FINAL_DEST)
+	$(Q)$(AR) -rv $@ $(XTRA_USR_LIBS) $(filter %.o, $^)
 	$(Q)$(RANLIB) $@
 	$(Q)$(RM) $(OBJFILES)
 
