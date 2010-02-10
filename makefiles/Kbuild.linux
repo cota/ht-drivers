@@ -149,8 +149,8 @@ endif # IS_SKEL
 # This is VME
 ifeq ($(CONFIG_BUS_VME),y)
 ccflags-y += -DCONFIG_BUS_VME
-# 'vmebridge' hosting dir
-VMEB_D = $(call abs2rel, $(ROOTDIR)/vmebridge/driver/$(CPU)/$(KVER)/, $(M)/)
+# TODO. For now 'vmebridge' is hosted here
+VMEB_D = $(call abs2rel, /acc/src/dsc/drivers/coht/vmebridge/driver/$(CPU)/$(KVER)/, $(M)/)
 
 cdcmvme-$(CONFIG_BUS_VME) += cdcmVme.o
 
