@@ -56,9 +56,12 @@ endif
 # Ensure lowercase driver name
 DRIVER_NAME := $(shell echo $(DRIVER_NAME) | tr "[:upper:]" "[:lower:]")
 
+PHONY := _all
+_all:
+
 # Compiled executables, libraries && drivers goes in this directory.
 # This name will be defined *only* if it is not yet defined by the user.
-# It can be done in driver-specific makefile (Makefile.specific)
+# User can do it in driver-specific makefile (Makefile.specific)
 FINAL_DEST ?= object_$(DRIVER_NAME)
 $(FINAL_DEST):
 	$(Q)mkdir -p ../$@
@@ -115,24 +118,19 @@ CFLAGS = $(BASECFLAGS) $(HOSTCFLAGS) $(DEFFLAGS) $(INCFLAGS) $(BLDTFLAGS) $(ADDC
 
 vpath %$(EXTOBJ) $(OBJDIR)
 
-############################################################################
 # Our Primary target
-############################################################################
-all:
-	@$(MAKE) DLVRYPLS=$(word 2, $(ACCS)) build-subdirs build
+ifeq (,$(findstring $(notdir $(shell pwd)), $(SUBDIRS)))
 
-# quiet
-build::
-	@:
-############################################################################
+_all $(MAKECMDGOALS): build-subdirs
 
+FTARGETS = $(filter-out all linux lynx deliver, $(MAKECMDGOALS))
 COMPILE  = $(MAKE) -C $$dir $(MAKECMDGOALS)
 
-
-
+endif # ifeq ($(SUBDIRS),)
 
 # Descend into subdirectories
 %-subdirs:
+	$(if $(FTARGETS), $(error wrong/unsupported target(s) "$(FTARGETS)"))
 	@for dir in $(SUBDIRS) _dummy_dir_ ; \
 	do \
 	  if [ $$dir != _dummy_dir_ -a -d $$dir ]; then \
@@ -152,3 +150,12 @@ ifndef BLDTYPE
 BLDTYPE = dbg
 endif
 
+PHONY += all
+_all: all
+
+PHONY += FORCE
+FORCE:
+
+# Declare the contents of the .PHONY variable as phony.  We keep that
+# information in a variable so we can use it in if_changed and friends.
+.PHONY: $(PHONY)
