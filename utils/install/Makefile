@@ -53,29 +53,6 @@ $(EXEC_OBJS): $(OBJFILES)
 clean clear:
 	rm -rf object/ instprog.$(CPU)
 
-__destination = $(filter-out $(strip $(ACCS)) deliver,$(MAKECMDGOALS))
-destination := $(if $(__destination), $(__destination), $(ACCS))
-
-myprint:
-	@echo "is '$(__destination)'       and      '$(MAKECMDGOALS)'"
-
-# quiet down
-#$(destination):
-#@:
-
-deliver: FORCE
-	@for a in $(destination); do \
-		tmp_dir="/acc/dsc/$$a/$(CPU)/bin"; \
-		if [ -w $$tmp_dir ]; then \
-			echo -e "\nDelivering $(EXEC_OBJS) in $$tmp_dir"; \
-			dsc_install $(EXEC_OBJS) $$tmp_dir; \
-		elif [ -e $$tmp_dir ]; then \
-			echo -e "\nCan't deliver $(EXEC_OBJS) in $$tmp_dir"; \
-			echo -e "You don't write permissions!"; \
-		fi; \
-	done
-	@echo ""
-
 PHONY += all
 _all: all
 
