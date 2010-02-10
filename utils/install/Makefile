@@ -8,17 +8,15 @@
 # @date Created on 09/06/2009
 ###############################################################################
 
-# CPU should be defined
-$(if $(CPU),,$(error CPU [L865 ppc4] not defined))
+# Makefile from current directory supress one from upper level
+include $(shell if [ -e ./Makefile.specific ]; then \
+		echo ./Makefile.specific; \
+	else \
+		echo ../Makefile.specific; \
+	fi)
 
-# Standart CERN Makefile rules
-include /acc/src/dsc/co/Make.auto
+include ../Makefile
 
-# That's our default target when none is given on the command line
-PHONY := _all
-_all: all
-
-ROOTDIR := ../..
 
 # libraries (and their pathes) to link executable file with
 XTRALIBDIRS = ../$(ROOTDIR)/utils/user/object
@@ -35,30 +33,34 @@ else
 SRCFILES += inst-linux.c
 endif
 
-OBJFILES := $(SRCFILES:.c=.$(CPU).o)
-
-INCDIRS = ./ $(ROOTDIR) $(ROOTDIR)/include
-CFLAGS += $(addprefix -I,$(INCDIRS)) -g
-
 EXEC_OBJS = instprog.$(CPU)
 
-all: $(EXEC_OBJS)
 
-# redefine Make.auto rule to get rid of name dependencies
 $(EXEC_OBJS): $(OBJFILES)
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
-	@mkdir -p object/
-	mv $(OBJFILES) object
+
+_build: $(EXEC_OBJS) $(OBJDIR) move_objs
+
+
+linux:
+	@echo -e "\nCompiling for Linux:"
+	$(Q)$(MAKE) _build CPU=L865
+
+lynx:
+	@echo -e "\nCompiling for Lynx:"
+	$(Q)$(MAKE) _build CPU=ppc4
+
+all:
+	$(Q)$(MAKE) linux
+	$(Q)$(MAKE) lynx
+
+# Move compiled files to proper place
+move_objs: $(FINAL_DEST)
+	$(Q)mv $(OBJFILES) $(OBJDIR)
+	$(Q)mv $(EXEC_OBJS) ../$(FINAL_DEST)
+
+
+INCDIRS = ./ ../$(ROOTDIR) ../$(ROOTDIR)/include
+ADDCFLAGS += $(addprefix -I,$(INCDIRS)) -g
 
 clean clear:
 	rm -rf object/ instprog.$(CPU)
-
-PHONY += all
-_all: all
-
-PHONY += FORCE
-FORCE:
-
-# Declare the contents of the .PHONY variable as phony.  We keep that
-# information in a variable so we can use it in if_changed and friends.
-.PHONY: $(PHONY)
