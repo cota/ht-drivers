@@ -20,8 +20,8 @@ include $(ROOTDIR)/makefiles/Kbuild.include
 # Quiet you...
 MAKEFLAGS += --no-print-directory
 
-# Default target is CDCM only
-_all: cdcm
+# By default -- Rebuild all, including CDCM, XML library and driver utilities.
+_all: utils cdcm
 
 #################################################
 # Verbose output. Can be used for debugging
@@ -46,6 +46,3 @@ utils:
 	ROOTDIR=$(ROOTDIR) modules
 	@-rm -rf $(USRC)/.*.cmd $(USRC)/Module.symvers $(USRC)/.tmp_versions/
 	@-rm -rf $(USRC)/Module.markers $(USRC)/modules.order
-
-# Rebuild all, including CDCM, XML library and driver utilities.
-all: utils cdcm
