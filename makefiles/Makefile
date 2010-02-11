@@ -10,6 +10,8 @@
 # @date Created on 13/01/2009
 ###############################################################################
 
+-include Makefile.specific
+
 # Where everything is nested
 # User can provide it's own, otherwise default will be used
 ROOTDIR := $(if $(ROOTDIR),$(ROOTDIR),..)
