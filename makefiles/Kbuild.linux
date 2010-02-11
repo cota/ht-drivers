@@ -144,14 +144,6 @@ CONFIG_BUS_PCI ?= y
 CONFIG_BUS_VME ?= y
 endif # IS_SKEL
 
-
-# CDCM driver types
-# This is VME
-ifeq ($(CONFIG_BUS_VME),y)
-ccflags-y += -DCONFIG_BUS_VME
-
-cdcmvme-$(CONFIG_BUS_VME) += cdcmVme.o
-
 quiet_cmd_copy_symvers = COPY    $@
       cmd_copy_symvers = cat $^ > $@
 
@@ -166,6 +158,14 @@ endif
 # Copy .symvers files locally
 $(obj)/Module.symvers: $(addsuffix /driver/$(CPU)/$(KVER)/Module.symvers, $(DEP_SYMVERS))
 	$(call cmd,copy_symvers)
+
+
+# CDCM driver types
+# This is VME
+ifeq ($(CONFIG_BUS_VME),y)
+ccflags-y += -DCONFIG_BUS_VME
+
+cdcmvme-$(CONFIG_BUS_VME) += cdcmVme.o
 else
 ccflags-y += -UCONFIG_BUS_VME
 endif # CONFIG_BUS_VME
