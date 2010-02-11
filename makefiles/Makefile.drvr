@@ -14,7 +14,7 @@ ifneq ($(KERNELRELEASE),)
 else
 
 # Do not print "Entering directory ..."
-# MAKEFLAGS += --no-print-directory
+MAKEFLAGS += --no-print-directory
 
 # Makefile from current directory supress one from upper level
 include $(shell if [ -e ./Makefile.specific ]; then \
