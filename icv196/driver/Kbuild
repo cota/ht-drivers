@@ -20,5 +20,8 @@
 #+ Path should be relative to the cwd!
 # XTRA_DSRC =
 
+# Space separated list of driver directories this driver depends on
+DEP_SYMVERS = /acc/src/dsc/drivers/coht/vmebridge
+
 # include standart general kbuild
-include $(M)/../../makefiles/Kbuild
+include $(ROOTDIR)/makefiles/Kbuild
