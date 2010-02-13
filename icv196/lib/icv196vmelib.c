@@ -3,14 +3,26 @@
  *
  * @brief icv196 library interface
  *
- * <long description>
+ * @mainpage ICV196 Library Index Page
  *
- * @author Copyright (C) 2009 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
+ * Use this library to communicate with icv196 module.
+ *
+ * @author Copyright (C) 2010 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
  *
  * @date Created on 18/12/2009
  *
  * @section license_sec License
  *          Released under the GPL
+ *
+ * @section intro_sec Introduction.
+ *
+ * You can find <b> Library API functions description </b>
+ * @ref icv196lib "here".\n
+ *
+ * In order to be able to use this library -- user application should
+ * link with @b -licv196vme library and include @b <icv196vme/icv196vmelib.h>
+ * header file.
+ *
  */
 #include <unistd.h>
 #include <sys/types.h>

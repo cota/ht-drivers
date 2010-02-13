@@ -151,6 +151,9 @@ struct T_icv196Arg {
 #ifdef __cplusplus
 extern "C" {
 #endif
+/** @defgroup icv196lib Library API functions
+ *@{
+ */
 	int icv196_get_handle(void);
 	int icv196_put_handle(int h);
 	int icv196_init_channel(int h, int module, int grp, int size, int dir);
@@ -160,6 +163,8 @@ extern "C" {
 	int icv196_disconnect(int h, short module, short line);
 	int icv196_get_info(int h, int m, int buff_sz, struct icv196T_ModuleInfo *buff);
 	int icv196_set_to(int h, int *val);
+/*@} end of group*/
+
 
 #ifdef __cplusplus
 }
