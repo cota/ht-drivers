@@ -43,12 +43,25 @@ USE_PLX9030 = n
 # If driver has plx9656 and wants to use its standart operations
 USE_PLX9656 = n
 
+# Driver library will always be compiled as .a library.
+# Say 'y' -- if you want driver library also to be compiled as an
+# archive (.a) and a shared object library (.so)
+# Say 'n' -- if you want only .a library
+COMPILE_LIB_SHARED = n
+
+# If needed, add extra directories that should be compiled
+# during driver framework compilation.
+# SUBDIRS +=
+
 # You can change ROOTDIR to locate your own path with cdcm, skel, utils etc..
 #  It *should* be a relative path, starting from driver framework directory
 #+ (one with driver/ test/ include/ lib/) up to the directory, where cdcm/,
 #+ skel/, utils/ etc... is nested.
 # ROOTDIR =
 
+# TODO. To be removed.
+# As whole coht is under git -- CDCM is always in a standart tree.
+#
 #  If you want to compile with CDCM that is _not_ in the ROOTDIR
 #+ (i.e. out-of-standart-tree) - you _SHOULD_ set CDCM_D in the COMMAND LINE!
 #+ See 'out-of-tree-cdcm' file on howto do this.

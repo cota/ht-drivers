@@ -17,7 +17,7 @@
 ROOTDIR := $(if $(ROOTDIR),$(ROOTDIR),..)
 
 # Standard driver directory tree layout
-SUBDIRS = \
+SUBDIRS += \
 	lib \
 	include \
 	test \
