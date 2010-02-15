@@ -12,6 +12,11 @@
  */
 #include "libinstkernel.h"
 
+#ifdef __linux__
+extern char* sysbrk(unsigned long);
+extern void  sysfree(char *, unsigned long);
+#endif
+
 /* =============================================== */
 /* Set the routine to the copy you want            */
 /* Example: InsLibSetCopyRoutine(__copy_to_user)   */
