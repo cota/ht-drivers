@@ -26,15 +26,35 @@ INCDIRS = \
 SRCFILES = \
 	$(wildcard *.c)
 
-LIBRARIES = lib$(DRIVER_NAME).$(CPU).a
-
-$(LIBRARIES): $(OBJFILES) $(FINAL_DEST)
-	$(Q)$(AR) -rv $@ $(XTRA_USR_LIBS) $(filter %.o, $^)
+############################################################################
+#      Rules to build .a library.                                          #
+############################################################################
+lib$(DRIVER_NAME).$(CPU).a: lib$(DRIVER_NAME).$(CPU).a($(OBJFILES))
+	$(Q)$(AR) -rv  $@ $(XTRA_USR_LIBS) $^
 	$(Q)$(RANLIB) $@
-	$(Q)$(RM) $(OBJFILES)
+
+LIBRARIES += lib$(DRIVER_NAME).$(CPU).a
+############################################################################
+
+############################################################################
+#      If we need to build a .so libraries.                                #
+############################################################################
+ifeq ($(COMPILE_LIB_SHARED),y)
+# redefine implicit rule
+(%.$(CPU).o): %.c
+	$(Q)$(CCL) $(CFLAGS) $(CPPFLAGS) -fPIC -c $< -o $*.$(CPU).o
+
+# Create .so object
+lib$(DRIVER_NAME).$(CPU).so: lib$(DRIVER_NAME).$(CPU).so($(OBJFILES))
+	$(Q)$(CC) -shared -Wl,-export-dynamic -Wl,-soname,$@ -o $@ $(OBJFILES)
+
+LIBRARIES += lib$(DRIVER_NAME).$(CPU).so
+endif
+############################################################################
 
 _build: $(LIBRARIES) $(FINAL_DEST)
 	$(Q)mv $(LIBRARIES) ../$(FINAL_DEST)
+	$(Q)$(RM) $(OBJFILES)
 
 linux:
 	@echo -e "\nCompiling for Linux:"
