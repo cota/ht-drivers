@@ -1,0 +1,61 @@
+First installed 28th/January/2005 Julian Lewis
+
+To install on a new DSC the BIOS must be modified as follows...
+
+Use the PPC_Mon pci configuration command:
+
+pci <option> dev <slot> <bus number> <base address register> -1 <pci address>.<enable>
+
+<option>                = excl     ;Means exclude this device from the PCI tree
+<dev> <slot>            = dev 2    ;This is the lower PMC slot
+<bus number>            = 0        ;Bus number zero manages the PMC slots on the CES RIO3
+<base address register> = 3        ;BAR3 is the VMIC 64Mb SDRAM address
+<pci address>           = dc000000 ;The new PCI BAR3 address moved to LynxOs reserved IO area
+-1                      = -1       ;Magic incantation from Akos
+<enable>                = e        ;Enable the excluded device at the given pci address
+
+PPC_Mon>pci excl dev 2 0 3 -1 dc000000.e
+PPC_Mon>pci show excl
+PPC_mon>pci show dev 2
+
+To remove the pci exclude and go back to standard BIOS configuration
+
+PPC_Mon>pci excl clear all
+PPC_Mon>pci show excl
+
+==============================================
+
+About the handling of PendingInit interrupts.
+
+A protocol is implemented between nodes in which at least one client on each node
+must be connected to the PendingInit interrupt. Nodes that have no connection to
+PendingInit do not activley take part in this protocol.
+
+When a node comes up after a reboot, it may need to be initialized from other
+nodes that must flush their segment contents to the new node. The new node
+must connect to the interrupt XmemDrvrIntrPENDING_INIT (0x0080) and then issue
+an XmemDrvrSEND_INTERRUPT IOCTL call as follows ...
+
+XmemDrvrSendBuf sbuf;
+
+   sbuf.Module        = <ModuleId>
+   sbuf.UnicastNodeId = 0;
+   sbuf.MulticastMask = 0;
+   sbuf.Data          = 1 << (<NodeId> -1);
+   sbuf.InterruptType = XmemDrvrNicINITIALIZED
+		      | XmemDrvrNicBROADCAST;
+   if (ioctl(xmem,XmemDrvrSEND_INTERRUPT,&sbuf) < 0) {
+
+Another way to send out this message is to simply perform a driver RESET.
+N.B. The reset logic will not send the message if there is no connection.
+In any case all nodes receiving this message will reply but with zero in the
+data value, and all drivers connected to this interrupt will make note of all
+the sending NodeIds. In this case the functioning nodes connected to PendingInit
+can be discovered in real time to keep track of which nodes are up and which
+nodes have been removed. As all nodes now know who is involved in PendingInit
+handling, some algorithum, say, highest node number, can be implemented.
+To obtain a bit mask with one bit set per connected node see: XmemDrvrGET_NODES
+N.B. If you send the message with zero in data, no replies are made, but
+all connected nodes will add your NodeId to their list.
+
+Julian
