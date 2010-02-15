@@ -17,13 +17,13 @@ fi)
 
 include ../Makefile
 
-ADDCFLAGS  = $(Stdflags) -g -DDRIVER_NAME=\"$(DRIVER_NAME)\"
 vpath %.c ./  ../../utils/user ../../utils/extest
 
 # libraries (and their pathes) to link executable file with
 XTRALIBDIRS = ../../utils/user/object ../$(FINAL_DEST)
 LOADLIBES  :=  $(addprefix -L,$(XTRALIBDIRS)) $(LOADLIBES) -lutils.$(CPU)
 #LOADLIBES  +=  $(addprefix -L,$(XTRALIBDIRS)) -lutils.$(CPU)
+ADDCFLAGS  = $(STDFLAGS) -DDRIVER_NAME=\"$(DRIVER_NAME)\"
 
 ifeq ($(CPU), ppc4)
 # for dlopen, dlclose etc.
@@ -69,7 +69,6 @@ INCDIRS = \
 	/acc/local/$(CPU)/include
 
 
-ADDINCLUDES = $(KERN_INCLUDES)
 
 EXEC_OBJS = $(DRIVER_NAME)libTst.$(CPU)
 
@@ -81,16 +80,6 @@ build:: abort $(FINAL_DEST) $(OBJDIR) $(EXEC_OBJS) move_objs ../$(FINAL_DEST)/li
 move_objs:
 	mv $(OBJFILES) $(OBJDIR)
 
-# we should redefine Make.auto rule to get rid of name dependencies
-%.$(CPU): $(OBJFILES)
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
-
-../$(FINAL_DEST)/libtestprog.$(CPU):
-	@if [ -e "$$@" ]; then \
-		rm -f $@ ; \
-	echo "ln -s ../libtest/$(EXEC_OBJS) $@"; \
-	ln -s  ../libtest/$(EXEC_OBJS) $@; \
-	fi
 
 # CERN delivery
 include ../$(ROOTDIR)/makefiles/deliver.mk
