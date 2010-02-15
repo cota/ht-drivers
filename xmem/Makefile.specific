@@ -1,0 +1,36 @@
+###############################################################################
+# @file Makefile.specific
+#
+# @brief Specific xmem settings
+#
+# @author Yury GEORGIEVSKIY. CERN AB/CO
+#
+# @date Created on 14/01/2009
+#
+# <long description>
+#
+# @version
+###############################################################################
+
+# Driver name
+DRIVER_NAME = XMEMN
+
+# Driver type
+CONFIG_BUS_PCI = y
+
+# If this driver is using skeleton (y/n)
+IS_SKEL = n
+
+# CDCM?
+IS_CDCM = y
+
+# do not use extest
+USE_EXTEST = n
+
+# If driver will use extra handy utils (load info file etc...)
+USE_UTILS = y
+
+# If driver will use libinst library to get configuration from XML file
+USE_XML = y
+
+INCDIRS += /acc/src/dsc/drivers/coht/.__kitchen/egarciac
