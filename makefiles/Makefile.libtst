@@ -61,10 +61,10 @@ INCDIRS = \
 	../.. \
 	../driver \
 	../include \
-	../lib \
-	../../utils/ \
+	../../utils \
 	../../utils/user \
 	../../include \
+	../../lib \
 	../../utils/extest \
 	/acc/local/$(CPU)/include
 
