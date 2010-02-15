@@ -90,8 +90,8 @@ all:
 
 # Move compiled files to proper place
 move_objs:
-	mv $(OBJFILES) $(OBJDIR)
-
+	$(Q)mv $(OBJFILES) $(OBJDIR)
+	$(Q)mv $(EXEC_OBJS) ../$(FINAL_DEST)
 
 # CERN delivery
 include ../$(ROOTDIR)/makefiles/deliver.mk
