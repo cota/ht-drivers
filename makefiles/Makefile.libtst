@@ -19,19 +19,11 @@ include ../Makefile
 
 vpath %.c ./  ../../utils/user ../../utils/extest
 
-# libraries (and their pathes) to link executable file with
-XTRALIBDIRS = ../../utils/user/object ../$(FINAL_DEST)
-LOADLIBES  :=  $(addprefix -L,$(XTRALIBDIRS)) $(LOADLIBES) -lutils.$(CPU)
-#LOADLIBES  +=  $(addprefix -L,$(XTRALIBDIRS)) -lutils.$(CPU)
 ADDCFLAGS  = $(STDFLAGS) -DDRIVER_NAME=\"$(DRIVER_NAME)\"
 
-ifeq ($(CPU), ppc4)
-# for dlopen, dlclose etc.
-LOADLIBES += /acc/sys/$(CPU)/lib/shlib/libdl.so
-else
-# we need termcap library
-LOADLIBES  += -ltermcap
-endif
+# libraries (and their pathes) to link executable file with
+XTRALIBDIRS = ../$(ROOTDIR)/utils/user/object ../$(ROOTDIR)/lib/stub/object ../$(FINAL_DEST)
+LOADLIBES  := $(addprefix -L,$(XTRALIBDIRS)) $(LOADLIBES) -lutils.$(CPU) -lstub.$(CPU)
 
 # Get all local libs (in object_ directory) user wants to compile with
 LOCAL_LIBS = $(patsubst ../$(FINAL_DEST)/lib%.a, -l%, $(wildcard ../$(FINAL_DEST)/*.$(CPU).a))
@@ -54,6 +46,10 @@ endif
 
 ifeq ($(CPU), ppc4)
 SRCFILES    += extra_for_lynx.c
+# for dlopen, dlclose etc.
+LOADLIBES += /acc/sys/$(CPU)/lib/shlib/libdl.so
+else
+LOADLIBES += -lrt -ltermcap
 endif
 
 INCDIRS = \
