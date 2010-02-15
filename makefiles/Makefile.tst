@@ -72,7 +72,7 @@ EXEC_OBJS = $(DRIVER_NAME)Test.$(CPU)
 
 $(EXEC_OBJS): $(OBJFILES)
 
-_build: $(EXEC_OBJS) $(OBJDIR) move_objs
+_build: $(EXEC_OBJS) $(OBJDIR) $(FINAL_DEST) move_objs
 
 linux:
 	@echo -e "\nCompiling for Linux:"

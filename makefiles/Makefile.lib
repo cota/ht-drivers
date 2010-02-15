@@ -33,7 +33,7 @@ $(LIBRARIES): $(OBJFILES) $(FINAL_DEST)
 	$(Q)$(RANLIB) $@
 	$(Q)$(RM) $(OBJFILES)
 
-_build: $(LIBRARIES)
+_build: $(LIBRARIES) $(FINAL_DEST)
 	$(Q)mv $(LIBRARIES) ../$(FINAL_DEST)
 
 linux:
