@@ -1,0 +1,20 @@
+# Driver name
+DRIVER_NAME = MTTN
+
+# Driver type
+CONFIG_BUS_VME = y
+
+# driver is using skeleton (y/n)
+IS_SKEL = y
+
+# CDCM?
+IS_CDCM = y
+
+# do not use extest
+USE_EXTEST = n
+
+# needs utils
+USE_UTILS = y
+
+# needs XML parser
+USE_XML = y
