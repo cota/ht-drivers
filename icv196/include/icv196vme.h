@@ -67,9 +67,11 @@ union icvU_Evt {
 	struct {
 		unsigned short w1, w2;
 	} Word;
+#if 0
 	struct {
 		unsigned char b1, b2, b3, b4;
 	    } Byte;
+#endif
 };
 
 /* Internal structure of Atom stuffed in the ring */

@@ -47,7 +47,9 @@
 #define ICVVME_intenmask     ICV_IOWR(17, struct icv196T_Service)
 #define ICVVME_reenflags     ICV_IOWR(18, struct icv196T_Service)
 #define ICVVME_gethandleinfo ICV_IOR(19, struct icv196T_HandleInfo)
-#define SkelUserIoctlLAST    ICV_IO(20)
+#define ICV196_GR_READ       ICV_IOWR(20, struct icv196T_Service)
+#define ICV196_GR_WRITE      ICV_IOWR(21, struct icv196T_Service)
+#define SkelUserIoctlLAST    ICV_IO(22)
 
 #define SkelDrvrSPECIFIC_IOCTL_CALLS (_IOC_NR(SkelUserIoctlLAST) - \
 					_IOC_NR(SkelUserIoctlFIRST) + 1)

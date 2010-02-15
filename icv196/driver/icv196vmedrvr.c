@@ -1528,6 +1528,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 	case ICVVME_enable:
 		/* Enable interrupt.
 		   Interrupts on the given logical line are enabled */
+		printk("ICVVME_enable entered\n");
 		UHdl = &icv196_statics.ICVHdl[Chan];
 
 		/* Check parameters and Set up environnement */
@@ -1659,6 +1660,10 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			MCtxt->old_CsDir &= ~group_mask;
 
 		icv196_wr_16(MCtxt->old_CsDir, VME_CsDir);
+
+		/* in case of output channel -- reset its value to 0 */
+		if (dir)
+			icv196_grp_wr_8(0, grp);
 		break;
 	case ICVVME_readio:
 		/* Read direction of i/o ports */
@@ -1841,7 +1846,54 @@ int icv196_ioctl(int Chan, int fct, char *arg)
 			LCtxt->loc_count = -1;
 		}
 		break;
+	case ICV196_GR_READ:
+		Module = ((struct icv196T_Service *)arg)->module;
+		grp = (int)((struct icv196T_Service *)arg)->line;
+                Data   = ((struct icv196T_Service *)arg)->data;
+                if (!icv196_statics.ModuleCtxtDir[Module]) {
+                        pseterr(EACCES);
+                        return SYSERR;
+                }
+		MCtxt = &icv196_statics.ModuleCtxt[Module];
+
+		if (*Data == 1)
+			*Data = icv196_grp_rd_8(grp);
+		else
+			*Data = icv196_grp_rd_16(grp);
+		break;
+	case ICV196_GR_WRITE:
+		{
+			long offs;
+		Module = ((struct icv196T_Service *)arg)->module;
+		grp = (int)((struct icv196T_Service *)arg)->line;
+                Data   = ((struct icv196T_Service *)arg)->data;
+
+                if (!icv196_statics.ModuleCtxtDir[Module]) {
+                        pseterr(EACCES);
+                        return SYSERR;
+                }
+		MCtxt = &icv196_statics.ModuleCtxt[Module];
+		if (grp&1) /* odd */
+			offs = 1;
+		else /* even */
+			offs = 3;
+#ifdef __ICV196_DEBUG__
+		printk("Module is %hd. Grp is %d. BA is %p. Data is 0x%hx. Grp Addr is 0x%lx. Offset is %ld\n",
+		       Module, grp, MCtxt->SYSVME_Add, (short)*Data,
+		       (long)((long)MCtxt->SYSVME_Add + (long)(grp + offs)),
+		       grp + offs);
+		printk("Should write %ld bytes in group %d\n", Data[1], grp);
+#endif
+		if (Data[1] == 1)
+			icv196_grp_wr_8((char)*Data, grp);
+		else
+			icv196_grp_wr_16((short)*Data, grp);
+		break;
+		}
 	default: /* Ioctl function code out of range */
+#ifdef __ICV196_DEBUG__
+		printk("ioctl function code is out-of-range\n");
+#endif
 		pseterr(EINVAL);
 		return SYSERR;
 	}
@@ -1901,6 +1953,8 @@ int icv196_isr(void *arg)
 	static unsigned short input[16] = { 0 }; /* input array */
 
 	m = MCtxt->Module; /* module index */
+
+	printk("--------------> %s() called <----------------\n", __FUNCTION__);
 
 	if (!(WITHIN_RANGE(0, m, icv_ModuleNb-1)))
 		return SYSERR;
