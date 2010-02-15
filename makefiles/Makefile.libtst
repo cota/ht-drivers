@@ -71,10 +71,10 @@ INCDIRS = \
 	/acc/local/$(CPU)/include
 
 
+$(EXEC_OBJS): $(OBJFILES)
 
 EXEC_OBJS = $(DRIVER_NAME)libTst.$(CPU)
 
-$(EXEC_OBJS): $(OBJFILES)
 
 build:: abort $(FINAL_DEST) $(OBJDIR) $(EXEC_OBJS) move_objs ../$(FINAL_DEST)/libtestprog.$(CPU)
 
