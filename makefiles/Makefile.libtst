@@ -74,9 +74,19 @@ EXEC_OBJS = $(DRIVER_NAME)Test-stub.$(CPU)
 
 $(EXEC_OBJS): $(OBJFILES)
 
+_build: $(EXEC_OBJS) $(OBJDIR) $(FINAL_DEST) move_objs
 
+linux:
+	@echo -e "\nCompiling for Linux:"
+	$(Q)$(MAKE) _build CPU=L865
 
-build:: abort $(FINAL_DEST) $(OBJDIR) $(EXEC_OBJS) move_objs ../$(FINAL_DEST)/libtestprog.$(CPU)
+lynx:
+	@echo -e "\nCompiling for Lynx:"
+	$(Q)$(MAKE) _build CPU=ppc4
+
+all:
+	$(Q)$(MAKE) linux
+	$(Q)$(MAKE) lynx
 
 # Move compiled files to proper place
 move_objs:
