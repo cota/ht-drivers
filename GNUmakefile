@@ -8,7 +8,7 @@ include /acc/dsc/src/co/Make.auto
 
 DDIR = xmemn
 
-ACCS=oplhc
+ACCS=oplhc oper lab
 
 CFLAGS= -g -Wall -I. -I../driver -I../../include
 
@@ -34,6 +34,8 @@ xmemtest.$(CPU).o: $(TEST) $(HDRS)
 
 install: xmemtest.$(CPU)
 	@for f in $(ACCS); do \
+	    echo -n "delivering at /acc/dsc/$$f/$(CPU)/$(DDIR).. "; \
 	    dsc_install xmemtest.$(CPU) /acc/dsc/$$f/$(CPU)/$(DDIR); \
+	    echo "OK"; \
 	done;
 
