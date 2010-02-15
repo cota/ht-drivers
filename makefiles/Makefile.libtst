@@ -15,7 +15,7 @@ include $(shell if [ -e ./Makefile.specific ]; then \
 		echo ../Makefile.specific; \
 fi)
 
--include ../../makefiles/Makefile.base
+include ../Makefile
 
 ADDCFLAGS  = $(Stdflags) -g -DDRIVER_NAME=\"$(DRIVER_NAME)\"
 vpath %.c ./  ../../utils/user ../../utils/extest
