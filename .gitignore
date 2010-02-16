@@ -25,7 +25,7 @@
 *.elf
 *.bin
 *.gz
-.gitignore
+!.gitignore
 
 #
 # Top-level generic files
@@ -60,3 +60,12 @@ ncscope.*
 # Executable
 *.L865
 *.ppc4
+
+# Dont track RCS repos
+RCS/
+
+# Dont track rand editor scratch files
+,*
+
+# Dont track packaged tarballs
+tar*.bz2
