@@ -1,0 +1,33 @@
+
+;File name             ;Location of File                    ;Comment
+
+Ctr.info               /dsc/local/data/                     ;PTIM definitions
+Ctr.eprom              /usr/local/drivers/ctr/              ;PLX9030 Flash eprom setup
+Ctr.hptdc.setup        /dsc/local/data/                     ;HPTDC Setup scratch pad
+Ctr.hptdc.setup.1      /usr/local/drivers/ctr/              ;HPTDC Setup for CTR initialization
+Ctr.hptdc.control      /dsc/local/data/                     ;HPTDC Control scratch pad
+Ctr.hptdc.control.1    /usr/local/drivers/ctr/              ;HPTDC Control first setting setup
+Ctr.hptdc.control.2    /usr/local/drivers/ctr/              ;HPTDC Control second setting setup
+Ctr.hptdc.control.3    /usr/local/drivers/ctr/              ;HPTDC Control third setting setup
+Ctr.hptdc.control.4    /usr/local/drivers/ctr/              ;HPTDC Control fourth setting setup
+Ctr.hptdc.control.5    /usr/local/drivers/ctr/              ;HPTDC Control fith setting setup
+ctr_news               /usr/local/drivers/ctr/              ;News about CTR driver, hardware and stuff
+Ctrp.xsvf              /usr/local/drivers/ctr/              ;FPGA configuration for CTR-PMC card
+Ctri.xsvf              /usr/local/drivers/ctr/              ;FPGA configuration for CTR-PCI card
+Ctrv.xsvf              /usr/local/drivers/ctr/              ;FPGA configuration for CTR-VME card
+CtrReadInfo            /usr/local/drivers/ctr/              ;Program to read Ctr.info and create PTIMs
+CtrWriteInfo           /usr/local/drivers/ctr/              ;Program to write Ctr.info from PTIMs
+Ctr.info.hlp           /usr/local/drivers/ctr/              ;Explains Ctr.info syntax
+CtrClock               /usr/local/drivers/ctr/              ;Clock application tests UTC and PPS interrupts
+CtrLookat              /usr/local/drivers/ctr/              ;Lookat an interrupt like PTIM, CTIM, or hardware
+e                      /usr/local/bin/                      ;RAND Editor
+vi                     /bin/                                ;VI Editor
+nedit                  /usr/bin/X11/                        ;NEDIT X-Window Editor
+emacs                  /usr/local/bin/                      ;EMACS Editor
+video                  /usr/local/bin/                      ;Displays telegrams
+pllplot                /usr/local/drivers/ctr/              ;Plot instructions for PLL plot
+Vhdl.versions          /usr/local/drivers/ctr/              ;Latest VHDL version numbers
+CtrVhdlUpdateRequired  /dsc/data/ctr/                       ;Modules needing VHDL update
+ltim.obnames           /tmp/                                ;Names of ltims
+TimLookat              /usr/local/bin/                      ;Look at a timing with timlib
+AqLog                  /dsc/local/tmp/                      ;Acquisition log file

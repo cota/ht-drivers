@@ -1,0 +1,272 @@
+SPS Faraday Cage Acquisitions
+=============================
+
+Nine fields are logged in this file based on real acquisition UTC time stamps.
+
+1) SuperCyc - Time S
+   This field is the time difference between the Start SC event OX.SSC-CT(CTIM/386) and
+   the actual counter output time stamp. The units are seconds
+
+2) LtimId
+   This field is the LTIM equipment number
+
+3) LtimName
+   This field is the LTIM equipment name
+
+4) Output - Cyc Ms
+   This is the C-Train value at the time of the output, it corresponds to the millisecond
+   counted from the start of the current cycle to the output
+
+5) CycName
+   This is the name of the cycle/user to which the pulse belongs, in the case of forewarnings
+   the cycle name will correspond to the next cycle
+
+6) Event
+   This is the CTIM cable event that triggerd the loading of the counter
+
+7) Start - Cyc Ms
+   This is the C-Train value at the time the counter is started. Note the the Output will be
+   in the Next cycle in the event of a forewarning
+
+8) Delay - Aqn S
+   This is the difference in time between the counter start UTC time stamp and the counter output
+   UTC time stamp. Ie OutTime - StartTime which corresponds to the delay the counter produced, and
+   should correspond to the programmed delay
+
+9) Comment
+   This is the read-only text entered into Oracle when the LTIM equipment is created, and it
+   describes and comments it
+
+1               2       3          4         5          6            7       8        9
+SuperCyc        LtimId  LtimName   Output    CycName    Event        Start   Delay    Comment
+Time S                             Cyc Ms                            Cyc Ms  Aqn S
+========        ======  ========== ======    =======    ============ ======  =======  =======
+
+0.000000	10165   SX.RF1-6-5 00000     SFTPRO1       SX.SSC-CT 05970   0.030000 ;manual timing start supercyle
+0.000000	10352   SX.RF3-5-2 00000     SFTPRO1    SIX.F1KFO-CT 05000   1.000000 ;warning reset
+0.000000	10506   SX.RF5-0-6 00000     SFTPRO1    SIX.F1KFO-CT 05000   1.000000 ;aep (coarse)
+0.000000	10515   SX.RF5-1-5 00000     SFTPRO1       SX.SSC-CT 05970   0.030000 ;TWC200 voltage display start
+0.000000	10516   SX.RF5-1-6 00000     SFTPRO1    SIX.F1KFO-CT 05000   1.000000 ;pFT synchro loop on
+0.000000	10532   SX.RF5-3-2 00000     SFTPRO1    SIX.F1KFO-CT 05000   1.000000 ;TWC200 rf voltage meas burst s
+0.000000	10557   SX.RF5-5-7 00000     SFTPRO1    SIX.F1KFO-CT 05000   1.000000 ;B preset
+0.000000	10745   SX.RF7-4-5 00000     SFTPRO1       SX.SSC-CT 05970   0.030000 ;Start Super Cycle
+0.000110	10507   SX.RF5-0-7 00001     SFTPRO1    SIX.F1KFO-CT 00000   0.000110 ;aep (fine)
+0.001000	10533   SX.RF5-3-3 00001     SFTPRO1    SIX.F1KFO-CT 00000   0.001000 ;TWC200 rf voltage meas burst i
+0.002000	10533   SX.RF5-3-3 00002     SFTPRO1    SIX.F1KFO-CT 00000   0.002000 ;TWC200 rf voltage meas burst i
+0.003000	10533   SX.RF5-3-3 00003     SFTPRO1    SIX.F1KFO-CT 00000   0.003000 ;TWC200 rf voltage meas burst i
+0.004000	10533   SX.RF5-3-3 00004     SFTPRO1    SIX.F1KFO-CT 00000   0.004000 ;TWC200 rf voltage meas burst i
+0.005000	10533   SX.RF5-3-3 00005     SFTPRO1    SIX.F1KFO-CT 00000   0.005000 ;TWC200 rf voltage meas burst i
+0.006000	10533   SX.RF5-3-3 00006     SFTPRO1    SIX.F1KFO-CT 00000   0.006000 ;TWC200 rf voltage meas burst i
+0.007000	10533   SX.RF5-3-3 00007     SFTPRO1    SIX.F1KFO-CT 00000   0.007000 ;TWC200 rf voltage meas burst i
+0.008000	10533   SX.RF5-3-3 00008     SFTPRO1    SIX.F1KFO-CT 00000   0.008000 ;TWC200 rf voltage meas burst i
+0.009000	10533   SX.RF5-3-3 00009     SFTPRO1    SIX.F1KFO-CT 00000   0.009000 ;TWC200 rf voltage meas burst i
+0.009000	10534   SX.RF5-3-4 00009     SFTPRO1    SIX.F1KFO-CT 05000   1.009000 ;TWC200 rf voltage burst number
+0.020000	10208   SX.RF2-0-8 00020     SFTPRO1      SIX.F1K-CT 05000   1.020000 ;RF Synchro injection window sh
+0.901000	10226   SX.RF2-2-6 00901     SFTPRO1      SIX.F1K-CT 00200   0.701000 ;RF Synchro injection phase str
+0.903000	10214   SX.RF2-1-4 00903     SFTPRO1      SIX.F1K-CT 00200   0.703000 ;RF Synchro bucket selector tr 
+1.155000	10742   SX.RF7-4-2 01155     SFTPRO1      SIX.F1K-CT 00200   0.955000 ;tdamper UMB H-A &amp; H-B next
+1.155000	10746   SX.RF7-4-6 01155     SFTPRO1      SIX.F1K-CT 00200   0.955000 ;tdamper UMB V-A &amp; V-B next
+1.195000	10154   SX.RF1-5-4 01195     SFTPRO1      SIX.F1K-CT 00200   0.995000 ;mountain range tr un next 1
+1.198000	10206   SX.RF2-0-6 01198     SFTPRO1      SIX.F1K-CT 00200   0.998000 ;RF Synchro injection window op
+1.199000	10163   SX.RF1-6-3 01199     SFTPRO1      SIX.W20-CT 01180   0.019000 ;new mountain range 2 next 2
+1.210000	10156   SX.RF1-5-6 01210     SFTPRO1    SIX.F1KFO-CT 05000   2.210000 ;mountain range strobe
+1.210000	10157   SX.RF1-5-7 01210     SFTPRO1    SIX.F1KLO-CT 00200   1.010000 ;mountain range stop acquisitio
+1.220000	10208   SX.RF2-0-8 01220     SFTPRO1      SIX.F1K-CT 00200   1.020000 ;RF Synchro injection window sh
+1.230000	10517   SX.RF5-1-7 01230     SFTPRO1    SIX.F1KLO-CT 00200   1.030000 ;pFT synchro loop off
+1.230000	10526   SX.RF5-2-6 01230     SFTPRO1    SIX.F1KLO-CT 00200   1.030000 ;pFT radial loop on &amp; phi-s
+1.260000	10582   SX.RF5-8-2 01260     SFTPRO1    SIX.F1KFO-CT 05000   2.260000 ;b train counter burst start
+1.260000	10602   SX.RF6-0-2 01260     SFTPRO1    SIX.F1KLO-CT 00200   1.060000 ;pFT frequency program B pulses
+1.464000	10522   SX.RF5-2-2 01464     SFTPRO1    SIX.F1KLO-CT 00200   1.264000 ;pFT transition (coarse)
+1.479000	10162   SX.RF1-6-2 01479     SFTPRO1    SIX.W20FO-CT 05980   1.499000 ;new mountain range 2 next 1
+1.480100	10523   SX.RF5-2-3 01481     SFTPRO1    SIX.F1KLO-CT 01464   0.016100 ;pFT transition (fine)
+1.664000	10408   SX.RF4-0-8 01664     SFTPRO1    SIX.F1KLO-CT 00200   1.464000 ;TWC200 CAV1 feedback off 1
+1.664000	10414   SX.RF4-1-4 01664     SFTPRO1    SIX.F1KLO-CT 00200   1.464000 ;TWC200 CAV2 feedback off 1
+1.664000	10418   SX.RF4-1-8 01664     SFTPRO1    SIX.F1KLO-CT 00200   1.464000 ;TWC200 CAV3 feedback off 1
+1.664000	10424   SX.RF4-2-4 01664     SFTPRO1    SIX.F1KLO-CT 00200   1.464000 ;TWC200 CAV4 feedback off 1
+2.100000	10524   SX.RF5-2-4 02100     SFTPRO1    SIX.F1KLO-CT 00200   1.900000 ; -
+4.200000	10386   SX.RF3-8-6 04200     SFTPRO1  SX.SFLATTOP-CT 04200   0.000000 ;TWC200 all rf off (coarse)
+4.200000	10537   SX.RF5-3-7 04200     SFTPRO1  SX.SFLATTOP-CT 04200   0.000000 ;pFT bunch spreader off (2)
+4.320000	10584   SX.RF5-8-4 04320     SFTPRO1    SIX.F1KFO-CT 05000   5.320000 ;b train counter burst number -
+9.000000	10241   SX.RF2-4-1 09000     SFTPRO1   SX.BEAMOUT-CT 09000   0.000000 ;diagnostic counter abort
+9.000000	10562   SX.RF5-6-2 09000     SFTPRO1   SX.BEAMOUT-CT 09000   0.000000 ;general reset
+9.001000	10101   SX.RF1-0-1 09001     SFTPRO1   SX.BEAMOUT-CT 09000   0.001000 ;end of cycle
+9.001000	10258   SX.RF2-5-8 09001     SFTPRO1   SX.BEAMOUT-CT 09000   0.001000 ;TWC200 1 long . damper off
+9.001000	10268   SX.RF2-6-8 09001     SFTPRO1   SX.BEAMOUT-CT 09000   0.001000 ;TWC200 3 long . damper off
+9.001000	10381   SX.RF3-8-1 09001     SFTPRO1   SX.BEAMOUT-CT 09000   0.001000 ;TWC200 all twc rf off (3)
+9.001000	10428   SX.RF4-2-8 09001     SFTPRO1   SX.BEAMOUT-CT 09000   0.001000 ;TWC200 CAV1 feedforward off
+9.001000	10434   SX.RF4-3-4 09001     SFTPRO1   SX.BEAMOUT-CT 09000   0.001000 ;TWC200 CAV2 feedforward off
+9.001000	10438   SX.RF4-3-8 09001     SFTPRO1   SX.BEAMOUT-CT 09000   0.001000 ;TWC200 CAV3 feedforward off
+9.001000	10444   SX.RF4-4-4 09001     SFTPRO1   SX.BEAMOUT-CT 09000   0.001000 ;TWC200 CAV4 feedforward off
+9.001000	10503   SX.RF5-0-3 09001     SFTPRO1   SX.BEAMOUT-CT 09000   0.001000 ;pFT phase loop off
+9.001000	10508   SX.RF5-0-8 09001     SFTPRO1   SX.BEAMOUT-CT 09000   0.001000 ;aux
+9.001000	10527   SX.RF5-2-7 09001     SFTPRO1   SX.BEAMOUT-CT 09000   0.001000 ;pFT radial loop off &amp; extr
+9.001000	10603   SX.RF6-0-3 09001     SFTPRO1   SX.BEAMOUT-CT 09000   0.001000 ;pFT frequency program B pulses
+9.001000	10701   SX.RF7-0-1 09001     SFTPRO1   SX.BEAMOUT-CT 09000   0.001000 ;end of cycle
+9.005000	10753   SX.RF7-5-3 09005     SFTPRO1    SIX.F1KFO-CT 05000   10.005000 ;tdamper h1 off opera
+9.005000	10757   SX.RF7-5-7 09005     SFTPRO1    SIX.F1KFO-CT 05000   10.005000 ;tdamper h2 off opera
+9.005000	10763   SX.RF7-6-3 09005     SFTPRO1    SIX.F1KFO-CT 05000   10.005000 ;tdamper v1 off opera
+9.005000	10767   SX.RF7-6-7 09005     SFTPRO1    SIX.F1KFO-CT 05000   10.005000 ;tdamper v2 off opera
+9.026000	10142   SX.RF1-4-2 09026     SFTPRO1   SX.BEAMOUT-CT 09000   0.026000 ;TWC200 conditioning start
+10.140000	10323   SX.RF3-2-3 10140     SFTPRO1   SX.BEAMOUT-CT 09000   1.140000 ;TWC800 all rf off
+10.225000	10558   SX.RF5-5-8 10225         MD1    SIX.F1KFO-CT 10225   0.000000 ;scope tower arm LabJack
+10.775000	10105   SX.RF1-0-5 10775         MD1    SIX.F1KFO-CT 10225   0.550000 ;MMI target MD1
+10.775000	10374   SX.RF3-7-4 10775         MD1    SIX.F1KFO-CT 10225   0.550000 ;TWC200 modulator reset 2
+10.775000	10581   SX.RF5-8-1 10775         MD1    SIX.F1KFO-CT 10225   0.550000 ;LO chosen-calibration
+10.775000	10703   SX.RF7-0-3 10775         MD1    SIX.F1KFO-CT 10225   0.550000 ;MMI target SFTPRO2
+10.776000	10384   SX.RF3-8-4 10776         MD1    SIX.F1KFO-CT 10225   0.551000 ;TWC200 all twc rf on (2)
+10.782000	10376   SX.RF3-7-6 10782         MD1    SIX.F1KFO-CT 10225   0.557000 ;TWC200 monitor: twc phase &amp
+10.784000	10382   SX.RF3-8-2 10784         MD1    SIX.F1KFO-CT 10225   0.559000 ;TWC200 all twc rf off (4)
+10.800000	10151   SX.RF1-5-1 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;mountain range set attenuation
+10.800000	10166   SX.RF1-6-6 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;manual timing start 2
+10.800000	10177   SX.RF1-7-7 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;mountain range PU attenuated
+10.800000	10215   SX.RF2-1-5 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;RF Synchro cycle pLHC
+10.800000	10232   SX.RF2-3-2 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;RF Synchro local LHC-SPS Fc tr
+10.800000	10245   SX.RF2-4-5 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;pLHC bucket monitor: reset ala
+10.800000	10375   SX.RF3-7-5 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;TWC200 modulator reset 1
+10.800000	10401   SX.RF4-0-1 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;TWC200 all feedback reset
+10.800000	10525   SX.RF5-2-5 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;wideband gate1 start
+10.800000	10535   SX.RF5-3-5 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;wideband gate2 start
+10.800000	10551   SX.RF5-5-1 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ; -
+10.800000	10555   SX.RF5-5-5 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ; -
+10.800000	10571   SX.RF5-7-1 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;LO chosen-pLHC
+10.800000	10625   SX.RF6-2-5 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ; -
+10.800000	10652   SX.RF6-5-2 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;pLHC Frev prog tr un stop
+10.800000	10674   SX.RF6-7-4 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;pLHC phase loop on Frf prog
+10.800000	10683   SX.RF6-8-3 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;pLHC synchro loop off
+10.800000	10686   SX.RF6-8-6 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;pLHC synchro loop on Frf PROG
+10.800000	10697   SX.RF6-9-7 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;pLHC quadrupole damping loop o
+10.800000	10761   SX.RF7-6-1 00000         MD1    SIX.F1KFO-CT 10225   0.575000 ;warning pLHC
+10.801000	10203   SX.RF2-0-3 00001         MD1    SIX.F1KFO-CT 10225   0.576000 ;RF Synchro master Frev tr un n
+10.801000	10233   SX.RF2-3-3 00001         MD1    SIX.F1KFO-CT 10225   0.576000 ;RF Synchro local LHC-SPS Fc tr
+10.801000	10662   SX.RF6-6-2 00001         MD1    SIX.F1KFO-CT 10225   0.576000 ;pLHC frequency program UMB nex
+10.802000	10234   SX.RF2-3-4 00002         MD1    SIX.F1KFO-CT 10225   0.577000 ;RF Synchro local LHC-SPS Fc re
+10.802000	10667   SX.RF6-6-7 00002         MD1    SIX.F1KFO-CT 10225   0.577000 ;pLHC phase loop tr un next 1
+10.803000	10653   SX.RF6-5-3 00003         MD1    SIX.F1KFO-CT 10225   0.578000 ;pLHC Frev prog tr un start
+10.803000	10692   SX.RF6-9-2 00003         MD1    SIX.F1KFO-CT 10225   0.578000 ;pLHC Frf LHC divider resync
+10.804000	10678   SX.RF6-7-8 00004         MD1    SIX.F1KFO-CT 10225   0.579000 ;pLHC DDS reset
+10.823000	10676   SX.RF6-7-6 00023         MD1    SIX.F1KFO-CT 10225   0.598000 ;pLHC phase loop on
+10.831000	10204   SX.RF2-0-4 00031         MD1    SIX.F1KFO-CT 10225   0.606000 ;RF Synchro master Frev tr un n
+10.831000	10693   SX.RF6-9-3 00031         MD1    SIX.F1KFO-CT 10225   0.606000 ;pLHC Frf program divider resyn
+10.832000	10654   SX.RF6-5-4 00032         MD1    SIX.F1KFO-CT 10225   0.607000 ;pLHC Frf SPS divider resync
+10.903000	10246   SX.RF2-4-6 00103         MD1    SIX.F1KFO-CT 10225   0.678000 ;pLHC bucket monitor: make meas
+10.926000	10226   SX.RF2-2-6 00126         MD1      SIX.F1K-CT 10225   0.701000 ;RF Synchro injection phase str
+10.928000	10214   SX.RF2-1-4 00128         MD1      SIX.F1K-CT 10225   0.703000 ;RF Synchro bucket selector tr 
+11.055000	10318   SX.RF3-1-8 00255         MD1    SIX.F1KFO-CT 10225   0.830000 ;TWC800 tr un resynch
+11.055000	10462   SX.RF4-6-2 00255         MD1    SIX.F1KFO-CT 10225   0.830000 ;TWC200 Frev MPX tr un resync
+11.175000	10322   SX.RF3-2-2 00375         MD1    SIX.F1KFO-CT 10225   0.950000 ;TWC800 all rf on
+11.180000	10742   SX.RF7-4-2 00380         MD1      SIX.F1K-CT 10225   0.955000 ;tdamper UMB H-A &amp; H-B next
+11.180000	10746   SX.RF7-4-6 00380         MD1      SIX.F1K-CT 10225   0.955000 ;tdamper UMB V-A &amp; V-B next
+11.200000	10498   SX.RF4-9-8 00400         MD1    SIX.F1KFO-CT 10225   0.975000 ;sampling tr un next
+11.215000	10161   SX.RF1-6-1 00415         MD1    SIX.W20FO-CT 00405   0.010000 ;First bunch measurement arm
+11.215000	10557   SX.RF5-5-7 00415         MD1    SIX.F1KFO-CT 10225   0.990000 ;B preset
+11.215000	10668   SX.RF6-6-8 00415         MD1    SIX.F1KFO-CT 10225   0.990000 ;pLHC phase loop tr un next 2
+11.220000	10154   SX.RF1-5-4 00420         MD1      SIX.F1K-CT 10225   0.995000 ;mountain range tr un next 1
+11.220000	10426   SX.RF4-2-6 00420         MD1    SIX.F1KFO-CT 10225   0.995000 ;TWC200 CAV1 feedforward on (co
+11.220000	10432   SX.RF4-3-2 00420         MD1    SIX.F1KFO-CT 10225   0.995000 ;TWC200 CAV2 feedforward on (co
+11.220000	10436   SX.RF4-3-6 00420         MD1    SIX.F1KFO-CT 10225   0.995000 ;TWC200 CAV3 feedforward on (co
+11.220000	10442   SX.RF4-4-2 00420         MD1    SIX.F1KFO-CT 10225   0.995000 ;TWC200 CAV4 feedforward on (co
+11.220000	10698   SX.RF6-9-8 00420         MD1    SIX.F1KFO-CT 10225   0.995000 ;4ch pk detector tr un start
+11.220000	10747   SX.RF7-4-7 00420         MD1      SIX.F1K-CT 10225   0.995000 ;tdamper DTU V next
+11.220000	10758   SX.RF7-5-8 00420         MD1    SIX.F1KFO-CT 10225   0.995000 ;tdamper 40MHz resynch
+11.221000	10206   SX.RF2-0-6 00421         MD1      SIX.F1K-CT 10225   0.996000 ;RF Synchro injection window op
+11.224000	10163   SX.RF1-6-3 00424         MD1      SIX.W20-CT 00405   0.019000 ;new mountain range 2 next 2
+11.224000	10402   SX.RF4-0-2 00424         MD1    SIX.F1KFO-CT 10225   0.999000 ;TWC200 all feedforward reset
+11.225000	10256   SX.RF2-5-6 00425         MD1    SIX.F1KFO-CT 10225   1.000000 ;TWC200 1 long.damper on (coars
+11.225000	10266   SX.RF2-6-6 00425         MD1    SIX.F1KFO-CT 10225   1.000000 ;TWC200 3 long.damper on (coars
+11.225000	10395   SX.RF3-9-5 00425         MD1    SIX.AMCLO-CT 00425   0.000000 ;TWC200 network analyzer trigge
+11.225000	10396   SX.RF3-9-6 00425         MD1    SIX.AMCLO-CT 00425   0.000000 ;start RF switch MD
+11.225000	10406   SX.RF4-0-6 00425         MD1    SIX.F1KFO-CT 10225   1.000000 ;TWC200 CAV1 feedback on (coars
+11.225000	10412   SX.RF4-1-2 00425         MD1    SIX.F1KFO-CT 10225   1.000000 ;TWC200 CAV2 feedback on (coars
+11.225000	10416   SX.RF4-1-6 00425         MD1    SIX.F1KFO-CT 10225   1.000000 ;TWC200 CAV3 feedback on (coars
+11.225000	10422   SX.RF4-2-2 00425         MD1    SIX.F1KFO-CT 10225   1.000000 ;TWC200 CAV4 feedback on (coars
+11.225000	10582   SX.RF5-8-2 00425         MD1    SIX.F1KFO-CT 10225   1.000000 ;b train counter burst start
+11.225000	10628   SX.RF6-2-8 00425         MD1    SIX.F1KFO-CT 10225   1.000000 ;noise measurement tr un start
+11.225000	10672   SX.RF6-7-2 00425         MD1    SIX.F1KFO-CT 10225   1.000000 ;pLHC phase loop on beam (coars
+11.225000	10682   SX.RF6-8-2 00425         MD1    SIX.F1KFO-CT 10225   1.000000 ;pLHC synchro loop on
+11.225100	10407   SX.RF4-0-7 00426         MD1    SIX.F1KFO-CT 00425   0.000100 ;TWC200 CAV1 feedback on (fine)
+11.225100	10413   SX.RF4-1-3 00426         MD1    SIX.F1KFO-CT 00425   0.000100 ;TWC200 CAV2 feedback on (fine)
+11.225100	10417   SX.RF4-1-7 00426         MD1    SIX.F1KFO-CT 00425   0.000100 ;TWC200 CAV3 feedback on (fine)
+11.225100	10423   SX.RF4-2-3 00426         MD1    SIX.F1KFO-CT 00425   0.000100 ;TWC200 CAV4 feedback on (fine)
+11.225100	10673   SX.RF6-7-3 00426         MD1    SIX.F1KFO-CT 00425   0.000100 ;pLHC phase loop on beam (fine)
+11.235000	10157   SX.RF1-5-7 00435         MD1    SIX.F1KLO-CT 10225   1.010000 ;mountain range stop acquisitio
+11.245000	10208   SX.RF2-0-8 00445         MD1      SIX.F1K-CT 10225   1.020000 ;RF Synchro injection window sh
+11.435000	10156   SX.RF1-5-6 00635         MD1    SIX.F1KFO-CT 10225   1.210000 ;mountain range strobe
+11.735000	10584   SX.RF5-8-4 00935         MD1    SIX.F1KFO-CT 10225   1.510000 ;b train counter burst number -
+11.823000	10608   SX.RF6-0-8 01023         MD1    SIX.F1KFO-CT 10225   1.598000 ;scope tr un B start (RA3340,T)
+15.225000	10657   SX.RF6-5-7 04425         MD1    SIX.F1KFO-CT 10225   5.000000 ;pLHC noise excitation gate sto
+15.725000	10753   SX.RF7-5-3 04925         MD1    SIX.F1KFO-CT 10225   5.500000 ;tdamper h1 off opera
+15.725000	10757   SX.RF7-5-7 04925         MD1    SIX.F1KFO-CT 10225   5.500000 ;tdamper h2 off opera
+15.725000	10763   SX.RF7-6-3 04925         MD1    SIX.F1KFO-CT 10225   5.500000 ;tdamper v1 off opera
+15.725000	10767   SX.RF7-6-7 04925         MD1    SIX.F1KFO-CT 10225   5.500000 ;tdamper v2 off opera
+15.800000	10236   SX.RF2-3-6 05000     SFTPRO1    SIX.F1KFO-CT 05000   0.000000 ;meas recapture frequency (ions
+15.800000	10245   SX.RF2-4-5 05000     SFTPRO1    SIX.F1KFO-CT 05000   0.000000 ;pLHC bucket monitor: reset ala
+15.800000	10564   SX.RF5-6-4 05000     SFTPRO1    SIX.F1KFO-CT 05000   0.000000 ;PC desk arm LabJack
+15.875000	10258   SX.RF2-5-8 05075         MD1   SX.BEAMOUT-CT 05075   0.000000 ;TWC200 1 long . damper off
+15.875000	10268   SX.RF2-6-8 05075         MD1   SX.BEAMOUT-CT 05075   0.000000 ;TWC200 3 long . damper off
+15.875000	10323   SX.RF3-2-3 05075         MD1   SX.BEAMOUT-CT 05075   0.000000 ;TWC800 all rf off
+15.875000	10381   SX.RF3-8-1 05075         MD1   SX.BEAMOUT-CT 05075   0.000000 ;TWC200 all twc rf off (3)
+15.875000	10405   SX.RF4-0-5 05075         MD1   SX.BEAMOUT-CT 05075   0.000000 ;TWC200 CAV1 feedback off (2)
+15.875000	10411   SX.RF4-1-1 05075         MD1   SX.BEAMOUT-CT 05075   0.000000 ;TWC200 CAV2 feedback off 2
+15.875000	10415   SX.RF4-1-5 05075         MD1   SX.BEAMOUT-CT 05075   0.000000 ;TWC200 CAV3 feedback off 2
+15.875000	10421   SX.RF4-2-1 05075         MD1   SX.BEAMOUT-CT 05075   0.000000 ;TWC200 CAV4 feedback off 2
+15.875000	10428   SX.RF4-2-8 05075         MD1   SX.BEAMOUT-CT 05075   0.000000 ;TWC200 CAV1 feedforward off
+15.875000	10434   SX.RF4-3-4 05075         MD1   SX.BEAMOUT-CT 05075   0.000000 ;TWC200 CAV2 feedforward off
+15.875000	10438   SX.RF4-3-8 05075         MD1   SX.BEAMOUT-CT 05075   0.000000 ;TWC200 CAV3 feedforward off
+15.875000	10444   SX.RF4-4-4 05075         MD1   SX.BEAMOUT-CT 05075   0.000000 ;TWC200 CAV4 feedforward off
+15.875000	10677   SX.RF6-7-7 05075         MD1   SX.BEAMOUT-CT 05075   0.000000 ;pLHC phase loop off
+15.876000	10101   SX.RF1-0-1 05076         MD1   SX.BEAMOUT-CT 05075   0.001000 ;end of cycle
+15.876000	10397   SX.RF3-9-7 05076         MD1   SX.BEAMOUT-CT 05075   0.001000 ;stop RF switch MD
+15.876000	10531   SX.RF5-3-1 05076         MD1   SX.BEAMOUT-CT 05075   0.001000 ;wideband gate1 stop
+15.876000	10541   SX.RF5-4-1 05076         MD1   SX.BEAMOUT-CT 05075   0.001000 ;wideband gate2 stop
+15.876000	10611   SX.RF6-1-1 05076         MD1   SX.BEAMOUT-CT 05075   0.001000 ;scope burst stop (RA3340,B)
+15.876000	10701   SX.RF7-0-1 05076         MD1   SX.BEAMOUT-CT 05075   0.001000 ;end of cycle
+15.886000	10527   SX.RF5-2-7 05086         MD1   SX.BEAMOUT-CT 05075   0.011000 ;pFT radial loop off &amp; extr
+16.350000	10102   SX.RF1-0-2 05550     SFTPRO1    SIX.F1KFO-CT 05000   0.550000 ;MMI target SFTPRO1
+16.350000	10143   SX.RF1-4-3 05550     SFTPRO1    SIX.F1KFO-CT 05000   0.550000 ;TWC200 conditioning stop
+16.350000	10374   SX.RF3-7-4 05550     SFTPRO1    SIX.F1KFO-CT 05000   0.550000 ;TWC200 modulator reset 2
+16.350000	10511   SX.RF5-1-1 05550     SFTPRO1    SIX.F1KFO-CT 05000   0.550000 ;pFT phase PU2 select
+16.350000	10521   SX.RF5-2-1 05550     SFTPRO1    SIX.F1KFO-CT 05000   0.550000 ;pFT radial PU1 select
+16.350000	10581   SX.RF5-8-1 05550     SFTPRO1    SIX.F1KFO-CT 05000   0.550000 ;LO chosen-calibration
+16.350000	10702   SX.RF7-0-2 05550     SFTPRO1    SIX.F1KFO-CT 05000   0.550000 ;MMI target SFTPRO1
+16.351000	10384   SX.RF3-8-4 05551     SFTPRO1    SIX.F1KFO-CT 05000   0.551000 ;TWC200 all twc rf on (2)
+16.357000	10376   SX.RF3-7-6 05557     SFTPRO1    SIX.F1KFO-CT 05000   0.557000 ;TWC200 monitor: twc phase &amp
+16.359000	10382   SX.RF3-8-2 05559     SFTPRO1    SIX.F1KFO-CT 05000   0.559000 ;TWC200 all twc rf off (4)
+16.375000	10151   SX.RF1-5-1 05575     SFTPRO1    SIX.F1KFO-CT 05000   0.575000 ;mountain range set attenuation
+16.375000	10152   SX.RF1-5-2 05575     SFTPRO1    SIX.F1KFO-CT 05000   0.575000 ;mountain range tr un stop
+16.375000	10178   SX.RF1-7-8 05575     SFTPRO1    SIX.F1KFO-CT 05000   0.575000 ;mountain range PU direct
+16.375000	10211   SX.RF2-1-1 05575     SFTPRO1    SIX.F1KFO-CT 05000   0.575000 ;RF Synchro next cycle pFT
+16.375000	10375   SX.RF3-7-5 05575     SFTPRO1    SIX.F1KFO-CT 05000   0.575000 ;TWC200 modulator reset 1
+16.375000	10401   SX.RF4-0-1 05575     SFTPRO1    SIX.F1KFO-CT 05000   0.575000 ;TWC200 all feedback reset
+16.375000	10453   SX.RF4-5-3 05575     SFTPRO1    SIX.F1KFO-CT 05000   0.575000 ;TWC200 cavity phase-acc
+16.375000	10543   SX.RF5-4-3 05575     SFTPRO1    SIX.F1KFO-CT 05000   0.575000 ;pFT bunch spreader off 1
+16.375000	10565   SX.RF5-6-5 05575     SFTPRO1    SIX.F1KFO-CT 05000   0.575000 ;LO chosen-pFT
+16.375000	10637   SX.RF6-3-7 05575     SFTPRO1    SIX.F1KFO-CT 05000   0.575000 ;ionsFT capture frev mpx stop
+16.375000	10697   SX.RF6-9-7 05575     SFTPRO1    SIX.F1KFO-CT 05000   0.575000 ;pLHC quadrupole damping loop o
+16.375000	10755   SX.RF7-5-5 05575     SFTPRO1    SIX.F1KFO-CT 05000   0.575000 ;warning pFT
+16.376000	10224   SX.RF2-2-4 05576     SFTPRO1    SIX.F1KFO-CT 05000   0.576000 ;RF Synchro synthesizer strobe
+16.380000	10552   SX.RF5-5-2 05580     SFTPRO1    SIX.F1KFO-CT 05000   0.580000 ;pFT synthesizer loop on &amp; 
+16.390000	10388   SX.RF3-8-8 05590     SFTPRO1    SIX.F1KFO-CT 05000   0.590000 ;TWC200 all rf on (1)
+16.400000	10502   SX.RF5-0-2 05600     SFTPRO1    SIX.F1KFO-CT 05000   0.600000 ;pFT phase loop on
+16.400000	10553   SX.RF5-5-3 05600     SFTPRO1    SIX.F1KFO-CT 05000   0.600000 ;pFT synthesizer loop off
+16.400000	10554   SX.RF5-5-4 05600     SFTPRO1    SIX.F1KFO-CT 05000   0.600000 ;md tr un start (RA 3341,T)
+16.406000	10204   SX.RF2-0-4 05606     SFTPRO1    SIX.F1KFO-CT 05000   0.606000 ;RF Synchro master Frev tr un n
+16.410000	10153   SX.RF1-5-3 05610     SFTPRO1    SIX.F1KFO-CT 05000   0.610000 ;mountain range tr un start
+16.501000	10226   SX.RF2-2-6 05701     SFTPRO1      SIX.F1K-CT 05000   0.701000 ;RF Synchro injection phase str
+16.503000	10214   SX.RF2-1-4 05703     SFTPRO1      SIX.F1K-CT 05000   0.703000 ;RF Synchro bucket selector tr 
+16.630000	10318   SX.RF3-1-8 05830     SFTPRO1    SIX.F1KFO-CT 05000   0.830000 ;TWC800 tr un resynch
+16.630000	10462   SX.RF4-6-2 05830     SFTPRO1    SIX.F1KFO-CT 05000   0.830000 ;TWC200 Frev MPX tr un resync
+16.630000	10536   SX.RF5-3-6 05830     SFTPRO1    SIX.F1KFO-CT 05000   0.830000 ;TWC200 Vrf &amp; phis meas sta
+16.630000	10796   SX.RF7-9-6 05830     SFTPRO1    SIX.F1KFO-CT 05000   0.830000 ;tdamper burst start md
+16.700000	10242   SX.RF2-4-2 05900     SFTPRO1    SIX.F1KFO-CT 05000   0.900000 ;diagnostic counter trigger
+16.755000	10742   SX.RF7-4-2 05955     SFTPRO1      SIX.F1K-CT 05000   0.955000 ;tdamper UMB H-A &amp; H-B next
+16.755000	10746   SX.RF7-4-6 05955     SFTPRO1      SIX.F1K-CT 05000   0.955000 ;tdamper UMB V-A &amp; V-B next
+16.775000	10498   SX.RF4-9-8 05975     SFTPRO1    SIX.F1KFO-CT 05000   0.975000 ;sampling tr un next
+16.780000	10446   SX.RF4-4-6 05980     SFTPRO1    SIX.F1KFO-CT 05000   0.980000 ;TWC200 all fedback on
+16.795000	10154   SX.RF1-5-4 05995     SFTPRO1      SIX.F1K-CT 05000   0.995000 ;mountain range tr un next 1
+16.795000	10648   SX.RF6-4-8 05995     SFTPRO1    SIX.F1KFO-CT 05000   0.995000 ;BCT receiver reset
+16.795000	10756   SX.RF7-5-6 05995     SFTPRO1    SIX.F1KFO-CT 05000   0.995000 ;tdamper h2 on opera
+16.795000	10762   SX.RF7-6-2 05995     SFTPRO1    SIX.F1KFO-CT 05000   0.995000 ;tdamper v1 on opera
+16.795000	10766   SX.RF7-6-6 05995     SFTPRO1    SIX.F1KFO-CT 05000   0.995000 ;tdamper v2 on opera
+16.798000	10206   SX.RF2-0-6 05998     SFTPRO1      SIX.F1K-CT 05000   0.998000 ;RF Synchro injection window op
+16.799000	10163   SX.RF1-6-3 05999     SFTPRO1      SIX.W20-CT 05980   0.019000 ;new mountain range 2 next 2
+16.799000	10563   SX.RF5-6-3 05999     SFTPRO1    SIX.F1KFO-CT 05000   0.999000 ;scope DTU next (RA9611,T)

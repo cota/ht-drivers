@@ -1,0 +1,34 @@
+% Keywords are...
+%
+% {         Begin declaration
+%
+%   PTIM    Begin a PTIM timing entry
+% { PTIM    <equip> <module> <counter> }
+%
+%   CTIM    Begin a CTIM trigger specification with optional wildcard
+% { CTIM    <equip> [<wildcard>] }
+%
+%   TRIG    Begin a TRIG telegram specification
+% { TRIG    <machine> <condition> <group> <groupvalue> }
+%
+%   CONF    Begin a CONF counter specification
+% { CONF    <enable> <start> <mode> <clock> <delay> <pulsewidth> }
+%
+% }         Close declaration and create equipment
+%
+% <equip>      ::= <Numeric Value>
+% <module>     ::= <Numeric Value> [1..<installed modules>]
+% <counter>    ::= <Numeric Value> [1..8]
+% <wildcard>   ::= <Numeric Value> [0..0xFFFF]
+% <machine>    ::= LHC|SPS|CPS|PSB|LEI|ADE
+% <condition>  ::= NO_CHECK|EQUALS|AND
+% <group>      ::= <Group name>|<Numeric Value>
+% <groupvalue> ::= <Numeric Value>
+% <enable>     ::= ENABLE|DISABLE
+% <start>      ::= NORMAL|EXT1|EXT2|CHAINED|SELF|REMOTE
+% <mode>       ::= NORMAL|MULTIPLE|BURST
+% <clock>      ::= KHZ1|MHZ10|MHZ40|EXT1|EXT2|CHAINED
+% <delay>      ::= <Numeric Value>
+% <pulsewidth> ::= <Numeric Value> [0..0x3FFFFF]
+
+

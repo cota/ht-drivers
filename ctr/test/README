@@ -1,0 +1,8 @@
+Run COMPILE_TEST to build VME and PCI versions of the test
+programs ctrvtest and ctrptest for the L864/L865 platforms.
+This also builds CtrClock Lookat etc, the binaries are stored
+in the /dsrc/drivers/coht/ctr/object_CTR directory
+
+This script can only run on an SLC5 system.
+
+Julian

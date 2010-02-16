@@ -1,0 +1,79 @@
+echo Launch SPS Super-Cycle video display
+
+/mcr/tgm/video SPS &
+
+echo Build SPS AqLog file in /tmp/Aqlog.txt
+
+echo Cleaning up old files
+
+rm -f /ps/dsc/sps/cfv-ba3-ctsrf1/tmp/AqLog
+rm -f /ps/dsc/sps/cfv-ba3-ctsrf2/tmp/AqLog
+rm -f /ps/dsc/sps/cfv-ba3-ctsrf3/tmp/AqLog
+rm -f /ps/dsc/sps/cfv-ba3-ctsrf4/tmp/AqLog
+rm -f /ps/dsc/sps/cfv-ba3-ctsrf5/tmp/AqLog
+rm -f /ps/dsc/sps/cfv-ba3-ctsrf6/tmp/AqLog
+rm -f /ps/dsc/sps/cfv-ba2-ctsrf1/tmp/AqLog
+rm -f /ps/dsc/sps/cfv-ba3-ireph1/tmp/AqLog
+rm -f /tmp/AqLog
+rm -f /tmp/AqLog.txt
+
+echo Launching jobs on RF front ends
+
+echo Start acquisitions on cfv-ba3-ctsrf1
+ssh -f -x cfv-ba3-ctsrf1 "echo aqlog q | /usr/local/ces/ctr/ctrvtest > /dev/null"
+
+echo Start acquisitions on cfv-ba3-ctsrf2
+ssh -f -x cfv-ba3-ctsrf2 "echo aqlog q | /usr/local/ces/ctr/ctrvtest > /dev/null"
+
+echo Start acquisitions on cfv-ba3-ctsrf3
+ssh -f -x cfv-ba3-ctsrf3 "echo aqlog q | /usr/local/ces/ctr/ctrvtest > /dev/null"
+
+echo Start acquisitions on cfv-ba3-ctsrf4
+ssh -f -x cfv-ba3-ctsrf4 "echo aqlog q | /usr/local/ces/ctr/ctrvtest > /dev/null"
+
+echo Start acquisitions on cfv-ba3-ctsrf5
+ssh -f -x cfv-ba3-ctsrf5 "echo aqlog q | /usr/local/ces/ctr/ctrvtest > /dev/null"
+
+echo Start acquisitions on cfv-ba3-ctsrf6
+ssh -f -x cfv-ba3-ctsrf6 "echo aqlog q | /usr/local/ces/ctr/ctrvtest > /dev/null"
+
+echo Start acquisitions on cfv-ba2-ctsrf1
+ssh -x cfv-ba2-ctsrf1 "echo aqlog q | /usr/local/ces/ctr/ctrvtest > /dev/null"
+
+echo Start acquisitions on cfv-ba3-ireph1
+ssh -x cfv-ba3-ireph1 "echo aqlog q | /usr/local/ces/ctr/ctrvtest > /dev/null"
+
+echo Start acquisitions on cfv-ba3-allfo1
+ssh -x cfv-ba3-allfo1 "echo aqlog q | /usr/local/ces/ctr/ctrptest > /dev/null"
+
+echo Waiting for NFS Sync
+sleep 60
+
+chmod 666 /ps/dsc/sps/cfv-ba3-ctsrf1/tmp/AqLog
+chmod 666 /ps/dsc/sps/cfv-ba3-ctsrf2/tmp/AqLog
+chmod 666 /ps/dsc/sps/cfv-ba3-ctsrf3/tmp/AqLog
+chmod 666 /ps/dsc/sps/cfv-ba3-ctsrf4/tmp/AqLog
+chmod 666 /ps/dsc/sps/cfv-ba3-ctsrf5/tmp/AqLog
+chmod 666 /ps/dsc/sps/cfv-ba3-ctsrf6/tmp/AqLog
+chmod 666 /ps/dsc/sps/cfv-ba2-ctsrf1/tmp/AqLog
+chmod 666 /ps/dsc/sps/cfv-ba3-ireph1/tmp/AqLog
+chmod 666 /ps/dsc/sps/cfv-ba3-allfo1/tmp/AqLog
+
+echo Sorting and combining files
+
+sort -o /tmp/AqLog -n /ps/dsc/sps/cfv-ba3-ctsrf1/tmp/AqLog \
+		      /ps/dsc/sps/cfv-ba3-ctsrf2/tmp/AqLog \
+		      /ps/dsc/sps/cfv-ba3-ctsrf3/tmp/AqLog \
+		      /ps/dsc/sps/cfv-ba3-ctsrf4/tmp/AqLog \
+		      /ps/dsc/sps/cfv-ba3-ctsrf5/tmp/AqLog \
+		      /ps/dsc/sps/cfv-ba3-ctsrf6/tmp/AqLog \
+		      /ps/dsc/sps/cfv-ba2-ctsrf1/tmp/AqLog \
+		      /ps/dsc/sps/cfv-ba3-ireph1/tmp/AqLog \
+		      /ps/dsc/sps/cfv-ba3-allfo1/tmp/AqLog
+
+cat /dsrc/drivers/ctr/ctrvme/test/AqLogHdr /tmp/AqLog > /tmp/AqLog.txt
+
+chmod 666 /tmp/AqLog
+chmod 666 /tmp/AqLog.txt
+
+echo Done /tmp/AqLog.txt created

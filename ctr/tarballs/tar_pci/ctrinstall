@@ -1,0 +1,15 @@
+#!/bin/sh
+echo Installing CTR[p/i] driver...
+# echo 8 > /proc/sys/kernel/printk
+/sbin/insmod ctrp.ko debug=0 recover=0 modules=1 infoaddr=0
+
+MAJOR=`cat /proc/devices | awk '{if ($2 == "ctrp") printf $1}'`
+echo Making nodes for ${MODULE} major device ctr ${MAJOR}
+if [ -z "$MAJOR" ]; then
+        echo "driver ctr not installed !"
+        exit 2
+fi
+for m in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do \
+        rm -f /dev/ctr.$m; \
+        /bin/mknod  -m 0666 /dev/ctr.$m c ${MAJOR} $m; \
+done

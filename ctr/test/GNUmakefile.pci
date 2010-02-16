@@ -1,0 +1,38 @@
+#================================================================
+# Makefile to produce standard CTR-P test program
+#================================================================
+
+vpath %.c .
+vpath %.h .
+
+CPU=L865
+
+include /ps/dsc/src/co/Make.auto
+
+CFLAGS= -g -Wall -I/ps/local/$(CPU)/include/tgm -I../driver_pci -I../common_pci_vme -I. \
+	-I../driver_pci/linux -DCTR_PCI -DPS_VER -DEMULATE_LYNXOS_ON_LINUX
+
+LDLIBS= -ltgm -lvmtg -ltgv -lerr -lerr_dummy -lX11 -lm
+
+ALL  = ctrptest.$(CPU) ctrptest.$(CPU).o
+
+SRCS = ctrtest.c CtrCmds.c CtrOpen.c DoCmd.c GetAtoms.c Cmds.c plx9030.c
+HDRS = Cmds.h
+
+TEST = ctrtest.c CtrCmds.c CtrOpen.c DoCmd.c GetAtoms.c Cmds.c plx9030.c
+
+all: $(ALL)
+
+clean:
+	$(RM) $(ALL) $(BAKS)
+
+# Run on Workstation only
+
+ctrptest.$(CPU).o: $(TEST) $(HDRS)
+
+install:
+
+install: ctrptest.$(CPU)
+	dsc_install ctrptest.$(CPU) /acc/dsc/lab/$(CPU)/ctr
+	dsc_install ctrptest.$(CPU) /acc/dsc/oper/$(CPU)/ctr
+	dsc_install ctrptest.$(CPU) /acc/dsc/oplhc/$(CPU)/ctr

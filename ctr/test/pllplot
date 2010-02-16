@@ -1,0 +1,10 @@
+set auto
+plot "/dsc/local/data/err" with line
+pause -1 "PLL Error curve"
+set auto
+plot "/dsc/local/data/sum" with line
+pause -1 "PLL Integrator curve"
+set auto
+plot "/dsc/local/data/dac" with line
+pause -1 "PLL DAC curve"
+exit

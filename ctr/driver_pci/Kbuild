@@ -1,0 +1,30 @@
+###############################################################################
+# @file Kbuild
+#
+# @brief Specific kbuild
+#
+# @author Yury GEORGIEVSKIY. CERN BE/CO
+#
+# @date Created on 17/04/2009
+###############################################################################
+INC = /acc/src/dsc/drivers/coht/include
+COMMON_CTR_DIR = ./../common_pci_vme
+
+# Not using [ccflags-y] _ONLY_ to be able to compile with 2.6.9
+# [ccflags-y] should be used when 2.6.9 is not used anymore
+EXTRA_CFLAGS = \
+	-Wno-strict-prototypes \
+	-DCTR_PCI \
+	-DEMULATE_LYNXOS_ON_LINUX \
+	-DHARD_FLOAT \
+	-mhard-float \
+	-I$(INC) \
+	-I$(M)/$(COMMON_CTR_DIR)
+
+#  Use XTRA_DRSC to add driver files to compile from other
+#+ than ./driver directories
+XTRA_DSRC = $(addprefix $(M)/$(COMMON_CTR_DIR)/, \
+	       DrvrSpec.c EmulateLynxOs.c ModuleLynxOs.c cdcmSem.c)
+
+# include general kbuild
+include $(M)/../../makefiles/Kbuild.linux

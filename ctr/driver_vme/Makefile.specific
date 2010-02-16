@@ -1,0 +1,24 @@
+# Driver name
+DRIVER_NAME = CTRV
+
+# If driver is using skeleton
+IS_SKEL = n
+
+# If drier is CDCM compliant
+IS_CDCM = n
+
+# This is VME driver
+CONFIG_BUS_VME = y
+
+# We are not using basic Driver Utils
+#USE_UTILS = y
+
+# Extra Driver Utils features
+USE_XML = y
+
+# TODO use common plx9030 code for ctr
+#USE_PLX9030 = y
+
+#  Need to be redefined, as driver is hosted in directory with non-standard
+#+ name (standard is 'driver')
+DRVR_DIR = driver_vme

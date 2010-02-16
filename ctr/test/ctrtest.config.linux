@@ -1,0 +1,33 @@
+
+;File name             ;Location of File            ;Comment
+
+Ctr.info               /tmp/                        ;PTIM definitions
+Ctr.eprom              /usr/local/ctr/              ;PLX9030 Flash eprom setup
+Ctr.hptdc.setup        /tmp/                        ;HPTDC Setup scratch pad
+Ctr.hptdc.setup.1      /usr/local/ctr/              ;HPTDC Setup for CTR initialization
+Ctr.hptdc.control      /tmp/                        ;HPTDC Control scratch pad
+Ctr.hptdc.control.1    /usr/local/ctr/              ;HPTDC Control first setting setup
+Ctr.hptdc.control.2    /usr/local/ctr/              ;HPTDC Control second setting setup
+Ctr.hptdc.control.3    /usr/local/ctr/              ;HPTDC Control third setting setup
+Ctr.hptdc.control.4    /usr/local/ctr/              ;HPTDC Control fourth setting setup
+Ctr.hptdc.control.5    /usr/local/ctr/              ;HPTDC Control fith setting setup
+ctr_news               /usr/local/ctr/              ;News about CTR driver, hardware and stuff
+Ctrp.xsvf              /usr/local/ctr/              ;FPGA configuration for CTR-PMC card
+Ctri.xsvf              /usr/local/ctr/              ;FPGA configuration for CTR-PCI card
+Ctrv.xsvf              /usr/local/ctr/              ;FPGA configuration for CTR-VME card
+CtrReadInfo            /usr/local/ctr/              ;Program to read Ctr.info and create PTIMs
+CtrWriteInfo           /usr/local/ctr/              ;Program to write Ctr.info from PTIMs
+Ctr.info.hlp           /usr/local/ctr/              ;Explains Ctr.info syntax
+CtrClock               /usr/local/ctr/              ;Clock application tests UTC and PPS interrupts
+CtrLookat              /usr/local/ctr/              ;Lookat an interrupt like PTIM, CTIM, or hardware
+e                      /usr/local/bin/              ;RAND Editor
+vi                     /bin/                        ;VI Editor
+nedit                  /usr/bin/X11/                ;NEDIT X-Window Editor
+emacs                  /usr/local/bin/              ;EMACS Editor
+video                  /usr/local/bin/              ;Displays telegrams
+pllplot                /usr/local/ctr/              ;Plot instructions for PLL plot
+Vhdl.versions          /usr/local/ctr/              ;Latest VHDL version numbers
+CtrVhdlUpdateRequired  /dsc/data/ctr/               ;Modules needing VHDL update
+ltim.obnames           /tmp/                        ;Names of ltims
+TimLookat              /usr/local/bin/              ;Look at a timing with timlib
+AqLog                  /tmp/                        ;Acquisition log file

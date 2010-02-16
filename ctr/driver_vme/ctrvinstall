@@ -1,0 +1,20 @@
+#!/bin/sh
+
+echo "======================================================="
+echo "install CTRV driver ../ctrv/ctrv.ko                    "
+echo "install modules=1 (1 module will auto install)         "
+echo "install infoaddr=0 (No xml file will be used)          "
+echo "install This is a light weight installer for tests only"
+echo "======================================================="
+
+echo 8 > /proc/sys/kernel/printk
+
+/sbin/insmod ../ctrv/ctrv.ko debug=0 recover=0 modules=1 infoaddr=0
+
+MAJOR=`cat /proc/devices | awk '{if ($2 == "ctr") printf $1}'`
+#echo Making nodes for ${MODULE} major device ctr ${MAJOR}
+
+for m in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do \
+	rm -f /dev/ctr.$m; \
+	mknod  -m 0666 /dev/ctr.$m c ${MAJOR} $m; \
+done

@@ -1,0 +1,12 @@
+The tarballs are built from sources the commonn sources.
+Each tar directory has a src subdirectory, the sources are copied
+by using the shell scripts here.
+Because these tarballs are "stand alone" we also keep an RCS backup.
+
+To build the sources
+1) cd to src in the tarball
+2) co -l RCS/*
+3) cd to here
+4) run the script that copies the sources to src
+5) cd back to src
+6) ci RCS/*

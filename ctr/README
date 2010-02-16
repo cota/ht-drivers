@@ -1,0 +1,16 @@
+There are three bz2 archives that are derrived from the tarballs directory.
+The tarballs are stand alone and can be used by people outside CERN or the control system
+To build a tarball cd into tarballs and type
+tar -cjf <out file>.bz2 <directory>
+Then move the result to where you want it.
+
+For the latest control system versions go to the appropriate directory and
+make CPU=L865 KVER=<what ever kernel version>
+make CPU=L865 KVER=<what ever kernel version> deliver lab/oper/oplhc
+
+Obviously you should be very carfull installing a modified driver.
+
+The ctr-linux.bz2 is a tar of this entire directory
+
+
+Julian
