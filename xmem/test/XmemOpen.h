@@ -2,7 +2,7 @@
 /* Open the Ctr driver                                                    */
 /**************************************************************************/
 
-#include "../driver/xmemDrvr.h"
+#include <xmemDrvr.h>
 
 int XmemOpen() {
 

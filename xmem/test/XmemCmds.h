@@ -7,10 +7,10 @@
 #include "iofield.h"
 
 #include "../driver/vmic5565_layout.h"
-#include "vmic5565.c"
+#include "vmic5565.h"
 #include "../../include/plx9656_layout.h"
-#include "plx9656.c"
-#include "../driver/xmemDrvr.h"
+#include "plx9656.h"
+#include <xmemDrvr.h>
 #include <sys/mman.h>
 
 static int module = 1;

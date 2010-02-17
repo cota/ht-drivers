@@ -1,31 +1,32 @@
 ###############################################################################
 # @file Makefile.specific
 #
-# @brief Specific xmem settings
+# @brief TEMPLATE. Specific driver description
 #
-# @author Yury GEORGIEVSKIY. CERN AB/CO
+# @author Yury GEORGIEVSKIY, CERN.
 #
-# @date Created on 14/01/2009
+# Should be adapted for a specific driver
+# @e NOTE
+# Makefile.specific from the current directory suppressing one from ../
+# directory (see 'ctr' driver for example).
 #
-# <long description>
-#
-# @version
+# @date Created on 29/04/2009
 ###############################################################################
 
-# Driver name
+# Driver (Module) name. Comming from the DB. Will be converted to lowercase.
 DRIVER_NAME = XMEMN
-
-# Driver type
-CONFIG_BUS_PCI = y
 
 # If this driver is using skeleton (y/n)
 IS_SKEL = n
 
-# CDCM?
+# If driver is CDCM compliant
 IS_CDCM = y
 
-# do not use extest
-USE_EXTEST = n
+# If driver is VME one (valid only if IS_CDCM = y)
+CONFIG_BUS_VME = n
+
+# If driver is PCI/PMC one (valid only if IS_CDCM = y)
+CONFIG_BUS_PCI = y
 
 # If driver will use extra handy utils (load info file etc...)
 USE_UTILS = y
@@ -33,4 +34,61 @@ USE_UTILS = y
 # If driver will use libinst library to get configuration from XML file
 USE_XML = y
 
-INCDIRS += /acc/src/dsc/drivers/coht/.__kitchen/egarciac
+# If test program is using extended test program?
+USE_EXTEST = n
+
+# If driver has plx9030 and wants to use its standart operations
+USE_PLX9030 = n
+
+# If driver has plx9656 and wants to use its standart operations
+USE_PLX9656 = n
+
+# Driver library will always be compiled as .a library.
+# Say 'y' -- if you want driver library also to be compiled as an
+# archive (.a) and a shared object library (.so)
+# Say 'n' -- if you want only .a library
+COMPILE_LIB_SHARED = n
+
+# If needed, add extra directories that should be compiled
+# during driver framework compilation.
+# SUBDIRS +=
+
+# You can change ROOTDIR to locate your own path with cdcm, skel, utils etc..
+#  It *should* be a relative path, starting from driver framework directory
+#+ (one with driver/ test/ include/ lib/) up to the directory, where cdcm/,
+#+ skel/, utils/ etc... is nested.
+# ROOTDIR =
+
+# TODO. To be removed.
+# As whole coht is under git -- CDCM is always in a standart tree.
+#
+#  If you want to compile with CDCM that is _not_ in the ROOTDIR
+#+ (i.e. out-of-standart-tree) - you _SHOULD_ set CDCM_D in the COMMAND LINE!
+#+ See 'out-of-tree-cdcm' file on howto do this.
+# CDCM_D =
+
+#  You can redefine FINAL_DEST to deliver compiled object to other then
+#+ ../object_<drvr_name> dir. Prefix ../ is always added to it.
+# FINAL_DEST =
+
+# To change driver src directory from standart one (driver)
+# DRVR_DIR =
+
+#  To override standard kernel dir location
+#+ Allows ut to compile with local kernels
+# KSRC =
+
+# Compile for kernel other then default one
+# KVER =
+
+# Choose CPU
+# CPU =
+
+# Extra include dir for the library
+ADDINCLUDES = -I/dsrc/drivers/symp/driver
+
+# User-defined name for the test program.
+# Use it to change test program name.
+# $(TEST_PROG_NAME).c should present in test/ directory!
+# <driver-name>Test is used as a default one.
+TEST_PROG_NAME = xmemtest

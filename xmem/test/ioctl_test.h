@@ -22,7 +22,7 @@
 #include <sys/ioctl.h>
 #include <sys/file.h>
 
-#include "../driver/xmemDrvr.h"
+#include <xmemDrvr.h>
 
 int clock_gettime(clockid_t clock_id, struct timespec *tp);
 
