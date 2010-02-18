@@ -27,11 +27,12 @@ LOADLIBES  := $(addprefix -L,$(XTRALIBDIRS)) $(LOADLIBES) -lutils.$(CPU) \
 		-lxml2 -lz -ltermcap
 
 # Get all local libs (in object_ directory) user wants to compile with
-LOCAL_LIBS = $(patsubst ../$(FINAL_DEST)/lib%.a, -l%, $(wildcard ../$(FINAL_DEST)/*.$(CPU).a))
-XTRALIBS   = -lreadline
-LDLIBS     = \
-	   $(LOCAL_LIBS) \
-	   $(XTRALIBS)
+LOCAL_LIBS += $(patsubst ../$(FINAL_DEST)/lib%.a, -l%, $(wildcard ../$(FINAL_DEST)/*.$(CPU).a))
+XTRALIBS += -lreadline
+
+LDLIBS = \
+	$(LOCAL_LIBS) \
+	$(XTRALIBS)
 
 SRCFILES = $(wildcard *.c)
 
