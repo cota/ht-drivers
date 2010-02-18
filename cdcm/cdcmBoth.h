@@ -51,15 +51,11 @@
 #define cdcm_ms_to_ticks(x) ((x) * HZ / 1000)
 
 /*
- * CDCM Spinlocks: wrap Linux' spinlocks and rwlocks.
+ * CDCM Spinlocks: wrap Linux' spinlocks
  */
 typedef struct {
 	spinlock_t lock;
 } cdcm_spinlock_t;
-
-typedef struct {
-	rwlock_t rwlock;
-} cdcm_rwlock_t;
 
 #define cdcm_spin_lock_init(cdcm) spin_lock_init(&(cdcm)->lock)
 
@@ -71,49 +67,6 @@ typedef struct {
 
 #define __CDCM_SPINLOCK_UNLOCKED(name) {			\
 		.lock = __SPIN_LOCK_UNLOCKED(name.lock), }
-
-#define cdcm_rwlock_init(cdcm) rwlock_init(&(cdcm)->rwlock)
-
-#define __CDCM_RW_LOCK_UNLOCKED(name) {				\
-		.rwlock = __RW_LOCK_UNLOCKED(name.rwlock), }
-/*
- * in {read,write}_lock, use flags as a dummy value ('flags' is needed by Lynx)
- */
-#define cdcm_read_lock(cdcm, flags)		\
-	do {					\
-		read_lock(&(cdcm)->rwlock);	\
-		flags = 1;			\
-	} while (0)
-
-#define cdcm_read_unlock(cdcm, flags)		\
-	do {					\
-		flags = 0;			\
-		read_unlock(&(cdcm)->rwlock);	\
-	} while (0)
-
-#define cdcm_write_lock(cdcm, flags)		\
-	do {					\
-		write_lock(&(cdcm)->rwlock);	\
-		flags = 1;			\
-	} while (0)
-
-#define cdcm_write_unlock(cdcm, flags)		\
-	do {					\
-		flags = 0;			\
-		write_unlock(&(cdcm)->rwlock);	\
-	} while (0)
-
-#define cdcm_read_lock_irqsave(cdcm, flags)			\
-		read_lock_irqsave(&(cdcm)->rwlock, flags)
-
-#define cdcm_read_unlock_irqrestore(cdcm, flags)		\
-		read_unlock_irqrestore(&(cdcm)->rwlock, flags)
-
-#define cdcm_write_lock_irqsave(cdcm, flags)			\
-		write_lock_irqsave(&(cdcm)->rwlock, flags)
-
-#define cdcm_write_unlock_irqrestore(cdcm, flags)		\
-		write_unlock_irqrestore(&(cdcm)->rwlock, flags)
 
 /*
  * Mutexes: wrap Linux' mutexes
@@ -162,7 +115,7 @@ struct cdcm_mutex {
 #define cdcm_ms_to_ticks(x) ((x) * TICKSPERSEC / 1000)
 
 /*
- * CDCM Spinlocks: mimic Linux' spinlocks and rwlocks.
+ * CDCM Spinlocks: mimic Linux' spinlocks
  * In Lynx, we just use the only available primitives (disable/restore)
  * We use 'int foo' in Lynx to avoid compiler warnings (i.e. unused struct)
  */
@@ -170,10 +123,6 @@ typedef struct {
 	/* no individual locks in LynxOS */
 	int foo;
 } cdcm_spinlock_t;
-
-typedef struct {
-	int foo;
-} cdcm_rwlock_t;
 
 /*
  * Note: foo is just used to actually do something on the struct,
@@ -205,21 +154,6 @@ typedef struct {
 #define cdcm_spin_lock_irqsave(cdcm, flags)	  _lynx_lock(cdcm, flags)
 #define cdcm_spin_unlock_irqrestore(cdcm, flags)  _lynx_unlock(cdcm, flags)
 
-#define cdcm_rwlock_init(cdcm)		_lynx_lock_init(cdcm)
-#define __CDCM_RW_LOCK_UNLOCKED(x)	__CDCM_SPINLOCK_UNLOCKED(x)
-
-#define cdcm_read_lock_irqsave(cdcm, flags)	   _lynx_lock(cdcm, flags)
-#define cdcm_read_unlock_irqrestore(cdcm, flags)  _lynx_unlock(cdcm, flags)
-
-#define cdcm_write_lock_irqsave(cdcm, flags)	   _lynx_lock(cdcm, flags)
-#define cdcm_write_unlock_irqrestore(cdcm, flags) _lynx_unlock(cdcm, flags)
-
-#define cdcm_read_lock(cdcm, flags)	_lynx_lock(cdcm, flags)
-#define cdcm_read_unlock(cdcm, flags)	_lynx_unlock(cdcm, flags)
-
-#define cdcm_write_lock(cdcm, flags)	_lynx_lock(cdcm, flags)
-#define cdcm_write_unlock(cdcm, flags)	_lynx_unlock(cdcm, flags)
-
 /*
  * Mutexes: make them Linux-like, calling ssignal/swait in Lynx
  */
@@ -245,8 +179,6 @@ struct cdcm_mutex {
 
 #define CDCM_DEFINE_SPINLOCK(x) \
 		cdcm_spinlock_t x = __CDCM_SPINLOCK_UNLOCKED(x)
-#define CDCM_DEFINE_RWLOCK(x) \
-		cdcm_rwlock_t x = __CDCM_RW_LOCK_UNLOCKED(x)
 /* statically define a mutex */
 #define CDCM_MUTEX(x) struct cdcm_mutex x = __CDCM_MUTEX_INIT(x)
 
