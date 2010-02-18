@@ -83,3 +83,11 @@ COMPILE_LIB_SHARED = n
 
 # Choose CPU
 # CPU =
+
+# Add extra include directories for the library
+# (Ex: -I/acc/src/dsc/drivers/ctr etc.)
+# ADDINCLUDES =
+
+# Extra libraries, needed by the test program
+# (Ex: -ltgm -lgm etc.)
+# LOCAL_LIBS =
