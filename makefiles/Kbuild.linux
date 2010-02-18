@@ -7,31 +7,6 @@
 #
 # @date Created on 08/04/2009
 #
-# @note For developers @e only. To work && test git branches - use .__kitchen
-#       directory with your username inside.
-#
-# @b example
-#    Let's say you want to work on your own CDCM branch. What should be done is:
-#      1. -> cd .__kitchen/<usrname>
-#
-#      2. -> git-clone ../../cdcm
-#
-#      3. Do modifications in the cloned CDCM
-#         (for example in __kitchen/ygeorgie/cdcm)
-#
-#      4. Recompile your local copy of CDCM for desired kernel version
-#	  -> make KVER=2.6.29.1-rt7
-#
-#      5. Check if your driver is still working with it.
-#         To do this - cd to the driver dir.
-#         4.1. -> cd coht/nulldrvr/driver
-#         4.2 compile with local CDCM. Example:
-#             make clean CPU=L865;
-#             make CPU=L865 \
-#	      CDCM_D=/acc/src/dsc/drivers/coht/.__kitchen/ygeorgie/cdcm
-#
-#      6. Commit changes in the main CDCM branch:
-#         -> git-commit
 ###############################################################################
 
 # Include specific Makefile to get driver configuraion settings
@@ -48,15 +23,8 @@ include $(ROOTDIR)/makefiles/Kbuild.include
 # Ensure lowecase drivername
 DRIVER_NAME := $(shell echo $(DRIVER_NAME) | tr "[:upper:]" "[:lower:]")
 
-# User can compile with his own version of CDCM
-ifeq ("$(origin CDCM_D)", "command line")
-	CDCM_INC_DIR := $(shell echo "$(CDCM_D)" | sed -e 's:\([^/]\)$$:\1/:g' | sed -e 's:\(/.*/\).*/$$:\1:g')
-else
-	CDCM_INC_DIR := $(ROOTDIR)
-endif
-
-# User can provide it's own CDCM directory
-CDCM_D ?= $(ROOTDIR)/cdcm
+CDCM_INC_DIR := $(ROOTDIR)
+CDCM_D       := $(ROOTDIR)/cdcm
 
 # Do relative pathes
 CDCM_D_REL := $(call abs2rel, $(CDCM_D)/$(CPU)/$(KVER)/, $(M)/)
