@@ -7,7 +7,7 @@
 #
 # @date Created on 17/04/2009
 ###############################################################################
-INC = /acc/src/dsc/drivers/coht/include
+INC = $(ROOTDIR)/include
 COMMON_CTR_DIR = ./../common_pci_vme
 
 # Not using [ccflags-y] _ONLY_ to be able to compile with 2.6.9
@@ -27,4 +27,5 @@ XTRA_DSRC = $(addprefix $(M)/$(COMMON_CTR_DIR)/, \
 	       DrvrSpec.c EmulateLynxOs.c ModuleLynxOs.c cdcmSem.c)
 
 # include general kbuild
-include $(M)/../../makefiles/Kbuild.linux
+#include $(M)/../../makefiles/Kbuild.linux
+include $(ROOTDIR)/makefiles/Kbuild.linux

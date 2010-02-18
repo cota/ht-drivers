@@ -22,3 +22,5 @@ USE_XML = y
 #  Need to be redefined, as driver is hosted in directory with non-standard
 #+ name (standard is 'driver')
 DRVR_DIR = driver_vme
+
+CPU = L865
