@@ -723,6 +723,61 @@ static void vme_optimize_window_size(struct vme_mapping *desc)
 	desc->vme_addrl = 0;
 }
 
+static int vme_mapping_sanity_check(const struct vme_mapping *mapping)
+{
+	unsigned int vme_addru = mapping->vme_addru;
+	unsigned int vme_addrl = mapping->vme_addrl;
+	unsigned int err = 0;
+
+	switch (mapping->am) {
+	case VME_A16_USER:
+	case VME_A16_LCK:
+	case VME_A16_SUP:
+		if (vme_addru || vme_addrl & ~0xffff)
+			err = 16;
+		break;
+	case VME_A24_USER_MBLT:
+	case VME_A24_USER_DATA_SCT:
+	case VME_A24_USER_PRG_SCT:
+	case VME_A24_USER_BLT:
+	case VME_A24_SUP_MBLT:
+	case VME_A24_SUP_DATA_SCT:
+	case VME_A24_SUP_PRG_SCT:
+	case VME_A24_SUP_BLT:
+		if (vme_addru || vme_addrl & ~0xffffff)
+			err = 24;
+		break;
+	case VME_A32_LCK:
+	case VME_A32_USER_MBLT:
+	case VME_A32_USER_DATA_SCT:
+	case VME_A32_USER_PRG_SCT:
+	case VME_A32_USER_BLT:
+	case VME_A32_SUP_MBLT:
+	case VME_A32_SUP_DATA_SCT:
+	case VME_A32_SUP_PRG_SCT:
+	case VME_A32_SUP_BLT:
+		if (vme_addru)
+			err = 32;
+		break;
+	case VME_A40_SCT:
+	case VME_A40_LCK:
+	case VME_A40_BLT:
+		if (vme_addru & ~0xff)
+			err = 40;
+		break;
+	default:
+		break;
+	}
+
+	if (err) {
+		printk(KERN_ERR PFX "Error: 0x%08x %08x out of A%d range\n",
+			vme_addru, vme_addrl, err);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static int
 __vme_find_mapping(struct vme_mapping *match, int force, struct file *file)
 {
@@ -731,6 +786,10 @@ __vme_find_mapping(struct vme_mapping *match, int force, struct file *file)
 	struct window *window;
 	unsigned int offset;
 	struct vme_mapping wnd;
+
+	rc = vme_mapping_sanity_check(match);
+	if (rc)
+		return rc;
 
 	for (i = 0; i < TSI148_NUM_OUT_WINDOWS; i++) {
 		window = &window_table[i];
