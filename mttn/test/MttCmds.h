@@ -3,7 +3,13 @@
 /* Mon/25th/Sept/2006 Julian Lewis                                                */
 /* ****************************************************************************** */
 
+#ifdef __linux__
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#else  /* __Lynx__ */
+#include <ipc.h>
 #include <shm.h>
+#endif
 
 #include <tgm/tgm.h>
 #include <tgv/tgv.h>
@@ -1457,7 +1463,7 @@ MttDrvrTime t;
 #ifdef COMPILE_TIME
    t.Second = COMPILE_TIME;
    t.MilliSecond = 0;
-   printf("mtttest Compiled: [%u] %s\n",(int) t.Second,TimeToStr(&t,0));
+   printf("mtttest Compiled: [%u] %s\n",(int) t.Second,TimeToStr(&t));
 #else
    printf("mtttest Compiled: %s %s\n", __DATE__, __TIME__);
 #endif
