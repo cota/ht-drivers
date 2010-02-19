@@ -69,7 +69,11 @@ INCDIRS = \
 	../../utils/extest \
 	/acc/local/$(CPU)/include
 
-EXEC_OBJS = $(DRIVER_NAME)Test.$(CPU)
+ifeq ($(TEST_PROG_NAME),)
+	EXEC_OBJS = $(DRIVER_NAME)Test.$(CPU)
+else
+	EXEC_OBJS = $(TEST_PROG_NAME).$(CPU)
+endif
 
 $(EXEC_OBJS): $(OBJFILES)
 

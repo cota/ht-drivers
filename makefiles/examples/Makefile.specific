@@ -91,3 +91,9 @@ COMPILE_LIB_SHARED = n
 # Extra libraries, needed by the test program
 # (Ex: -ltgm -lgm etc.)
 # LOCAL_LIBS =
+
+# User-defined name for the test program.
+# Use it to change test program name.
+# $(TEST_PROG_NAME).c should present in test/ directory!
+# <driver-name>Test is used as a default one.
+# TEST_PROG_NAME =
