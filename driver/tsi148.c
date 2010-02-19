@@ -1207,10 +1207,7 @@ tsi148_dma_link_add(struct dma_channel *chan, struct tsi148_dma_desc **virt,
 			unsigned long bmask = tsi148_get_bmask(bsize);
 			unsigned int unaligned = vme & bmask;
 
-			if (unaligned)
-				len = unaligned;
-			else
-				len = bsize;
+			len = bsize - unaligned;
 		}
 
 		/* check the VME block won't overflow */
