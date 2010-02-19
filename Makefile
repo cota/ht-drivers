@@ -1,6 +1,12 @@
 SUBDIRS = \
 	utils \
 	cdcm \
-	icv196
+	lib \
+	vmod \
+	icv196 \
+	vd80 \
+	xmem \
+	mttn \
+	ctr
 
 include ./makefiles/Makefile.base
