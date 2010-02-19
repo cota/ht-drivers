@@ -1,0 +1,3 @@
+#!/bin/bash
+
+/dsrc/drivers/ctr/ctrvme/install/ctrvinstall.ppc4 -M0x0C00000 -X0x0100 -V0xB8 -L2 -object /acc/src/dsc/drivers/ctr/ctrvme/driver/ctrdrvr.ces.ppc4.o

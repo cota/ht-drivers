@@ -1,0 +1,14 @@
+#!/bin/bash
+
+ROOTDIR=/acc/src/dsc/drivers/coht
+
+# dmesg -n 8
+# see LDD3 p.77 for more info on console printout
+# really verbose console printout
+echo 8 > /proc/sys/kernel/printk
+
+# we need tsi driver
+cd ${ROOTDIR}/vmebridge/object_vmebus/; insmod vmebus.`uname -r`.ko; cd -
+
+# vd80
+${ROOTDIR}/utils/install/instprog.L865 VD80.xml VD80
