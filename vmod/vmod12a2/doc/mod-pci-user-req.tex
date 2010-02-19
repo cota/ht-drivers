@@ -1,0 +1,335 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=30mm]{geometry}
+\usepackage[obeyspaces]{url}
+\usepackage{times}
+\usepackage{paralist,fancyvrb}
+
+%\usepackage{url}
+
+\title{VMOD-12A2/16A2/12E16 \\
+		Software Support}
+\author{%
+	Juan David Gonz\'alez Cobas\\
+	CERN BE/CO/HT\\
+	\url{dcobas@cern.ch}}
+
+\DefineVerbatimEnvironment{proto}{Verbatim}{fontseries=b}
+\DefineShortVerb{\"}
+
+\setlength{\parskip}{3pt}
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+\maketitle
+
+% ----------------------------------------------------------------------
+\section{User Requirements}
+
+  This document is a preliminary specification of the intended software
+  support for MOD-PCI cards provided by the HT section.
+
+  A standard procedure is defined by HT for providing software
+  support for cards under our responsibility. We intend to follow it
+  entirely to carry out this work.
+
+% ----------------------------------------------------------------------
+\section{Deliverables}
+
+Our intended goal is to provide a short-term delivery schedule for
+supporting operation of mezzanines 
+\begin{compactitem}
+\item VMOD-12A2
+\item VMOD-16A2
+\item VMOD-12E16
+\item VMOD-TTL
+\end{compactitem}
+on board of a carrier MOD-PCI as soon as possible. To this end, 
+we offer
+
+\begin{compactitem}
+\item Linux kernel Driver
+\item User-space library to access the module
+\item Doxygen library documentation
+\item Driver and library test programs
+\item Code examples
+\end{compactitem}
+
+% ----------------------------------------------------------------------
+\section{Family of VMOD modules to be supported}
+
+Support is to be given for cards
+\begin{compactitem}
+    \item VMOD-12A2 
+	\begin{flushleft}
+	    \url{http://wikis/display/HT/VMOD-12A2+-+2+channel+analog+output+signals}
+	\end{flushleft}
+    \item VMOD-16A2 (not yet in Wiki)
+    \item VMOD-12E16 
+	\begin{flushleft}
+	    \url{https://wikis.cern.ch/display/HT/VMOD-12E8(16)+-+16+single+or+8+differential+channel+analog+input}
+	\end{flushleft}
+    \item VMOD-TTL
+	\begin{flushleft}
+	    \url{https://wikis.cern.ch/display/HT/VMOD-12E8(16)+-+16+single+or+8+differential+channel+analog+input}
+	\end{flushleft}
+\end{compactitem}
+plugged in a MOD-PCI carrier module.
+
+The features of this family of modules are summarized in
+table~\ref{table:features}. 
+
+In addition to what is shown there, VMOD-12E16 supplies
+\begin{compactitem}
+    \item programmable amplification factors 1, 2, 4, 8 
+	or 1, 10, 100, 1000.
+    \item linearity error max. $\pm 1/2$ LSB
+    \item gain error max. $\pm 1/2$ LSB at amplification factor 1
+    \item programmable interrupt on end-of-conversion
+\end{compactitem}
+and VMOD-TTL provides
+\begin{compactitem}
+    \item configurable input/output on a per-channel basis
+    \item 3 counter/timer
+    \item interrupt on bit pattern, edge or zero count
+\end{compactitem}
+
+\begin{table} \center
+\begin{tabular}{lrrrr}
+\hline  % ----------------------------------------
+                     &VMOD-12A2           &VMOD-16A2            & VMOD-12E16	  	&  VMOD-TTL  	\\
+\hline  % ----------------------------------------                                                              
+  Type               & DAC                & DAC                 &  ADC 			&  Generic I/O	\\
+  Channels           & 2                  &        2            &  1 (16 bit)  		&  3 (8+8+4 bit)	\\
+  Resolution         &       12           &       16            &  12  			&  n/a  			\\
+  Conversion time    &$10\mu s$           &   $9\mu$s           &  $15\mu$s  		&  n/a  		\\
+  Sampling rates     & 100 kHz            &  111 kHz            &  167 kHz 		&  n/a 		\\
+  Voltage ranges     &$\pm$10V, 0-10V     & $\pm5$V, 
+					    $\pm10$V, 0--10V    & $\pm5$V, 
+					    				$\pm10$V, 0--10V&  TTL (5V)  \\
+\hline	% ----------------------------------------
+\end{tabular}
+\caption{VMOD converter cards feature matrix}
+\label{table:features}
+\end{table}
+
+% ----------------------------------------------------------------------
+% ----------------------------------------------------------------------
+
+\section{Library API}
+
+The API for accessing our driver capabilities is provided by library
+"vmod_converters.so", and all definitions can be imported by including
+header file "vmod_converters.h"
+
+\subsection*{Temptative MOD-PCI Library API proposal}
+
+The support provided for the aforementioned card is \emph{only}
+at the library level, and library API calls for full access to the
+capabilities oferred by these cards are detailed in
+section~\ref{library:API}. However, there is a fine point about
+card adressing that needs to be mentioned here.
+
+The only details of interest about MOD-PCI programming are those
+concerning device location in PCI bus, carrier modules and slots
+inside each carrier. To meet this purpose, the API library 
+provides the following routine for mezzanine detection/identification,
+providing a handle for each one of them.
+
+\begin{proto}
+struct vmod_t *modpci_vmod_detect(struct vmod_t *mzcard);
+\end{proto}
+
+Provides a pointer to a "struct vmod_t" for the next available card
+in the family supported by this driver. 
+
+First call to this function
+should take a NULL argument; further calls with "mzcard" set 
+to the last  descriptor returned by "modpci_vmod_detect" return 
+consecutive descriptors of cards installed. 
+A NULL return value marks the end
+of the list of installed cards in the system. 
+
+Geographical addressing and type
+of card can be read from the fields of "struct vmod_t". This
+structure packs all information concerning a module (mezzanine
+installed in a carrier board), so it is in all respects equivalent
+to using a board LUN. In all API functions following, 
+the device subject of operation is referred to by a "struct vmod_t *"
+for ease of use.
+
+\begin{Verbatim}
+	struct vmod_t {
+		unsigned char   bus;
+		unsigned int    devfn;
+		unsigned int	slot;
+		unsigned int    lun;
+		enum card_t     type;
+	};
+\end{Verbatim}
+
+Possible card types returned in the "type" field are 
+\begin{compactitem}
+   \item "MOD_PCI_VMOD12A2" 
+   \item "MOD_PCI_VMOD16A2"
+   \item "MOD_PCI_VMOD12E16"
+\end{compactitem}
+with the obvious meanings.
+
+The field "lun" is for internal use of the library. Device
+identification is done throughout by passing
+"struct vmod_t *" pointers as returned by "modpci_vmod_detect".
+To any effect, this is equivalent to using LUNs.
+
+For ease of reference, a reverse lookup can be performed by means of
+
+\begin{proto}
+struct vmod_t *modpci_get_descriptor(
+	unsigned char bus, 
+	unsigned int devfn, 
+	unsigned int slot);
+\end{proto}
+
+Returns a reference to the module addressed by PCI address (bus, device
+and function), plus slot number. Returns NULL if the address does not
+refer to any module handled by the driver.
+
+% ----------------------------------------------------------------------
+\section{DAC/ADC Mezzanine Library API}
+\label{library:API}
+
+The drivers accessing the three aforementioned cards are split into
+three modules: 
+\begin{compactdesc}
+   \item[vmod\_12axx] for DAC cards VMOD-12A2 and VMOD-16A2
+   \item[vmod\_12e16] for ADC card VMOD-12E16
+   \item[vmod\_ttl] for 20-bit parallel I/O module VMOD-12E16
+\end{compactdesc}
+The rationale underlying this split is twofold: the operations required
+are quite different, and VMOD-12E16/VMOD-TTL can be interrupt-driven, which 
+leads to a richer operation of the driver.
+
+This is an implementation detail, however, and should not be 
+of concern for library users.
+
+We describe the proposed API for these cards according to this 
+organizational principle. 
+
+% ----------------------------------------------------------------------
+\subsection*{Notational convention}
+
+API functions related to a specific card bear the corresponding
+prefixes in their names, to wit: 
+"vmod12a2_", 
+"vmod16a2_",
+"vmod12e16_", amd
+"vmodttl_". 
+
+% ----------------------------------------------------------------------
+\subsection{VMOD-12A2 API}
+
+\begin{proto}
+int vmod12a2_convert(
+	struct vmod_t *mzcard, int channel,
+	int value);
+\end{proto}
+
+Perform a conversion of 12-bit integer "value" using channel 
+number "channel" (0 or 1) of 12A2 module with descriptor "mzcard". 
+
+Return~0 on success, negative otherwise.
+
+Note that only the lower 12 significant bits of "value" are
+used, higher bits discarded.
+
+% ----------------------------------------------------------------------
+\subsection{VMOD-16A2 API}
+
+\begin{proto}
+int vmod16a2_convert(
+	struct vmod_t *mzcard, int channel,
+	int value);
+\end{proto}
+
+
+Perform a conversion of 16-bit integer "value" using channel 
+number "channel" (0 or 1) of 16A2 module with descriptor "mzcard". 
+
+Return~0 on success, negative otherwise.
+
+Note that only the lower~16 significant bits of "value" are
+used, higher bits discarded.
+
+\begin{proto}
+void vmod16a2_reset(struct vmod_t *mzcard, int channel);
+\end{proto}
+
+Reset both DACs (channels) of the 16A2 device with descriptor "mzcard".
+VMOD-16A2 does not allow resets on a per-channel basis.
+
+% ----------------------------------------------------------------------
+\subsection{VMOD-12E16 API}
+
+\begin{proto}
+int vmod12e16_convert(
+	struct vmod_t *mzcard, int channel,
+	enum vmod16a2_amplification factor, int *value);
+\end{proto}
+
+Start ADC conversion using 12E16 module addressed by descriptor~"mzcard".
+Analog data are read from channel number~"channel" (0 or 1), amplification
+"factor" applied to it. At "value" we get the result of
+conversion.
+
+Return~0 on success, negative otherwise.
+
+The possible values of 12E16 instrumentation amplifier are given
+by the symbolic constants values of "factor" are
+\begin{compactitem}
+    \item "VMOD16A2_AMPLIFICATION_1"
+    \item "VMOD16A2_AMPLIFICATION_10"
+    \item "VMOD16A2_AMPLIFICATION_100"
+    \item "VMOD16A2_AMPLIFICATION_1000"
+\end{compactitem}
+for factors 1, 10, 100, 1000, respectively.
+
+% ----------------------------------------------------------------------
+\subsection{VMOD-TTL API}
+
+Basic read/write functionality is provided through these API calls:
+
+\begin{proto}
+int vmodttl_read(
+	struct vmod_t *mzcard, enum vmodttl_channel channel, 
+	unsigned char *dst);
+\end{proto}
+
+Reads one value (8 or 4-bit) from the card referred to by descriptor "mzcard" into 
+address "dst". Read is performed in channel "channel" of the card,  
+designated by symbolic values
+\begin{compactitem}
+   \item	"VMOD_TTL_CHANNEL_A" (8-bit A channel)
+   \item	"VMOD_TTL_CHANNEL_B" (8-bit B channel)
+   \item	"VMOD_TTL_CHANNEL_C" (4-bit C channel)
+\end{compactitem}
+Return 0 on success, <0 on failure.
+
+\begin{proto}
+int vmodttl_write(
+	struct vmod_t *mzcard, enum vmodttl_channel channel, 
+	unsigned char dst);
+\end{proto}
+Write 8- or 4-bit datum "dst" onto channel "channel" of card with
+descriptor "mzcard". Rest of parameters same as in "vmodttl_read".
+
+\subsubsection*{Important notice}
+Bear in mind that
+\begin{compactitem}
+\item channels are configured as input or output only by hardware,  and
+\item reading from an output channel or viceversa can physically damage
+    the device
+\end{compactitem}
+
+\end{document}

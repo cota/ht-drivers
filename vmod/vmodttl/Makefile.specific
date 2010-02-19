@@ -1,0 +1,27 @@
+###############################################################################
+# @file Makefile.specific
+#
+# @brief Specific driver description
+#
+# @author Yury GEORGIEVSKIY
+#
+# @date Created on 13/01/2009
+###############################################################################
+# Driver name
+DRIVER_NAME = VMODTTL
+
+# If this driver is using skeleton (y/n)
+IS_SKEL = n
+
+# If driver is CDCM compliant
+IS_CDCM = n
+
+# Driver will use extra handy utils (load info file etc...)
+USE_UTILS = y
+
+# Driver will use libinst library to get configuration from XML file
+USE_XML = y
+
+#  Change ROOTDIR to point to dir with cdcm, skel, utils etc..
+#+ as by default it is '..' -- which is not what we actually have
+ROOTDIR = ../..

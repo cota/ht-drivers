@@ -1,0 +1,34 @@
+\documentclass{article}
+
+\title{A proposal for a bus-agnostic carrier driver}
+\author{Juan David Gonz\'alez Cobas \email{dcobas@cern.ch}}
+\
+\begin{document}
+
+\section{Introduction}
+
+At this moment, two carrier boards need to be supported by BE/CO/HT,
+to wit:
+\begin{compactdesc}
+\item[VMOD-IO] A VME carrier board supporting up to 4 mezzanine modules
+\item[MOD-PCI] A PCI carrier board supporting up to 2 mezzanine modules
+\end{compactdesc}
+
+The purpose of this document is to summarize the experience acquired
+on the support of these cards during the development of drivers for a
+number of mezzanines (VMOD-12A2, VMOD-16A2, VMOD-12E16 and VMOD-TTL),
+and to make a proposal for the design of a proper carrier module driver.
+The proposal intends to establish a very basic API for the driver that
+allows drivers for the mezzanine modules to query for their address
+spaces and interrupt configuration, so that the carrier is just an
+intermediary that gets out of the way of the more specialized mezzanine
+drivers as soon as possible.
+
+\section{Developments made so far}
+
+For a quick support of the VMOD familiy of mezzanines demanded by one of
+our clients, the first design took the shape described in
+figure~\ref{kludge1.0}
+
+\end{document}
+

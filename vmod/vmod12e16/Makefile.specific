@@ -1,0 +1,32 @@
+###############################################################################
+# @file Makefile.specific
+#
+# @brief Specific driver description
+#
+# @author Yury GEORGIEVSKIY
+#
+# @date Created on 13/01/2009
+###############################################################################
+# Driver name
+DRIVER_NAME = VMOD12E16
+
+# If this driver is using skeleton (y/n)
+IS_SKEL = y
+
+# If driver is CDCM compliant
+IS_CDCM = y
+
+# Extra CDCM features
+CONFIG_BUS_VME = n
+CONFIG_BUS_PCI = y
+CONFIG_BUS_CAR = n
+
+# Driver Utils
+USE_UTILS = y
+
+# Extra Utils features
+USE_XML     = y
+USE_PLX9030 = y
+USE_PLX9656 = n
+
+KVER = 2.6.29.4-rt15

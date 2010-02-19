@@ -1,0 +1,62 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/ioctl.h>
+
+#include <skeluser_ioctl.h>
+#include <extest.h>
+
+
+int GetSetClk(struct cmd_desc *cmddint, struct atom *atoms) {
+
+unsigned int arg, clk;
+
+   arg = cmddint->pa + 1;
+
+   if (atoms == (struct atom *) VERBOSE_HELP) {
+      printf("1: External clock\n");
+      printf("0: Internal clock\n");
+      return(arg);
+   }
+
+   if ((++atoms)->type == Numeric) {
+      clk = atoms->val;
+      if (ioctl(_DNFD,Vd80IoctlSET_CLOCK,&clk) < 0) {
+	 IErr("GET_CLOCK",&clk);
+	 return arg;
+      }
+   }
+
+   if (ioctl(_DNFD,Vd80IoctlGET_CLOCK,&clk) < 0) {
+      IErr("GET_CLOCK",&clk);
+      return arg;
+   }
+
+   printf("Clock:0x%X:",clk);
+   if      (clk == 1) printf("EXTERNAL\n");
+   else if (clk == 0) printf("INTERNAL\n");
+   else               printf("Illegal clock value\n");
+
+   return arg;
+}
+
+
+int PrintSamp(struct cmd_desc *cmddint, struct atom *atoms) {
+
+unsigned int i, val, arg;
+
+   arg = cmddint->pa + 1;
+
+   printf("Sample buffer for channel:%02d\n",chan +1);
+
+   for (i=0; i<sbuf.Samples; i++) {
+      if (i%8 == 0) printf("\n%04d: ",i);
+      val = buf[i];
+      if (i==sbuf.TrigPosition) printf("Trig =>>");
+      printf("%5d ",val);
+   }
+   printf("\n%4d: EOF\n",i);
+   return arg;
+}

@@ -1,0 +1,11 @@
+<install host="cfv-864-cv20" comment="Test XML installer for VMODIO">
+	<driver name="VMODIO" comment="Handle the VMOD/IO carrier card">
+		<module bus_type="VME" logical_module_number="1" comment="First VMOD/IO in the system">
+			<!---   <interrupt vector="0xA0" level="3"/> unused for vmod12a2
+			--->
+			<vme comment="Now define address spaces"/>
+			<vme_space modifier="0x29" data_width="16" window_size="0x800" address="0xAAA800"
+				comment="MODULBUS address space origin"/>
+		</module>
+	</driver>
+</install>

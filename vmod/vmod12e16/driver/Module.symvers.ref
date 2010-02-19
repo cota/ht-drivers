@@ -1,0 +1,3 @@
+0x00000000	carrier_register	/acc/src/dsc/drivers/coht/vmod12a2/pci/carrier	EXPORT_SYMBOL
+0x00000000	carrier_as_entry	/acc/src/dsc/drivers/coht/vmod12a2/pci/carrier	EXPORT_SYMBOL
+0x00000000	carrier_isr_entry	/acc/src/dsc/drivers/coht/vmod12a2/pci/carrier	EXPORT_SYMBOL
