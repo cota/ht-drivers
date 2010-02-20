@@ -47,16 +47,3 @@ install:: driver/vmebus.ko driver/vmebus.h lib/libvmebus.h
 	done
 	dsc_install driver/vmebus.h /acc/local/$(CPU)/include
 	dsc_install lib/libvmebus.h /acc/local/$(CPU)/include
-
-MY= \
-    -I/acc/sys/$(CPU)/usr/src/kernels/$(KVER)/include  \
-    -I/acc/sys/$(CPU)/usr/src/kernels/$(KVER)/include/asm-x86/mach-generic \
-    -I/acc/sys/$(CPU)/usr/src/kernels/$(KVER)/include/asm-x86/mach-default \
-    -D__KERNEL__ -DCONFIG_AS_CFI=1 -DCONFIG_AS_CFI_SIGNAL_FRAME=1
-
-ANSI.h: driver/tsi148.c driver/vme_irq.c driver/vme_window.c driver/vme_dma.c \
-	driver/vme_misc.c driver/vme_cesif.c driver/vme_bridge.c
-	rm -f $@
-	for f in $^; do cproto -es $(MY) -o /tmp/ANSI.h $$f; cat /tmp/ANSI.h >>$@; done
-	rm -f /tmp/ANSI.h
-
