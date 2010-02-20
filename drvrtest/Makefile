@@ -1,12 +1,24 @@
 #
 # Makefile for test drivers.
 #
+include ../common.mk
 
-obj-m += ctr_pps_irq.o
-obj-m += ctr_multi_irq.o
-obj-m += loopirq.o
-obj-m += vmemon.o
+all: vmedriver vmeheaders mymodules
+
+.PHONY : all vmedriver vmeheaders mymodules clean help
+
+vmedriver:
+	$(MAKE) -C ../$(DRVDIR)
+	cp ../$(DRVDIR)/Module.symvers .
+
+vmeheaders:
+	$(MAKE) -C ../$(INCDIR)
+
+mymodules:
+	$(MAKE) -C $(KERN_DIR) M=`pwd`
+
+help:
+	$(MAKE) -C $(KERN_DIR) M=`pwd` help
 
 clean:
-	$(RM) *~ \#*\#
-
+	$(MAKE) -C $(KERN_DIR) M=`pwd` clean

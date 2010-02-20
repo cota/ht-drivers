@@ -15,11 +15,8 @@ all: drvr includes lib drvrtest test
 drvr:
 	$(MAKE) -C $(DRVDIR)
 
-# We need to copy the vmebus driver symbols file to use its exported symbols
-# because KBUILD_EXTRA_SYMBOLS is not there yet to use in 2.6.24.7-rt21
 drvrtest: drvr includes
-	cp $(DRVDIR)/Module.symvers $(DRVTESTDIR)
-	make -C $(KERN_DIR) M=$(DRVTESTDIR)
+	$(MAKE) -C $(DRVTESTDIR)
 
 lib:
 	make -C lib
@@ -32,8 +29,7 @@ includes:
 
 clean:
 	$(MAKE) -C $(DRVDIR) clean
-	make -C $(KERN_DIR) M=$(DRVTESTDIR) clean
-	make -C drvrtest clean
+	$(MAKE) -C $(DRVTESTDIR) clean
 	make -C lib clean
 	make -C test clean
 	make -C include clean
