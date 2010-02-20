@@ -1,4 +1,4 @@
-CPU=L865
+include ../common.mk
 
 SRCS =	create_window.c destroy_window.c setflag.c \
 	test_mapping.c testctr.c testctr2.c testctr_ces.c \
@@ -7,12 +7,17 @@ SRCS =	create_window.c destroy_window.c setflag.c \
 
 include /acc/src/dsc/co/Make.auto
 
-CFLAGS		= -Wall -DDEBUG -D_GNU_SOURCE -g -I. -I../include
-LIBVMEBUS	= ../lib/libvmebus.$(CPU).a
+CFLAGS		= -Wall -DDEBUG -D_GNU_SOURCE -g -I. -I../$(INCDIR)
+LIBVMEBUS	= ../$(LIBDIR)/libvmebus.$(CPU).a
 LIBVD80		= libvd80.$(CPU).a
 LDLIBS		= -lrt
 
 all: $(SRCS:.c=.$(CPU))
+
+.PHONY: all sources doc clean libvd80doc
+
+$(LIBVMEBUS):
+	$(MAKE) -C ../$(LIBDIR) CPU=$(CPU)
 
 sources: $(SRCS) $(SCRIPTS)
 
