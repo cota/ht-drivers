@@ -2,6 +2,7 @@ DRVR	:= vmebus
 CPU	:= L865
 KVER	:= 2.6.24.7-rt27
 KERN_DIR:= "/acc/sys/$(CPU)/usr/src/kernels/$(KVER)"
+INSTDIR := "/acc/local/$(CPU)/$(DRVR)"
 
 DRVDIR	:= driver
 DRVTESTDIR := drvrtest
