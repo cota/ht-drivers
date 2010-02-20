@@ -1,14 +1,6 @@
-DRVR = vmebus
+include common.mk
+
 ACCS = lab
-CPU  = L865
-KVER = 2.6.24.7-rt27
-# KVER=2.6.29.4-rt15
-KERN_DIR="/acc/sys/$(CPU)/usr/src/kernels/$(KVER)"
-
-include /acc/src/dsc/co/Make.auto
-
-DRVDIR=$(shell pwd)/driver
-DRVTESTDIR=$(shell pwd)/drvrtest
 
 all: drvr includes lib drvrtest test
 
@@ -19,20 +11,20 @@ drvrtest: drvr includes
 	$(MAKE) -C $(DRVTESTDIR)
 
 lib:
-	make -C lib
+	$(MAKE) -C $(LIBDIR)
 
 test: drvr includes lib
-	make -C test
+	$(MAKE) -C $(TESTDIR)
 
 includes:
-	make -C include
+	$(MAKE) -C $(INCDIR)
 
 clean:
 	$(MAKE) -C $(DRVDIR) clean
 	$(MAKE) -C $(DRVTESTDIR) clean
-	make -C lib clean
-	make -C test clean
-	make -C include clean
+	$(MAKE) -C $(LIBDIR) clean
+	$(MAKE) -C $(TESTDIR) clean
+	$(MAKE) -C $(INCDIR) clean
 	$(RM) $(BAKS)
 
 .PHONY: drvr drvrtest includes lib test clean
