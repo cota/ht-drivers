@@ -1,22 +1,26 @@
-CPU=	L865
-
+include ../common.mk
 include /acc/src/dsc/co/Make.auto
 
 SRCS=	libvmebus.c
 
-CFLAGS=	-Wall -g -I../include
+CFLAGS=	-Wall -g -I../$(INCDIR)
 
 LIBVMEBUS = libvmebus.$(CPU).a
 
 all: $(LIBVMEBUS) $(SRCS:.c=.$(CPU).o)
 
-libvmebus.$(CPU).o: ../include/vmebus.h libvmebus.c libvmebus.h
+.PHONY: all vmeheaders doc libvmebusdoc clean
+
+vmeheaders:
+	$(MAKE) -C ../$(INCDIR)
+
+libvmebus.$(CPU).o: vmeheaders ../$(INCDIR)/vmebus.h libvmebus.c libvmebus.h
 
 libvmebus.$(CPU).a: libvmebus.$(CPU).o
 	$(AR) rv $(LIBVMEBUS) $^
 	$(RANLIB) $(LIBVMEBUS)
 
-libvmebusdoc: ../include/vmebus.h libvmebus.h libvmebus.c
+libvmebusdoc: vmeheaders ../$(INCDIR)/vmebus.h libvmebus.h libvmebus.c
 	mkdir -p doc
 	doxygen libvmebus.dox
 
