@@ -224,7 +224,6 @@ void *get_vmemap_addr(SkelDrvrModuleContext *mcon, int am, int dw)
 {
 	InsLibVmeModuleAddress *vma;
 	InsLibVmeAddressSpace  *vas;
-	char mestxt[64];
 
 	if (!mcon->Modld) {
 		report_module(mcon, SkelDrvrDebugFlagWARNING,
@@ -245,8 +244,9 @@ void *get_vmemap_addr(SkelDrvrModuleContext *mcon, int am, int dw)
 			return vas->Mapped;
 		vas = vas->Next;
 	}
-	ksprintf(mestxt, "Address modifier 0x%X not found", am);
-	report_module(mcon, SkelDrvrDebugFlagWARNING, mestxt);
+
+	report_module(mcon, SkelDrvrDebugFlagWARNING,
+		"Address modifier 0x%X not found", am);
 	return NULL;
 
 }
