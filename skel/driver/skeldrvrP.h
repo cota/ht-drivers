@@ -295,6 +295,7 @@ extern void SkelUserClientRelease(SkelDrvrClientContext *ccon);
  * Common functions
  */
 void *get_vmemap_addr(SkelDrvrModuleContext *mcon, int am, int dw);
+int get_vme_addr(SkelDrvrModuleContext *mcon, int am, int dw, uint32_t *addr);
 SkelDrvrModuleContext *get_mcon(int modnr);
 SkelDrvrClientContext *get_ccon(struct cdcm_file *f);
 const char *GetDebugFlagName(SkelDrvrDebugFlag debf);

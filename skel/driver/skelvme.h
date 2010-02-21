@@ -251,6 +251,42 @@ void *get_vmemap_addr(SkelDrvrModuleContext *mcon, int am, int dw)
 
 }
 
+/*
+ * Get the VME address of a given VME region.
+ * return 0 if the VME address is found, -1 otherwise.
+ */
+int get_vme_addr(SkelDrvrModuleContext *mcon, int am, int dw, uint32_t *addr)
+{
+	InsLibVmeModuleAddress *vma;
+	InsLibVmeAddressSpace  *vas;
+
+	if (!mcon->Modld) {
+		report_module(mcon, SkelDrvrDebugFlagWARNING,
+			      "NULL module descriptor");
+		return -1;
+	}
+
+	vma = mcon->Modld->ModuleAddress;
+	if (!vma) {
+		report_module(mcon, SkelDrvrDebugFlagWARNING,
+			      "NULL module address");
+		return -1;
+	}
+
+	vas = vma->VmeAddressSpace;
+	while (vas) {
+		if (vas->AddressModifier == am && vas->DataWidth == dw) {
+			*addr = vas->BaseAddress;
+			return 0;
+		}
+		vas = vas->Next;
+	}
+	report_module(mcon, SkelDrvrDebugFlagWARNING,
+		"Region with am 0x%x and dw %d not found", am, dw);
+	return -1;
+
+}
+
 #else
 
 static void unmap_vmeas(SkelDrvrModuleContext *mcon, int force) {
