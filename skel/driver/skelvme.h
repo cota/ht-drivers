@@ -78,7 +78,7 @@ static int map_vmeas(SkelDrvrModuleContext *mcon, InsLibVmeAddressSpace *vas)
 
 	/*
 	 * VME_A24_USER_MBLT == 0x38
-	 * VME_A24_USER_MBLT == 0x3b
+	 * VME_A24_USER_BLT == 0x3b
 	 */
 
 	if (vas->AddressModifier == 0x38 ||
