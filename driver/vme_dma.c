@@ -299,17 +299,7 @@ static void vme_dma_channel_release(struct dma_channel *channel)
 	up(&dma_semaphore);
 }
 
-/**
- * vme_do_dma() - Do a DMA transfer
- * @desc: DMA transfer descriptor
- *
- *  This function first checks the validity of the user supplied DMA transfer
- * parameters. It then tries to find an available DMA channel to do the
- * transfer, setups that channel and starts the DMA.
- *
- *  Returns 0 on success, or a standard kernel error code on failure.
- */
-int vme_do_dma(struct vme_dma *desc)
+static int __vme_do_dma(struct vme_dma *desc)
 {
 	int rc = 0;
 	struct dma_channel *channel;
@@ -381,6 +371,21 @@ out_release_channel:
 	wake_up(&channel_wait[channel->num]);
 
 	return rc;
+}
+
+/**
+ * vme_do_dma() - Do a DMA transfer
+ * @desc: DMA transfer descriptor
+ *
+ *  This function first checks the validity of the user supplied DMA transfer
+ * parameters. It then tries to find an available DMA channel to do the
+ * transfer, setups that channel and starts the DMA.
+ *
+ *  Returns 0 on success, or a standard kernel error code on failure.
+ */
+int vme_do_dma(struct vme_dma *desc)
+{
+	return __vme_do_dma(desc);
 }
 EXPORT_SYMBOL_GPL(vme_do_dma);
 
