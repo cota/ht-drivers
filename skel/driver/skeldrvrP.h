@@ -325,6 +325,7 @@ struct skel_conf {
 	int (*read) (void *, struct cdcm_file *, char *, int);
 	int (*write)(void *, struct cdcm_file *, char *, int);
 	int (*intrhandler)(void *);
+	int (*rawio)(SkelDrvrModuleContext *mcon, SkelDrvrRawIoBlock *riob, int write);
 };
 
 /*

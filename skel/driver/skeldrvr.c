@@ -1660,11 +1660,15 @@ unsigned long flags;
 
       case SkelDrvrIoctlRAW_READ:
 	 riob = (SkelDrvrRawIoBlock *) arg;
+	 if (SkelConf.rawio)
+		 return SkelConf.rawio(mcon, riob, 0);
 	 return RawIo(mcon,riob,0);
       break;
 
       case SkelDrvrIoctlRAW_WRITE:
 	 riob = (SkelDrvrRawIoBlock *) arg;
+	 if (SkelConf.rawio)
+		 return SkelConf.rawio(mcon, riob, 1);
 	 return RawIo(mcon,riob,1);
       break;
 
