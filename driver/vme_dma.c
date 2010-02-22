@@ -60,6 +60,19 @@ void handle_dma_interrupt(int channel_mask)
 }
 
 
+static int sgl_fill_user_pages(struct page **pages, unsigned long uaddr,
+			const unsigned int nr_pages, int rw)
+{
+	int ret;
+
+	/* Get user pages for the DMA transfer */
+	down_read(&current->mm->mmap_sem);
+	ret = get_user_pages(current, current->mm, uaddr, nr_pages, rw, 0,
+			    pages, NULL);
+	up_read(&current->mm->mmap_sem);
+
+	return ret;
+}
 
 /**
  * sgl_map_user_pages() - Pin user pages and put them into a scatter gather list
@@ -84,11 +97,7 @@ static int sgl_map_user_pages(struct scatterlist *sgl,
 			     GFP_KERNEL)) == NULL)
 		return -ENOMEM;
 
-	/* Get user pages for the DMA transfer */
-	down_read(&current->mm->mmap_sem);
-	rc = get_user_pages(current, current->mm, uaddr, nr_pages, rw, 0,
-			    pages, NULL);
-	up_read(&current->mm->mmap_sem);
+	rc = sgl_fill_user_pages(pages, uaddr, nr_pages, rw);
 
 	if (rc < 0)
 		/* We completely failed to get the pages */
