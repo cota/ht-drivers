@@ -74,6 +74,21 @@ static int sgl_fill_user_pages(struct page **pages, unsigned long uaddr,
 	return ret;
 }
 
+static int sgl_fill_kernel_pages(struct page **pages, unsigned long kaddr,
+			const unsigned int nr_pages, int rw)
+{
+	int i;
+
+	/* Note: this supports lowmem pages only */
+	if (!virt_addr_valid(kaddr))
+		return -EINVAL;
+
+	for (i = 0; i < nr_pages; i++)
+		pages[i] = virt_to_page(kaddr + PAGE_SIZE * i);
+
+	return nr_pages;
+}
+
 /**
  * sgl_map_user_pages() - Pin user pages and put them into a scatter gather list
  * @sgl: Scatter gather list to fill
@@ -81,13 +96,14 @@ static int sgl_fill_user_pages(struct page **pages, unsigned long uaddr,
  * @uaddr: User buffer address
  * @count: Length of user buffer
  * @rw: Direction (0=read from userspace / 1 = write to userspace)
+ * @to_user: 1 - transfer is to/from a user-space buffer. 0 - kernel buffer.
  *
  *  This function pins the pages of the userspace buffer and fill in the
  * scatter gather list.
  */
 static int sgl_map_user_pages(struct scatterlist *sgl,
 			      const unsigned int nr_pages, unsigned long uaddr,
-			      size_t length, int rw)
+			      size_t length, int rw, int to_user)
 {
 	int rc;
 	int i;
@@ -97,20 +113,22 @@ static int sgl_map_user_pages(struct scatterlist *sgl,
 			     GFP_KERNEL)) == NULL)
 		return -ENOMEM;
 
-	rc = sgl_fill_user_pages(pages, uaddr, nr_pages, rw);
+	if (to_user) {
+		rc = sgl_fill_user_pages(pages, uaddr, nr_pages, rw);
+		if (rc >= 0 && rc < nr_pages) {
+			/* Some pages were pinned, release these */
+			for (i = 0; i < rc; i++)
+				page_cache_release(pages[i]);
+			rc = -ENOMEM;
+			goto out_free;
+		}
+	} else {
+		rc = sgl_fill_kernel_pages(pages, uaddr, nr_pages, rw);
+	}
 
 	if (rc < 0)
 		/* We completely failed to get the pages */
 		goto out_free;
-
-	if (rc < nr_pages) {
-		/* Some pages were pinned, release these */
-		for (i = 0; i < rc; i++)
-			page_cache_release(pages[i]);
-
-		rc = -ENOMEM;
-		goto out_free;
-	}
 
 	/* Populate the scatter/gather list */
 	sg_init_table(sgl, nr_pages);
@@ -144,12 +162,17 @@ out_free:
  * @sgl: The scatter gather list
  * @nr_pages: Number of pages in the list
  * @dirty: Flag indicating whether the pages should be marked dirty
+ * @to_user: 1 when transfer is to/from user-space (0 for to/from kernel)
  *
  */
 static void sgl_unmap_user_pages(struct scatterlist *sgl,
-				 const unsigned int nr_pages, int dirty)
+				 const unsigned int nr_pages, int dirty,
+				 int to_user)
 {
 	int i;
+
+	if (!to_user)
+		return;
 
 	for (i = 0; i < nr_pages; i++) {
 		struct page *page = sg_page(&sgl[i]);
@@ -164,12 +187,14 @@ static void sgl_unmap_user_pages(struct scatterlist *sgl,
 /**
  * vme_dma_setup() - Setup a DMA transfer
  * @desc: DMA channel to setup
+ * @to_user:	1 if the transfer is to/from a user-space buffer.
+ *		0 if it is to/from a kernel buffer.
  *
  *  Setup a DMA transfer.
  *
  *  Returns 0 on success, or a standard kernel error code on failure.
  */
-static int vme_dma_setup(struct dma_channel *channel)
+static int vme_dma_setup(struct dma_channel *channel, int to_user)
 {
 	int rc = 0;
 	struct vme_dma *desc = &channel->desc;
@@ -194,7 +219,9 @@ static int vme_dma_setup(struct dma_channel *channel)
 	/* Map the user pages into the scatter gather list */
 	channel->sg_pages = sgl_map_user_pages(channel->sgl, nr_pages, uaddr,
 					       length,
-					       (desc->dir==VME_DMA_FROM_DEVICE));
+					       (desc->dir==VME_DMA_FROM_DEVICE),
+					       to_user);
+
 	if (channel->sg_pages <= 0) {
 		rc = channel->sg_pages;
 		goto out_free_sgl;
@@ -216,7 +243,7 @@ out_unmap_sgl:
 	pci_unmap_sg(vme_bridge->pdev, channel->sgl, channel->sg_mapped,
 		     desc->dir);
 
-	sgl_unmap_user_pages(channel->sgl, channel->sg_pages, 0);
+	sgl_unmap_user_pages(channel->sgl, channel->sg_pages, 0, to_user);
 
 out_free_sgl:
 	kfree(channel->sgl);
@@ -299,7 +326,11 @@ static void vme_dma_channel_release(struct dma_channel *channel)
 	up(&dma_semaphore);
 }
 
-static int __vme_do_dma(struct vme_dma *desc)
+/*
+ * @to_user:	1 - the transfer is to/from a user-space buffer
+ *		0 - the transfer is to/from a kernel buffer
+ */
+static int __vme_do_dma(struct vme_dma *desc, int to_user)
 {
 	int rc = 0;
 	struct dma_channel *channel;
@@ -333,7 +364,7 @@ static int __vme_do_dma(struct vme_dma *desc)
 	memcpy(&channel->desc, desc, sizeof(struct vme_dma));
 
 	/* Setup the DMA transfer */
-	rc = vme_dma_setup(channel);
+	rc = vme_dma_setup(channel, to_user);
 
 	if (rc)
 		goto out_release_channel;
@@ -360,7 +391,7 @@ static int __vme_do_dma(struct vme_dma *desc)
 	pci_unmap_sg(vme_bridge->pdev, channel->sgl, channel->sg_mapped,
 		     desc->dir);
 
-	sgl_unmap_user_pages(channel->sgl, channel->sg_pages, 0);
+	sgl_unmap_user_pages(channel->sgl, channel->sg_pages, 0, to_user);
 
 	kfree(channel->sgl);
 
@@ -385,9 +416,21 @@ out_release_channel:
  */
 int vme_do_dma(struct vme_dma *desc)
 {
-	return __vme_do_dma(desc);
+	return __vme_do_dma(desc, 1);
 }
 EXPORT_SYMBOL_GPL(vme_do_dma);
+
+/**
+ * vme_do_dma_kernel() - Do a DMA transfer to/from a kernel buffer
+ * @desc: DMA transfer descriptor
+ *
+ * Returns 0 on success, or a standard kernel error code on failure.
+ */
+int vme_do_dma_kernel(struct vme_dma *desc)
+{
+	return __vme_do_dma(desc, 0);
+}
+EXPORT_SYMBOL_GPL(vme_do_dma_kernel);
 
 /**
  * vme_dma_ioctl() - ioctl file method for the VME DMA device

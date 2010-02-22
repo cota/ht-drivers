@@ -376,6 +376,7 @@ extern int vme_find_mapping(struct vme_mapping *, int);
 extern int vme_release_mapping(struct vme_mapping *, int);
 
 extern int vme_do_dma(struct vme_dma *);
+extern int vme_do_dma_kernel(struct vme_dma *);
 
 
 extern int vme_bus_error_check(int);
