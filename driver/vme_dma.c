@@ -108,7 +108,7 @@ static int sgl_map_user_pages(struct scatterlist *sgl,
 
 	/* Take a shortcut here when we only have a single page transfer */
 	if (nr_pages > 1) {
-		unsigned int off = uaddr & ~PAGE_MASK;
+		unsigned int off = offset_in_page(uaddr);
 		unsigned int len = PAGE_SIZE - off;
 
 		sg_set_page (&sgl[0], pages[0], len, off);
@@ -121,7 +121,7 @@ static int sgl_map_user_pages(struct scatterlist *sgl,
 			length -= PAGE_SIZE;
 		}
 	} else
-		sg_set_page (&sgl[0], pages[0], length, uaddr & ~PAGE_MASK);
+		sg_set_page (&sgl[0], pages[0], length, offset_in_page(uaddr));
 
 out_free:
 	/* We do not need the pages array anymore */
