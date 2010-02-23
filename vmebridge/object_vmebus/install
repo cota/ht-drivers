@@ -1,9 +1,0 @@
-#!/bin/bash
-
-# dmesg -n 8
-# see LDD3 p.77 for more info on console printout
-# really verbose console printout
-echo 8 > /proc/sys/kernel/printk
-
-# tsi driver
-insmod vmebus.`uname -r`.ko;
