@@ -8,8 +8,8 @@ all: vmedriver vmeheaders mymodules
 .PHONY : all vmedriver vmeheaders mymodules clean help
 
 vmedriver:
-	$(MAKE) -C ../$(DRVDIR)
-	cp ../$(DRVDIR)/Module.symvers .
+	cd ../$(DRVDIR) && $(MAKE)
+	cp ../$(DRVDIR)/$(CPU)/$(KVER)/Module.symvers .
 
 vmeheaders:
 	$(MAKE) -C ../$(INCDIR)
