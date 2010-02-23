@@ -51,6 +51,41 @@ static void *do_vme_mapping(InsLibVmeAddressSpace *v, struct pdparam_master *pm)
 	return (void *)map;
 }
 
+static inline int region_is_a_block(InsLibVmeAddressSpace *vas)
+{
+	/*
+	 * TODO: define these constants for Lynx too, and use them everywhere.
+	 *
+	 * VME_A64_MBLT		0x00
+	 * VME_A64_BLT		0x03
+	 * VME_A32_USER_MBLT	0x08
+	 * VME_A32_USER_BLT	0x0b
+	 * VME_A32_SUP_MBLT	0x0c
+	 * VME_A32_SUP_BLT	0x0f
+	 * VME_A40_BLT		0x37
+	 * VME_A24_USER_MBLT	0x38
+	 * VME_A24_USER_BLT	0x3b
+	 * VME_A24_SUP_MBLT	0x3c
+	 * VME_A24_SUP_BLT	0x3f
+	 */
+	switch (vas->AddressModifier) {
+	case 0x00:
+	case 0x03:
+	case 0x08:
+	case 0x0b:
+	case 0x0c:
+	case 0x0f:
+	case 0x37:
+	case 0x38:
+	case 0x3b:
+	case 0x3c:
+	case 0x3f:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
 /**
  * @brief map a VME address space
  *
@@ -77,13 +112,11 @@ static int map_vmeas(SkelDrvrModuleContext *mcon, InsLibVmeAddressSpace *vas)
 	}
 
 	/*
-	 * VME_A24_USER_MBLT == 0x38
-	 * VME_A24_USER_BLT == 0x3b
+	 * For regions described as blocks, we don't need to map anything,
+	 * since we can use DMA.
 	 */
-
-	if (vas->AddressModifier == 0x38 ||
-	    vas->AddressModifier == 0x3b)
-		return 1; /* Nothing to map in this case */
+	if (region_is_a_block(vas))
+		return 1;
 
 	set_pdparam_defaults(&param);
 	vas->Mapped = do_vme_mapping(vas, &param);
