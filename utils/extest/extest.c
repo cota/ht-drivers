@@ -892,14 +892,15 @@ void print_modules(void)
  */
 void __getchar(char *c)
 {
-	tputs(tgetstr("im", NULL), 1, putchar);
-	*c = getchar();
-	if (*c != '\n')
-		putchar(*c);
-	fflush(stdout);
-	tputs(tgetstr("ei", NULL), 1, putchar);
-}
+	char *line;
 
+	do {
+		line = readline("");
+	} while (line == NULL);
+
+	*c = line[0];
+	free(line);
+}
 
 /*
  * Basic Handlers
