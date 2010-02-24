@@ -33,7 +33,7 @@ _all: utils cdcm
 cdcm:
 	@-rm -rf ./$(CPU)/$(KVER)
 	$(MAKE) -C $(KSRC) M=$(shell pwd) CPU=$(CPU) \
-	ROOTDIR=$(ROOTDIR) modules
+	ROOTDIR=$(ROOTDIR) KVER=$(KVER) modules
 	@-rm -r .*.cmd Module.symvers .tmp_versions/
 	@-rm -rf ./Module.markers ./modules.order
 
@@ -43,6 +43,6 @@ utils:
 	@-rm -rf $(USRC)/$(CPU)/$(KVER)
 	@$(USRC)/rmdrvr
 	$(MAKE) -C $(KSRC) M=$(USRC) CPU=$(CPU) \
-	ROOTDIR=$(ROOTDIR) modules
+	ROOTDIR=$(ROOTDIR) KVER=$(KVER) modules
 	@-rm -rf $(USRC)/.*.cmd $(USRC)/Module.symvers $(USRC)/.tmp_versions/
 	@-rm -rf $(USRC)/Module.markers $(USRC)/modules.order
