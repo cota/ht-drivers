@@ -277,9 +277,10 @@ static int get_atoms(char *input, struct atom *atoms)
 			break;
 		}
 		atype = atomhash[(int)*buf];
+	reeval:
 		switch (atype) {
 		case Numeric:
-			atoms[cnt].val  = (int)strtoul(buf, &endptr, 0);
+			atoms[cnt].val  = (int)strtol(buf, &endptr, 0);
 			snprintf(atoms[cnt].text, MAX_ARG_LENGTH, "%d",
 				 atoms[cnt].val);
 			atoms[cnt].type = Numeric;
@@ -334,6 +335,14 @@ static int get_atoms(char *input, struct atom *atoms)
 			}
 			break;
 		case Operator:
+			/* pick up negative Numerics */
+			if (*buf == '-') {
+				char *c = buf + 1;
+
+				if (*c && isdigit(*c))
+					atype = Numeric;
+				goto reeval;
+			}
 			atoms[cnt].pos = (unsigned int)(buf - input);
 			j = 0;
 			while (atype == Operator) {
