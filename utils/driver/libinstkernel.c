@@ -508,13 +508,11 @@ InsLibAnyAddressSpace *InsLibGetAddressSpace(InsLibModlDesc *modld,
 	InsLibAnyModuleAddress *anyma = NULL;
 	InsLibAnyAddressSpace  *anyas = NULL;
 
-	printk("%s: space#%d\n", __FUNCTION__, space_number);
 	if (modld) {
 		anyma = modld->ModuleAddress;
 		if (anyma) {
 			anyas = anyma->AnyAddressSpace;
 			while (anyas) {
-			  printk("space#%d\n", anyas->SpaceNumber);
 				if (anyas->SpaceNumber == space_number)
 					return anyas;
 				anyas = anyas->Next;
