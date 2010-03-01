@@ -150,6 +150,7 @@
 
 #define VD80_INTERRUPT_MASK             0x1f
 
+#define VD80_BYTESWAP                   (1 << 7)
 #define VD80_DBCNTSEL			(1 << 6)
 #define VD80_BIGEND			(1 << 5)
 #define VD80_CALINTEN			(1 << 4)

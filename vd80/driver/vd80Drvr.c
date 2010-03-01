@@ -30,13 +30,6 @@
 /* Client and module asociated error messages                  */
 
 #define MES_TEXT_LEN 128
-#define USE_DMA 1
-
-#define FIRMWARE_VERSION_5 1 // Uncomment if ever V5 firmware works
-
-// #define SPLIT_DMA_2K 1 Emilio fixed the VME driver so no need for me to split blocks
-
-#define DMA_SWAP_BUG 1       // Undefine this when V5 DMA swap bug has been fixed
 
 /* =========================================================== */
 /* Given a module context and an address modifier returned the */
@@ -149,7 +142,6 @@ U32 *regs;
 #define SAMPLES_IN_DMA_BLOCK  2048
 
 #ifdef __linux__
-#ifdef USE_DMA
 void BuildDmaReadDesc(SkelDrvrModuleContext *mcon,
 		      void                  *dest,
 		      unsigned int           len,
@@ -179,7 +171,6 @@ void BuildDmaReadDesc(SkelDrvrModuleContext *mcon,
    }
 }
 
-#endif
 #endif
 
 /* =========================================================== */
@@ -267,7 +258,8 @@ U32 *regs = NULL;
 
    SkelUserGetUtc(mcon,itim);
    SetReg(regs,VD80_GCR1,VD80_INTCLR,mcon);
-   return SkelUserReturnOK;
+
+   return SkelUserEnableInterrupts(mcon,mcon->Connected.enabled_ints);
 }
 
 /* =========================================================== */
@@ -342,10 +334,8 @@ SkelUserReturn SkelUserIoctls(SkelDrvrClientContext *ccon,
 {
 
 #ifdef __linux__
-#ifdef USE_DMA
 struct vme_dma dma_desc;    /* Vme driver DMA structure */
 int    tcnt, psze;          /* Transfer count and short page size */
-#endif
 #endif
 
 U32 *regs = NULL;   /* Mapped A24D32 address space for Vd80 module */
@@ -366,12 +356,8 @@ Vd80Num num;                /* Enumeration over ioctl codes */
 
 Vd80DrvrAnalogTrig *atrg;   /* Analog trigger */
 
-#ifdef FIRMWARE_VERSION_5
-
 Vd80DrvrTrigConfig *tcon;   /* Trigger configuration */
 unsigned int        tsmp;   /* Min samples calculated */
-
-#endif
 
 int lvalue;                 /* For when arg is NULL */
 
@@ -412,8 +398,8 @@ int lvalue;                 /* For when arg is NULL */
    /* to swap bytes within these words */
 
    tval = GetReg(regs,VD80_GCR2,mcon);
-   if (Wa->Endian == InsLibEndianLITTLE) tval |=  VD80_BIGEND;
-   else                                  tval &= ~VD80_BIGEND;
+   if (Wa->Endian == InsLibEndianLITTLE) tval |=  (VD80_BIGEND | VD80_BYTESWAP);
+   else                                  tval &= ~(VD80_BIGEND | VD80_BYTESWAP);
    SetReg(regs,VD80_GCR2,tval,mcon);
 
    /* OK so do the users IOCTL command, notice its a Vd80Num not a Vd80 Ioctl */
@@ -656,7 +642,6 @@ int lvalue;                 /* For when arg is NULL */
 
       case Vd80NumGET_TRIGGER_CONFIG: /* Get Trig delay and min pre trig samples */
 
-#ifdef FIRMWARE_VERSION_5
 	 tcon = (Vd80DrvrTrigConfig *) arg;
 	 tval = GetReg(regs,VD80_TCR1,mcon);
 	 if (tval & VD80_TRIGOUT_DELAY)
@@ -672,13 +657,9 @@ int lvalue;                 /* For when arg is NULL */
 	 tcon->MinPreTrig = tsmp;
 
 	 return OK;
-#else
-	 return SkelUserReturnFAILED;
-#endif
 
       case Vd80NumSET_TRIGGER_CONFIG: /* Set Trig delay and min pre trig samples */
 
-#ifdef FIRMWARE_VERSION_5
 	 tcon = (Vd80DrvrTrigConfig *) arg;
 
 	 tval = GetReg(regs,VD80_TCR1,mcon);
@@ -703,9 +684,6 @@ int lvalue;                 /* For when arg is NULL */
 	 SetReg(regs,VD80_PTCR,tval,mcon);
 
 	 return OK;
-#else
-	 return SkelUserReturnFAILED;
-#endif
 
       case Vd80NumREAD_SAMPLE: /* => Vd80SampleBuf <= */
 
@@ -784,19 +762,7 @@ int lvalue;                 /* For when arg is NULL */
 	 samples = 0;               /* Samples transfered so far */
 
 #ifdef __linux__
-#ifdef USE_DMA
-
-#ifdef SPLIT_DMA_2K
-	 /* The tsi148 screws up MBLT transfers greater than half a page (2Kb)  */
-	 /* So I will program round this bug by using lots of 2Kb DMA transfers */
-	 /* and avoid long scatter gather lists with more than page. Yuch !!    */
-
-	 psze = (PAGE_SIZE / sizeof(short)) / 2; /* tsi148 bug size limitation  */
-#else
-	/* Emilio has made a fix so that the scatter gather list is 2k aligned  */
-
 	 psze = remaining;
-#endif
 
 	 while (remaining > 0) {
 
@@ -812,10 +778,6 @@ int lvalue;                 /* For when arg is NULL */
 	    remaining -= tcnt;
 	    samples   += tcnt;
 	 }
-#else
-	 samples = Vd80CopyToUser(sbuf, mcon);  /* Linux no DMA */
-#endif
-
 #else
 	 samples = Vd80CopyToUser(sbuf, mcon);  /* LynxOs ppc4 */
 #endif
@@ -890,17 +852,9 @@ unsigned int ret;
 	 case VME_CR_CSR:    /* CRCSR Configuration space */
 
 	    /* First check we're accessing a configuration ROM */
+
 	    config = (U32 *) vmeas->Mapped;
-#if 1
-	    recoset();
-	    if (!recoset()) {
-#ifdef __Lynx__
-		    /* for testing. remove afterwards! */
-		    ret = __inl((__port_addr_t)&config[VD80_CR_SIG1/4]);
-#endif
-	    } else kkprintf("%s(): BUS ERROR!\n", __FUNCTION__);
-	    noreco();
-#endif
+
 	    valu[1] = (U32  ) cdcm_be32_to_cpu(cdcm_ioread32(&config[VD80_CR_SIG1/4]));
 	    valu[2] = (U32  ) cdcm_be32_to_cpu(cdcm_ioread32(&config[VD80_CR_SIG2/4]));
 	    if ( ((valu[1] & 0xFF) != 'C')
@@ -908,14 +862,6 @@ unsigned int ret;
 	       report_module(mcon, 0, "Configuration Rom not found");
 	       return SkelUserReturnFAILED;
 	    }
-
-	    /* Reset the module and disable it */
-
-//          cdcm_iowrite32(cdcm_cpu_to_be32((U32) VD80_CSR_RESET_MODULE),
-//                &(config[VD80_CSR_BITSET/4]) );
-
-//          cdcm_iowrite32(cdcm_cpu_to_be32((U32) 0),
-//                &(config[VD80_CSR_BITSET/4]) );
 
 	    /* Read the board ID and compare it to "VD80" */
 
@@ -945,18 +891,13 @@ unsigned int ret;
 	    cdcm_iowrite32(cdcm_cpu_to_be32((U32) intrd->Vector), &(config[VD80_CSR_IRQ_VECTOR/4]));
 	    cdcm_iowrite32(cdcm_cpu_to_be32((U32) intrd->Level),  &(config[VD80_CSR_IRQ_LEVEL /4]));
 
-#ifdef FIRMWARE_VERSION_5
-
-#ifndef DMA_SWAP_BUG
 	    if (Wa->Endian == InsLibEndianLITTLE)
-	       cdcm_iowrite32(cdcm_cpu_to_be32((U32) VD80_CSR_MBLT_LITTLE_ENDIAN), &(config[VD80_CSR_MBLT_ENDIAN /4]));
+	       cdcm_iowrite32(cdcm_cpu_to_be32((U32) VD80_CSR_MBLT_BIG_ENDIAN),    &(config[VD80_CSR_MBLT_ENDIAN /4]));
 	    else
 	       cdcm_iowrite32(cdcm_cpu_to_be32((U32) VD80_CSR_MBLT_BIG_ENDIAN),    &(config[VD80_CSR_MBLT_ENDIAN /4]));
-#endif
 
 	    cdcm_iowrite32(0, &(config[VD80_TCR3 /4])); // Clear trigger delay
 	    cdcm_iowrite32(0, &(config[VD80_PTCR /4])); // Clear min pre trigger samples
-#endif
 	 break;
 
 	 case VME_A24_USER_DATA_SCT:
