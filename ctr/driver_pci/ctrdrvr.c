@@ -591,63 +591,26 @@ unsigned int              cntrl;   /* Plx control word  */
 
    ps = 0;
    mmap = mcon->Map;
-   if (!recoset()) {                /* Catch bus errors  */
 
-      ver->VhdlVersion  = mmap->VhdlVersion;
-      ver->DrvrVersion  = COMPILE_TIME;
-      ver->HardwareType = CtrDrvrHardwareTypeNONE;
+   ver->VhdlVersion  = mmap->VhdlVersion;
+   ver->DrvrVersion  = COMPILE_TIME;
+   ver->HardwareType = CtrDrvrHardwareTypeNONE;
 
-      EIEIO;
-      SYNC;
+   EIEIO;
+   SYNC;
 
-      stat  = mmap->Status;
+   stat  = mmap->Status;
 
-      EIEIO;
-      SYNC;
+   EIEIO;
+   SYNC;
 
-      stat &= CtrDrvrTypeStatusMask;
-      if (stat != CtrDrvrTypeStatusMask) {
-	 if (stat & CtrDrvrStatusCTRI) ver->HardwareType = CtrDrvrHardwareTypeCTRI;
-	 if (stat & CtrDrvrStatusCTRP) ver->HardwareType = CtrDrvrHardwareTypeCTRP;
-	 if (stat & CtrDrvrStatusCTRV) ver->HardwareType = CtrDrvrHardwareTypeCTRV;
-      }
-   } else {
-
-      disable(ps);
-
-      if (mcon->BusErrorCount > CtrDrvrMAX_BUS_ERROR_COUNT) {
-
-	 /* After this error the user must do a RESET to continue */
-
-	 kkprintf("CtrDrvr: ABORT after: %d BUS-ERRORS\n",(int) mcon->BusErrorCount);
-	 intcsr = 0;
-	 DrmLocalReadWrite(mcon,PLX9030_INTCSR,&intcsr,2,1);
-	 mcon->BusErrorCount = 0;
-	 mmap->InterruptEnable = 0;
-      }
-
-      /* Terminate the PCI cycle on a bus error */
-
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,0);
-      cntrl |= Plx9030CntrlPCI_SOFTWARE_RESET;
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1);
-      cntrl &= ~Plx9030CntrlPCI_SOFTWARE_RESET;
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1);
-
-      mcon->BusErrorCount++;
-      kkprintf("CtrDrvr: PingModule: BUS-ERROR:%d Module:%d PciSlot:%d \n",
-	       (int) mcon->BusErrorCount,
-	       (int) mcon->ModuleIndex+1,
-	       (int) mcon->PciSlot);
-
-      mcon->Status &= ~CtrDrvrStatusNO_BUS_ERROR;
-
-      noreco();
-      enable(ps);
-      pseterr(ENXIO);        /* No such device or address */
-      return SYSERR;
+   stat &= CtrDrvrTypeStatusMask;
+   if (stat != CtrDrvrTypeStatusMask) {
+      if (stat & CtrDrvrStatusCTRI) ver->HardwareType = CtrDrvrHardwareTypeCTRI;
+      if (stat & CtrDrvrStatusCTRP) ver->HardwareType = CtrDrvrHardwareTypeCTRP;
+      if (stat & CtrDrvrStatusCTRV) ver->HardwareType = CtrDrvrHardwareTypeCTRV;
    }
-   noreco();
+
    return OK;
 }
 
@@ -764,87 +727,53 @@ unsigned int              cntrl;   /* Plx control word  */
    }
    mmap = mcon->Map;
 
-   if (!recoset()) {         /* Catch bus errors */
-      i = 0;                 /* Used to say more about bus error */
+   i = 0;                 /* Used to say more about bus error */
 
-      mmap->Command = CtrDrvrCommandRESET;
-      mcon->Status = CtrDrvrStatusNO_LOST_INTERRUPTS | CtrDrvrStatusNO_BUS_ERROR;
-      mcon->BusErrorCount = 0;
+   mmap->Command = CtrDrvrCommandRESET;
+   mcon->Status = CtrDrvrStatusNO_LOST_INTERRUPTS | CtrDrvrStatusNO_BUS_ERROR;
+   mcon->BusErrorCount = 0;
 
-      EIEIO;
-      SYNC;
+   EIEIO;
+   SYNC;
 
-      /* Wait at least 10 ms after a "reset", for the module to recover */
+   /* Wait at least 10 ms after a "reset", for the module to recover */
 
-      sreset(&(mcon->Semaphore));
-      mcon->Timer = timeout(ResetTimeout, (char *) mcon, 2);
-      if (mcon->Timer < 0) mcon->Timer = 0;
-      if (mcon->Timer) swait(&(mcon->Semaphore), SEM_SIGABORT);
-      if (mcon->Timer) CancelTimeout(&(mcon->Timer));
+   sreset(&(mcon->Semaphore));
+   mcon->Timer = timeout(ResetTimeout, (char *) mcon, 2);
+   if (mcon->Timer < 0) mcon->Timer = 0;
+   if (mcon->Timer) swait(&(mcon->Semaphore), SEM_SIGABORT);
+   if (mcon->Timer) CancelTimeout(&(mcon->Timer));
 
-      mcon->Command &= ~CtrDrvrCommandSET_HPTDC; /* Hptdc needs to be re-initialized */
-      mmap->Command = mcon->Command;
+   mcon->Command &= ~CtrDrvrCommandSET_HPTDC; /* Hptdc needs to be re-initialized */
+   mmap->Command = mcon->Command;
 
-      for (i=CtrDrvrCounter1; i<=CtrDrvrCounter8; i++) {
-	 if (mmap->Counters[i].Control.RemOutMask == 0) {
-	    mmap->Counters[i].Control.RemOutMask = AutoShiftLeft(CtrDrvrCntrCntrlOUT_MASK,(1 << i));
-	 }
+   for (i=CtrDrvrCounter1; i<=CtrDrvrCounter8; i++) {
+      if (mmap->Counters[i].Control.RemOutMask == 0) {
+	 mmap->Counters[i].Control.RemOutMask = AutoShiftLeft(CtrDrvrCntrCntrlOUT_MASK,(1 << i));
       }
-      i = 0;                /* Not a counter bus error */
-
-      mmap->OutputByte = 0x100;  /* Enable front pannel output */
-
-      if (mcon->Pll.KP == 0) {
-	 mcon->Pll.KP = 337326;
-	 mcon->Pll.KI = 901;
-	 mcon->Pll.NumAverage = 100;
-	 mcon->Pll.Phase = 1950;
-      }
-      Int32Copy((unsigned int *) &(mmap->Pll),
-	       (unsigned int *) &(mcon->Pll),
-	       (unsigned int  ) sizeof(CtrDrvrPll));
-
-      EnableInterrupts(mcon,mcon->InterruptEnable);
-
-      EIEIO;
-      SYNC;
-
-      jtg = &mmap->HptdcJtag;
-      HptdcStateReset(jtg);           /* GOTO: Run test/idle */
-
-   } else {
-
-      disable(ps);
-
-      /* Terminate the PCI cycle on a bus error */
-
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,0);
-      cntrl |= Plx9030CntrlPCI_SOFTWARE_RESET;
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1);
-      cntrl &= ~Plx9030CntrlPCI_SOFTWARE_RESET;
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1);
-
-      mcon->BusErrorCount++;
-
-      kkprintf("\n===> <BERR> Start message\n");
-      kkprintf("CtrDrvr: Reset: BUS-ERROR:%d Module:%d PciSlot:%d \n",
-	       (int) mcon->BusErrorCount,
-	       (int) mcon->ModuleIndex+1,
-	       (int) mcon->PciSlot);
-
-      if (i >= CtrDrvrCounter1) {
-	 kkprintf("CtrDrvr: While accessing counter: %d output mask\n",i);
-      }
-      kkprintf("===> <BERR> End\n");
-      mcon->Status &= ~CtrDrvrStatusNO_BUS_ERROR;
-      mcon->Command = 0;
-
-      noreco();
-      enable(ps);
-      pseterr(ENXIO);        /* No such device or address */
-      return SYSERR;
    }
-   noreco();
+   i = 0;                /* Not a counter bus error */
+
+   mmap->OutputByte = 0x100;  /* Enable front pannel output */
+
+   if (mcon->Pll.KP == 0) {
+      mcon->Pll.KP = 337326;
+      mcon->Pll.KI = 901;
+      mcon->Pll.NumAverage = 100;
+      mcon->Pll.Phase = 1950;
+   }
+   Int32Copy((unsigned int *) &(mmap->Pll),
+	    (unsigned int *) &(mcon->Pll),
+	    (unsigned int  ) sizeof(CtrDrvrPll));
+
+   EnableInterrupts(mcon,mcon->InterruptEnable);
+
+   EIEIO;
+   SYNC;
+
+   jtg = &mmap->HptdcJtag;
+   HptdcStateReset(jtg);           /* GOTO: Run test/idle */
+
    return OK;
 }
 
@@ -1077,41 +1006,19 @@ unsigned int              cntrl;
    if (flag)  iod = "Write"; else iod = "Read";
 
    i = j = 0;
-   if (!recoset()) {         /* Catch bus errors */
 
-      for (i=0; i<riob->Size; i++) {
-	 j = riob->Offset+i;
-	 if (flag) {
-	    mmap[j] = uary[i];
-	    if (debg >= 2) cprintf("RawIo: %s: %d:0x%x\n",iod,j,(int) uary[i]);
-	 } else {
-	    uary[i] = mmap[j];
-	    if (debg >= 2) cprintf("RawIo: %s: %d:0x%x\n",iod,j,(int) uary[i]);
-	 }
-	 EIEIO;
-	 SYNC;
+   for (i=0; i<riob->Size; i++) {
+      j = riob->Offset+i;
+      if (flag) {
+	 mmap[j] = uary[i];
+	 if (debg >= 2) cprintf("RawIo: %s: %d:0x%x\n",iod,j,(int) uary[i]);
+      } else {
+	 uary[i] = mmap[j];
+	 if (debg >= 2) cprintf("RawIo: %s: %d:0x%x\n",iod,j,(int) uary[i]);
       }
-   } else {
-      disable(ps);
-
-      /* Terminate the PCI cycle */
-
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,0);
-      cntrl |= Plx9030CntrlPCI_SOFTWARE_RESET;
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1);
-      cntrl &= ~Plx9030CntrlPCI_SOFTWARE_RESET;
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1);
-
-      kkprintf("CtrDrvr: BUS-ERROR: Module:%d Addr:0x%lx Dir:%s Data:%d\n",
-	       (int) mcon->ModuleIndex+1,(long) &(mmap[j]),iod,(int) uary[i]);
-
-      mcon->Status &= ~CtrDrvrStatusNO_BUS_ERROR;
-
-      pseterr(ENXIO);        /* No such device or address */
-      rval = SYSERR;
-      enable(ps);
+      EIEIO;
+      SYNC;
    }
-   noreco();                 /* Remove local bus trap */
    riob->Size = i+1;
    return rval;
 }
