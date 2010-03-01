@@ -22,6 +22,8 @@ irqreturn_t LynxOsIntrHandler(int irq, void *arg, struct pt_regs *regs);
 irqreturn_t LynxOsIntrHandler(int irq, void *arg);
 #endif
 
+static DEFINE_MUTEX(emulate_mutex);
+
 LynxOsIsr lynxos_isrs[LynxOsMAX_DEVICE_COUNT];
 
 /* ============================================================================ */
@@ -84,10 +86,12 @@ void LynxOsTimersInitialize() {
 
 int i;
 
+   mutex_lock(&emulate_mutex);
    for (i=0; i<TIMERS; i++) {
       lynxos_timers[i].TimerInUse = 0;
       init_timer(&lynxos_timers[i].Timer);
    }
+   mutex_unlock(&emulate_mutex);
 }
 
 /* ============================================================================ */
@@ -96,7 +100,10 @@ int i;
 void timer_callback(unsigned long arg) {
 int rubbish;
 
-int i = arg -1;
+int i;
+
+   mutex_lock(&emulate_mutex);
+   i = arg -1;
 
    if ((i >=0 ) && (i < TIMERS)) {
       lynxos_timers[i].TimerInUse = 0;
@@ -111,6 +118,7 @@ int i = arg -1;
       printk(KERN_WARNING "lynx_os: timer_callback: No such timer: %d\n",
 	  (unsigned int) arg);
    }
+   mutex_unlock(&emulate_mutex);
 }
 
 /* ============================================================================ */
@@ -121,6 +129,7 @@ int i;
 
 int interval_jiffies = msecs_to_jiffies(interval * 10); /* 10ms granularity */
 
+   mutex_lock(&emulate_mutex);
    for (i=0; i<TIMERS; i++) {
       if (lynxos_timers[i].TimerInUse == 0) {
 	 lynxos_timers[i].TimerInUse = 1;
@@ -131,15 +140,14 @@ int interval_jiffies = msecs_to_jiffies(interval * 10); /* 10ms granularity */
 	 lynxos_timers[i].Timer.expires = jiffies + interval_jiffies;
 	 add_timer(&lynxos_timers[i].Timer);
 
-	 if (debug & LynxOsDEBUG_MODULE)
-	    printk(KERN_INFO "Debug: lynx_os: timeout: arg: %ld interval: %d OK\n",
-		   (unsigned long) arg,interval);
-
+	 mutex_unlock(&emulate_mutex);
 	 return i+1;
       }
    }
-   if (debug & LynxOsDEBUG_ERRORS)
-      printk(KERN_WARNING "lynx_os: timeout: EFAULT: No more timers\n");
+
+   printk(KERN_WARNING "lynx_os: timeout: EFAULT: No more timers\n");
+
+   mutex_unlock(&emulate_mutex);
    return SYSERR;
 }
 
@@ -148,28 +156,24 @@ int interval_jiffies = msecs_to_jiffies(interval * 10); /* 10ms granularity */
 
 int cancel_timeout(int arg) {
 
-int i = arg -1;
+int i;
 
+   mutex_lock(&emulate_mutex);
+   i = arg -1;
    if ((i >=0 ) && (i < TIMERS)) {
       if (lynxos_timers[i].TimerInUse) {
 	 del_timer_sync(&lynxos_timers[i].Timer);
 	 lynxos_timers[i].TimerInUse = 0;
 
-	 if (debug & LynxOsDEBUG_MODULE)
-	    printk(KERN_INFO "Debug: lynx_os: cancel_timeout: %u OK\n",
-		   (unsigned int) arg);
-
+	 mutex_unlock(&emulate_mutex);
 	 return OK;
       }
-      if (debug & LynxOsDEBUG_MODULE)
-	 printk(KERN_INFO "Debug: lynx_os: cancel_timeout: Timer has expired: %u\n",
-	     (unsigned int) arg);
 
+      mutex_unlock(&emulate_mutex);
       return OK;
    }
-   if (debug & LynxOsDEBUG_ERRORS)
-      printk(KERN_WARNING "lynx_os: cancel_timeout: EFAULT: No such timer: %u\n",
-	  (unsigned int) arg);
+
+   mutex_unlock(&emulate_mutex);
    return SYSERR;
 }
 

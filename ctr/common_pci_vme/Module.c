@@ -12,10 +12,6 @@
 #include <cdcmSem.c>
 #include <DrvrSpec.c>
 
-#ifdef CTR_VME
-#include <libinstkernel.c>
-#endif
-
 #include <ctrdrvr.c>
 
 /* ===================================================== */
