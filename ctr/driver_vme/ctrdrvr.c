@@ -332,15 +332,12 @@ unsigned int lft, rgt;
 
 static void CancelTimeout(int *t) {
 
-unsigned long ps;
 int v;
 
-   disable(ps); {
-      if ((v = *t)) {
-	 *t = 0;
-	 cancel_timeout(v);
-      }
-   } restore(ps);
+   if ((v = *t)) {
+      *t = 0;
+      cancel_timeout(v);
+   }
 }
 
 /*========================================================================*/
