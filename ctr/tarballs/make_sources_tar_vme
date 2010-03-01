@@ -1,18 +1,21 @@
-cp ../common_pci_vme/DrvrSpec.h      tar_vme/src
-cp ../common_pci_vme/DrvrSpec.c      tar_vme/src
-cp ../common_pci_vme/EmulateLynxOs.h tar_vme/src
-cp ../common_pci_vme/EmulateLynxOs.c tar_vme/src
-cp ../common_pci_vme/cdcmSem.h       tar_vme/src
-cp ../common_pci_vme/cdcmSem.c       tar_vme/src
-cp ../common_pci_vmedrvr.h           tar_vme/src
-cp ../common_pci_vmedrvrP.h          tar_vme/src
-cp ../common_pci_vme/ports.h         tar_vme/src
-cp ../common_pci_vme/hptdc.h         tar_vme/src
-cp ../common_pci_vmehard.h           tar_vme/src
-cp ../common_pci_vme/ModuleLynxOs.c  tar_vme/src
-cp ../common_pci_vme/Module.c        tar_vme/src
-cp ../vmebridge/driver/vmebus.h      tar_vme/src
-cp ../utils/driver/libinstkernel.c   tar_vme/src
-cp ../utils/driver/libinstkernel.h   tar_vme/src
-cp ../include/config_data.h          tar_vme/src
-cp ../driver_vmedrvr.c               tar_vme/src
+cp ../common_pci_vme/DrvrSpec.h       tar_vme/src
+cp ../common_pci_vme/DrvrSpec.c       tar_vme/src
+cp ../common_pci_vme/EmulateLynxOs.h  tar_vme/src
+cp ../common_pci_vme/EmulateLynxOs.c  tar_vme/src
+cp ../common_pci_vme/cdcmSem.h        tar_vme/src
+cp ../common_pci_vme/cdcmSem.c        tar_vme/src
+cp ../common_pci_vme/ctrdrvr.h        tar_vme/src
+cp ../common_pci_vme/ctrdrvrP.h       tar_vme/src
+cp ../common_pci_vme/ports.h          tar_vme/src
+cp ../common_pci_vme/hptdc.h          tar_vme/src
+cp ../common_pci_vme/ctrhard.h        tar_vme/src
+cp ../common_pci_vme/ModuleLynxOs.c   tar_vme/src
+cp ../common_pci_vme/Module.c         tar_vme/src
+cp ../../include/vmebus.h             tar_vme/src
+cp ../../utils/driver/libinstkernel.c tar_vme/src
+cp ../../utils/driver/libinstkernel.h tar_vme/src
+cp ../../include/config_data.h        tar_vme/src
+cp ../driver_vme/ctrdrvr.c            tar_vme/src
+
+
+
