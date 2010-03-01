@@ -585,9 +585,7 @@ static int GetVersion(CtrDrvrModuleContext *mcon,
 
 volatile CtrDrvrMemoryMap *mmap;    /* Module Memory map */
 unsigned long             ps;      /* Processor status  */
-unsigned int              intcsr;  /* Interrupt source Plx9030 register */
 unsigned int              stat;    /* Module status */
-unsigned int              cntrl;   /* Plx control word  */
 
    ps = 0;
    mmap = mcon->Map;
@@ -717,8 +715,6 @@ volatile CtrDrvrMemoryMap *mmap;     /* Module Memory map */
 unsigned long              ps;       /* Processor status  */
 volatile unsigned int     *jtg;      /* Hptdc JTAG register */
 int i = 0;
-
-unsigned int              cntrl;   /* Plx control word  */
 
    ps = 0;
    if (RecoverMode) {
@@ -995,8 +991,6 @@ unsigned long             ps;   /* Processor status word */
 int                       i, j;
 unsigned int             *uary;
 char                     *iod;
-
-unsigned int              cntrl;
 
    ps = 0;
    mmap = (unsigned int *) mcon->Map;
