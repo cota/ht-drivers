@@ -1,0 +1,14 @@
+<install host="cfv-864-cdv28" comment="Lab Test system running SLC5 with FTRACE">
+
+	<driver name="VD80" drivergen="n" comment="VME Analog Input Module">
+
+		<module bus_type="VME" logical_module_number="1" comment="Slot 2">
+			<interrupt vector="0xb1" level="2"></interrupt>
+			<vme comment=" "></vme>
+			<vme_space modifier="0x2f" data_width="32" window_size="0x80000" address="0x280000" free_flag="0" comment=" "></vme_space>
+			<vme_space modifier="0x39" data_width="32" window_size="0x80000" address="0x280000" comment=" "></vme_space>
+		</module>
+
+	</driver>
+
+</install>

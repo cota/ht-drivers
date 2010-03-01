@@ -1,0 +1,650 @@
+/*!
+ *  \class Vd80Device Static Library
+ *  \author Julian Lewis BE/CO/HT Julian Lewis
+ *  \version 11 May 2009
+ *
+ * This library exists in two forms as a ".so" shared object, and for
+ * thoes who are unwilling to use a dynamic library there is a ".a" static
+ * version as well. For the dynamic link stub library see seperate doccument.
+ *
+ * The vd80 driver exposes a minimum functionality of the boards capabilities.
+ * More functions can be added later if needed.
+ *
+ * In the current driver the following capabilities are provided.
+ * 1) Setting up of the trigger
+ * 2) Setting up of the clock
+ * 3) Setting up the post trigger sample size
+ * 4) Issuing module commands like Start, Stop, Trigger
+ * 5) Reading the sample buffer for a given channel via DMA
+ * 6) Connecting to and waiting for module interrupts
+ *
+ * A library test program using the dynamic library is available, the
+ * executable is named "vd80libTst".
+ */
+
+
+/**
+ * Standard error codes are available.
+ */
+
+typedef enum {
+/** All went OK, No error                       */ Vd80ErrSUCCESS,
+/** Function is not implemented on this device  */ Vd80ErrNOT_IMP,
+/** Invalid Start value for this device         */ Vd80ErrSTART,
+/** Invalid Mode  value for this device         */ Vd80ErrMODE,
+/** Invalid Clock value for this device         */ Vd80ErrCLOCK,
+/** Can't open a driver file handle, fatal      */ Vd80ErrOPEN,
+/** Can't connect to that interrupt             */ Vd80ErrCONNECT,
+/** No connections to wait for                  */ Vd80ErrWAIT,
+/** Timeout in wait                             */ Vd80ErrTIMEOUT,
+/** Queue flag must be set 0 queueing is needed */ Vd80ErrQFLAG,
+/** IO or BUS error                             */ Vd80ErrIO,
+/** Module is not enabled                       */ Vd80ErrNOT_ENAB,
+/** Not available for INTERNAL sources          */ Vd80ErrSOURCE,
+/** Value out of range                          */ Vd80ErrVOR,
+/** Bad device type                             */ Vd80ErrDEVICE,
+/** Bad address                                 */ Vd80ErrADDRESS,
+/** Can not allocate memory                     */ Vd80ErrMEMORY,
+/** Shared library error, can't open object     */ Vd80ErrDLOPEN,
+/** Shared library error, can't find symbol     */ Vd80ErrDLSYM,
+/** Can't open sampler device driver            */ Vd80ErrDROPEN,
+/** Invalid handle                              */ Vd80ErrHANDLE,
+/** Invalid module number, not installed        */ Vd80ErrMODULE,
+/** Invalid channel number for this module      */ Vd80ErrCHANNEL,
+
+/** The total number of possible error codes    */ Vd80ERRORS
+ } Vd80Err;
+
+/**
+ * Set the debug level. The values in the first byte control the debug
+ * print level on the console. Much of this information is prionted by
+ * the driver and can slow things down a lot. The second byte controls
+ * hardware and software emulation. This is for testing purposes only.
+ */
+
+typedef enum {
+/** All assertion violations (BUGS) printed      */ Vd80DebugASSERTION   = 0x01,
+/** Trace all driver calls                       */ Vd80DebugTRACE       = 0x02,
+/** Warnings such as bad call parameters         */ Vd80DebugWARNING     = 0x04,
+/** Hardware module errors, bus error etc        */ Vd80DebugMODULE      = 0x08,
+/** Extra information                            */ Vd80DebugINFORMATION = 0x10,
+/** Turn on driver emulation, no hardware access */ Vd80DebugEMULATION   = 0x100,
+ } Vd80DebugFlag;
+
+/**
+ * The number of bits in the debug mask that can be set to determin
+ * the driver and library debug information printout.
+ */
+
+#define Vd80DebugLEVELS 6
+
+/**
+ * The debug level can be controlled for any client with an open driver handle.
+ * The PID of the client can be specified, a value of "0" is the callers PID.
+ */
+
+typedef struct {
+/** PID of client, or zero for this PID   */ int           ClientPid;
+/** The debug flag bits specify the level */ Vd80DebugFlag DebugFlag;
+ } Vd80Debug;
+
+/**
+ * We sometimes need a bit mask to specify modules/channels when an
+ * operation or command is applied to many modules at the same time.
+ * Obviously we can declare more modules if needed.
+ */
+
+typedef enum {
+/** No module selected   */   Vd80ModNONE = 0x0000,
+/** Select module 1      */   Vd80Mod01   = 0x0001,
+/** Select module 2      */   Vd80Mod02   = 0x0002,
+/** Select module 3      */   Vd80Mod03   = 0x0004,
+/** Select module 4      */   Vd80Mod04   = 0x0008,
+/** Select module 5      */   Vd80Mod05   = 0x0010,
+/** Select module 6      */   Vd80Mod06   = 0x0020,
+/** Select module 7      */   Vd80Mod07   = 0x0040,
+/** Select module 8      */   Vd80Mod08   = 0x0080,
+/** Select module 9      */   Vd80Mod09   = 0x0100,
+/** Select module 10     */   Vd80Mod10   = 0x0200,
+/** Select module 11     */   Vd80Mod11   = 0x0400,
+/** Select module 12     */   Vd80Mod12   = 0x0800,
+/** Select module 13     */   Vd80Mod13   = 0x1000,
+/** Select module 14     */   Vd80Mod14   = 0x2000,
+/** Select module 15     */   Vd80Mod15   = 0x4000,
+/** Select module 16     */   Vd80Mod16   = 0x8000,
+/** All modules selected */   Vd80ModALL  = 0xFFFF
+ } Vd80Mod;
+
+/**
+ * A resonable limit on reserved memory defined by the number of driver
+ * module contexts is set at 16. Should we need more the driver must be
+ * recompiled and delivered with the new value.
+ */
+
+#define Vd80MODULES 16
+
+/**
+ * We sometimes need a bit mask to specify modules/channels when an
+ * operation or command is applied to many modules at the same time.
+ * Obviously we can declare more modules if needed.
+ */
+
+typedef enum {
+/** No channel selected   */   Vd80ChnNONE = 0x0000,
+/** Select channel 1      */   Vd80Chn01   = 0x0001,
+/** Select channel 2      */   Vd80Chn02   = 0x0002,
+/** Select channel 3      */   Vd80Chn03   = 0x0004,
+/** Select channel 4      */   Vd80Chn04   = 0x0008,
+/** Select channel 5      */   Vd80Chn05   = 0x0010,
+/** Select channel 6      */   Vd80Chn06   = 0x0020,
+/** Select channel 7      */   Vd80Chn07   = 0x0040,
+/** Select channel 8      */   Vd80Chn08   = 0x0080,
+/** Select channel 9      */   Vd80Chn09   = 0x0100,
+/** Select channel 10     */   Vd80Chn10   = 0x0200,
+/** Select channel 11     */   Vd80Chn11   = 0x0400,
+/** Select channel 12     */   Vd80Chn12   = 0x0800,
+/** Select channel 13     */   Vd80Chn13   = 0x1000,
+/** Select channel 14     */   Vd80Chn14   = 0x2000,
+/** Select channel 15     */   Vd80Chn15   = 0x4000,
+/** Select channel 16     */   Vd80Chn16   = 0x8000,
+/** All channels selected */   Vd80ChnALL  = 0xFFFF
+ } Vd80Chn;
+
+/**
+ * 16 channels are supported on a VD80 module
+ */
+
+#define Vd80CHANNELS 16
+
+/**
+ * The VD80 module has one state for all channels.
+ *
+ * When the module is in the IDLE state data can be read/written to
+ * the modules sample memory. When in IDLE no samples are taken.
+ *
+ * When the module receives either a software of external start, it begins
+ * sampling at the selected clock rate. All samples for all channels are
+ * stored in each channel buffer. Each chanel has 32Mb of memory.
+ * The module is in the PRETRIGGER state after being started.
+ *
+ * When the module receives either s software or external trigger, it
+ * continues sampling until it either receives a software stop, or the
+ * specified number of post trigger samples have been read. The module
+ * is in the POSTTRIGGER state until it stops.
+ *
+ * When the module has been stopped, it moves back to the IDLE state
+ */
+
+typedef enum {
+/** Not known/initialized  */   Vd80StateNOT_SET     = 0,
+/** Ready to do something  */   Vd80StateIDLE        = 1,
+/** Waiting for trigger    */   Vd80StatePRETRIGGER  = 2,
+/** Sampling, device busy  */   Vd80StatePOSTTRIGGER = 3,
+/** Total number of states */   Vd80STATES           = 4
+ } Vd80State;
+
+/**
+ * Standard status definitions:
+ * These status bits are set through the generic SKEL driver.
+ * The module is not available for sampling if the DISABLE bet is set.
+ * If there is a hardware failure the HARDWARE_FAIL bit is set.
+ * On the VD80 the inputs are checked for short circuit, the hardware
+ * failure is then set.
+ * The VD80 must be configured correctly so that the address maps are
+ * properly set up. In particular the A24D32, CSR and MBLT64 address spaces
+ * must be setup by the driver. These addresses must conform to the
+ * auto slot configuration settings. See VD80 manual for mor details.
+ * Incorrect configuration settings will lead to the BUS_FAULT bit being set.
+ * For testing purposes the debug level can be set to EMULATION. In this case
+ * the VD80 driver provides a simple hardware emulation by mirroring the
+ * hardware address map in the module context memory.
+ * Again for testing only, if EMULATION is on, there is no need to have a
+ * real hardware module installed. In this case the NO_HARDWARE bit is set.
+ */
+
+typedef enum {
+/** Hardware is not enabled */ Vd80StatusDISABLED      = 0x001,
+/** Hardware has failed     */ Vd80StatusHARDWARE_FAIL = 0x002,
+/** Bus error(s) detected   */ Vd80StatusBUS_FAULT     = 0x004,
+/** Hardware emulation ON   */ Vd80StatusEMULATION     = 0x008,
+/** Hardware debug mode     */ Vd80StatusHARDWARE_DBUG = 0x100
+ } Vd80Status;
+
+/**
+ * There are 3 version parameters.
+ * The Library Version is the UTC time compilation date of the library.
+ * The Drvver Version is the UTC time compilation date of the driver.
+ * The Module Version is a string returned from the VD80 configuration space.
+ * The Module Version string size is defined by VERSION_SIZE
+ */
+
+#define Vd80VERSION_SIZE 64
+
+typedef struct {
+/** DLL Library Compile date */ unsigned int LibraryVersion;
+/** Drvr Compile date        */ unsigned int DriverVersion;
+/** Module version string    */ char         ModVersion[Vd80VERSION_SIZE];
+ } Vd80Version;
+
+/**
+ * Inputs can be specified as EXTERNAL in which case the EDGE
+ * and TERMINATION of the signal SOURCE must be provided. When
+ * the SOURCE is INTERNAL the EDGE and TERMINATION specification
+ * is internally determined by the module defaults.
+ * Each input has a Lemo connector on the VD80 front pannel.
+ */
+
+/**
+ * An input is sensative to either a rising or falling edge
+ */
+
+typedef enum {
+/** Use the rising edge of the input signal  */ Vd80EdgeRISING,
+/** Use the falling edge of the input signal */ Vd80EdgeFALLING,
+/** The possible edges                       */   Vd80EDGES
+ } Vd80Edge;
+
+/**
+ * The input of a VD80 can be either not terminated, or terminated
+ * internally with 50 Ohms.
+ */
+
+typedef enum {
+/** No internal termination      */ Vd80TerminationNONE,
+/** 50 Ohms internal termination */ Vd80Termination50OHM,
+/** Possible terminations        */ Vd80TERMINATIONS
+ } Vd80Termination;
+
+/**
+ * The input can be sourced internally, or an external signal
+ * can be used at the Lemo input.
+ */
+
+typedef enum {
+/** Signal is generated internally */ Vd80SourceINTERNAL,
+/** Signal arrives on input Lemo   */ Vd80SourceEXTERNAL,
+/** Possible sources               */ Vd80SOURCES
+ } Vd80Source;
+
+/**
+ * This structure is used to define the parameters of an input,
+ * its edge, termination and source. Each input has a corresponding
+ * Lemo connector on the VD80 front pannel.
+ */
+
+typedef struct {
+/** The signal edge to be used */ Vd80Edge        Edge;
+/** The termination to use     */ Vd80Termination Termination;
+/** Possible sources           */ Vd80Source      Source;
+ } Vd80Input;
+
+/**
+ * The VD80 ADC is 16=Bits signed twos compliment. For generic libraries such
+ * as the stub library that handles many module types of varrying prescision
+ * the Datum Size is needed. The VD80 has a fixed Datum Size DatumSize16.
+ * The Datum Size is needed by the DMA mechansim to know how to break up and
+ * byte order the transfer buffer.
+ * Sample buffers are read back from a sampler and contain the acquired
+ * data for a channel. The buffer pointer should be cast according to
+ * the buffer DatumSize. The Datum size is actually the number of bytes in
+ * a Sample, not the exact number of bits.
+ */
+
+typedef enum {
+/** Cast buffer to char  */ Vd80DatumSize08 = 1,
+/** Cast buffer to short */ Vd80DatumSize16 = 2,
+/** Cast buffer to int   */ Vd80DatumSize32 = 4
+ } Vd80DatumSize;
+
+/**
+ * Trigger configuration, trigger delay and min pre trigger samples
+ */
+
+typedef struct {
+/** Time to wait after trig in sample intervals */ int TrigDelay;
+/** Mininimum number of pretrig samples         */ int MinPreTrig;
+ } Vd80TrigConfig;
+
+/**
+ * A VD80 buffer is filled accross a DMA transfer from the modules sample
+ * buffer memory for a channel. The User must allocate at least
+ * (BSze x DatumSize) bytes of memory. BSze is the total buffer size measured
+ * in Samples, and Post is the number of POSTTRIGGER samples you want. Obviously
+ * Post must be less than BSze.
+ * The DMA mechanism of the VD80 is only able to transfer memory in chunks of
+ * 32 Samples. So the actual trigger position TPOS is adjusted to give at least
+ * Post Samples and returned to the User. In a similar way the Actual number of
+ * available samples read back from the hardware is ASze.
+ */
+
+typedef struct {
+/** Address of alloocated sample memory */   void *Addr;
+/** Buffer size in samples (DatumSize)  */   int   BSze;
+/** Requested number of post samples    */   int   Post;
+/** Actual position of trigger          */   int   Tpos;
+/** Actual number of samples in buffer  */   int   ASze;
+/** Pre-trigger status register         */   int   Ptsr;
+ } Vd80Buffer;
+
+/**
+ * When waiting for interrupts from VD80 modules, you may or may not want the
+ * driver to provide you with a queue. Setting the Queue Flag OFF will guarantee
+ * a hard real time correspondance between the client thread and the instant
+ * module state. However if many modules are interrupting at exactly the same time
+ * then because you have Queueing OFF, then interrupts would be missed.
+ */
+
+typedef enum {
+/** 0 => Client interrupt queueing ON */ Vd80QueueFlagON,
+/** 1 => and OFF                      */ Vd80QueueFlagOFF
+ } Vd80QueueFlag;
+
+/**
+ * The VD80 is capable of providine interrupts when the module receives a trigger,
+ * or when the acquisition data becomes ready, IE when its state changes from
+ * POSTTRIGGER to IDLE. The VD80 also monitors itself and its inputs and can
+ * provide an interrupt for some hardware failures.
+ */
+
+typedef enum {
+/** Trigger interrupt        */ Vd80IntrMaskTRIGGER      = 0x1,
+/** Data ready interrupt     */ Vd80IntrMaskACQUISITION  = 0x2,
+/** Hardware error interrupt */ Vd80IntrMaskERR          = 0x4,
+/** Possible interrupts      */ Vd80INTR_MASKS           = 3
+ } Vd80IntrMask;
+
+/**
+ * Once an interrupt for a client occurs an interrupt structure is placed on its
+ * Queue. If Queueing is OFF the queuesize is limited to ONE entry, otherwise
+ * the Queue Size is a system parameter (default 32).
+ * The Client calls the drivers "read()" entry an is returned either a timeout or
+ * a completed Intr structure. The two situations can be destinguished by the read()
+ * returned byte count. In the case of a timeout zero is returned, otherwise the
+ * returned value is sizeof(Vd80Intr). When a Intr structure is read from the queue
+ * it contains a Mask value wit only a single bit set, the Time that the interrupt
+ * happened, the module from which the interrupt came, the channel, the number of
+ * remaining Intr structures on the Queue, and the number of Missed interrupts due
+ * to Queue overflow. In the VD80 case the Channel is always zero because all
+ * channels have exactly the same state.
+ */
+
+typedef struct {
+/** Single interrupt source bit          */ Vd80IntrMask    Mask;
+/** Time of trigger                      */ struct timespec Time;
+/** The module number 1..N               */ unsigned int    Module;
+/** The channel (Always zero on a VD80)  */ unsigned int    Channel;
+/** Number of remaining entries on queue */ unsigned int    QueueSize;
+/** Queue overflow missed count          */ unsigned int    Missed;
+ } Vd80Intr;
+
+/**
+ * Open a VD80 driver handle. Beware that if the user is using a multi-threaded
+ * application in which more than one thread waits for an interrupt, then each
+ * thread must open a driver handle independantly and hence each thread gets
+ * its own Queue. vd80OpenHandle either manages to open the driver and return
+ * a posative integer value, or it fails and return a negative or zero value.
+ */
+
+int vd80OpenHandle();
+
+/**
+ * Close a VD80 driver handle. This routine never fails, even with a garbage
+ * file descriptor. Close marks a Client Context as available and detaches it
+ * from any interrupts it connected to. Close is always called for open files
+ * when a client is either killed or exits.
+ */
+
+void vd80CloseHandle(int fd);
+
+/**
+ * The debug mask bits are described above (Vd80DebugFlag).
+ * Notice that by putting the PID
+ * of a client in the Debug structure it is possible to turn logging on at
+ * various levels, A PID value of zero always means the Current process.
+ * Setting EMULATION forces the driver to emulate for all clients.
+ */
+
+Vd80Err vd80SetDebug(int fd, Vd80Debug *debug);
+
+/**
+ * Read a clients debug mask, supply the PID or zero in Debug and get back
+ * the current Debug mask.
+ */
+
+Vd80Err vd80GetDebug(int fd, Vd80Debug *debug);
+
+/**
+ * Reset is the equivalent to a VME bus reset. All settings and data on
+ * the module will be lost. This function is very dangerous on a VD80 as
+ * the module looses its configuration. Do not call this function in an
+ * initialization. In fact just don't call it unless you are debugging.
+ * It also kills interrupt subscriptions of other clients.
+ */
+
+Vd80Err vd80ResetMod(int fd, int module);
+
+/**
+ * Each VD80 channel has its own 16-Bit ADC. The instantaneous ADC value
+ * can be read via this function. These values can be used by experts to
+ * recallibrate a VD80 module.
+ * Calibrate requires that zero and Max volts are applied to an input
+ * and the Adc value then read back. Once done the values obtained can
+ * be used to calibrate the module.
+ * The VD80 was calibrated by the factory, overwriting the factory settings
+ * isn't a good idea unless you know what you are doing. For this reason
+ * the Calibration library routine has been suppressed.
+ */
+
+Vd80Err vd80GetAdcValue(int fd, int module, int channel, int *adc);
+
+/**
+ * Get the state of a VD80 module. See (Vd80State) above for possible States.
+ * The VD80 does not support a state for each channel, so the channel parameter
+ * is ignored.
+ */
+
+Vd80Err vd80GetState(int fd, int module, int channel, Vd80State *state);
+
+/**
+ * Get the generic status word for a given VD80 module.
+ */
+
+Vd80Err vd80GetStatus(int fd, int module, Vd80Status *status);
+
+/**
+ * Get the VD80 module DatumSize (See Vd80Status above). This function will always
+ * return DatumSize16 for the VD80.
+ */
+
+Vd80Err vd80GetDatumSize(int fd, Vd80DatumSize *datsze);
+
+/**
+ * Discover how many VD80 module are actually installed in this VME crate.
+ * N.B. The result can be zero when NO_HARDWEARE status is set.
+ */
+
+Vd80Err vd80GetModCount(int fd, int *count);
+
+/**
+ * Get the number of channels supported by the VD80 module. This function
+ * will always return 16 on a VD80 module.
+ */
+
+Vd80Err vd80GetChnCount(int fd, int *count);
+
+/**
+ * Get the Hardware, Driver and Library versions, see Vd80Version above.
+ */
+
+Vd80Err vd80GetVersion(int fd, int module, Vd80Version *version);
+
+/**
+ * Set up the VD80 module trigger input, edge, termination and source.
+ * One bit is set in the module mask for each module you want to set.
+ * The settings are for the entire module and channels is ignored.
+ */
+
+Vd80Err vd80SetTrigger(int fd, Vd80Mod modules, Vd80Chn channels, Vd80Input *trigger);
+
+/**
+ * Get trigger setting for one specified module 1..N
+ * The settings are for the entire module and channels is ignored.
+ */
+
+Vd80Err vd80GetTrigger(int fd, int module, int channel, Vd80Input *trigger);
+
+/**
+ * Set up the VD80 module clock input, edge, termination and source.
+ * One bit is set in the module mask for each module you want to set.
+ * The settings are for the entire module and channels is ignored.
+ */
+
+Vd80Err vd80SetClock(int fd, Vd80Mod modules, Vd80Chn channels, Vd80Input *clock);
+
+/**
+ * Get clock setting for one specified module 1..N
+ * The settings are for the entire module and channels is ignored.
+ */
+
+Vd80Err vd80GetClock(int fd, int module, int channel, Vd80Input *clock);
+
+/**
+ * The VD80 has a 200KHz internal clock. This clock can be devided to provide
+ * an internal clock frequency of 200/(N+1) KHz. Notice the the devisor N
+ * has one added to it to avoid the division by zero.
+ */
+
+Vd80Err vd80SetClockDivide(int fd, Vd80Mod modules, Vd80Chn channels, unsigned int divisor);
+
+/**
+ * Get the clock divisor N. The internal clock frequency is 200/(N+1) Khz
+ */
+
+Vd80Err vd80GetClockDivide(int fd, int module, int channel, unsigned int *divisor);
+
+/**
+ * Get trigger configuration params, delay and min pretrig samples      */
+ */
+
+Vd80Err vd80GetTriggerConfig(int fd, int mod, int chn, Vd80TrigConfig *ctrg);
+
+/*
+ * Set trigger configuration params, delay and min pretrig samples      */
+ */
+
+Vd80Err vd80SetTriggerConfig(int fd, unsigned int mods, unsigned int chns, Vd80TrigConfig *ctrg);
+
+/**
+ * Buffers contain samples that occur before and after the trigger.
+ * Any byte ordering operations are performed by the library.
+ * The user specifies the number of post trigger samples and the size
+ * of the buffer. In some hardware such as the VD80 the DMA transfers
+ * are carried out in chunks. Thus the exact triigger position within
+ * the buffer is adjusted to the nearset size/post boundary. Hence the
+ * actual number of pre/post trigger samples may vary.
+ * The user is responsible for allocating the buffer. If there are
+ * performance issues it is preferable to allocate the buffer on a
+ * 4096 byte page aligned block as follows ...
+ * if (posix_memalign((void **) &buf,4096,BUF_SHORTS*sizeof(short)))
+ *    perror("Cant allocate buffer");
+ * See Vd80Buffer above.
+ * This function sets the post trigger register on the VD80 hardware.
+ * The settings are for the entire module and channels is ignored.
+ */
+
+Vd80Err vd80SetBufferSize(int fd, Vd80Mod modules, Vd80Chn channels, int  size, int  post);
+
+/**
+ * Start acquireing samples, the state will change from IDLE to PRETRIGGER,
+ * and the VD80 will copy ADC values to channel sample memory.
+ * One bit is set in the module mask for each module you want to set.
+ * The settings are for the entire module and channels is ignored.
+ */
+
+Vd80Err vd80StrtAcquisition(int fd, Vd80Mod modules, Vd80Chn channels);
+
+/**
+ * Start acquireing post samples, the state will change from PRETRIGGER to POSTTRIGGER,
+ * and the VD80 will copy ADC Post values to channel sample memory.
+ * One bit is set in the module mask for each module you want to set.
+ * The settings are for the entire module and channels is ignored.
+ */
+
+Vd80Err vd80TrigAcquisition(int fd, Vd80Mod modules, Vd80Chn channels);
+
+/**
+ * Stop acquireing post samples, the state will change from ANY to IDLE,
+ * and the VD80 will copy ADC values to channel sample memory.
+ * One bit is set in the module mask for each module you want to set.
+ * The settings are for the entire module and channels is ignored.
+ */
+
+Vd80Err vd80StopAcquisition(int fd, Vd80Mod modules, Vd80Chn channels);
+
+/**
+ * If the state is IDLE the IO buffer pointer is set to the channel
+ * Specified. Do NOT call this function, it is used by GetBuffer and
+ * is only for experts.
+ * One bit is set in the module mask for each module you want to set.
+ * Only one bit in the channel mask should be set.
+ */
+
+Vd80Err vd80ReadAcquisition(int fd, Vd80Mod modules, Vd80Chn channels);
+
+/**
+ * Connect to an interrupt on a given module. See Vd80IntrMask.
+ * The settings are for the entire module and channels is ignored.
+ */
+
+Vd80Err vd80Connect(int fd, Vd80Mod modules, Vd80Chn channels, Vd80IntrMask imask);
+
+/**
+ * Set your timeout value in milliseconds.
+ * The timeout can be independantly set by each thread wit its own open handle.
+ */
+
+Vd80Err vd80SetTimeout(int fd, int  tmout);
+
+/**
+ * Get the open handle timeout in milliseconds.
+ */
+
+Vd80Err vd80GetTimeout(int fd, int *tmout);
+
+/**
+ * Set queueing on or off for a given handle. See Vd80QueueFlag
+ */
+
+Vd80Err vd80SetQueueFlag(int fd, Vd80QueueFlag flag);
+
+/**
+ * Get queue falg for a given handle. See Vd80QueueFlag
+ */
+
+Vd80Err vd80GetQueueFlag(int fd, Vd80QueueFlag *flag);
+
+/**
+ * Wait for an interrupt or a timeout. See Vd80Intr
+ * In the case of a timeout the return error is Vd80ErrTIMEOUT
+ * You can connect to any bit you want and wait for it.
+ * Using Simulate Interrupt you get a nice synchronization method.
+ */
+
+Vd80Err vd80Wait(int fd, Vd80Intr *intr);
+
+/**
+ * Simulate an interrupt, the event will be put on all connected clients
+ * queue, and they will be woken up with whatever you specified.
+ * This is usefull for testing, and for synchronization between threads.
+ */
+
+Vd80Err vd80SimulateInterrupt(int fd, Vd80Intr *intr);
+
+/**
+ * Read a buffer from a specified module and channel. See Vd80Buffer.
+ * This functions stops the module and starts a DMA transfer into User
+ * address space. Be sure you allocated memory correctly. When the
+ * transfer is complete the function returns.
+ */
+
+Vd80Err vd80GetBuffer(int fd, int module, int channel, Vd80Buffer *buffer);

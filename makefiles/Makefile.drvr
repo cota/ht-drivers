@@ -10,8 +10,11 @@
 
 # Kept only for backward compatibility with 2.6.9. will be removed
 ifneq ($(KERNELRELEASE),)
-include $(M)/Kbuild
+	include $(M)/Kbuild
 else
+
+# Do not print "Entering directory ..."
+MAKEFLAGS += --no-print-directory
 
 # Makefile from current directory supress one from upper level
 include $(shell if [ -e ./Makefile.specific ]; then \
@@ -27,17 +30,26 @@ _all:
 # For debugging
 #SHELL += -x
 
-# Where everything is nested
-# User can provide it's own, otherwise default will be used
-ROOTDIR := $(PWD)/../..
+ifeq ($(CPU),)
+_all:
+	@$(MAKE) CPU=L865
+	@$(MAKE) CPU=ppc4
 
-# CPU should be defined
-$(if $(CPU),,$(error CPU not defined))
+deliver:
+	@$(MAKE) _deliver $(filter-out deliver, $(MAKECMDGOALS)) CPU=L865
+	@$(MAKE) _deliver $(filter-out deliver, $(MAKECMDGOALS)) CPU=ppc4
+
+# quiet down $(ACCS) -- {lab, oper, oplhc}
+$(filter-out deliver, $(MAKECMDGOALS)):
+	@:
+else
+  include ../Makefile
+endif
 
 # CES Linux
 ifeq ($(CPU), Lces)
 	OSREL = ces
-	include $(ROOTDIR)/makefiles/Makefile.lces
+	include ../$(ROOTDIR)/makefiles/Makefile.lces
 endif
 
 # SLC4
@@ -45,7 +57,7 @@ ifeq ($(CPU), L864)
 	ifeq ($(KVER),)
 		KVER = 2.6.24.4-rt4
 	endif
-	include $(ROOTDIR)/makefiles/Makefile.linux
+	include ../$(ROOTDIR)/makefiles/Makefile.linux
 endif
 
 # SLC5
@@ -53,13 +65,13 @@ ifeq ($(CPU), L865)
 	ifeq ($(KVER),)
 		KVER = 2.6.24.7-rt27
 	endif
-	include $(ROOTDIR)/makefiles/Makefile.linux
+	include ../$(ROOTDIR)/makefiles/Makefile.linux
 endif
 
 # Lynx
 ifeq ($(CPU), ppc4)
 	KVER = 4.0.0
-	include $(ROOTDIR)/makefiles/Makefile.lynx
+	include ../$(ROOTDIR)/makefiles/Makefile.lynx
 endif
 
 PHONY += FORCE

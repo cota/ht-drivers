@@ -10,9 +10,9 @@
 # @b NOTE See examples/out-of-tree-cdcm for more information on howto
 #         compile with test CDCM branches.
 ###############################################################################
-CDCM_D  ?= ../../cdcm
-XML_D    = ../../utils/driver
-SKEL_D   = ../../skel/driver
+CDCM_D  = ../$(ROOTDIR)/cdcm
+XML_D   = ../$(ROOTDIR)/utils/driver
+SKEL_D  = ../$(ROOTDIR)/skel/driver
 
 EXTRA_DRVR_SRC_FILES += \
 	$(CDCM_D)/cdcmBoth.c

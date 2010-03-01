@@ -31,10 +31,10 @@
 
 
 #define icv_cumulative  1	/* cumulative mode */
-#define icv_queuleuleu  2	/* " a la queue leu leu " file */
+#define icv_queuleuleu  2	/* "a la queue leu leu" file */
 
 #define icv_ReenableOn  1	/* line management: automatic reenable */
-#define icv_ReenableOff 2	/* line management: disable */
+#define icv_ReenableOff 2	/* line management: disable auto reenable */
 
 #define icv_FpiLine 1		/* Type of a line special and private */
 #define icv_IcvLine 2		/* Type of a normal line */
@@ -42,25 +42,24 @@
 #define icv_Enabled  1		/* Status for line enabled */
 #define icv_Disabled 0		/* Status for line disabled */
 
-#define icvB_0  0x1
-#define icvB_1  0x2
-#define icvB_2  0x4
-#define icvB_3  0x8
-#define icvB_4  0x10
-#define icvB_5  0x20
-#define icvB_6  0x40
-#define icvB_7  0x80
-#define icvB_8  0x100
-#define icvB_9  0x200
-#define icvB_10 0x400
-#define icvB_11 0x800
-#define icvB_12 0x1000
-#define icvB_13 0x2000
-#define icvB_14 0x4000
-#define icvB_15 0x8000
+/* line operation mode flags */
+#define icv_cumul   (1 << 0)	/*
+				  Subscriber mode.
 
-#define icv_cumul   icvB_0
-#define icv_disable icvB_1
+				   ON -- cumulative mode
+				   only one event from a given trigger source is present in the ring,
+				   At arrival of the next trigger, if event not already read, no event is put
+				   in the ring, it only count the occurance in the subscriber table.
+
+				   0FF -- normal mode
+				   each trigger give one event in the ring buffer
+				*/
+
+#define icv_disable (1 << 1)	/*
+				  interrupt mode.
+				  ON  -- line is disabled after each interrupt
+				  OFF -- line stays enabled after the interrupt
+				*/
 
 /* structure of an event */
 union icvU_Evt {
@@ -68,9 +67,11 @@ union icvU_Evt {
 	struct {
 		unsigned short w1, w2;
 	} Word;
+#if 0
 	struct {
 		unsigned char b1, b2, b3, b4;
 	    } Byte;
+#endif
 };
 
 /* Internal structure of Atom stuffed in the ring */
@@ -78,7 +79,6 @@ struct icvT_RingAtom {
 	struct T_Subscriber *Subscriber;
 	union  icvU_Evt Evt;
 };
-
 
 /* Structure to address hardware of the icvpls vme module */
 /* structures linked to ioctl interface */
@@ -236,19 +236,7 @@ struct icvT_RingAtom {
 #define ICV_L815  0176
 #define ICV_L816  0177
 
-/* Group value */
-#define ICV_Group0 0
-#define ICV_Group1 1
-#define ICV_Group2 2
-#define ICV_Group3 3
-#define ICV_Group4 4
-#define ICV_Group5 5
-#define ICV_Group6 6
-#define ICV_Group7 7
-
-#define ICV_GroupNb (ICV_Group7 + 1) /* Module number */
-
-#define ICV_mapByteSz (ICV_GroupNb << 1) /* 2 byte per module; 16 lines */
+#define ICV_mapByteSz (icv_ModuleNb << 1) /* 2 byte per module; 16 lines */
 
 /* Index value */
 #define ICV_Index00 000
@@ -270,4 +258,4 @@ struct icvT_RingAtom {
 #define ICV_Index16 020
 
 /* UserMode flags */
-#define icv_bitwait icvB_0 /* =1 to wait on read for LAM, 0 nowait */
+#define icv_bitwait (1 << 0) /* 1 -- wait on read for LAM, 0 -- nowait */

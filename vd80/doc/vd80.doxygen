@@ -1,0 +1,166 @@
+/*!
+ *  \class Vd80Device Driver
+ *  \author Julian Lewis BE/CO/HT Julian Lewis
+ *  \version 25 Mar 2009
+ *
+ * The VD80 hardware module is a sampling 16-channel 16-Bit Transient Recorder
+ * with a sampling rate up to 200 KHz.
+ * This driver exposes a minimum functionality of the boards capabilities.
+ * More functions can be added later if needed.
+ *
+ * In this version of the driver the following capabilities are provided.
+ * 1) Setting up of the trigger
+ * 2) Setting up of the clock
+ * 3) Setting up the post trigger sample size
+ * 4) Issuing module commands like Start, Stop, Trigger
+ * 5) Reading the sample buffer for a given channel via DMA
+ * 6) Connecting to and waiting for module interrupts
+ *
+ * The VD80 is based on the standard SKEL driver and hence provides all
+ * the standard SKEL features for debugging getting the status etc
+ *
+ * A standard test program encorporating all the SKEL features and the
+ * VD80 specific features is provided
+ * As usual to see a complete list of available test program commands type h
+ */
+
+/**
+ *  Vd80NumGET_POSTSAMPLES, Get the number of post samples you set
+ *  Vd80NumSET_POSTSAMPLES, Set the number of post samples you want
+ *
+ * The VD80 once started begins filling sample memory in the PRE-TRIGGER state.
+ * Once triggered it will start counting post trigger samples and compare them
+ * with the POSTSAMPLES value you have set. Once the count reaches this set value
+ * the state then switches to IDLE and sampling is stopped.
+ *
+ * V80IoctlREAD_SAMPLE has an argument pointer of type Vd80SampleBuf
+ *
+ * Once the module has returned to the IDLE state, the sample data can be read from the
+ * fifo buffer using DMA transfers. In order to avoid unnessary Scatter Gather lists the
+ * target buffer should be aligned on a 4096 page boundary. The DMA transfer from the
+ * Vd80 occur in 32 sample blocks using 64-Bit MBLT block transfers, so an arbitary
+ * specification of a sample count and trigger position will be adjusted by the driver.
+ *
+ * The driver will try to supply the requested data, in any case it will adjust the values
+ * of TrigPosition and Samples as best it can. Don't forget you should have set up the number
+ * of post-samples prior to calling READ_SAMPLE.
+ */
+
+typedef struct {
+/** WO Channel to read from                   */ int Channel;
+/** WO The number of samples you want to read */ int BufSizeSamples;
+/** RW Position of trigger in buf             */ int TrigPosition;
+/** RO The number of samples actually read    */ int Samples;
+/** RO Buffer where samples will be stored    */ short *SampleBuf;
+ } Vd80SampleBuf;
+
+/**
+ *  Vd80NumREAD_ADC,
+ *
+ * At any time the instantaneous ADC value on a given channel can be read.
+ * This IOCTL call takes a channel number [1..16] at the argument pointer and
+ * returns the ADC value for that channel to the same address.
+ */
+
+/**
+ * Vd80IoctlSET_CLOCK has an argument pointer of type Vd80Clock
+ * Vd80IoctlGET_CLOCK has an argument pointer of type Vd80Clock
+ *
+ * A Lemo plug on the front pannel provides the external clock input
+ * A 200KHz internal clock is available
+ */
+
+typedef enum {
+/** Indicates the internal clock            */ Vd80ClockINTERNAL,
+/** Indicates the external clock            */ Vd80ClockEXTERNAL,
+/** The number of clock selections possible */ Vd80CLOCKS
+ } Vd80Clock;
+
+/**
+ * Vd80NumSET_CLOCK_DIVIDE_MODE has an argument pointer of type Vd80DivideMode
+ * Vd80NumGET_CLOCK_DIVIDE_MODE has an argument pointer of type Vd80DivideMode
+ *
+ * When the divide mode is set DIVIDE, the internal clock is divided by the
+ * value set in the CLOCK_DIVISOR.
+ * When the divide mode is set SUBSAMPLE the external clock is divided by the
+ * value set in the CLOCK_DIVISOR.
+ */
+
+typedef enum {
+/** Indicates divide internal 200KHz clock */ Vd80DivideModeDIVIDE,
+/** Indicates divide external clock        */ Vd80DivideModeSUBSAMPLE,
+/** The number of clock modes possible     */ Vd80DivideMODES
+ } Vd80DivideMode;
+
+/**
+ * Vd80NumSET_CLOCK_EDGE,   Set the edge used on the external clock input
+ * Vd80NumGET_CLOCK_EDGE,   Get the edge used on the external clock input
+ * Vd80NumSET_TRIGGER_EDGE, Set the edge used on the external trigger input
+ * Vd80NumGET_TRIGGER_EDGE, Get the edge used on the external trigger input
+ *
+ * The external clock and trigger inputs can use rising or falling edges
+ */
+
+typedef enum {
+/** Use the rising edge          */ Vd80EdgeRISING,
+/** Use the falling edge         */ Vd80EdgeFALLING,
+/** The number of possible edges */ Vd80EDGES
+ } Vd80Edge;
+
+/**
+ *  Vd80NumSET_CLOCK_TERMINATION    Set the external clock input termination
+ *  Vd80NumGET_CLOCK_TERMINATION,   Get the external clock input termination
+ *  Vd80NumSET_TRIGGER_TERMINATION, Set the external trigger input termination
+ *  Vd80NumGET_TRIGGER_TERMINATION, Get the external trigger input termination
+ *
+ * The external clock and trigger inputs can have 50 Ohm or no termination
+ */
+
+typedef enum {
+/** No termination used                */ Vd80TerminationNONE,
+/** 50 Ohm termination                 */ Vd80Termination50OHM,
+/* The number of possible terminations */ Vd80TERMINATIONS
+ } Vd80Termination;
+
+/**
+ *  Vd80NumSET_TRIGGER, Set the trigger source
+ *  Vd80NumGET_TRIGGER, Get the trigger source
+ *
+ * The trigger source can be internally generated from a command or it
+ * can be supplied via the external trigger input
+ */
+
+typedef enum {
+/** The trigger source is internally generated */ Vd80TriggerINTERNAL,
+/** The trigger source is external             */ Vd80TriggerEXTERNAL,
+/* The number of possible trigger sources      */ Vd80TRIGGERS
+ } Vd80Trigger;
+
+/**
+ *  Vd80NumGET_STATE,                              /* Returns a Vd80 state */
+ */
+
+typedef enum {
+/** In this state, sample data can be read from the module */ Vd80StateIDLE        = 0x1,
+/** The device is sampling and storing pre-trigger data    */ Vd80StatePRETRIGGER  = 0x2,
+/** The device is sampling and storing post-trigger data   */ Vd80StatePOSTTRIGGER = 0x4,
+/** The number of possible states                          */ Vd80STATES           = 3
+ } Vd80State;
+
+/**
+ *  Vd80NumSET_COMMAND, Set to a Vd80 command
+ *
+ * Commands can be sent to the VD80 to start, stop and trigger it
+ */
+
+typedef enum {
+/** Stop the module and go straight to the IDLE state  */ Vd80CommandSTOP    = 0xE,
+/** Start sampling and go to the PRETRIGGER state      */ Vd80CommandSTART   = 0xB,
+/** If internal trigger is set go to POSTTRIGGER state */ Vd80CommandTRIGGER = 0x2,
+/** The number of possible commands                    */ Vd80COMMANDS       = 3
+ } Vd80Command;
+
+/**
+ *  Vd80NumSET_CLOCK_DIVISOR, A 16 bit integer so the lowest frequency is
+ *  Vd80NumGET_CLOCK_DIVISOR,
+ */

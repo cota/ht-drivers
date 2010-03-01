@@ -40,12 +40,12 @@ static int  mtt;
 
 #include <asm.h>
 #include "Cmds.h"
-#include "GetAtoms.c"
-#include "PrintAtoms.c"
-#include "DoCmd.c"
-#include "Cmds.c"
-#include "MttOpen.c"
-#include "MttCmds.c"
+#include "GetAtoms.h"
+#include "PrintAtoms.h"
+#include "DoCmd.h"
+#include "Cmds.inc.h"
+#include "MttOpen.h"
+#include "MttCmds.h"
 
 /**************************************************************************/
 /* Prompt and do commands in a loop                                       */

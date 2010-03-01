@@ -9,15 +9,15 @@
 ###############################################################################
 
 # Makefile from current directory supress one from upper level
--include $(shell if [ -e ./Makefile.specific ]; then echo ./Makefile.specific; \
-	else echo ../Makefile.specific; fi)
+include $(shell if [ -e ./Makefile.specific ]; then \
+		echo ./Makefile.specific; \
+	else \
+		echo ../Makefile.specific; \
+	fi)
 
--include ../../makefiles/Makefile.base
+include ../Makefile
 
-ADDCFLAGS += $(STDFLAGS) -g -DDRIVER_NAME=\"$(DRIVER_NAME)\"
-
-# We need to redefine next variable to compile the library...
-OUTPUT_OPTION +=; mv $*.$(CPU).o $(OBJDIR)
+ADDCFLAGS += $(STDFLAGS) -DDRIVER_NAME=\"$(DRIVER_NAME)\"
 
 INCDIRS = \
 	../include \
@@ -26,22 +26,50 @@ INCDIRS = \
 SRCFILES = \
 	$(wildcard *.c)
 
-LIBRARIES = $(OBJDIR)/lib$(DRIVER_NAME).$(CPU).a
+############################################################################
+#      Rules to build .a library.                                          #
+############################################################################
+lib$(DRIVER_NAME).$(CPU).a: lib$(DRIVER_NAME).$(CPU).a($(OBJFILES))
+	$(Q)$(AR) -rv  $@ $(XTRA_USR_LIBS) $^
+	$(Q)$(RANLIB) $@
 
-$(LIBRARIES): $(OBJFILES)
-	$(AR) -rv  $@ $(XTRA_USR_LIBS) $(addprefix $(OBJDIR)/, $^)
-	$(RANLIB) $@
+LIBRARIES += lib$(DRIVER_NAME).$(CPU).a
+############################################################################
 
-build:: abort $(OBJDIR) $(LIBRARIES) move_objs
+############################################################################
+#      If we need to build a .so libraries.                                #
+############################################################################
+ifeq ($(COMPILE_LIB_SHARED),y)
+# redefine implicit rule
+(%.$(CPU).o): %.c
+	$(Q)$(CCL) $(CFLAGS) $(CPPFLAGS) -fPIC -c $< -o $*.$(CPU).o
 
-# Move compiled files to proper place
-move_objs:
-	mv $(LIBRARIES) ../$(FINAL_DEST)
+# Create .so object
+lib$(DRIVER_NAME).$(CPU).so: lib$(DRIVER_NAME).$(CPU).so($(OBJFILES))
+	$(Q)$(CC) -shared -Wl,-export-dynamic -Wl,-soname,$@ -o $@ $(OBJFILES)
 
-# Local cleaning
-cleanloc clearloc:: abort
-	@ if [ -n "$(ISP)" ]; then \
-		rm -rf $(ISP)* ; \
-	fi
-	-rm -f $(LIBRARIES)
-	find ./ -name '*~' | xargs rm -f
+LIBRARIES += lib$(DRIVER_NAME).$(CPU).so
+endif
+############################################################################
+
+_build: $(LIBRARIES) $(FINAL_DEST)
+	$(Q)mv $(LIBRARIES) ../$(FINAL_DEST)
+	$(Q)$(RM) $(OBJFILES)
+
+linux:
+	@echo -e "\nCompiling for Linux:"
+	$(Q)$(MAKE) _build CPU=L865
+
+lynx:
+	@echo -e "\nCompiling for Lynx:"
+	$(Q)$(MAKE) _build CPU=ppc4
+
+all:
+	$(Q)$(MAKE) linux
+	$(Q)$(MAKE) lynx
+
+# CERN delivery
+include ../$(ROOTDIR)/makefiles/deliver.mk
+deliver:
+	$(Q)$(MAKE) _deliver CPU=L865
+	$(Q)$(MAKE) _deliver CPU=ppc4

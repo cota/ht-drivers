@@ -10,18 +10,22 @@
 # @date Created on 13/01/2009
 ###############################################################################
 
-# User-specific settings
-include Makefile.specific
+-include Makefile.specific
 
 # Where everything is nested
 # User can provide it's own, otherwise default will be used
 ROOTDIR := $(if $(ROOTDIR),$(ROOTDIR),..)
 
-# Standart driver directory tree layout
-SUBDIRS = \
+# Standard driver directory tree layout
+SUBDIRS += \
 	lib \
-	driver \
+	include \
 	test \
-	include
+	driver
 
-include $(ROOTDIR)/makefiles/Makefile.base
+# Check if we are in one of the $(SUBDIRS) and do proper include
+ifeq (,$(findstring $(notdir $(shell pwd)), $(SUBDIRS)))
+  include $(ROOTDIR)/makefiles/Makefile.base
+else
+  include ../$(ROOTDIR)/makefiles/Makefile.base
+endif

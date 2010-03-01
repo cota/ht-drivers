@@ -34,15 +34,34 @@ USE_UTILS = n
 # If driver will use libinst library to get configuration from XML file
 USE_XML = n
 
+# If test program is using extended test program?
+USE_EXTEST = y
+
 # If driver has plx9030 and wants to use its standart operations
 USE_PLX9030 = n
 
 # If driver has plx9656 and wants to use its standart operations
 USE_PLX9656 = n
 
+# Driver library will always be compiled as .a library.
+# Say 'y' -- if you want driver library also to be compiled as an
+# archive (.a) and a shared object library (.so)
+# Say 'n' -- if you want only .a library
+COMPILE_LIB_SHARED = n
+
+# If needed, add extra directories that should be compiled
+# during driver framework compilation.
+# SUBDIRS +=
+
 # You can change ROOTDIR to locate your own path with cdcm, skel, utils etc..
+#  It *should* be a relative path, starting from driver framework directory
+#+ (one with driver/ test/ include/ lib/) up to the directory, where cdcm/,
+#+ skel/, utils/ etc... is nested.
 # ROOTDIR =
 
+# TODO. To be removed.
+# As whole coht is under git -- CDCM is always in a standart tree.
+#
 #  If you want to compile with CDCM that is _not_ in the ROOTDIR
 #+ (i.e. out-of-standart-tree) - you _SHOULD_ set CDCM_D in the COMMAND LINE!
 #+ See 'out-of-tree-cdcm' file on howto do this.
@@ -52,7 +71,7 @@ USE_PLX9656 = n
 #+ ../object_<drvr_name> dir. Prefix ../ is always added to it.
 # FINAL_DEST =
 
-# To change driver src directory from standart one (drier)
+# To change driver src directory from standart one (driver)
 # DRVR_DIR =
 
 #  To override standard kernel dir location
@@ -64,3 +83,17 @@ USE_PLX9656 = n
 
 # Choose CPU
 # CPU =
+
+# Add extra include directories for the library
+# (Ex: -I/acc/src/dsc/drivers/ctr etc.)
+# ADDINCLUDES =
+
+# Extra libraries, needed by the test program
+# (Ex: -ltgm -lgm etc.)
+# LOCAL_LIBS =
+
+# User-defined name for the test program.
+# Use it to change test program name.
+# $(TEST_PROG_NAME).c should present in test/ directory!
+# <driver-name>Test is used as a default one.
+# TEST_PROG_NAME =

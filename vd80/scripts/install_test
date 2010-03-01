@@ -1,0 +1,9 @@
+#!/bin/bash
+
+echo 8 > /proc/sys/kernel/printk
+
+#../../nulldrvr/object_null/instprog.L865 ../driver/vd80.xml -d VD80
+
+ROOTDIR=/acc/src/dsc/drivers/coht
+
+${ROOTDIR}/utils/install/instprog.L865 ../driver/vd80old.xml -d VD80

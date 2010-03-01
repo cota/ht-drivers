@@ -1,0 +1,3 @@
+# Obfuscate library Makefile to keep archive locally
+FINAL_DEST = install/object
+

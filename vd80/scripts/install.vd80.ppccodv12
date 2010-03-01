@@ -1,0 +1,5 @@
+#!/bin/bash
+
+ROOTDIR=/acc/src/dsc/drivers/coht
+
+${ROOTDIR}/utils/install/instprog.ppc4 VD80.ppccodv12.xml VD80

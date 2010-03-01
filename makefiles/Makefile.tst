@@ -9,30 +9,30 @@
 ###############################################################################
 
 # Makefile from current directory supress one from upper level
--include $(shell if [ -e ./Makefile.specific ]; then \
+include $(shell if [ -e ./Makefile.specific ]; then \
 		echo ./Makefile.specific; \
 	else \
 		echo ../Makefile.specific; \
-	fi)
+fi)
 
--include ../../makefiles/Makefile.base
+include ../Makefile
 
-INSTDIR    = $(addsuffix /$(DLVRYPLS)/$(CPU), $(EXECINSTDIR))
+vpath %.c ./  ../../utils/user ../../utils/extest
+
 ADDCFLAGS  = $(STDFLAGS) -DDRIVER_NAME=\"$(DRIVER_NAME)\"
 
 # libraries (and their pathes) to link executable file with
-XTRALIBDIRS = ../../utils/user ../$(FINAL_DEST)
+XTRALIBDIRS = ../$(ROOTDIR)/utils/user/object ../$(FINAL_DEST)
 LOADLIBES  := $(addprefix -L,$(XTRALIBDIRS)) $(LOADLIBES) -lutils.$(CPU) \
 		-lxml2 -lz -ltermcap
 
 # Get all local libs (in object_ directory) user wants to compile with
-LOCAL_LIBS = $(patsubst ../$(FINAL_DEST)/lib%.a, -l%, $(wildcard ../$(FINAL_DEST)/*.$(CPU).a))
-XTRALIBS   = -lreadline
-LDLIBS     = \
-	   $(LOCAL_LIBS) \
-	   $(XTRALIBS)
+LOCAL_LIBS += $(patsubst ../$(FINAL_DEST)/lib%.a, -l%, $(wildcard ../$(FINAL_DEST)/*.$(CPU).a))
+XTRALIBS += -lreadline
 
-vpath %.c ./  ../../utils/user ../../utils/extest
+LDLIBS = \
+	$(LOCAL_LIBS) \
+	$(XTRALIBS)
 
 SRCFILES = $(wildcard *.c)
 
@@ -50,8 +50,7 @@ else
 SRCFILES += cmd_generic.c
 endif
 
-endif
-# end USE_EXTEST
+endif # end USE_EXTEST
 
 ifeq ($(CPU), ppc4)
 SRCFILES    += extra_for_lynx.c
@@ -70,34 +69,38 @@ INCDIRS = \
 	../../utils/extest \
 	/acc/local/$(CPU)/include
 
-
-ADDINCLUDES = $(KERN_INCLUDES)
-
-EXEC_OBJS = $(DRIVER_NAME)Tst.$(CPU)
+ifeq ($(TEST_PROG_NAME),)
+	EXEC_OBJS = $(DRIVER_NAME)Test.$(CPU)
+else
+	EXEC_OBJS = $(TEST_PROG_NAME).$(CPU)
+endif
 
 $(EXEC_OBJS): $(OBJFILES)
 
-build:: abort $(FINAL_DEST) $(OBJDIR) $(EXEC_OBJS) move_objs ../$(FINAL_DEST)/testprog.$(CPU)
+_build: $(EXEC_OBJS) $(OBJDIR) $(FINAL_DEST) move_objs
+
+linux:
+	@echo -e "\nCompiling for Linux:"
+	$(Q)$(MAKE) _build CPU=L865
+
+lynx:
+	@echo -e "\nCompiling for Lynx:"
+	$(Q)$(MAKE) _build CPU=ppc4
+
+all:
+	$(Q)$(MAKE) linux
+	$(Q)$(MAKE) lynx
 
 # Move compiled files to proper place
 move_objs:
-	mv $(OBJFILES) $(OBJDIR)
+	$(Q)mv $(OBJFILES) $(OBJDIR)
+	$(Q)mv $(EXEC_OBJS) ../$(FINAL_DEST)
 
-# we should redefine Make.auto rule to get rid of name dependencies
-%.$(CPU): $(OBJFILES)
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
-
-../$(FINAL_DEST)/testprog.$(CPU):
-	@if [ -e "$$@" ]; then \
-		rm -f $@ ; \
-	echo "ln -s ../test/$(EXEC_OBJS) $@"; \
-	ln -s  ../test/$(EXEC_OBJS) $@; \
-	fi
-
-install:: abort
-	$(CP) -p $(EXEC_OBJS) $(INSTDIR)/$(BSP)/$(FINAL_DEST)
-	ln -fs ../$(BSP)/$(FINAL_DEST)/$(DRIVER_NAME)Test $(INSTDIR)/drvrutil/$(DRIVER_NAME)Test
-	ln -fs ../drvrutil/$(DRIVER_NAME)Test $(INSTDIR)/bin/$(DRIVER_NAME)Test
+# CERN delivery
+include ../$(ROOTDIR)/makefiles/deliver.mk
+deliver:
+	$(Q)$(MAKE) _deliver $(filter $(strip $(ACCS)) all, $(MAKECMDGOALS)) CPU=L865
+	$(Q)$(MAKE) _deliver $(filter $(strip $(ACCS)) all, $(MAKECMDGOALS)) CPU=ppc4
 
 cleanloc clearloc:: abort
 	@ if [ -n "$(OBJDIR)" ]; then \

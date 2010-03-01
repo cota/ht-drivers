@@ -1,0 +1,12 @@
+gnuplot functions are located here.
+
+Function plotting examples:
+      gnuplot> set sample 500 # amount of samples (default is 100)
+      # plot into a file (newer gnuplot --> set table "sine.gp")
+      gnuplot> set term table
+      gnuplot> set output "sine.gp"
+
+      # Some function examples:
+      gnuplot> plot sin(x)
+      gnuplot> plot asin (sin (x)) (plot triangular wave)
+      gnuplot> plot sin (x), (sin (x) > 0) - 0.5 (plots a sine wave and a square wave)

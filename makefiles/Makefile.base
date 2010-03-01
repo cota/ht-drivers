@@ -1,53 +1,88 @@
 ###############################################################################
 # @file Makefile.base
 #
-# @brief Main beast. Incapculates standart CERN make rules.
+# @brief Generic rules used to compile driver-gen driver framework
 #
-# @author Yury GEORGIEVSKIY, CERN
+# Automatically generated for driver-gen Cvorb driver
 #
-# Should be include in the makefile _after_ Makefile.specific
+# @author Copyright (C) 2003-2010 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
 #
-# @date Created on 13/01/2009
+# @date Created on 22/01/2010
+#
+# @section license_sec License
+#          Released under the GPL
 ###############################################################################
-
-# First check if needed environment variables are set:
-ifndef CPU
-%::
-	@echo "'CPU' declaration expected."
-	@echo "Exiting..."; exit 1
-
-else # Don't proceed if error
 
 # Do not print "Entering directory ..."
 MAKEFLAGS += --no-print-directory
 
-# Standart CERN Makefile rules
+# Standard CERN Make rules
 include /acc/src/dsc/co/Make.auto
 
-.PHONY: abort dummy
+# Extremely simplified Quiet/Verbose
+ifdef V
+  ifeq ("$(origin V)", "command line")
+    VERBOSE = $(V)
+  endif
+endif
+ifndef VERBOSE
+  VERBOSE = 0
+endif
 
-abort:
-	@if [ -z "$(ISP)" ]; then \
-		echo "Wrong/unsupported CPU type"; \
-		echo "Exiting..."; exit 1; \
-	else \
-		echo "Current compilation settings: CPU=$(CPU) BSP=$(BSP) ISP=$(ISP)"; \
-	fi
+ifeq ($(VERBOSE),1)
+  Q   =
+  LD  = $(LINK.o)
+  QLD =
+  QNM =
+  CCL = $(CC)
+else
+   Q   = @
 
-UTILINSTDIR = /acc/local/$(CPU)/drvrutil
-EXECINSTDIR = /acc/dsc
-###############################################################################
+  _LD := $(LINK.o)
+   LD  = @echo 'LD   $@'; $(_LD)
 
-BLDTYPES = dbg rls drv
+  _CC := $(CC)
+   CC  = @echo 'CC   $@'; $(_CC)
+
+   CCL = @echo 'CC   $%'; $(_CC)
+
+  QNM  = @echo 'KSYM $@'
+
+  _AR := $(AR)
+   AR  = @echo 'AR   $@'; $(_AR) 2>&1>&/dev/null
+endif
+
+# General settings
+# Ensure lowercase driver name
+DRIVER_NAME := $(shell echo $(DRIVER_NAME) | tr "[:upper:]" "[:lower:]")
+
+PHONY := _all
+_all:
+
+# Compiled executables, libraries && drivers goes in this directory.
+# This name will be defined *only* if it is not yet defined by the user.
+# User can do it in driver-specific makefile (Makefile.specific)
+FINAL_DEST ?= object_$(DRIVER_NAME)
+$(FINAL_DEST):
+	$(Q)mkdir -p ../$@
+
+# Compiled files goes here
+OBJDIR = $(CPU)_$(BLDTYPE)
+$(CPU)_%:
+	$(Q)mkdir -p $@
+
+# Redefine implicit rule
+%.$(CPU).o: %.c
+	$(Q)$(COMPILE.c) $< $(OUTPUT_OPTION)
 
 unexport BLDTYPE PASSTARG
 
-# some file extentions
-EXTDLL	= .dll
-EXTSO	= .dll
-EXTLIB	= .a
-EXTOBJ	= .$(CPU).o
-EXTEXE	=
+# generic definitions
+EXTDLL  = .dll
+EXTSO   = .so
+EXTLIB  = .a
+EXTOBJ  = .$(CPU).o
+EXTEXE  =
 
 comma = ,
 SRCCSFXS := .c
@@ -61,134 +96,66 @@ LIBS = $(join $(addsuffix $(OBJDIR)/,$(dir $(LIBFILES))),$(notdir $(LIBFILES)))
 # Buildup all include pathes
 INCFLAGS = $(addprefix -I,$(INCDIRS)) $(addprefix -I,$($(BLDTYPE).INCDIRS)) $(ADDINCLUDES)
 
-# Compilation date
 BASECFLAGS   = -Wall -DCOMPILE_TIME=$(shell date --utc +%s)
 BASECXXFLAGS = -Wall -Wno-reorder
 
 # debug/optimization flags
-dbg.BLDTFLAGS =  -DDEBUG -D_DEBUG
+dbg.BLDTFLAGS = -g -DDEBUG -D_DEBUG
 rls.BLDTFLAGS = -O2
 drv.BLDTFLAGS =  # Drivers are build without debug and optimization
 BLDTFLAGS = $($(BLDTYPE).BLDTFLAGS)
 
-# next 3 are not used for now, but we keep them 'just-in-case-if...'
+# next 3 are not used for now, but are kept for 'just-in-case-if...'
 BASELDSHFLAGS = $(LDSHFLAGS) $(HOSTLDSHFLAGS) $(BLDTFLAGS) $(ADDLDSHFLAGS)
 BASELDFLAGS   = $(LDFLAGS) $(HOSTLDFLAGS) $(BLDTFLAGS) $(ADDLDFLAGS)
 BASEARFLAGS   = $(ARFLAGS) $(HOSTARFLAGS) $(ADDARFLAGS)
 
-# C++ flags
+# for C++
 CXXFLAGS = $(BASECXXFLAGS) $(HOSTCXXFLAGS) $(DEFFLAGS) $(INCFLAGS) $(BLDTFLAGS) $(ADDCXXFLAGS)
 
-# C flags
+# for C
 CFLAGS = $(BASECFLAGS) $(HOSTCFLAGS) $(DEFFLAGS) $(INCFLAGS) $(BLDTFLAGS) $(ADDCFLAGS)
-
-# Just a reminder.
-# $(COMPILE.c) == $(CC) $(CFLAGS) $(CPPFLAGS) -c
-# $(OUTPUT_OPTION) == -o $@
-# %.$(CPU).o: %.c
-#       $(COMPILE.c) $< $(OUTPUT_OPTION)
 
 vpath %$(EXTOBJ) $(OBJDIR)
 
-############################################################################
 # Our Primary target
-############################################################################
-all:
-	@$(MAKE) DLVRYPLS=$(word 2, $(ACCS)) build-subdirs build
+ifeq (,$(findstring $(notdir $(shell pwd)), $(SUBDIRS)))
 
-# quiet
-build::
-	@:
-############################################################################
+_all $(MAKECMDGOALS): build-subdirs
 
+FTARGETS = $(filter-out all linux lynx deliver, $(MAKECMDGOALS))
+COMPILE  = $(MAKE) -C $$dir $(MAKECMDGOALS)
 
-############################################################################
-# Cleaning up
-############################################################################
-clean clear::
-	@$(MAKE) $@loc-subdirs $@loc
+endif # ifeq ($(SUBDIRS),)
 
-# Stub goals for cleaning up
-# Dummy echoing to suppress "Nothing to be done for clean/clear" message
-cleanloc clearloc::
-	@echo -n
-############################################################################
-
-
-############################################################################
-# To build depend files
-############################################################################
-ifndef BLDTYPE
-depend dep::
-	@$(MAKE) BLDTYPE=dbg depend-subdirs depend
-	@$(MAKE) BLDTYPE=rls depend-subdirs depend
-else
-depend dep::
-	@if [ ! -z "$(strip $(FLTSRCFILES))" ]; then \
-	    echo "$(CXX) -MM $(BASECXXFLAGS) $(FLTSRCFILES) > .$@-$(BLDTYPE)";\
-	    $(CXX) -MM $(BASECXXFLAGS) $(FLTSRCFILES) > .$@-$(BLDTYPE);\
-	fi
-endif # BLDTYPE
-############################################################################
-
-# Compiled files goes here
-OBJDIR = $(CPU)/$(KVER)
-$(OBJDIR):
-	mkdir -p $@
-
-# Ensure lowecase drivername
-DRIVER_NAME := $(shell echo $(DRIVER_NAME) | tr "[:upper:]" "[:lower:]")
-
-# Driver and install prog goes here.
-# This name is defined _only_ if user in not alredy define it with preferable
-# one in the Makefile.specific. Driver name is lowercase-ensured.
-FINAL_DEST ?= object_$(DRIVER_NAME)
-object_%:
-	-mkdir -p ../$@
-
-# Next two rules are Installation Rules
-install::
-	@if [ $(words $(ACCS)) != 3 ]; then \
-		echo "Number of delivery places is out-of-order."; \
-		echo "Expected - 3 places (as of 01/2008). Curren - $(words $(ACCS)) places."; \
-		echo "This Makefile is out-of-date!"; \
-		echo "Exiting..."; \
-		exit 1; \
-	elif [ ! $(DLVRYPLS) ]; then \
-		echo "Deliver to the test machine: 'make $(word 1, $(ACCS)).install CPU=$(CPU)'"; \
-		echo "Deliver to the operational machine: 'make $(word 2, $(ACCS)).install CPU=$(CPU)'"; \
-		echo "Deliver to the LHC machine: 'make $(word 3, $(ACCS)).install CPU=$(CPU)'"; \
-		echo "Exiting..."; \
-		exit 1; \
-	fi
-
-# lab.% oper.%. oplhc.% (See 'Make.common' file for current delivery places)
-$(addsuffix .%,$(ACCS))::
-	@$(MAKE) DLVRYPLS=$(basename $@) $*-subdirs $*
-
-# Descent all the goals into subdirectories
-%-subdirs::
+# Descend into subdirectories
+%-subdirs:
+	$(if $(FTARGETS), $(error wrong/unsupported target(s) "$(FTARGETS)"))
 	@for dir in $(SUBDIRS) _dummy_dir_ ; \
 	do \
-	    if [ $$dir != _dummy_dir_ -a -d $$dir ]; then \
-		echo "---------[ Processing '$$dir' directory ]--------------"; \
-		echo "$(MAKE) -C $$dir $*-subdirs $*" ; \
-		$(MAKE) -C $$dir $*-subdirs $*; \
+	  if [ $$dir != _dummy_dir_ -a -d $$dir ]; then \
+		echo -e "\n---------[ Processing '$$dir' directory ]--------------"; \
+		$(COMPILE); \
 		if [ $$? -eq 2 ]; then exit 1; fi; \
-	    fi; \
+	  fi; \
 	done
 
+# Cleaning up
+clean clear:
 
 # For producing object files. Just an example of possible redefinition.
 #OUTPUT_OPTION +=; mv $*.$(CPU).o $(OBJDIR)/$@
-
-# Include dependancy file (if any)
-ifneq ($(wildcard .depend-$(BLDTYPE)),)
-include .depend-$(BLDTYPE)
-endif
 
 ifndef BLDTYPE
 BLDTYPE = dbg
 endif
 
-endif #CPU not defined condition ends
+PHONY += all
+_all: all
+
+PHONY += FORCE
+FORCE:
+
+# Declare the contents of the .PHONY variable as phony.  We keep that
+# information in a variable so we can use it in if_changed and friends.
+.PHONY: $(PHONY)

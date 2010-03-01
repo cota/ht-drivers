@@ -1,24 +1,20 @@
-/*
-  _________________________________________________________________
- |                                                                 |
- |   file name :        icv196vmeP.h                               |
- |                                                                 |
- |   created:     21-mar-1992 Alain Gagnaire, F. Berlin            |
- |   last update: 02-dec-1992 A. gagnaire                          |
- |_________________________________________________________________|
- |                                                                 |
- |   private header file for the icv196vme                         |
- |                                                                 |
- |_________________________________________________________________|
-
- updated:
- =======
- 21-mar-1992 A.G., F.B.: version integrated with the event handler common to
-                   sdvme, and fpiplsvme driver
- 02dec-1992 A.G. : add element in struct : CumulEvt in T_Subscriber
-                                           SubscriberCurnb in T_LogLineHdl
- 10-may-1994 A.G.: update to stand 8 modules
-*/
+/**
+ * @file icv196vmeP.h
+ *
+ * @brief private header file for the icv196 driver
+ *
+ * Created on 21-mar-1992 Alain Gagnaire, F. Berlin
+ * <long description>
+ *
+ * @author Copyright (C) 2010 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
+ *
+ * @date Created on 12/01/2010
+ *
+ * @section license_sec License
+ *          Released under the GPL
+ */
+#ifndef _ICV_196_VME_P_H_INCLUDE_
+#define _ICV_196_VME_P_H_INCLUDE_
 
 /*
   On the design of the driver for interrupt
@@ -48,17 +44,17 @@
   These structures an declaration don't depend on hardware module which
   provides the interrupt.
 */
-#ifndef _ICV_196_VME_P_H_INCLUDE_
-#define _ICV_196_VME_P_H_INCLUDE_
 
-/* define some macroes to manage bit map of the connection */
-/* to operate othe bit given by its number in a byte table map  */
-#define CLRBIT(ar,n)  ar[(n) / 8] &= (~(0x1 << ( (n) & 0x7)))
-#define SETBIT(ar,n)  ar[(n) / 8] |= (  0x1 << ( (n) & 0x7))
-#define TESTBIT(ar,n) ar[(n) / 8] &  (  0x1 << ( (n) & 0x7))
+/* define some macroes to manage bit map of the connection
+   to operate on the bit given by its number in a byte table map */
+#define CLRBIT(ar,  n)  ar[n / 8] &= (~(1 << (n & 7)))
+#define SETBIT(ar,  n)  ar[n / 8] |= (  1 << (n & 7))
+#define TESTBIT(ar, n)  ar[n / 8] &  (  1 << (n & 7))
 
-/* Ring buffer management
-   ----------------------
+/*
+  Ring buffer management
+  ----------------------
+
    The buffer size must be a power of 2 To follow ring buffer
    management principle based on a wrapping of the index in the ring
    buffer by increasing the index modulo a power of 2 (role of the mask
@@ -73,14 +69,14 @@
 
 /* these structures  are used to buffer the event */
 /*
-  Logical logical line handle
+  Logical line handle
   ---------------------------
   A physical line is accessed by a user via a logical line associated to
   a table called logical line handle.
-  it is pointed at from the corresponding physical line context in the device
+  It is pointed at from the corresponding physical line context in the device
   table. This link is set up at initialisation of the device and will allow to
   translate the line trigger in the logical chanel event.
-  it manages the device-independent part of the line
+  It manages the device-independent part of the line.
 */
 
 /* Subtable in a logical line handle */
@@ -100,30 +96,28 @@
   table.
 */
 struct T_Subscriber {
-	struct T_LogLineHdl * LHdl;
+	struct T_LogLineHdl *LHdl;
 	struct T_RingBuffer *Ring; /* Point at the user Handle
 				      providing the Ring buffer */
 	struct icvT_RingAtom *CumulEvt; /* Cumulative event pointer */
 	short mode; /* 2 -- normal, 1 -- cumulative,
 		       0 -- default (that is cumulative(1) for PLS line,
-		                     and normal(2) for ) */
+		                     and normal(2) for ??? ) */
 	short EvtCounter; /* line event counter for this user */
 };
-
 
 /* Ring buffer manager */
 struct T_RingBuffer {
 	struct T_UserHdl *UHdl; /* owner of the ring buffer */
 	struct icvT_RingAtom *Buffer; /* Buffer of atom */
-	int Evtsem;	  /* semaphore to synchronise and count evt */
-	short   mask; /* mask to manage buffer wrapping */
+	int   Evtsem; /* semaphore to synchronise and count evt */
+	short mask;   /* mask to manage buffer wrapping */
 	short reader; /* current index for reading */
 	short writer; /* current index for writing */
 };
 
 /* Logical line handle */
 struct T_LogLineHdl {
-	struct icv196T_s *s;
 	int LogIndex; /* logical line index (one of ICV_Lxxx) */
 	struct T_LineCtxt *LineCtxt;
 	union icvU_Evt Event_Pattern; /* Pattern of event build at
@@ -139,16 +133,30 @@ struct T_LogLineHdl {
 };
 
 /*
+  Structure of a physical line context:
+  this depends on the type of module
+*/
+struct T_LineCtxt {
+	struct T_ModuleCtxt *MCtxt; /* module this line belongs to */
+	struct T_LogLineHdl *LHdl; /* Line handle linked to */
+	int   Type; /* to stand specificity of lines: pls or icv */
+	short Line; /* Line index [0 - 15] */
+	int   status;	 /**< icv_Disabled / icv_Enabled */
+	int   intmod;	 /**< icv_ReenableOn / icv_ReenableOff */
+	int   loc_count; /**< interrupt counter (-1 -- line disabled) */
+	short Reset;
+};
+
+/*
   User Handle
   structure associated to each minor device
 */
 struct T_UserHdl {
-	struct icv196T_s *s;
-	short usercount;
-	int   chanel;
+	short inuse;
+	int   chanel; /* channel index */
 	long  count;
 	int   timid;
-	int   pid;       /* process id  */
+	int   pid;       /* process id */
 	int   *sel_sem;	/* semaphore for select */
 	int   WaitingTO;
 	short UserMode;
@@ -157,25 +165,9 @@ struct T_UserHdl {
 	struct icvT_RingAtom Atom[Evt_nb]; /* Buffer of Ring buffer */
 };
 
-/*
-  Structure of a physical line context:
-  this depends on the type of module
-*/
-struct T_LineCtxt {
-	struct icv196T_s *s;
-	struct T_ModuleCtxt *MCtxt;
-	struct T_LogLineHdl *LHdl; /* Line handle linked to */
-	int   Type; /* to stand specificity of lines: pls or icv */
-	short Line; /* Line index [0 - 15] */
-	int   status;
-	int   intmod;
-	int   loc_count;
-	short Reset;
-};
-
+/* module context */
 struct T_ModuleCtxt {
-	struct  icv196T_s *s;
-	int            sem_module; /* mutex semaphore */
+	int            sem_module; /* semaphore */
 	int            dflag;      /* debug flag */
 	short          Module;     /* Module index [0 - 7] */
 	int            VME_size;   /* original info table values */
@@ -185,12 +177,10 @@ struct T_ModuleCtxt {
 	short         *VME_CsDir; /* ICV196 I/O Direction reg */
 	short          old_CsDir; /* Previous state of I/O Direction reg */
 	unsigned short startflag; /*  */
-	unsigned short int_en_mask; /*  */
-
-	/* context of the lines */
-	unsigned char Vect; /* for each line a Int. vector */
-	unsigned char Lvl;  /* for each line an Int. level */
-	struct T_LineCtxt LineCtxt[icv_LineNb];
+	unsigned short int_en_mask; /* 16-lines interrupt bit mask */
+	unsigned char  Vect; /* Int. vector */
+	unsigned char  Lvl;  /* Int. level */
+	struct T_LineCtxt LineCtxt[icv_LineNb]; /* 16-lines context */
 };
 
 /* write z8536 Status register */
@@ -220,16 +210,83 @@ struct T_ModuleCtxt {
  })
 
 
-/* write icv196 16bit register */
-#define icv196_wr(v, reg)			\
+/* ---- [write icv196 register (1 or 2 bytes)] ---- */
+#define icv196_wr_8(v, reg)			\
+({						\
+        cdcm_iowrite8(v, MCtxt->reg);		\
+ })
+
+#define icv196_wr_16(v, reg)			\
 ({						\
         cdcm_iowrite16be(v, MCtxt->reg);	\
  })
+/* ------------------------------------------------ */
 
-/* read icv196 16bit register */
-#define icv196_rd(reg)				\
+
+/* ---- [read icv196 register (1 or 2 bytes)] ---- */
+#define icv196_rd_8(reg)			\
+({						\
+        cdcm_ioread8(MCtxt->reg);		\
+ })
+
+#define icv196_rd_16(reg)			\
 ({						\
         cdcm_ioread16be(MCtxt->reg);		\
  })
+/* ----------------------------------------------- */
+
+
+/* -------- [write groups (1 or 2 bytes long)] ---------------- */
+#define icv196_grp_wr_8(v, grp)						\
+({									\
+	long offs;							\
+									\
+	if (grp&1) { /* odd */						\
+		offs = grp + 1;						\
+	} else { /* even */						\
+		offs = grp + 3;						\
+	}								\
+									\
+	cdcm_iowrite8(v, (void*) ((long)MCtxt->SYSVME_Add + offs));	\
+ })
+
+#define icv196_grp_wr_16(v, grp)					\
+({									\
+	long offs;							\
+									\
+	if (grp&1) { /* odd */						\
+		offs = grp + 1;						\
+	} else { /* even */						\
+		offs = grp + 2;						\
+	}								\
+									\
+	cdcm_iowrite16be(v, (void*) ((long)MCtxt->SYSVME_Add + offs));	\
+ })
+/* ------------------------------------------------------------ */
+
+/* ------------ [read groups (1 or 2 bytes long)] ------------- */
+#define icv196_grp_rd_8(grp)					\
+({								\
+        long offs;						\
+        if (grp&1) /* odd */					\
+                offs = grp + 1;					\
+        else /* even */						\
+                offs = grp + 3;					\
+								\
+	cdcm_ioread8((void*) ((long)MCtxt->SYSVME_Add + offs)); \
+ })
+
+#define icv196_grp_rd_16(grp)						\
+({									\
+	long offs;							\
+									\
+        if (grp&1) /* odd */						\
+                offs = grp + 1;						\
+        else /* even */							\
+                offs = grp + 2;						\
+									\
+	cdcm_ioread16be((void*) ((long)MCtxt->SYSVME_Add + offs));	\
+ })
+/* ------------------------------------------------------------ */
 
 #endif	/* _ICV_196_VME_P_H_INCLUDE_ */

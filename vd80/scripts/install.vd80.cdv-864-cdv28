@@ -1,0 +1,7 @@
+#!/bin/bash
+
+echo 8 > /proc/sys/kernel/printk
+
+ROOTDIR=/acc/src/dsc/drivers/coht
+
+${ROOTDIR}/utils/install/instprog.L865 VD80.cfv-864-cdv28.xml VD80

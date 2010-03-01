@@ -1,0 +1,10 @@
+<install host="cfv-864-cdv28" comment="Test VD80 driver">
+	<driver name="VD80" comment="INCAA Vd80 transient digitizer">
+		<module bus_type="VME" logical_module_number="1" comment="VD80 in slot 2">
+			<interrupt vector="0xB2" level="2"/>
+			<vme comment="Now define address spaces"/>
+			<vme_space modifier="0x2f" data_width="32" window_size="0x80000" address="0x100000" comment="Configuration space"/>
+			<vme_space modifier="0x39" data_width="32" window_size="0x80000" address="0x100000" comment="Operational register space"/>
+		</module>
+	</driver>
+</install>

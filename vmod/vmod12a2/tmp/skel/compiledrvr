@@ -1,0 +1,23 @@
+#!/bin/bash
+################################################################################
+# @file compiledrvr
+#
+# @brief Driver compilation script.
+#
+# @author Yury GEORGIEVSKIY, CERN.
+#
+# @date Created on 13/01/2009
+################################################################################
+
+# compile for Linux
+
+INSTALLABLES='../../utils/install/instprog.L865  ../include/vmod12a2.h ../include/libvmod12a2.h ../ob*/libvmod*.a  ../include/skeluser_ioctl.h vmod12a2.xml L865/2.6.24.7-rt21/vmod12a2.ko '
+
+# cp skeldrvr.c "skeldrvr.`date '+%Y%m%d%H%M'`"
+make CPU=L865 KVER=2.6.24.7-rt21 &&
+(cd ../lib && make CPU=L865 all )
+cp $INSTALLABLES /user/dcobas/12a2.2.6.24.7-rt21 &&
+(cd /user/dcobas/12a2.2.6.24.7-rt21 && make all )
+
+# compile for Lynx
+# make clean CPU=ppc4 && make CPU=ppc4

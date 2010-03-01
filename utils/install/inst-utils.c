@@ -7,6 +7,11 @@
  *
  * @date Created on 14/02/2009
  */
+#ifdef __linux__
+#define _GNU_SOURCE /* asprintf rocks */
+#include <libgen.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -138,7 +143,6 @@ void display_usage(char *name)
 int parse_prog_args(int argc, char* argv[], int *flg, char **cf,
 		    struct list_head *head)
 {
-	struct utsname hdata;	/* host data */
 	int opt;
 	struct drvrd *ddp;
 
@@ -235,7 +239,7 @@ int parse_prog_args(int argc, char* argv[], int *flg, char **cf,
  *
  * @return how many symlinks created
  */
-static int create_node_symlinks(char **dnames, char *slname, int dna)
+static void create_node_symlinks(char **dnames, char *slname, int dna)
 {
 	DIR *dir;
 	struct direct *direntry;

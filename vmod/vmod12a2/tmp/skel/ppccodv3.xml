@@ -1,0 +1,20 @@
+<install host="ppccodv3" comment="Test VMODIO driver">
+	<driver name="VMOD12A2" 
+		install_debug_level="5" 
+		comment="VMOD12A2 carrier board">
+		<module bus_type="PCI" logical_module_number="1" 
+				extra="1" comment="VMOD12A2 in MODULBUS slot #0">
+			<pci bus_number="1" slot_number="14" 
+			     vendor_id="0x10b5" device_id="0x9030" 
+			     subvendor_id="0x13c3" subdevice_id="0x0202" />
+			<!-- Janz MOD-PCI standard register layout -->
+			<pci_space bar="0" comment="local configuration registers (mmap)" />
+			<pci_space bar="1" comment="local configuration registers (io)" />
+			<pci_space bar="2" endian="LITTLE" comment="MODULBUS memory space, little endian" />
+			<pci_space bar="3" endian="BIG"    comment="MODULBUS memory space, big endian" />
+			<pci_space bar="4" comment="on-board registers" />
+			<!-- bar 5 unused -->
+		</module>
+	</driver>
+</install>
+

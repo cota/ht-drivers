@@ -18,7 +18,7 @@
 #include <malloc.h>
 #include <limits.h>
 
-#include <../driver/xmemDrvr.h>
+#include <xmemDrvr.h>
 
 /**************************************************************************/
 /* Code section from here on                                              */
@@ -51,12 +51,12 @@ static const char commands_string[] =
 	"  -h = show this help text\n";
 
 #include "Cmds.h"
-#include "GetAtoms.c"
-#include "PrintAtoms.c"
-#include "DoCmd.c"
-#include "Cmds.c"
-#include "XmemOpen.c"
-#include "XmemCmds.c"
+#include "GetAtoms.h"
+#include "PrintAtoms.h"
+#include "DoCmd.h"
+#include "Cmds.inc.h"
+#include "XmemOpen.h"
+#include "XmemCmds.h"
 
 char *build_fullpath(const char *confpath, const char *filename)
 {

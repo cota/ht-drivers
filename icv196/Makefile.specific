@@ -40,6 +40,15 @@ USE_PLX9030 = n
 # If driver has plx9656 and wants to use its standart operations
 USE_PLX9656 = n
 
+# Test program is not using extended test program
+USE_EXTEST = n
+
+# Driver library will always be compiled as .a library.
+# Say yes -- if you want driver library also to be compiled as a
+# shared object library (.so)
+# At the end 2 libraries will be created (.so and .a)
+COMPILE_LIB_SHARED = n
+
 # You can change ROOTDIR to locate your own path with cdcm, skel, utils etc..
 # ROOTDIR =
 
