@@ -38,8 +38,6 @@
 #include <vd80hard.h>
 #include <Vd80Lib.h>
 
-void swab(const void *from, void *to, ssize_t n);
-
 /* ==================================================================== */
 /* ==================================================================== */
 /* Static private non exported routines for local use only.             */
@@ -624,10 +622,6 @@ int tps;
    sbuf.Samples        = 0;
 
    if (ioctl(fd,Vd80IoctlREAD_SAMPLE,&sbuf) < 0) return Vd80ErrIO;
-
-#if 1
-   if (little_endian()) swab(buf->Addr,buf->Addr,sbuf.Samples*2);  // Done in hardware now
-#endif
 
    buf->Tpos = sbuf.TrigPosition;
    buf->ASze = sbuf.Samples;
