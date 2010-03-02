@@ -66,7 +66,6 @@ static void extest_cleanup();
 
 //!< functions to be used by specific handlers
 int get_free_user_handle(int);
-void __getchar(char *c);
 void print_modules();
 
 //!< these declarations here are required by Lynx
@@ -894,23 +893,6 @@ void print_modules(void)
 	InsLibFreeDriver(drvrd);
 }
 
-/**
- * __getchar - get a character from stdin
- *
- * @param c - pointer to the address where the character will be put
- */
-void __getchar(char *c)
-{
-	char *line;
-
-	do {
-		line = readline("");
-	} while (line == NULL);
-
-	*c = line[0];
-	free(line);
-}
-
 /*
  * Basic Handlers
  * handlers for the commands that are always part of extest
@@ -1186,21 +1168,21 @@ out:
  */
 int do_yes_no(char *question, char *extra)
 {
-	char reply[2] = { 0 };
+	int reply;
 
 ask:
 	printf("%s", question);
 	if (extra)
 		printf(" %s", extra);
 	printf("? (y/n) > ");
-	__getchar(reply);
+	reply = getchar();
 	printf("\n");
-	if (reply[0] != 110 && reply[0] != 121 && /* accept y/n & Y/N */
-		reply[0] != 78 && reply[0] != 89) {
+	if (reply != 'y' && reply != 'n' && /* accept y/n & Y/N */
+		reply != 'Y' && reply != 'N') {
 		printf("answer y/n only\n");
 		goto ask;
 	}
-	return reply[0] == 'y';
+	return reply == 'y';
 }
 
 /**

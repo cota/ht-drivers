@@ -26,7 +26,6 @@
 #include <extest.h>
 
 extern int get_free_user_handle(int);
-extern void __getchar(char *c);
 extern void print_modules();
 
 /**
@@ -298,7 +297,7 @@ int rawio_input(char ch, SkelDrvrRawIoBlock *rio, int *radix)
 	switch (c) {
 	case '/':
 		while (c != '\n' && i < 128) {
-			__getchar(&c);
+			c = getchar();
 			str[i++] = c;
 		}
 		input = strtoul(str, &endptr, *radix);
@@ -323,7 +322,7 @@ int rawio_input(char ch, SkelDrvrRawIoBlock *rio, int *radix)
 	default: /* write */
 		str[i++] = c;
 		while (c != '\n' && i < 128) {
-			__getchar(&c);
+			c = getchar();
 			str[i++] = c;
 		}
 		input = strtoul(str, &endptr, *radix);
@@ -392,7 +391,7 @@ int hndl_rawio(struct cmd_desc* cmdd, struct atom *atoms)
 			return -TST_ERR_IOCTL;
 		}
 		print_rawio(&rio, radix);
-		__getchar(&c);
+		c = getchar();
 		if ((err = rawio_input(c, &rio, &radix)))
 			return err;
      	} while (c != '.');
