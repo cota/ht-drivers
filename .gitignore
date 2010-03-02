@@ -69,3 +69,13 @@ RCS/
 
 # Dont track packaged tarballs
 tar*.bz2
+
+# Vd80 temp files
+vd80/object_vd80/VD80.plot
+vd80/object_vd80/VD80SAMP.01.01
+vd80/object_vd80/install
+vd80/object_vd80/libvd80.so.1.0
+vd80/object_vd80/vd80.xml
+
+# Patches
+patch/
