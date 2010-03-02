@@ -92,8 +92,8 @@
  */
 
 #define VD80_CSR_MBLT_ENDIAN            0x7fbf0
-#define VD80_CSR_MBLT_BIG_ENDIAN        0xFF
-#define VD80_CSR_MBLT_LITTLE_ENDIAN     0x00
+#define VD80_CSR_MBLT_BIG_ENDIAN        0x00
+#define VD80_CSR_MBLT_LITTLE_ENDIAN     0xFF
 
 #define VD80_CSR_IRQ_LEVEL		0x7fbf4
 #define VD80_CSR_IRQ_VECTOR		0x7fbf8

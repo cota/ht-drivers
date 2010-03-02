@@ -892,7 +892,7 @@ unsigned int ret;
 	    cdcm_iowrite32(cdcm_cpu_to_be32((U32) intrd->Level),  &(config[VD80_CSR_IRQ_LEVEL /4]));
 
 	    if (Wa->Endian == InsLibEndianLITTLE)
-	       cdcm_iowrite32(cdcm_cpu_to_be32((U32) VD80_CSR_MBLT_BIG_ENDIAN),    &(config[VD80_CSR_MBLT_ENDIAN /4]));
+	       cdcm_iowrite32(cdcm_cpu_to_be32((U32) VD80_CSR_MBLT_LITTLE_ENDIAN), &(config[VD80_CSR_MBLT_ENDIAN /4]));
 	    else
 	       cdcm_iowrite32(cdcm_cpu_to_be32((U32) VD80_CSR_MBLT_BIG_ENDIAN),    &(config[VD80_CSR_MBLT_ENDIAN /4]));
 
