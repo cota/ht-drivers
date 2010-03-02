@@ -1,4 +1,0 @@
-export LD_LIBRARY_PATH=/acc/src/dsc/drivers/coht/vd80/lib/vd80:
-rm -f /acc/src/dsc/drivers/coht/vd80/lib/vd80/libvd80.so.1.0
-ln -s /acc/src/dsc/drivers/coht/vd80/lib/vd80/libvd80.L865.so.1.0 /acc/src/dsc/drivers/coht/vd80/lib/vd80/libvd80.so.1.0
-./vd80libTst.L865
