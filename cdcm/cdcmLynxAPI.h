@@ -67,6 +67,12 @@ struct cdcm_file {
   int access_mode;    /* access modes FREAD, FWRITE, FUPDATE */
 
   long long position; /* current logical file position */
+
+  // I need to store a user private pointer
+  // In lynxOs this is called "buffer"
+
+  char *buffer; // Like the private_data pointer
+
 };
 
 /* select implementation */

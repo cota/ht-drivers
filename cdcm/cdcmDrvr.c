@@ -104,18 +104,19 @@ static ssize_t cdcm_fop_read(struct file *filp, char __user *buf,
 			     size_t size, loff_t *off)
 {
 	char *iobuf  = NULL;
-	struct cdcm_file lynx_file = {
-		/* set Device Number */
-		.dev = filp->f_dentry->d_inode->i_rdev,
-		.access_mode = (filp->f_flags & O_ACCMODE),
-		.position = *off
-	};
+
+	struct cdcm_file *lynx_file = filp->private_data;
+	if (lynx_file == NULL) {
+	   cdcm_err = -ENODEV;
+	   return cdcm_err; /* failure */
+	}
+	lynx_file->position = *off;
 
 	if (cdcmStatT.cdcm_isdg)
 		return dg_fop_read(filp, buf, size, off);
 
 	PRNT_DBG(cdcmStatT.cdcm_ipl, "Read device with minor = %d",
-		 MINOR(lynx_file.dev));
+		 MINOR(lynx_file->dev));
 	cdcm_err = 0;	/* reset */
 
 	if (!access_ok(VERIFY_WRITE, buf, size)) {
@@ -129,14 +130,14 @@ static ssize_t cdcm_fop_read(struct file *filp, char __user *buf,
 
 
 	/* uza */
-	cdcm_err = entry_points.dldd_read(cdcmStatT.cdcm_st, &lynx_file,
+	cdcm_err = entry_points.dldd_read(cdcmStatT.cdcm_st, lynx_file,
 					  iobuf, size);
 	if (cdcm_err == SYSERR)
 		cdcm_err = -EAGAIN;
 	else {
 		if (__copy_to_user(buf,  iobuf, size))
 			return -EFAULT;
-		*off = lynx_file.position;
+		*off = lynx_file->position;
 	}
 
 	cdcm_mem_free(iobuf);
@@ -159,18 +160,19 @@ static ssize_t cdcm_fop_write(struct file *filp, const char __user *buf,
 			      size_t size, loff_t *off)
 {
 	char *iobuf = NULL;
-	struct cdcm_file lynx_file = {
-		/* set Device Number */
-		.dev = filp->f_dentry->d_inode->i_rdev,
-		.access_mode = (filp->f_flags & O_ACCMODE),
-		.position = *off
-	};
+
+	struct cdcm_file *lynx_file = filp->private_data;
+	if (lynx_file == NULL) {
+	   cdcm_err = -ENODEV;
+	   return cdcm_err; /* failure */
+	}
+	lynx_file->position = *off;
 
 	if (cdcmStatT.cdcm_isdg)
 		return dg_fop_write(filp, buf, size, off);
 
 	PRNT_DBG(cdcmStatT.cdcm_ipl, "Write device with minor = %d",
-		 MINOR(lynx_file.dev));
+		 MINOR(lynx_file->dev));
 	cdcm_err = 0; /* reset */
 
 	if (!access_ok(VERIFY_READ, buf, size)) {
@@ -185,12 +187,12 @@ static ssize_t cdcm_fop_write(struct file *filp, const char __user *buf,
 	__copy_from_user(iobuf, buf, size);
 
 	/* uza */
-	cdcm_err = entry_points.dldd_write(cdcmStatT.cdcm_st, &lynx_file,
+	cdcm_err = entry_points.dldd_write(cdcmStatT.cdcm_st, lynx_file,
 					   iobuf, size);
 	if (cdcm_err == SYSERR)
 		cdcm_err = -EAGAIN;
 	else
-		*off = lynx_file.position;
+		*off = lynx_file->position;
 
 	cdcm_mem_free(iobuf);
 
@@ -215,15 +217,17 @@ static unsigned int cdcm_fop_poll(struct file* filp, poll_table* wait)
 {
 	int mask = POLLERR;
 	struct cdcm_sel sel;
-	struct cdcm_file lynx_file;
+
+	struct cdcm_file *lynx_file = filp->private_data;
+	if (lynx_file == NULL) {
+	   cdcm_err = -ENODEV;
+	   return cdcm_err; /* failure */
+	}
 
 	if (cdcmStatT.cdcm_isdg)
 		return dg_fop_poll(filp, wait);
 
-	/* set Device Number */
-	lynx_file.dev = filp->f_dentry->d_inode->i_rdev;
-
-	if (entry_points.dldd_select(cdcmStatT.cdcm_st, &lynx_file,
+	if (entry_points.dldd_select(cdcmStatT.cdcm_st, lynx_file,
 				     SREAD|SWRITE|SEXCEPT, &sel) == OK)
 		mask = POLLERR; /* for now - we are NEVER cool */
 
@@ -344,11 +348,16 @@ static long process_cdcm_srv_ioctl(struct inode *inode, struct file *file,
 static long process_mod_spec_ioctl(struct inode *inode, struct file *file,
 				  int cmd, long arg)
 {
-	struct cdcm_file lynx_file;
 	int rc = 0;	/* ret code */
 	char *iobuf  = NULL;
 	int iodir = _IOC_DIR(cmd);
 	int iosz  = _IOC_SIZE(cmd);
+
+	struct cdcm_file *lynx_file = file->private_data;
+	if (lynx_file == NULL) {
+	   cdcm_err = -ENODEV;
+	   return cdcm_err; /* failure */
+	}
 
 	if (iodir != _IOC_NONE) { /* we should move user <-> driver data */
 		if ( (iobuf = cdcm_mem_alloc(iosz, iodir|CDCM_M_FLG_IOCTL))
@@ -368,10 +377,9 @@ static long process_mod_spec_ioctl(struct inode *inode, struct file *file,
 
 	/* Carefull with the type correspondance.
 	   int in Lynx <-> unsigned int in Linux */
-	lynx_file.dev = (int)inode->i_rdev; /* set Device Number */
 
 	/* hook the user ioctl */
-	rc = entry_points.dldd_ioctl(cdcmStatT.cdcm_st, &lynx_file, cmd,
+	rc = entry_points.dldd_ioctl(cdcmStatT.cdcm_st, lynx_file, cmd,
 				     (iodir == _IOC_NONE) ? NULL : iobuf);
 	if (rc == SYSERR) {
 		cdcm_mem_free(iobuf);
@@ -455,9 +463,15 @@ static int cdcm_fop_mmap(struct file *file, struct vm_area_struct *vma)
 static int cdcm_fop_open(struct inode *inode, struct file *filp)
 {
 	int dnum;
-	struct cdcm_file lynx_file;
 
-	cdcm_err = 0;	/* reset */
+	/* Allocate lynx_file because it contains a "buffer" pointer */
+
+	struct cdcm_file *lynx_file = kmalloc(sizeof(struct cdcm_file), GFP_KERNEL);
+	if (lynx_file == NULL) {
+	   cdcm_err = -ENOMEM;
+	   return cdcm_err;
+	}
+	filp->private_data = lynx_file;         /* Save pointer to free in close */
 
 	if (!iminor(inode)) /* service entry point */
 		return 0;
@@ -474,15 +488,18 @@ static int cdcm_fop_open(struct inode *inode, struct file *filp)
 	*/
 
 	/* fill in Lynxos file */
-	dnum = lynx_file.dev = (int)inode->i_rdev;
-	lynx_file.access_mode = (filp->f_flags & O_ACCMODE);
+	dnum = (int) inode->i_rdev;
+	lynx_file->dev = dnum;
+	lynx_file->access_mode = (filp->f_flags & O_ACCMODE);
+	lynx_file->buffer = NULL;
 
-	if (entry_points.dldd_open(cdcmStatT.cdcm_st, dnum, &lynx_file) == OK) {
-		//filp->private_data = (void*)dnum; /* set for us */
-		/* you can use private_data for your own purposes */
-		return 0;	/* success */
+	if (entry_points.dldd_open(cdcmStatT.cdcm_st, dnum, lynx_file) == OK) {
+		cdcm_err = 0;
+		return cdcm_err;       /* success */
 	}
 
+	kfree((void *) filp->private_data);
+	filp->private_data = 0;
 	cdcm_err = -ENODEV; /* TODO. What val to return??? */
 	return cdcm_err; /* failure */
 }
@@ -498,7 +515,11 @@ static int cdcm_fop_open(struct inode *inode, struct file *filp)
  */
 static int cdcm_fop_release(struct inode *inode, struct file *filp)
 {
-	struct cdcm_file lynx_file;
+	struct cdcm_file *lynx_file = filp->private_data;
+	if (lynx_file == NULL) {
+	   cdcm_err = -ENODEV;
+	   return cdcm_err; /* failure */
+	}
 
 	if (cdcmStatT.cdcm_isdg)
 		return dg_fop_release(inode, filp);
@@ -509,14 +530,13 @@ static int cdcm_fop_release(struct inode *inode, struct file *filp)
 		return 0;
 
 	/* fill in Lynxos file */
-	lynx_file.dev = (int)inode->i_rdev;
-	lynx_file.access_mode = (filp->f_flags & O_ACCMODE);
 
-	if (entry_points.dldd_close(cdcmStatT.cdcm_st, &lynx_file) == OK)
-		return 0; /* we cool */
+	if (entry_points.dldd_close(cdcmStatT.cdcm_st, lynx_file) != OK)
+	   cdcm_err = -ENODEV; /* TODO. What val to return??? */
 
-	cdcm_err = -ENODEV; /* TODO. What val to return??? */
-	return cdcm_err; /* failure */
+	kfree((void *) filp->private_data);
+	filp->private_data = 0;
+	return cdcm_err;
 }
 
 static struct fasync_struct *cdcm_async_queue;
