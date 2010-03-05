@@ -1068,10 +1068,6 @@ int SkelDrvrClose(void *wa, struct cdcm_file *flp)
    SkelDrvrClientContext *ccon;	/* Client context */
 
    ccon = (SkelDrvrClientContext *) flp->buffer;
-   if (!ccon) {
-      pseterr(EADDRNOTAVAIL);	/* Address not available */
-      return SYSERR;
-   }
    DisConnectAll(ccon);
    SkelUserClientRelease(ccon);	/* hook the user */
    report_client(ccon, SkelDrvrDebugFlagTRACE, "Close called");
@@ -1159,10 +1155,6 @@ static int SkelDrvrRead(void *wa, struct cdcm_file *flp, char *u_buf, int len)
    unsigned long flags;
 
    ccon = (SkelDrvrClientContext *) flp->buffer;
-   if (!ccon) {
-      pseterr(EADDRNOTAVAIL);	/* Address not available */
-      return SYSERR;
-   }
    q = &ccon->Queue;
 
    cdcm_spin_lock_irqsave(&q->lock, flags);
@@ -1254,10 +1246,6 @@ int SkelDrvrSelect(void *wa, struct cdcm_file *flp, int wch, struct sel *ffs)
    SkelDrvrClientContext *ccon;
 
    ccon = (SkelDrvrClientContext *) flp->buffer;
-   if (!ccon) {
-      pseterr(EADDRNOTAVAIL);	/* Address not available */
-      return SYSERR;
-   }
 
    if (wch == SREAD) {
       ffs->iosem = (S32 *) & ccon->Semaphore;	/* Watch out here I hope   */
@@ -1436,10 +1424,6 @@ int SkelDrvrIoctl(void *wa,	/* Working area */
    /* We can't control a file which is not open. */
 
    ccon = (SkelDrvrClientContext *) flp->buffer;
-   if (!ccon) {
-      pseterr(EADDRNOTAVAIL);	/* Address not available */
-      return SYSERR;
-   }
    clientnr = ccon->ClientIndex;
 
    /* Set up some useful module pointers */
