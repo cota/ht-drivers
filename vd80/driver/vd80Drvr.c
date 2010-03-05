@@ -829,10 +829,6 @@ char revis_id[VD80_CR_REV_ID_LEN +1]; /* The revis_id and terminator byte */
 int i;
 UserData *u;
 
-#ifdef __Lynx__
-unsigned int ret;
-#endif
-
    if (!mcon) return SkelUserReturnFAILED;
 
    modld = mcon->Modld;
