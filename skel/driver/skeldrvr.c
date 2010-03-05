@@ -1395,6 +1395,7 @@ int SkelDrvrIoctl(void *wa,	/* Working area */
    SkelDrvrRawIoBlock *riob;
    SkelDrvrStatus *ssts;
    SkelDrvrDebug *db;
+   SkelDrvrModConn *connected;
 
    S32 i, j;
    S32 clientnr;		/* Client number */
@@ -1580,18 +1581,23 @@ int SkelDrvrIoctl(void *wa,	/* Working area */
 	 break;
 
       for (i = 0; i < SkelDrvrMODULE_CONTEXTS; i++) {
-	 SkelDrvrModConn *connected = &Wa->Modules[i].Connected;
 
-	 cdcm_spin_lock_irqsave(&connected->lock, flags);
-	 for (j = 0; j < SkelDrvrINTERRUPTS; j++) {
-	    if (!(connected->clients[j] & cmsk))
-	       continue;
-	    ccn->Connections[ccn->Size].Module = i + 1;
-	    ccn->Connections[ccn->Size].ConMask = 1 << j;
-	    if (++(ccn->Size) >= SkelDrvrCONNECTIONS)
-	       break;
+	 mcon = &Wa->Modules[i];
+	 if (mcon->InUse) {
+
+	    connected = &(mcon->Connected);
+
+	    cdcm_spin_lock_irqsave(&connected->lock, flags);
+	    for (j = 0; j < SkelDrvrINTERRUPTS; j++) {
+	       if (!(connected->clients[j] & cmsk))
+		  continue;
+	       ccn->Connections[ccn->Size].Module = i + 1;
+	       ccn->Connections[ccn->Size].ConMask = 1 << j;
+	       if (++(ccn->Size) >= SkelDrvrCONNECTIONS)
+		  break;
+	    }
+	    cdcm_spin_unlock_irqrestore(&connected->lock, flags);
 	 }
-	 cdcm_spin_unlock_irqrestore(&connected->lock, flags);
       }
       return OK;
       break;
