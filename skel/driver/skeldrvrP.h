@@ -50,7 +50,6 @@ typedef struct {
 	cdcm_spinlock_t   lock;
 	struct cdcm_mutex mutex;
 	U32               ClientIndex;
-	U32               InUse;
 	U32               Pid;
 	S32               Semaphore;
 	U32               Timeout;
@@ -88,7 +87,7 @@ typedef struct {
    S32                    Semaphore;                     /* Module transaction semaphore */
    U32                    Timeout;                       /* Transaction timeout value */
    S32                    Timer;                         /* Transaction timer */
-	SkelDrvrModConn		Connected;
+   SkelDrvrModConn        Connected;
    U32                    Registers[SkelDrvrREGISTERS];  /* Copy of module registers, Emulation and Reset */
    SkelDrvrDebugFlag      Debug;                         /* Global debug options */
    SkelDrvrStandardStatus StandardStatus;                /* Standard status */
@@ -103,7 +102,7 @@ typedef struct {
    InsLibDrvrDesc        *Drvrd;
    InsLibEndian           Endian;
    U32                    InstalledModules;
-   SkelDrvrClientContext  Clients[SkelDrvrCLIENT_CONTEXTS];
+   SkelDrvrClientContext *Clients[SkelDrvrCLIENT_CONTEXTS]; /* Pointers to allocated client contexts or NULLs */
    SkelDrvrModuleContext  Modules[SkelDrvrMODULE_CONTEXTS];
    void                  *UserData;
  } SkelDrvrWorkingArea;

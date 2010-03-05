@@ -446,7 +446,7 @@ static inline void put_queues(const SkelDrvrReadBuf *rb, const uint32_t cmask)
 		if (!client)
 			continue;
 
-		q_put(rb, &Wa->Clients[i]);
+		if (Wa->Clients[i]) q_put(rb, Wa->Clients[i]);
 
 		if (!(cmask & ~client))
 			break; /* no one else connected to this interrupt */
@@ -995,19 +995,19 @@ static void reset_queue(SkelDrvrClientContext *ccon)
  * @return 0 - on success
  * @return -1 - on failure
  */
-int client_init(SkelDrvrClientContext *ccon, int clientnr, struct cdcm_file *flp)
+int client_init(SkelDrvrClientContext *ccon, int cidx, struct cdcm_file *flp)
 {
 	int client_ok;
 
 	bzero((void *)ccon, sizeof(SkelDrvrClientContext));
 
-	ccon->cdcmf       = flp; /* save file pointer */
-	ccon->ClientIndex = clientnr;
+	ccon->cdcmf       = flp;
 	ccon->Timeout     = SkelDrvrDEFAULT_CLIENT_TIMEOUT;
-	ccon->InUse       = 1;
 	ccon->Pid         = getpid();
+	ccon->ClientIndex = cidx;
 
 	/* select by default the first installed module */
+
 	if (Wa->InstalledModules)
 		ccon->ModuleNumber = Wa->Modules[0].ModuleNumber;
 
@@ -1030,28 +1030,39 @@ int client_init(SkelDrvrClientContext *ccon, int clientnr, struct cdcm_file *flp
 int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 {
 	SkelDrvrClientContext *ccon;   /* Client context */
-	int clientnr;
+	int cidx;                      /* Client index */
 
-	/*
-	 * We allow one client per minor device, we use the minor device
-	 * number as an index into the client contexts array.
-	 */
-	clientnr = minor(flp->dev) - 1;
-	if (!WITHIN_RANGE(0, clientnr, SkelDrvrCLIENT_CONTEXTS - 1)) {
-		pseterr(EFAULT);
-		return SYSERR;
+	ccon = (SkelDrvrClientContext *) sysbrk(sizeof(SkelDrvrClientContext));
+	if (ccon == NULL) {
+	   pseterr(ENOMEM); // No more memory available
+	   return SYSERR;
 	}
 
-	ccon = &Wa->Clients[clientnr];
+	/* Restriction from client mask uint32_t */
+	/* SkelDrvrCLIENT_CONTEXTS must be no more than 32  */
 
-	if (ccon->InUse) {
-		pseterr(EBUSY); /* already open by someone else */
-		return SYSERR;
+	for (cidx = 0; cidx < SkelDrvrCLIENT_CONTEXTS; cidx++) {
+	   if (Wa->Clients[cidx] == NULL) {
+	      Wa->Clients[cidx] = ccon;
+	      break;
+	   }
+	}
+	if (cidx == SkelDrvrCLIENT_CONTEXTS) {
+	   sysfree((void *) ccon, sizeof(SkelDrvrClientContext));
+	   pseterr(ENOSPC);            // No space left
+	   return SYSERR;
 	}
 
 	/* Initialise the client's context */
-	if (client_init(ccon, clientnr, flp))
-		return SYSERR; /* client_init must set errno */
+
+	if (client_init(ccon, cidx, flp)) {
+	   Wa->Clients[cidx] = NULL;
+	   sysfree((void *) ccon, sizeof(SkelDrvrClientContext));
+	   pseterr(EBADF);
+	   return SYSERR;
+	}
+
+	flp->buffer = (char *) ccon;
 	return OK;
 }
 
@@ -1069,22 +1080,17 @@ int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 int SkelDrvrClose(void *wa, struct cdcm_file *flp)
 {
 	SkelDrvrClientContext *ccon; /* Client context */
-	S32 clientnr; /* Client number */
 
-	/* We allow one client per minor device, we use the minor device */
-	/* number as an index into the client contexts array.            */
-
-	clientnr = minor(flp->dev) -1;
-	if ((clientnr < 0) || (clientnr >= SkelDrvrCLIENT_CONTEXTS)) {
-		pseterr(EFAULT); /* EFAULT = "Bad address" */
-		return SYSERR;
+	ccon = (SkelDrvrClientContext *) flp->buffer;
+	if (!ccon) {
+	   pseterr(EADDRNOTAVAIL); /* Address not available */
+	   return SYSERR;
 	}
-
-	ccon = &(Wa->Clients[clientnr]);
 	DisConnectAll(ccon);
 	SkelUserClientRelease(ccon); /* hook the user */
-	bzero((void *) ccon,sizeof(SkelDrvrClientContext));
 	report_client(ccon, SkelDrvrDebugFlagTRACE, "Close called");
+	Wa->Clients[ccon->ClientIndex] = NULL;
+	sysfree((void *) ccon, sizeof(SkelDrvrClientContext));
 	return OK;
 }
 
@@ -1112,9 +1118,11 @@ int SkelDrvrUninstall(void *wa)
 	int i;
 
 	for (i = 0; i < SkelDrvrCLIENT_CONTEXTS; i++) {
-		ccon = &Wa->Clients[i];
-		if (!ccon->InUse)
-			continue;
+		ccon = Wa->Clients[i];
+		if (!ccon) continue;
+
+		/* A Non null client context means its still open */
+
 		report_client(ccon, 0, "fd still open: Not uninstalled");
 		pseterr(EBUSY);
 		return SYSERR;
@@ -1131,13 +1139,6 @@ int SkelDrvrUninstall(void *wa)
 	Wa = NULL;
 
 	return OK;
-}
-
-SkelDrvrClientContext *get_ccon(struct cdcm_file *f)
-{
-	int clientnr = minor(f->dev) - 1;
-
-	return &Wa->Clients[clientnr];
 }
 
 /* Note: call with the queue's lock held */
@@ -1171,7 +1172,11 @@ static int SkelDrvrRead(void *wa, struct cdcm_file *flp, char *u_buf, int len)
 	SkelDrvrReadBuf       *rb;
 	unsigned long          flags;
 
-	ccon = get_ccon(flp);
+	ccon = (SkelDrvrClientContext *) flp->buffer;
+	if (!ccon) {
+	   pseterr(EADDRNOTAVAIL); /* Address not available */
+	   return SYSERR;
+	}
 	q = &ccon->Queue;
 
 	cdcm_spin_lock_irqsave(&q->lock, flags);
@@ -1261,10 +1266,12 @@ int skel_write(void *wa, struct cdcm_file *f, char *buf, int len)
 int SkelDrvrSelect(void *wa, struct cdcm_file *flp, int wch, struct sel *ffs)
 {
 	SkelDrvrClientContext *ccon;
-	S32 clientnr;
 
-	clientnr = minor(flp->dev) -1;
-	ccon = &Wa->Clients[clientnr];
+	ccon = (SkelDrvrClientContext *) flp->buffer;
+	if (!ccon) {
+	   pseterr(EADDRNOTAVAIL); /* Address not available */
+	   return SYSERR;
+	}
 
 	if (wch == SREAD) {
 		ffs->iosem = (S32 *) &ccon->Semaphore; /* Watch out here I hope   */
@@ -1436,24 +1443,14 @@ unsigned long flags;
    }
    sav = (U16) lav;     /* Short argument value */
 
-   /* We allow one client per minor device, we use the minor device */
-   /* number as an index into the client contexts array. */
-
-   clientnr = minor(flp->dev) - 1;
-   if ((clientnr < 0) || (clientnr >= SkelDrvrCLIENT_CONTEXTS)) {
-      pseterr(ENODEV);          /* No such device */
-      return SYSERR;
-   }
-
    /* We can't control a file which is not open. */
 
-   ccon = &(Wa->Clients[clientnr]);
-
-   if (!ccon->InUse) {
-      SK_WARN("SkelDrvrIoctl: DEVICE %2d IS NOT OPEN", clientnr + 1);
-      pseterr(EBADF);           /* Bad file number */
+   ccon = (SkelDrvrClientContext *) flp->buffer;
+   if (!ccon) {
+      pseterr(EADDRNOTAVAIL); /* Address not available */
       return SYSERR;
    }
+   clientnr = ccon->ClientIndex;
 
    /* Set up some useful module pointers */
 
@@ -1568,27 +1565,25 @@ unsigned long flags;
 	 cls = (SkelDrvrClientList *) lap;
 	 bzero((void *) cls, sizeof(SkelDrvrClientList));
 	 for (i=0; i<SkelDrvrCLIENT_CONTEXTS; i++) {
-	    ccon = &(Wa->Clients[i]);
-	    if (ccon->InUse)
-	       cls->Pid[cls->Size++] = ccon->Pid;
-	    }
+	    ccon = Wa->Clients[i];
+	    if (ccon) cls->Pid[cls->Size++] = ccon->Pid;
+         }
 	 return OK;
       break;
 
-   case SkelDrvrIoctlGET_CLIENT_CONNECTIONS:
+      case SkelDrvrIoctlGET_CLIENT_CONNECTIONS:
 	   ccn = (SkelDrvrClientConnections *) arg;
 	   if (ccn->Pid == 0) ccn->Pid = ccon->Pid;
 	   ccn->Size = 0;
 
 	   cmsk = 0;
 	   for (j=0; j<SkelDrvrCLIENT_CONTEXTS; j++) {
-		   ccon = &(Wa->Clients[j]);
-		   if (ccn->Pid == ccon->Pid) {
-			   cmsk = 1<<j;
-			   break;
+		   ccon = Wa->Clients[j];
+		   if ((ccon) && (ccn->Pid == ccon->Pid)) {
+			   cmsk |= 1<<j;
 		   }
 	   }
-	   ccon = &(Wa->Clients[clientnr]);
+	   ccon = Wa->Clients[clientnr];
 	   if (cmsk == 0)
 		   break;
 
