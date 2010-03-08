@@ -442,7 +442,7 @@ static inline void put_queues(const SkelDrvrReadBuf * rb, const uint32_t cmask)
       if (Wa->Clients[i])
 	 q_put(rb, Wa->Clients[i]);
 
-      if (!(cmask & ~client))
+      if (!(cmask >> (i+1)))
 	 break;			/* no one else connected to this interrupt */
    }
 }
