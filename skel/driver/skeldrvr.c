@@ -1018,23 +1018,21 @@ int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
    SkelDrvrClientContext *ccon;	/* Client context */
    int cidx;			/* Client index */
 
-   ccon = (SkelDrvrClientContext *) sysbrk(sizeof(SkelDrvrClientContext));
-   if (ccon == NULL) {
-      pseterr(ENOMEM);		// No more memory available
-      return SYSERR;
-   }
-
    /* Restriction from client mask uint32_t */
    /* SkelDrvrCLIENT_CONTEXTS must be no more than 32  */
 
    for (cidx = 0; cidx < SkelDrvrCLIENT_CONTEXTS; cidx++) {
       if (Wa->Clients[cidx] == NULL) {
+	 ccon = (SkelDrvrClientContext *) sysbrk(sizeof(SkelDrvrClientContext));
+	 if (ccon == NULL) {
+	    pseterr(ENOMEM);          // No more memory available
+	    return SYSERR;
+	 }
 	 Wa->Clients[cidx] = ccon;
 	 break;
       }
    }
    if (cidx == SkelDrvrCLIENT_CONTEXTS) {
-      sysfree((void *) ccon, sizeof(SkelDrvrClientContext));
       pseterr(ENOSPC);		// No space left
       return SYSERR;
    }
@@ -1043,7 +1041,6 @@ int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 
    if (client_init(ccon, cidx, flp)) {
       Wa->Clients[cidx] = NULL;
-      sysfree((void *) ccon, sizeof(SkelDrvrClientContext));
       pseterr(EBADF);
       return SYSERR;
    }
