@@ -13,8 +13,52 @@
 #include "libinstkernel.h"
 
 #ifdef __linux__
-extern char* sysbrk(unsigned long);
-extern void  sysfree(char *, unsigned long);
+#include <linux/slab.h>
+#include <linux/vmalloc.h>
+
+/**
+ * @brief Allocate memory.
+ *
+ * @param size - memory size to allocate in bytes
+ *
+ * Depending on the request memory size - different allocation methods
+ * are used. If size is less then 128Kb - kmalloc, vmalloc otherwise.
+ * 128kb - for code is to be completely portable (ldd3).
+ *
+ * @return allocated memory pointer - if success.
+ * @return NULL                     - if fails.
+ */
+
+#define MEM_BOUNDARY_128KB (128*1024)
+
+static char* sysbrk(unsigned long size)
+{
+	char *mem;
+
+	if ( !(mem = (size > MEM_BOUNDARY_128KB)?
+	       vmalloc(size):kmalloc(size, GFP_KERNEL)) )
+		return NULL;
+
+	return mem;
+}
+
+
+/**
+ * @brief Free allocated memory
+ *
+ * @param cp   - memory pointer to free
+ * @param size - memory size
+ *
+ * @return void
+ */
+static void sysfree(char *cp, unsigned long size)
+{
+	if (size > MEM_BOUNDARY_128KB)
+		vfree(cp);
+	else
+		kfree(cp);
+}
+
 #endif
 
 /* =============================================== */
