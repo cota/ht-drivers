@@ -876,8 +876,12 @@ UserData *u;
 	       revis_id[i] = (char) (tval & 0xff);
 	    }
 	    revis_id[i] = '\0';
-	    cprintf("VD90: Board Revision ID:%s\n",revis_id);
-
+	    cprintf("VD80: Board Revision ID:%s ",revis_id);
+	    if (strcmp("C1A8",revis_id) == 0) cprintf("OK - Supported by this driver\n");
+	    else {
+	       cprintf("ERROR - NOT SUPPORTED BY THIS DRIVER\n");
+	       return SkelUserReturnFAILED;
+	    }
 	    u = (UserData *) sysbrk(sizeof(UserData));  /* TODO: Leaks on uninstall */
 	    if (u) strncpy(u->revis_id,revis_id,VD80_CR_REV_ID_LEN);
 	    else
