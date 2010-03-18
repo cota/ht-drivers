@@ -15,10 +15,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <fpga_loader/lenval.h>
-#include <fpga_loader/micro.h>
-#include <fpga_loader/ports.h>
-
 /* local includes */
 #include <err.h>
 #include <general_usr.h>  /* for handy definitions (mperr etc..) */
