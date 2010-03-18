@@ -1,0 +1,5 @@
+DRIVER_NAME = vmebus
+
+# make sure that this is only compiled for L865
+CPU = L865
+
