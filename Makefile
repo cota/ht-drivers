@@ -1,4 +1,5 @@
 SUBDIRS = \
+	vmebridge \
 	utils \
 	cdcm \
 	lib \
