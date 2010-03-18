@@ -1592,7 +1592,7 @@ unsigned long flags;
 	   if (cmsk == 0)
 		   break;
 
-	   for (i = 0; i < SkelDrvrMODULE_CONTEXTS; i++) {
+	   for (i = 0; i < Wa->InstalledModules; i++) {
 		   SkelDrvrModConn *connected = &Wa->Modules[i].Connected;
 
 		   cdcm_spin_lock_irqsave(&connected->lock, flags);
