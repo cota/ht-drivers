@@ -29,6 +29,10 @@ int skel_isr(void *cookie);
 #include <skelpci.h>
 #include <skelcar.h>
 
+#ifndef __linux__
+extern int _kill _AP((int pid, int signal));
+#endif
+
 /*
  * @todo use kernel coding style throughout the file
  * @todo clean-up the IOCTL entry point
@@ -619,47 +623,43 @@ static inline void q_put(const SkelDrvrReadBuf *rb, SkelDrvrClientContext *ccon)
  * @brief put the 'read buffer' @rb on the queues of clients
  *
  * @param rb - read buffer to be put in the queues
- * @param cmask - mask of clients whose queues need to be updated
+ * @param clp - list of clients whos queues are to be appended
  */
-static inline void put_queues(const SkelDrvrReadBuf *rb, const uint32_t cmask)
+static inline void put_queues(const SkelDrvrReadBuf * rb,
+			      struct list_head *hlp)
 {
-	uint32_t client;
-	int i;
+	unsigned long flags;
+	struct client_list *entry;
 
-	for (i = 0; i < SkelDrvrCLIENT_CONTEXTS; i++) {
-		client = cmask & (1 << i);
-		if (!client)
-			continue;
-
-		q_put(rb, &Wa->Clients[i]);
-
-		if (!(cmask >> (i + 1)))
-			break; /* no one else connected to this interrupt */
+	cdcm_spin_lock_irqsave(&(Wa->list_lock), flags);
+	list_for_each_entry(entry, hlp, list) {
+		if (entry)
+			q_put(rb, entry->context);
 	}
+	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
 }
 
 /* Note: call this function with @connected's lock held */
-static inline void __fill_clients_queues(const SkelDrvrModConn *connected,
-					 const SkelDrvrReadBuf *rb,
+static inline void __fill_clients_queues(SkelDrvrModConn * connected,
+					 const SkelDrvrReadBuf * rb,
 					 const uint32_t imask)
 {
-	uint32_t interrupt, clients;
+	struct list_head *hlp;
+	uint32_t interrupt;
 	SkelDrvrReadBuf rbuf = *rb; /* local copy of rb */
 	int i;
 
 	for (i = 0; i < SkelDrvrINTERRUPTS; i++) {
 
 		interrupt = imask & (1 << i);
-		clients = connected->clients[i];
-		if (!interrupt || !clients)
+		hlp = &(connected->clients[i]);
+		if (!interrupt || !hlp)
 			continue;
 
 		/* set one bit at a time on the clients' queues */
-		rbuf.Connection.ConMask = interrupt;
-		put_queues(&rbuf, clients);
 
-		if (!(imask & ~interrupt))
-			break; /* no remaining interrupts */
+		rbuf.Connection.ConMask = interrupt;
+		put_queues(&rbuf, hlp);
 	}
 }
 
@@ -781,6 +781,106 @@ SkelDrvrModuleContext *get_mcon(int modnr)
 	return NULL;
 }
 
+/* Search the list for a file pointer and return the corresponding client context */
+/* WARNING: Must be locked else where */
+/* Returns pointer to client context if found or null */
+
+/* You might wonder why I am doing this when I could have just stored the context */
+/* pointer in the file pointer. Well it seem LynxOs overwrites the pointer, and even */
+/* worse it will not call close more than once per minor device !! */
+
+SkelDrvrClientContext *get_context(struct cdcm_file * flp,
+				   struct list_head * hlp)
+{
+
+	struct client_list *entry;
+	SkelDrvrClientContext *found = NULL;
+
+	list_for_each_entry(entry, hlp, list) {
+		if ((entry) && (entry->context->cdcmf == flp)) {
+			found = entry->context;
+			break;
+		}
+	}
+	return found;
+}
+
+/* Search the list for a given client context in the client list */
+/* WARNING: Must be locked else where */
+/* Returns pointer to entry if found or null */
+
+struct client_list *get_client(SkelDrvrClientContext * ccon,
+			       struct list_head *hlp)
+{
+
+	struct client_list *found = NULL;
+	struct client_list *entry;
+
+	list_for_each_entry(entry, hlp, list) {
+		if (entry->context == ccon) {
+			found = entry;
+			break;
+		}
+	}
+	return found;
+}
+
+/* Add a client context to the client list head */
+/* The list is unaffected if no more memory available */
+/* Returns new client list entry or NULL */
+
+struct client_list *add_client(SkelDrvrClientContext * ccon,
+			       struct list_head *hlp)
+{
+
+	unsigned long flags;
+	struct client_list *entry = NULL;
+
+	cdcm_spin_lock_irqsave(&(Wa->list_lock), flags);
+	entry = (struct client_list *) sysbrk(sizeof(struct client_list));
+	if (entry) {
+		entry->context = ccon;
+		list_add(&entry->list, hlp);
+	}
+	cdcm_spin_unlock_irqrestore(&(Wa->list_lock), flags);
+	return entry;
+}
+
+/* Try to find a client context and if its not there add it to the list */
+/* The reason for this logic is that a client should connect only once  */
+/* to an interrupt. If he is already connected its not an error to try  */
+/* to connect again, just return OK already connected.                  */
+/* Returns new list entry or null if no memory */
+
+struct client_list *get_add_client(SkelDrvrClientContext * ccon,
+				   struct list_head *hlp)
+{
+	struct client_list *clp;
+
+	if (!(clp = get_client(ccon, hlp)))
+		clp = add_client(ccon, hlp);
+	return clp;
+}
+
+/* Remove a client context from the list of clients */
+/* This can affect the list head obviously */
+/* Returns the next list entry, null is not an error */
+
+void remove_client(SkelDrvrClientContext * ccon, struct list_head *hlp)
+{
+
+	unsigned long flags;
+	struct client_list *clp;
+
+	cdcm_spin_lock_irqsave(&(Wa->list_lock), flags);
+	clp = get_client(ccon, hlp);
+	if (clp) {
+		list_del(&clp->list);
+		sysfree((void *) clp, sizeof(struct client_list));
+	}
+	cdcm_spin_unlock_irqrestore(&(Wa->list_lock), flags);
+}
+
 /**
  * @brief connect a client to an interrupt
  *
@@ -791,7 +891,7 @@ static void Connect(SkelDrvrClientContext *ccon, SkelDrvrConnection *conx)
 {
 	SkelDrvrModuleContext	*mcon;
 	SkelDrvrModConn		*connected;
-	unsigned int j, imsk, cmsk;
+	unsigned int j, imsk;
 	unsigned long flags;
 
 	if (!conx->Module)
@@ -803,14 +903,13 @@ static void Connect(SkelDrvrClientContext *ccon, SkelDrvrConnection *conx)
 		return;
 
 	connected = &mcon->Connected;
-	cmsk = 1 << ccon->ClientIndex;
 	imsk = conx->ConMask;
 
 	cdcm_spin_lock_irqsave(&connected->lock, flags);
 	for (j = 0; j < SkelDrvrINTERRUPTS; j++) {
 		if (!(imsk & (1 << j)))
 			continue;
-		connected->clients[j] |= cmsk;
+		get_add_client(ccon, &(connected->clients[j]));
 		connected->enabled_ints |= imsk;
 		SkelUserEnableInterrupts(mcon, connected->enabled_ints);
 	}
@@ -831,7 +930,7 @@ static void DisConnect(SkelDrvrClientContext *ccon, SkelDrvrConnection *conx)
 {
 	SkelDrvrModuleContext	*mcon;
 	SkelDrvrModConn		*connected;
-	unsigned int j, imsk, cmsk;
+	unsigned int j, imsk;
 	unsigned long flags;
 
 	if (!conx->Module)
@@ -848,18 +947,21 @@ static void DisConnect(SkelDrvrClientContext *ccon, SkelDrvrConnection *conx)
 	if (!conx->ConMask)
 		conx->ConMask = ~conx->ConMask;
 
-	cmsk = 1 << ccon->ClientIndex;
 	imsk = conx->ConMask;
 
 	cdcm_spin_lock_irqsave(&connected->lock, flags);
 
 	for (j = 0; j < SkelDrvrINTERRUPTS; j++) {
-		/* check interrupt mask and that there are clients connected */
-		if (!(imsk & (1 << j)) || !(connected->clients[j] & cmsk))
-			continue;
-		connected->clients[j] &= ~cmsk;
 
-		if (connected->clients[j])
+		/* check interrupt mask and that there are clients connected */
+
+		if (!(imsk & (1 << j))
+		    || (list_empty(&connected->clients[j])))
+			continue;
+
+		remove_client(ccon, &(connected->clients[j]));
+
+		if (list_empty(&connected->clients[j]))
 			continue;
 		/*
 		 * if there are no more clients connected to it, disable the
@@ -891,6 +993,8 @@ static void DisConnectAll(SkelDrvrClientContext *ccon) {
 
 static inline void set_mcon_defaults(SkelDrvrModuleContext *mcon)
 {
+	int i;
+
 	/* default timeout */
 	mcon->Timeout = SkelDrvrDEFAULT_MODULE_TIMEOUT;
 
@@ -915,6 +1019,9 @@ static inline void set_mcon_defaults(SkelDrvrModuleContext *mcon)
 	/* initialise the semaphore */
 	sreset(&mcon->Semaphore);
 	ssignal(&mcon->Semaphore);
+
+	for (i = 0; i < SkelDrvrINTERRUPTS; i++)
+		INIT_LIST_HEAD(&(mcon->Connected.clients[i]));
 
 	/*
 	 * Set the module status to NO_ISR as a default.
@@ -1132,6 +1239,10 @@ char *SkelDrvrInstall(void *infofile)
 
 	modules_install();
 
+	/* initialise the client list spinlock */
+	cdcm_spin_lock_init(&Wa->list_lock);
+	INIT_LIST_HEAD(&Wa->clients);
+
 	if (Wa->InstalledModules != Wa->Drvrd->ModuleCount) {
 		if (!Wa->InstalledModules) {
 			SK_WARN("Not installed any modules");
@@ -1153,6 +1264,65 @@ out_err:
 		sysfree((void *)Wa, sizeof(SkelDrvrWorkingArea));
 	return (char *)SYSERR;
 }
+
+/*
+ * Close down a client context
+ */
+
+void do_close(SkelDrvrClientContext * ccon)
+{
+	DisConnectAll(ccon);
+	SkelUserClientRelease(ccon);
+	remove_client(ccon, &(Wa->clients));
+	sysfree((void *) ccon, sizeof(SkelDrvrClientContext));
+}
+
+/*
+ * Clean up dead clients
+ */
+
+#ifdef __linux__
+
+#define do_cleanup()
+
+# else
+
+/*
+ * LynxOs clean up dead clients
+ */
+
+#define SIGCONT 18
+
+/*
+ * SIGCONT is from the job control set of signals. This signal in LynxOs
+ * is used to continue a process that has been previously stopped via
+ * a SIGSTOP. The default behaviour for a process receiving this signal
+ * is to ignore it unless previously stopped. The LynxOs _kill kernel
+ * routine does not implement signal "0" that is typically used to
+ * interrogate the process table. Using SIGCONT is OK because we
+ * are absolutley sure that job control is not used on real time
+ * front ends.
+ */
+
+void do_cleanup()
+{
+
+	struct client_list *entry;
+	struct client_list *tcl;
+	int err;
+
+	/* Clean up dead processes */
+
+	list_for_each_entry_safe(entry, tcl, &Wa->clients, list) {
+		if (_kill(entry->context->Pid, SIGCONT) == SYSERR) {
+			err = geterr();
+			if (err == ESRCH)
+				do_close(entry->context);
+		}
+	}
+}
+
+#endif
 
 /* Note: call with the queue's lock held */
 static void __reset_queue(SkelDrvrClientContext *ccon)
@@ -1180,16 +1350,14 @@ static void reset_queue(SkelDrvrClientContext *ccon)
  * @return 0 - on success
  * @return -1 - on failure
  */
-int client_init(SkelDrvrClientContext *ccon, int clientnr, struct cdcm_file *flp)
+int client_init(SkelDrvrClientContext * ccon, struct cdcm_file *flp)
 {
 	int client_ok;
 
 	bzero((void *)ccon, sizeof(SkelDrvrClientContext));
 
 	ccon->cdcmf       = flp; /* save file pointer */
-	ccon->ClientIndex = clientnr;
 	ccon->Timeout     = SkelDrvrDEFAULT_CLIENT_TIMEOUT;
-	ccon->InUse       = 1;
 	ccon->Pid         = getpid();
 
 	/* select by default the first installed module */
@@ -1210,33 +1378,25 @@ int client_init(SkelDrvrClientContext *ccon, int clientnr, struct cdcm_file *flp
 }
 
 /*
- * Driver's open entry point
+ * Open with clean up for dead processes according
+ * to LynxOs close
  */
+
 int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 {
-	SkelDrvrClientContext *ccon;   /* Client context */
-	int clientnr;
+	SkelDrvrClientContext *ccon = NULL;	/* Client context */
 
-	/*
-	 * We allow one client per minor device, we use the minor device
-	 * number as an index into the client contexts array.
-	 */
-	clientnr = minor(flp->dev) - 1;
-	if (!WITHIN_RANGE(0, clientnr, SkelDrvrCLIENT_CONTEXTS - 1)) {
-		pseterr(EFAULT);
+	ccon =
+	    (SkelDrvrClientContext *)
+	    sysbrk(sizeof(SkelDrvrClientContext));
+	if (client_init(ccon, flp)) {
+		pseterr(EBADF);
 		return SYSERR;
 	}
 
-	ccon = &Wa->Clients[clientnr];
-
-	if (ccon->InUse) {
-		pseterr(EBUSY); /* already open by someone else */
-		return SYSERR;
-	}
-
-	/* Initialise the client's context */
-	if (client_init(ccon, clientnr, flp))
-		return SYSERR; /* client_init must set errno */
+	do_cleanup();
+	add_client(ccon, &(Wa->clients));
+	ccon->cdcmf = flp;
 	return OK;
 }
 
@@ -1251,25 +1411,18 @@ int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
  * @return SYSERR -- failed
  * @return OK     -- success
  */
+
 int SkelDrvrClose(void *wa, struct cdcm_file *flp)
 {
-	SkelDrvrClientContext *ccon; /* Client context */
-	S32 clientnr; /* Client number */
+	SkelDrvrClientContext *ccon;	/* Client context */
 
-	/* We allow one client per minor device, we use the minor device */
-	/* number as an index into the client contexts array.            */
-
-	clientnr = minor(flp->dev) -1;
-	if ((clientnr < 0) || (clientnr >= SkelDrvrCLIENT_CONTEXTS)) {
-		pseterr(EFAULT); /* EFAULT = "Bad address" */
+	ccon = get_context(flp, &(Wa->clients));
+	if (ccon == NULL) {
+		cprintf("Skel:Close:Bad File Descriptor\n");
+		pseterr(EBADF);
 		return SYSERR;
 	}
-
-	ccon = &(Wa->Clients[clientnr]);
-	DisConnectAll(ccon);
-	SkelUserClientRelease(ccon); /* hook the user */
-	bzero((void *) ccon,sizeof(SkelDrvrClientContext));
-	report_client(ccon, SkelDrvrDebugFlagTRACE, "Close called");
+	do_close(ccon);
 	return OK;
 }
 
@@ -1293,14 +1446,10 @@ static void modules_uninstall(void)
 
 int SkelDrvrUninstall(void *wa)
 {
-	SkelDrvrClientContext  *ccon;
-	int i;
+	if (!list_empty(&Wa->clients)) {
 
-	for (i = 0; i < SkelDrvrCLIENT_CONTEXTS; i++) {
-		ccon = &Wa->Clients[i];
-		if (!ccon->InUse)
-			continue;
-		report_client(ccon, 0, "fd still open: Not uninstalled");
+		/* A Non null client list means its still open */
+
 		pseterr(EBUSY);
 		return SYSERR;
 	}
@@ -1316,13 +1465,6 @@ int SkelDrvrUninstall(void *wa)
 	Wa = NULL;
 
 	return OK;
-}
-
-SkelDrvrClientContext *get_ccon(struct cdcm_file *f)
-{
-	int clientnr = minor(f->dev) - 1;
-
-	return &Wa->Clients[clientnr];
 }
 
 /* Note: call with the queue's lock held */
@@ -1356,7 +1498,12 @@ static int SkelDrvrRead(void *wa, struct cdcm_file *flp, char *u_buf, int len)
 	SkelDrvrReadBuf       *rb;
 	unsigned long          flags;
 
-	ccon = get_ccon(flp);
+	ccon = get_context(flp, &(Wa->clients));
+	if (ccon == NULL) {
+		cprintf("Skel:Read:Bad File Descriptor\n");
+		pseterr(EBADF);
+		return SYSERR;
+	}
 	q = &ccon->Queue;
 
 	cdcm_spin_lock_irqsave(&q->lock, flags);
@@ -1446,10 +1593,13 @@ int skel_write(void *wa, struct cdcm_file *f, char *buf, int len)
 int SkelDrvrSelect(void *wa, struct cdcm_file *flp, int wch, struct sel *ffs)
 {
 	SkelDrvrClientContext *ccon;
-	S32 clientnr;
 
-	clientnr = minor(flp->dev) -1;
-	ccon = &Wa->Clients[clientnr];
+	ccon = get_context(flp, &(Wa->clients));
+	if (ccon == NULL) {
+		cprintf("Skel:Select:Bad File Descriptor\n");
+		pseterr(EBADF);
+		return SYSERR;
+	}
 
 	if (wch == SREAD) {
 		ffs->iosem = (S32 *) &ccon->Semaphore; /* Watch out here I hope   */
@@ -1587,13 +1737,15 @@ SkelDrvrRawIoBlock           *riob;
 	SkelDrvrRawIoTransferBlock *riobt;
 SkelDrvrStatus               *ssts;
 SkelDrvrDebug                *db;
+	SkelDrvrModConn *connected;
+
+	struct client_list *entry;
+	struct list_head *hlp;
 
 S32 i, j;
-S32 clientnr;       /* Client number */
 S32 lav, *lap;  /* Long Value pointed to by Arg */
 U16 sav;        /* Short argument and for Jtag IO */
 int rcnt, wcnt; /* Readable, Writable byte counts at arg address */
-U32 cmsk;
 unsigned long flags;
 
    /* Check argument contains a valid address for reading or writing. */
@@ -1622,24 +1774,12 @@ unsigned long flags;
    }
    sav = (U16) lav;     /* Short argument value */
 
-   /* We allow one client per minor device, we use the minor device */
-   /* number as an index into the client contexts array. */
-
-   clientnr = minor(flp->dev) - 1;
-   if ((clientnr < 0) || (clientnr >= SkelDrvrCLIENT_CONTEXTS)) {
-      pseterr(ENODEV);          /* No such device */
-      return SYSERR;
-   }
-
-   /* We can't control a file which is not open. */
-
-   ccon = &(Wa->Clients[clientnr]);
-
-   if (!ccon->InUse) {
-      SK_WARN("SkelDrvrIoctl: DEVICE %2d IS NOT OPEN", clientnr + 1);
-      pseterr(EBADF);           /* Bad file number */
-      return SYSERR;
-   }
+	ccon = get_context(flp, &(Wa->clients));
+	if (ccon == NULL) {
+		cprintf("Skel:Ioctl:Bad File Descriptor\n");
+		pseterr(EBADF);
+		return SYSERR;
+	}
 
    /* Set up some useful module pointers */
 
@@ -1750,50 +1890,55 @@ unsigned long flags;
 	      return OK;
       break;
 
-      case SkelDrvrIoctlGET_CLIENT_LIST:
-	 cls = (SkelDrvrClientList *) lap;
-	 bzero((void *) cls, sizeof(SkelDrvrClientList));
-	 for (i=0; i<SkelDrvrCLIENT_CONTEXTS; i++) {
-	    ccon = &(Wa->Clients[i]);
-	    if (ccon->InUse)
-	       cls->Pid[cls->Size++] = ccon->Pid;
-	    }
-	 return OK;
-      break;
+	case SkelDrvrIoctlGET_CLIENT_LIST:
+		cls = (SkelDrvrClientList *) lap;
+		bzero((void *) cls, sizeof(SkelDrvrClientList));
+		do_cleanup();
+		hlp = &Wa->clients;
+		list_for_each_entry(entry, hlp, list) {
+			ccon = entry->context;
+			cls->Pid[cls->Size++] = ccon->Pid;
+		}
+		return OK;
+		break;
 
-   case SkelDrvrIoctlGET_CLIENT_CONNECTIONS:
-	   ccn = (SkelDrvrClientConnections *) arg;
-	   if (ccn->Pid == 0) ccn->Pid = ccon->Pid;
-	   ccn->Size = 0;
+	case SkelDrvrIoctlGET_CLIENT_CONNECTIONS:
+		ccn = (SkelDrvrClientConnections *) arg;
+		if (ccn->Pid == 0)
+			ccn->Pid = ccon->Pid;
+		ccn->Size = 0;
 
-	   cmsk = 0;
-	   for (j=0; j<SkelDrvrCLIENT_CONTEXTS; j++) {
-		   ccon = &(Wa->Clients[j]);
-		   if (ccn->Pid == ccon->Pid) {
-			   cmsk = 1<<j;
-			   break;
-		   }
-	   }
-	   ccon = &(Wa->Clients[clientnr]);
-	   if (cmsk == 0)
-		   break;
+		for (i = 0; i < SkelDrvrMODULE_CONTEXTS; i++) {
+			mcon = &Wa->Modules[i];
+			if (mcon->InUse) {
+				connected = &(mcon->Connected);
 
-	   for (i = 0; i < Wa->InstalledModules; i++) {
-		   SkelDrvrModConn *connected = &Wa->Modules[i].Connected;
+				/* The same PID can be connected more than once, so the idea */
+				/* of a client is not the same as a PID. However we come in here */
+				/* with a PID list and I am not breaking the interface. The way */
+				/* this is used is first GET_CLIENT_LIST which returns a list of */
+				/* PIDs, then call this to see what thoes PIDs are connected to. */
+				/* That is the correct behaviour we want, we should just remove */
+				/* the _CLIENT_ part from the IOCTL names eventually. */
 
-		   cdcm_spin_lock_irqsave(&connected->lock, flags);
-		   for (j = 0; j < SkelDrvrINTERRUPTS; j++) {
-			   if (!(connected->clients[j] & cmsk))
-				   continue;
-			   ccn->Connections[ccn->Size].Module  = i + 1;
-			   ccn->Connections[ccn->Size].ConMask = 1 << j;
-			   if (++(ccn->Size) >= SkelDrvrCONNECTIONS)
-				   break;
-		   }
-		   cdcm_spin_unlock_irqrestore(&connected->lock, flags);
-	   }
-	   return OK;
-	   break;
+				cdcm_spin_lock_irqsave(&connected->lock, flags);
+				for (j = 0; j < SkelDrvrINTERRUPTS; j++) {
+					hlp = &connected->clients[j];
+					list_for_each_entry(entry, hlp, list) {
+						ccon = entry->context;
+						if ((ccon) && (ccn->Pid == ccon->Pid)) {
+							ccn-> Connections [ccn->Size]. Module = i + 1;
+							ccn-> Connections [ccn->Size]. ConMask = 1 << j;
+							if (++(ccn->Size) >= SkelDrvrCONNECTIONS)
+								goto brk_clp;
+						}
+					}
+				}
+			      brk_clp:cdcm_spin_unlock_irqrestore(&connected-> lock, flags);
+			}
+		}
+		return OK;
+		break;
 
       case SkelDrvrIoctlENABLE:
 	    if (SkelUserHardwareEnable(mcon,lav) == SkelUserReturnOK)

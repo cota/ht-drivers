@@ -7,6 +7,11 @@
 #define SKELDRVRP
 
 #include <cdcm/cdcm.h>
+
+#ifndef __linux__
+#include <list.h>
+#endif
+
 #include <skeldefs.h>
 #include <skeldrvr.h>
 
@@ -33,7 +38,6 @@ typedef struct {
  *
  * @param lock         --
  * @param mutex        --
- * @param ClientIndex  -- minor - 1
  * @param InUse        --
  * @param Pid          --
  * @param Semaphore    --
@@ -49,8 +53,6 @@ typedef struct {
 typedef struct {
 	cdcm_spinlock_t   lock;
 	struct cdcm_mutex mutex;
-	U32               ClientIndex;
-	U32               InUse;
 	U32               Pid;
 	S32               Semaphore;
 	U32               Timeout;
@@ -64,14 +66,23 @@ typedef struct {
 } SkelDrvrClientContext;
 
 /**
+ * Lists of clients are needed in various places in the driver
+ */
+
+struct client_list {
+	struct list_head       list;
+	SkelDrvrClientContext *context; /* Clients context */
+};
+
+/**
  * \brief keep client's connections on a module
  * @lock - protects the struct
- * @connected - each interrupt has a mask of connected clients
+ * @clients      - connected clients kept in an array of linked lists, one list per interrupt
  * @enabled_ints - mask of enabled interrupts
  */
 typedef struct {
 	cdcm_spinlock_t	lock;
-	uint32_t	clients[SkelDrvrINTERRUPTS];
+	struct list_head    clients[SkelDrvrINTERRUPTS]; /* List of connected clients per interrupt */
 	uint32_t	enabled_ints;
 } SkelDrvrModConn;
 
@@ -103,9 +114,10 @@ typedef struct {
    InsLibDrvrDesc        *Drvrd;
    InsLibEndian           Endian;
    U32                    InstalledModules;
-   SkelDrvrClientContext  Clients[SkelDrvrCLIENT_CONTEXTS];
+   struct list_head       clients;                       /* Linked list of opened client contexts or NULL */
    SkelDrvrModuleContext  Modules[SkelDrvrMODULE_CONTEXTS];
    void                  *UserData;
+   cdcm_spinlock_t        list_lock;
  } SkelDrvrWorkingArea;
 
 /* =========================================================== */
@@ -270,9 +282,9 @@ extern void SkelUserClientRelease(SkelDrvrClientContext *ccon);
 	do {								\
 		if ((___ccon)->Debug & (___dbflag) || !(___dbflag)) {	\
 			kkprintf(SKEL_INFO "[%s] ", Wa->Drvrd->DrvrName); \
-			kkprintf("(%s) client#%d pid=%d -- ",		\
+			kkprintf("(%s) pid=%d -- ",                     \
 				GetDebugFlagName((___dbflag)),		\
-				(___ccon)->ClientIndex + 1, (___ccon)->Pid); \
+				(___ccon)->Pid);                        \
 			kkprintf(format);				\
 			kkprintf("\n");					\
 		}							\

@@ -1171,7 +1171,7 @@ int icv196_uninstall(struct icv196T_s *s)
 int icv196_open(SkelDrvrClientContext *ccon)
 {
 	struct T_UserHdl *UHdl;
-	int   chan = ccon->ClientIndex; /* [0 - 15] */
+	int   chan = minor(ccon->cdcmf->dev); /* [0 - 15] */
 
 	UHdl = &icv196_statics.ICVHdl[chan];
 	if (UHdl->inuse) { /* channel already open */
@@ -1199,7 +1199,7 @@ int icv196_open(SkelDrvrClientContext *ccon)
 int icv196_close(SkelDrvrClientContext *ccon)
 {
 	struct T_UserHdl *UHdl;
-	int chan = ccon->ClientIndex; /* [0 - 15] */
+	int chan = minor(ccon->cdcmf->dev); /* [0 - 15] */
 
 	UHdl = &icv196_statics.ICVHdl[chan];
 

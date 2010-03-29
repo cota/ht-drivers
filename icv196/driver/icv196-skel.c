@@ -266,7 +266,7 @@ void SkelUserClientRelease(SkelDrvrClientContext *ccon)
 SkelUserReturn SkelUserIoctls(SkelDrvrClientContext *ccon,
 			      SkelDrvrModuleContext *mcon, int cm, char *arg)
 {
-	return icv196_ioctl(ccon->ClientIndex, cm, arg);
+	return icv196_ioctl(minor(ccon->cdcmf->dev), cm, arg);
 }
 
 struct skel_conf SkelConf = {
