@@ -1176,7 +1176,13 @@ ask:
 		printf(" %s", extra);
 	printf("? (y/n) > ");
 	reply = getchar();
-	printf("\n");
+	if (reply == EOF)
+		return 0;
+	else if (reply != '\n') {
+		/* escape subsequent characters and the ending '\n' */
+		while (getchar() != '\n')
+			;
+	}
 	if (reply != 'y' && reply != 'n' && /* accept y/n & Y/N */
 		reply != 'Y' && reply != 'N') {
 		printf("answer y/n only\n");
