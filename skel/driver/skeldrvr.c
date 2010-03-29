@@ -79,7 +79,9 @@ static const char *SkelStandardIoctlNames[] = {
 	[_IOC_NR(SkelDrvrIoctlJTAG_OPEN)]	= "JTAG_OPEN",
 	[_IOC_NR(SkelDrvrIoctlJTAG_READ_BYTE)]	= "JTAG_READ_BYTE",
 	[_IOC_NR(SkelDrvrIoctlJTAG_WRITE_BYTE)]	= "JTAG_WRITE_BYTE",
-	[_IOC_NR(SkelDrvrIoctlJTAG_CLOSE)]	= "JTAG_CLOSE"
+	[_IOC_NR(SkelDrvrIoctlJTAG_CLOSE)]	= "JTAG_CLOSE",
+	[_IOC_NR(SkelDrvrIoctlRAW_BLOCK_READ)] = "RAW_BLOCK_READ",
+	[_IOC_NR(SkelDrvrIoctlRAW_BLOCK_WRITE)] = "RAW_BLOCK_WRITE",
 };
 #define SkelDrvrSTANDARD_IOCTL_CALLS ARRAY_SIZE(SkelStandardIoctlNames)
 
@@ -269,8 +271,191 @@ static S32 GetVersion(SkelDrvrModuleContext *mcon, SkelDrvrVersion *ver)
 	return OK;
 }
 
-static unsigned int
-RawIo(SkelDrvrModuleContext *mcon, SkelDrvrRawIoBlock *riob, int flag)
+/*
+ * This RawIo implementation permits transfer of blocks of data to or from user space
+ * to the hardware via an inermiediate paging kernel buffer. The RawIoBlock structure
+ * controls how the transfer takes place.
+ *
+ * RawIoBlock:
+ *
+ *    SpaceNumber;  Address space to read/write
+ *    Offset;       Hardware address byte offset
+ *    DataWidth;    Data width in bits: 0 Default, 8, 16, 32
+ *    AddrIncr;     Address increment: 0=FIFO 1=Normal else skip
+ *    BytesTr;      Byte size of the transfer
+ *   *Data;         Data buffer pointer
+ *
+ * flag is zero on read and non zero on write
+ *
+ */
+
+static unsigned int RawIoBlock(SkelDrvrModuleContext * mcon,
+			       SkelDrvrRawIoTransferBlock * riob, int flag)
+{
+#define TRANSFERS 1024
+
+	InsLibAnyAddressSpace *anyas = NULL;
+	InsLibModlDesc *modld = NULL;
+	char *cp;
+
+	int tszbt;		/* One transfer data item size in bits */
+	int tszby;		/* One transfer data item size in bytes  */
+	int tremg;		/* Transfer data items remaining  */
+	int uindx;		/* Byte index into user array */
+	int kindx;		/* Byte index in kernel buffer */
+	int hskip;		/* Skip hardware byte index */
+	int bendf;		/* Big Endian flag */
+	int ksize;		/* Kernal buffer size */
+	void *mmap;		/* Hardware module memory map */
+	void *kbuf;		/* Kernel transfer buffer */
+	void *kp;		/* Running kernel buffer pointer */
+	void *mp;		/* Running modle buffer pointer */
+
+	modld = mcon->Modld;
+	anyas = InsLibGetAddressSpace(modld, riob->SpaceNumber);
+
+	if (!anyas) {
+		report_module(mcon, SkelDrvrDebugFlagMODULE,
+			      "%s:IllegalAddressSpace", __FUNCTION__);
+		pseterr(ENXIO);
+		return SYSERR;
+	}
+
+	/*
+	 * In some cases (mainly PCI), the size of the mapping is not
+	 * provided in the XML file. In Lynx there's no easy way to
+	 * get the mapping size, so we just leave it up to the user
+	 * not to cause a bus error.
+	 */
+
+	if (anyas->WindowSize && riob->Offset >= anyas->WindowSize) {
+		report_module(mcon, SkelDrvrDebugFlagMODULE,
+			      "%s: Offset out of range", __FUNCTION__);
+		pseterr(EINVAL);
+		return SYSERR;
+	}
+
+	tszbt = riob->DataWidth & 0x3F;	/* Can be 8, 16, 32 etc */
+	if (tszbt <= 0)
+		tszbt = anyas->DataWidth;	/* Not specified take default */
+	tszby = tszbt / 8;	/* Size of one transfer entity in bytes */
+	tremg = riob->BytesTr / tszby;	/* Number of transfers to perform */
+	if (tremg <= 0)
+		tremg = 1;	/* At least one transfer */
+
+	if (tremg < TRANSFERS)
+		ksize = tremg * tszby;	/* One transfer from small buffer */
+	else
+		ksize = TRANSFERS * tszby;	/* Multiple transfers from kernel buffer */
+	kbuf = sysbrk(ksize);	/* Allocate memory for TRANSFER items */
+	if (kbuf == NULL) {
+		pseterr(ENOMEM);
+		return SYSERR;
+	}
+
+	cp = anyas->Mapped;	/* Point to address map */
+	mmap = &cp[riob->Offset];	/* and get the address at offset */
+
+	bendf = (anyas->Endian == InsLibEndianBIG);	/* Set BIG endian boolean */
+	uindx = 0;
+	kindx = 0;
+	hskip = 0;		/* Index into map array */
+
+	/*
+	 * If writing fill up the kernel buffer from user space
+	 */
+
+	if (flag)
+		cdcm_copy_from_user(kbuf, riob->Data, ksize);	/* Get User memory if writing */
+
+	/*
+	 * While transfers remaining loop until all done
+	 */
+
+	while (tremg-- > 0) {
+
+		kp = kbuf + kindx;	/* Next kernel buffer address */
+		mp = mmap + hskip;	/* Next module address */
+
+		if (flag) {
+			switch (tszbt) {
+			default:
+			case 8:
+				cdcm_iowrite8(*(char *) kp, mp);
+				break;
+			case 16:
+				if (bendf)
+					cdcm_iowrite16be(*(short *) kp, mp);
+				else
+					cdcm_iowrite16le(*(short *) kp, mp);
+				break;
+			case 32:
+				if (bendf)
+					cdcm_iowrite32be(*(int *) kp, mp);
+				else
+					cdcm_iowrite32le(*(int *) kp, mp);
+				break;
+			}
+		} else {
+			switch (tszbt) {
+			default:
+			case 8:
+				*(char *) kp = cdcm_ioread8(mmap);
+				break;
+			case 16:
+				if (bendf)
+					*(short *) kp = cdcm_ioread16be(mp);
+				else
+					*(short *) kp = cdcm_ioread16le(mp);
+				break;
+			case 32:
+				if (bendf)
+					*(int *) kp = cdcm_ioread32be(mp);
+				else
+					*(int *) kp = cdcm_ioread32le(mp);
+				break;
+			}
+		}
+
+		/*
+		 * Deal wit indexes into buffers
+		 */
+
+		hskip += riob->AddrIncr * tszby;	/* Module hardware skip index */
+		kindx += tszby;	/* Kernel buffer index */
+
+		/*
+		 * Flush the kernel buffer
+		 */
+
+		if (kindx >= ksize) {
+			if (flag)
+				cdcm_copy_from_user(kbuf, &riob->Data[uindx], ksize);	/* Flush out data to user */
+			else
+				cdcm_copy_to_user(&riob->Data[uindx], kbuf, ksize);	/* Flush in data from user */
+
+			uindx += ksize;	/* Next block to copy */
+			kindx = 0;	/* Running kernel buffer index reset for next loop or exit */
+		}
+	}
+
+	/*
+	 * If reading copy any remaining data to user space
+	 */
+
+	if ((!flag) && (kindx))
+		cdcm_copy_to_user(&riob->Data[uindx], kbuf, kindx);
+
+	sysfree(kbuf, ksize);
+	return OK;
+}
+
+/*
+ * Single item transfer legacy routine
+ */
+
+static unsigned int RawIo(SkelDrvrModuleContext * mcon,
+			  SkelDrvrRawIoBlock * riob, int flag)
 {
 	InsLibAnyAddressSpace	*anyas = NULL;
 	InsLibModlDesc		*modld = NULL;
@@ -1399,6 +1584,7 @@ SkelDrvrVersion              *ver;
 SkelDrvrClientList           *cls;
 SkelDrvrClientConnections    *ccn;
 SkelDrvrRawIoBlock           *riob;
+	SkelDrvrRawIoTransferBlock *riobt;
 SkelDrvrStatus               *ssts;
 SkelDrvrDebug                *db;
 
@@ -1671,6 +1857,16 @@ unsigned long flags;
 		 return SkelConf.rawio(mcon, riob, 1);
 	 return RawIo(mcon,riob,1);
       break;
+
+	case SkelDrvrIoctlRAW_BLOCK_READ:
+		riobt = (SkelDrvrRawIoTransferBlock *) arg;
+		return RawIoBlock(mcon, riobt, 0);
+		break;
+
+	case SkelDrvrIoctlRAW_BLOCK_WRITE:
+		riobt = (SkelDrvrRawIoTransferBlock *) arg;
+		return RawIoBlock(mcon, riobt, 1);
+		break;
 
       default:
 	      if (is_user_ioctl(cm)) {

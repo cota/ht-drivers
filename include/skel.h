@@ -48,6 +48,19 @@ typedef struct {
 /* ============================================ */
 /* Raw IO                                       */
 
+/* Multi register block transfer */
+
+typedef struct {
+   uint32_t  SpaceNumber;  /* Address space to read/write */
+   uint32_t  Offset;       /* Hardware address byte offset */
+   uint32_t  DataWidth;    /* 0 Default, 8, 16, 32 */
+   uint32_t  AddrIncr;     /* Address increment (0=FIFO) (1=Normal) */
+   uint32_t  BytesTr;      /* Byte size of the transfer */
+   char     *Data;         /* Data buffer */
+ } SkelDrvrRawIoTransferBlock;
+
+/* Single transfer */
+
 typedef struct {
    uint32_t	SpaceNumber;/* Address space to read/write */
    uint32_t	Offset;     /* Hardware address byte offset */
@@ -192,7 +205,12 @@ typedef struct {
 #define SkelDrvrIoctlJTAG_CLOSE		SKEL_IO (25)
 //!< Close JTAG interface
 
-#define SkelDrvrIoctlLAST_STANDARD	SKEL_IO (26)
+#define SkelDrvrIoctlRAW_BLOCK_READ     SKEL_IOWR(26, SkelDrvrRawIoTransferBlock)
+//!< Raw read  access to card for debug
+#define SkelDrvrIoctlRAW_BLOCK_WRITE    SKEL_IOWR(27, SkelDrvrRawIoTransferBlock)
+//!< Raw write access to card for debug
+
+#define SkelDrvrIoctlLAST_STANDARD      SKEL_IO (28)
 
 #define SkelDrvrSPECIFIC_IOCTL_OFFSET (_IOC_NR(SkelDrvrIoctlLAST_STANDARD) + 1)
 
