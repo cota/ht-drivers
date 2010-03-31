@@ -174,9 +174,9 @@ typedef struct {
  */
 typedef struct {
 	InsLibCarAddressSpace *CarAddressSpace;
-	char                   CarrierName[InsLibNAME_SIZE];
-	unsigned int           BoardNumber;
-	unsigned int           BoardPosition;
+	char                   DriverName[InsLibNAME_SIZE];
+	unsigned int           MotherboardNumber;
+	unsigned int           SlotNumber;
 	char                   Comment[InsLibCOMMENT_SIZE];
 } InsLibCarModuleAddress;
 

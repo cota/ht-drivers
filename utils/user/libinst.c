@@ -49,8 +49,8 @@ typedef enum {
 	SUBVENDOR_ID,
 	SUBDEVICE_ID,
 	CARRIER,
-	BOARD_NUMBER,
-	BOARD_POSITION,
+	DRVR_NAME,
+	MOTHERBOARD_NUMBER,
 	INTERRUPT,
 	VECTOR,
 	LEVEL,
@@ -91,8 +91,8 @@ static char *keywords[KEY_WORDS] = {
 	"subvendor_id",
 	"subdevice_id",
 	"carrier",
-	"board_number",
-	"board_position",
+	"driver_name",
+	"motherboard_number",
 	"interrupt",
 	"vector",
 	"level",
@@ -808,9 +808,10 @@ void InsLibPrintPciSpace(InsLibPciAddressSpace *pcias)
 void InsLibPrintCar(InsLibCarModuleAddress *carma)
 {
 	if (carma) {
-		printf("[CAR:Bn:%d:Bp:%d]",
-		       carma->BoardNumber,
-		       carma->BoardPosition);
+		printf("[CAR:Dn:%s:Mn:%d:Sn:%d]",
+		       carma->DriverName,
+		       carma->MotherboardNumber,
+		       carma->SlotNumber);
 		InsLibPrintCarSpace(carma->CarAddressSpace);
 	}
 }
@@ -1134,23 +1135,21 @@ static InsLibCarModuleAddress *parse_car_address_tag(xmlNode *cur_node,
 		prop = GetNextProp(prop, &pname, &pvalu, pflag);
 		pky = LookUp((char *) pname);
 
-		if (pky == NAME)
-			strncpy(carma->CarrierName, pvalu, InsLibNAME_SIZE);
-		else if (pky == BOARD_NUMBER) {
-			carma->BoardNumber = GetNumber(pvalu);
-			if ( (carma->BoardNumber < 1) ||
-			     (carma->BoardNumber > 16) ) {
+		if (pky == DRVR_NAME)
+			strncpy(carma->DriverName, pvalu, InsLibNAME_SIZE);
+		else if (pky == MOTHERBOARD_NUMBER) {
+			carma->MotherboardNumber = GetNumber(pvalu);
+			if ( (carma->MotherboardNumber < 1) ||
+			     (carma->MotherboardNumber > 16) ) {
 				prnterr("Bad BOARD NUMBER in CARRIER"
 					   " clause");
 				free(carma);
 				return NULL;
 			}
-
-
-		} else if (pky == BOARD_POSITION) {
-			carma->BoardPosition = GetNumber(pvalu);
-			if ( (carma->BoardPosition < 1) ||
-			     (carma->BoardPosition > 8) ) {
+		} else if (pky == SLOT_NUMBER) {
+			carma->SlotNumber = GetNumber(pvalu);
+			if ( (carma->SlotNumber < 1) ||
+			     (carma->SlotNumber > 8) ) {
 				prnterr("Bad BOARD POSITION in CARRIER"
 					   " clause");
 				free(carma);
@@ -1164,18 +1163,18 @@ static InsLibCarModuleAddress *parse_car_address_tag(xmlNode *cur_node,
 			return carma;
 	}
 
-	if (carma->CarrierName == NULL) {
-		prnterr("CARRIER NAME missing from CARRIER clause");
+	if (carma->DriverName == NULL) {
+		prnterr("DRIVER NAME missing from CARRIER clause");
 		free(carma);
 		return NULL;
 	}
-	if (carma->BoardNumber == 0) {
-		prnterr("BOARD NUMBER missing from CARRIER clause");
+	if (carma->MotherboardNumber == 0) {
+		prnterr("MOTHERBOARD NUMBER missing from CARRIER clause");
 		free(carma);
 		return NULL;
 	}
-	if (carma->BoardPosition == 0) {
-		prnterr("BOARD POSITION missing from CARRIER clause");
+	if (carma->SlotNumber == 0) {
+		prnterr("SLOT NUMBER missing from CARRIER clause");
 		free(carma);
 		return NULL;
 	}

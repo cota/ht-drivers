@@ -3,7 +3,7 @@
 		[<module name bus_type logical_module_number [extra] [ignore_install_errors] [comment]>
 			[<vme [comment]/>]
 			[<pci bus_number slot_number vendor_id device_id [subvendor_id subdevice_id] [comment]/>]
-			[<carrier name board_number board_position [comment]/>]
+			[<carrier driver_name motherboard_number slot_number [comment]/>]
 			[<interrupt [vector level] [comment]/>]
 			[<pci_space bar endian [comment]/>]
 			[<vme_space modifier data_width window_size address [free_flag] [comment]/>]
