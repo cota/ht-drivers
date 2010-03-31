@@ -3,7 +3,7 @@
 		[<module name bus_type logical_module_number [extra] [ignore_install_errors] [comment]>
 			[<vme [comment]/>]
 			[<pci bus_number slot_number vendor_id device_id [subvendor_id subdevice_id] [comment]/>]
-			[<carrier board_number board_position [comment]/>]
+			[<carrier name board_number board_position [comment]/>]
 			[<interrupt [vector level] [comment]/>]
 			[<pci_space bar endian [comment]/>]
 			[<vme_space modifier data_width window_size address [free_flag] [comment]/>]
@@ -88,6 +88,7 @@ pci subdevice_id:	int	// The interface chip ID
 // carrier driver to map memory and forward interrupts. The carrier driver
 // itself if just a normal VME or PCI driver that provides these services.
 // This clause must be present to hang CAR address spaces from
+carrier name:		string[32]	// Driver name of carrier we are on
 carrier board_number:	int 1..N	// Which carrier board we are on
 carrier board_position:	int 1..N	// The position on that board
 

@@ -1134,7 +1134,9 @@ static InsLibCarModuleAddress *parse_car_address_tag(xmlNode *cur_node,
 		prop = GetNextProp(prop, &pname, &pvalu, pflag);
 		pky = LookUp((char *) pname);
 
-		if (pky == BOARD_NUMBER) {
+		if (pky == NAME)
+			strncpy(carma->CarrierName, pvalu, InsLibNAME_SIZE);
+		else if (pky == BOARD_NUMBER) {
 			carma->BoardNumber = GetNumber(pvalu);
 			if ( (carma->BoardNumber < 1) ||
 			     (carma->BoardNumber > 16) ) {
@@ -1162,6 +1164,11 @@ static InsLibCarModuleAddress *parse_car_address_tag(xmlNode *cur_node,
 			return carma;
 	}
 
+	if (carma->CarrierName == NULL) {
+		prnterr("CARRIER NAME missing from CARRIER clause");
+		free(carma);
+		return NULL;
+	}
 	if (carma->BoardNumber == 0) {
 		prnterr("BOARD NUMBER missing from CARRIER clause");
 		free(carma);

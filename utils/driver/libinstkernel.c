@@ -607,7 +607,8 @@ void InsLibPrintPciSpace(InsLibPciAddressSpace *pcias)
 void InsLibPrintCar(InsLibCarModuleAddress *carma)
 {
 	if (carma) {
-		printk("[CAR:Bn:%d:Bp:%d]",
+		printk("[CAR:Cn:%s:Bn:%d:Bp:%d]",
+		       carma->CarrierName,
 		       carma->BoardNumber,
 		       carma->BoardPosition);
 		InsLibPrintCarSpace(carma->CarAddressSpace);
