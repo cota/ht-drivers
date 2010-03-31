@@ -1364,6 +1364,8 @@ static InsLibModlDesc* handle_module_node(xmlNode *cur_node, int pflag,
 				modld->BusType = InsLibBusTypePMC;
 			else if (!strcmp(pvalu,"CAR"))
 				modld->BusType = InsLibBusTypeCARRIER;
+			else if (!strcmp(pvalu,"MODULBUS") || !strcmp(pvalu, "IP"))
+				modld->BusType = InsLibBusTypeCARRIER;
 			else
 				prnterr("Bad BUS_TYPE in MODULE clause");
 		} else if (pky == LOGICAL_MODULE_NUMBER) {
