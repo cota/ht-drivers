@@ -20,3 +20,7 @@ all: $(ALL)
 jtag.$(CPU).o: $(SRCS) $(HDRS)
 
 jtag.$(CPU): jtag.$(CPU).o
+
+clean:
+	rm -rf *.$(CPU).o *.$(CPU)
+
