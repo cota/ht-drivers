@@ -8,10 +8,10 @@ include /ps/dsc/src/co/Make.auto
 
 ACCS=tst
 CFLAGS = -g -I.
-LDLIBS = libvmebus.a
+LDLIBS = -lvmebus
 ALL  = jtag.$(CPU).o jtag.$(CPU)
 SRCS = jtag.c lenval.c micro.c ports.c smemio.c
-HDRS = lenval.h micro.h ports.h libvmebus.h
+HDRS = lenval.h micro.h ports.h
 
 all: $(ALL)
 
