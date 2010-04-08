@@ -9,17 +9,17 @@ MTT_NAME := $(shell echo $(DRIVER_NAME) | tr "[:upper:]" "[:lower:]")
 HDR_LIBMTT=../include/libmtt.h
 
 HDRS1.ppc4  = asmP.h   $(HDR_LIBMTT)
-HDRS1.L864  = asmP.h  $(HDR_LIBMTT)
+HDRS1.L865  = asmP.h  $(HDR_LIBMTT)
 HDRS1=$(HDRS1.$(CPU))
 
 HDRS  = $(HDRS1)
 
 SRCS1.ppc4 = asm.c
-SRCS1.L864 = asm.c
+SRCS1.L865 = asm.c
 SRCS1=$(SRCS1.$(CPU))
 
 SRCS2.ppc4 = emu.c
-SRCS2.L864 = emu.c
+SRCS2.L865 = emu.c
 SRCS2=$(SRCS2.$(CPU))
 
 SRCS  = $(SRCS1) $(SRCS2)
