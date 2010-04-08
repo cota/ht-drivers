@@ -7,7 +7,7 @@
  *
  * Use this library to communicate with icv196 module.
  *
- * @author Copyright (C) 2010 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
+ * @author Copyright (C) 2009 - 2010 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
  *
  * @date Created on 18/12/2009
  *
@@ -206,8 +206,8 @@ int icv196_write_channel(int h, int module, int grp, char *data)
  * @brief Set direction of input/output ports
  *
  * @param h      -- library handle, returned by icv196_get_handle()
- * @param module -- module index [0 -- 7]
- * @param grp    -- group index [0 -- 11]
+ * @param module -- module index [0 - 7]
+ * @param grp    -- group index [0 - 11]
  *                  See description for more details.
  * @param size   -- group size in bytes [1, 2]
  *                  See description for more details.

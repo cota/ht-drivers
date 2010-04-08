@@ -564,6 +564,15 @@ static int init_group(int fd, int *grp, int dir)
 	return 1;
 }
 
+/**
+ * @brief Test to transmit 2byte long data
+ *
+ * @param fd   --
+ * @param gpfd --
+ *
+ * <long-description>
+ *
+ */
 static void transmit_data(int fd, struct gpfd *gpfd)
 
 {

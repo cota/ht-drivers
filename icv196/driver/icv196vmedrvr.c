@@ -5,7 +5,7 @@
  *
  * Created on 21-mar-1992 Alain Gagnaire, F. Berlin
  *
- * @author Copyright (C) 2009 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
+ * @author Copyright (C) 2009-2010 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
  *
  * @date Created on 18/11/2009
  *
@@ -1873,7 +1873,7 @@ int icv196_ioctl(int Chan, int fct, char *arg)
                         return SYSERR;
                 }
 		MCtxt = &icv196_statics.ModuleCtxt[Module];
-		if (grp&1) /* odd */
+		if (grp & 1) /* odd */
 			offs = 1;
 		else /* even */
 			offs = 3;
