@@ -828,6 +828,78 @@ out_err:
 	return SkelUserReturnFAILED;
 }
 
+/*
+ * NOTE: MttDrvrInstruction.Fields is defined as an unsigned long, but
+ * it is really a group of four bytes each with its own meaning (see the
+ * 'Instruction' typedef in include/asm.h for more details).
+ * This is why this field must not be swapped.
+ */
+static void __mtt_set_program(struct udata *udata, MttDrvrInstruction *to,
+			MttDrvrInstruction *from, unsigned int elems)
+{
+	int i;
+
+	for (i = 0; i < elems; i++, to++, from++) {
+		cdcm_iowrite32(from->Fields, &to->Fields);
+		cdcm_iowrite32be(from->Srce1, &to->Srce1);
+	}
+}
+
+static void __mtt_get_program(struct udata *udata, MttDrvrInstruction *to,
+			MttDrvrInstruction *from, unsigned int elems)
+{
+	int i;
+
+	for (i = 0; i < elems; i++, to++, from++) {
+		to->Fields = cdcm_ioread32(&from->Fields);
+		to->Srce1 = cdcm_ioread32be(&from->Srce1);
+	}
+}
+
+static SkelUserReturn
+mtt_gs_program(struct udata *udata, MttDrvrInstruction *u_prog,
+	MttDrvrInstruction *io_prog, unsigned int elems, int set)
+{
+	void *bounce;
+	ssize_t size = elems * sizeof(MttDrvrInstruction);
+
+	bounce = (void *)sysbrk(size);
+	if (bounce == NULL) {
+		SK_ERROR("%s: -ENOMEM", __FUNCTION__);
+		pseterr(ENOMEM);
+		goto out_err;
+	}
+
+	if (set) {
+		if (cdcm_copy_from_user(bounce, u_prog, size)) {
+			pseterr(EFAULT);
+			goto out_err;
+		}
+
+		cdcm_mutex_lock(&udata->lock);
+		__mtt_set_program(udata, io_prog, bounce, elems);
+		cdcm_mutex_unlock(&udata->lock);
+
+	} else {
+
+		cdcm_mutex_lock(&udata->lock);
+		__mtt_get_program(udata, bounce, io_prog, elems);
+		cdcm_mutex_unlock(&udata->lock);
+
+		if (cdcm_copy_to_user(u_prog, bounce, size)) {
+			pseterr(EFAULT);
+			goto out_err;
+		}
+	}
+	sysfree(bounce, size);
+	return SkelUserReturnOK;
+
+ out_err:
+	if (bounce)
+		sysfree(bounce, size);
+	return SkelUserReturnFAILED;
+}
+
 static SkelUserReturn
 mtt_gs_program_ioctl(SkelDrvrClientContext *ccon, void *arg, int set)
 {
@@ -835,10 +907,9 @@ mtt_gs_program_ioctl(SkelDrvrClientContext *ccon, void *arg, int set)
 	MttDrvrMap		*map = udata->iomap;
 	MttDrvrProgramBuf	*prog = arg;
 	MttDrvrInstruction	*ioaddr = &map->ProgramMem[prog->LoadAddress];
-	ssize_t	size = prog->InstructionCount * sizeof(MttDrvrInstruction);
 
-	return __mtt_io(get_mcon(ccon->ModuleNumber), prog->Program,
-			ioaddr, size, set);
+	return mtt_gs_program(udata, prog->Program, ioaddr,
+			prog->InstructionCount, set);
 }
 
 static SkelUserReturn mtt_status_ioctl(SkelDrvrClientContext *ccon, void *arg)
