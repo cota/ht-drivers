@@ -51,7 +51,7 @@ COMPILE_LIB_SHARED = n
 
 # If needed, add extra directories that should be compiled
 # during driver framework compilation.
-# SUBDIRS +=
+SUBDIRS += tools
 
 # You can change ROOTDIR to locate your own path with cdcm, skel, utils etc..
 #  It *should* be a relative path, starting from driver framework directory

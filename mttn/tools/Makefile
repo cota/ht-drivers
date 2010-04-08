@@ -1,9 +1,12 @@
+include ../Makefile.specific
+
+MTT_NAME := $(shell echo $(DRIVER_NAME) | tr "[:upper:]" "[:lower:]")
 
 #=============================================================================
 # SOURCES/OBJECTS/EXECUTABLE
 #=============================================================================
 # Sources
-HDR_LIBMTT=../lib/libmtt.h
+HDR_LIBMTT=../include/libmtt.h
 
 HDRS1.ppc4  = asmP.h   $(HDR_LIBMTT)
 HDRS1.L864  = asmP.h  $(HDR_LIBMTT)
@@ -36,8 +39,9 @@ ALL=$(BINS)
 #=============================================================================
 #  LOCAL definitions
 #=============================================================================
-CFLAGS= -g -Wall -I. -I../lib -I../../include -I../driver
-LDLIBS=../lib/libmtt.$(CPU).a
+CFLAGS= -g -Wall -I. -I../include -I../../include -I../driver
+LIBMTT=../object_$(MTT_NAME)/lib$(MTT_NAME).$(CPU).a
+LDLIBS=$(LIBMTT)
 
 #=============================================================================
 #  INCLUDES
@@ -47,11 +51,16 @@ include /acc/dsc/src/co/Make.auto
 #=============================================================================
 #  TARGETS
 #=============================================================================
+all: $(LIBMTT) $(ALL)
+
+.PHONY: all help clean install
+
+$(LIBMTT):
+	$(MAKE) -C ../lib
+
 help:
 	@echo "make all --> Build all"
 	@echo "make clean --> Clean binary and temporary files"
-
-all: $(ALL)
 
 clean:
 	$(RM) $(OBJS) $(ALL) $(BAKS)
