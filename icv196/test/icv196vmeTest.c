@@ -553,8 +553,7 @@ static int init_group(int fd, int *grp, int dir)
 	       *grp, mt[*grp-1][0], mt[*grp-1][1]);
 #endif
 
-	if (icv196_init_channel(fd, module, mt[*grp-1][0], 1, dir) ||
-	    icv196_init_channel(fd, module, mt[*grp-1][1], 1, dir)) {
+	if (icv196_init_channel(fd, module, mt[*grp-1][1], 2, dir)) {
 		printf("Failed to init group %d\n", *grp);
 		return 0;
 	}

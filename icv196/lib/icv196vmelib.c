@@ -232,15 +232,29 @@ int icv196_init_channel(int h, int module, int grp, int size, int dir)
 
 	if (!WITHIN_RANGE(0, module, 7) ||
 	    !WITHIN_RANGE(0, grp, 11) ||
-	    !WITHIN_RANGE(0, dir, 1))
+	    !WITHIN_RANGE(0, dir, 1) ||
+	    !WITHIN_RANGE(1, size, 2))
 		return -1;
 
+	arg.module  = module;
 	arg.data[0] = grp;
 	arg.data[1] = dir;
 
 	if (ioctl(h, ICVVME_setio, &arg) < 0) {
 		perror("ICVVME_setio ioctl failed");
 		return -1;
+	}
+
+	if (size == 2) {
+		/* 2-bytes long data. Should set second group */
+		arg.module  = module;
+		arg.data[0] = grp-1;
+		arg.data[1] = dir;
+
+		if (ioctl(h, ICVVME_setio, &arg) < 0) {
+			perror("ICVVME_setio ioctl failed");
+			return -1;
+		}
 	}
 
 	return 0;
