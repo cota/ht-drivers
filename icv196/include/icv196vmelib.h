@@ -157,8 +157,8 @@ extern "C" {
 	int icv196_get_handle(void);
 	int icv196_put_handle(int h);
 	int icv196_init_channel(int h, int module, int grp, int size, int dir);
-	int icv196_read_channel(int h, int module, int grp, char *data);
-	int icv196_write_channel(int h, int module, int grp, char *data);
+	int icv196_read_channel(int h, int module, int grp, int dps, char *data);
+	int icv196_write_channel(int h, int module, int grp, int dps, char *data);
 	int icv196_connect(int h, short module, short line, short mode);
 	int icv196_disconnect(int h, short module, short line);
 	int icv196_get_info(int h, int m, int buff_sz, struct icv196T_ModuleInfo *buff);

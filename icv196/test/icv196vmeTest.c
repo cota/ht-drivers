@@ -82,7 +82,7 @@ int main(int argc, char *argv[], char *envp[])
 	int retval, i, j, dir, stat, grp_nr, grp_mask = 1;
 	char buff[50] = { 0 } , line[10];
 	int status[icv_ModuleNb][icv_LineNb] = { { 0 } };
-	int input, count;
+	int input, count, size;
 	char board[2];
 	long *evt;
 	struct icv196T_Service arg;
@@ -239,11 +239,11 @@ int main(int argc, char *argv[], char *envp[])
 
 			if (grp_nr & 1) {
 				printf("Data size in bytes to read [1 - 2] --> ");
-				scanf("%ld", (long*)buff); getchar();
+				scanf("%d", &size); getchar();
 			} else
-				*buff = 1;
+				size = 1;
 
-			retval = icv196_read_channel(service_fd, module, grp_nr, buff);
+			retval = icv196_read_channel(service_fd, module, grp_nr, size, buff);
 			if (retval < 0)
                                 printf("Failed\n");
                         else
@@ -259,18 +259,18 @@ int main(int argc, char *argv[], char *envp[])
 
 			if (grp_nr&1) {
 				printf("Data size (in bytes) to write [1 - 2] --> ");
-				scanf("%ld", (long*)&buff[3]); getchar();
+				scanf("%d", &size); getchar();
 			} else
-				buff[3] = 1;
+				size = 1;
 
-			if ((long)buff[3] == 1)
+			if (size == 1)
 				printf("Data to write in hex (byte) --> ");
 			else
 				printf("Data to write in hex (word) --> ");
 
 			scanf("%hx", (short*)buff); getchar();
 
-			if (icv196_write_channel(service_fd, module, grp_nr, buff))
+			if (icv196_write_channel(service_fd, module, grp_nr, size, buff))
 				printf("Failed\n");
                         else
                                 printf("Done\n");
@@ -646,17 +646,15 @@ static void transmit_data(int fd, struct gpfd *gpfd)
 
 	for (i = 0; i < gpfd->elam; i++) {
 		wv = *bptr = gpfd->gpv[i].conv;
-		buff[3] = 2;
 
-		if (icv196_write_channel(fd, module, wr_grp, buff)) {
+		if (icv196_write_channel(fd, module, wr_grp, 2, buff)) {
 			printf("icv196_write_channel() failed\n");
 			continue;
 		}
 
 		usleep(500); /* delay for HW to do the job */
 
-		buff[0] = 2;
-		if (icv196_read_channel(fd, module, rd_grp, buff) < 0) {
+		if (icv196_read_channel(fd, module, rd_grp, 2, buff) < 0) {
 			printf("icv196_read_channel() failed\n");
 			continue;
 		}

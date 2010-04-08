@@ -155,16 +155,38 @@ int icv196_disconnect(int h, short module, short line)
         return -1;
 }
 
-
-int icv196_read_channel(int h, int module, int grp, char *data)
+/**
+ * @brief Read from ICV196 channel
+ *
+ * @param h      -- library handle, returned by icv196_get_handle()
+ * @param module -- module index [0 - 7]
+ * @param grp    -- group index [0 - 11]
+ *                  Should be initialized by icv196_init_channel()
+ * @param dps    -- data size in bytes [1 - 2]
+ * @param data   -- read data will be placed here
+ *
+ * Before to use read function -- channels @b should be aptly setup using
+ * icv196_init_channel(). Otherwise result is undefined.
+ * No vigilance whatsoever is imposed to check if the channel has been
+ * initialized or not. It is completely up to the user.
+ *
+ * @return -1 -- failed
+ * @return  0 -- OK
+ */
+int icv196_read_channel(int h, int module, int grp, int dps, char *data)
 {
 	int rc;
 	short *shd = (short*) data;
 	struct icv196T_Service arg = { 0 };
 
+	if (!WITHIN_RANGE(0, module, 7) ||
+	    !WITHIN_RANGE(0, grp, 11) ||
+	    !WITHIN_RANGE(1, dps, 2))
+		return -1;
+
 	arg.module  = module;
 	arg.line    = grp;
-	arg.data[0] = *data;
+	arg.data[0] = dps;
 
 	rc = ioctl(h, ICV196_GR_READ, &arg);
 	if (rc < 0) {
@@ -180,15 +202,39 @@ int icv196_read_channel(int h, int module, int grp, char *data)
 	return rc;
 }
 
-int icv196_write_channel(int h, int module, int grp, char *data)
+/**
+ * @brief Write into ICV196 channel
+ *
+ * @param h      -- library handle, returned by icv196_get_handle()
+ * @param module -- module index [0 - 7]
+ * @param grp    -- group index [0 - 11]
+ *                  Should be initialized by icv196_init_channel()
+ * @param dps    -- data size in bytes [1 - 2]
+ * @param data   -- data to write will be taken from here
+ *
+ * Before to use write function -- channels @b should be aptly setup using
+ * icv196_init_channel(). Otherwise result is undefined.
+ * No vigilance whatsoever is imposed to check if the channel has been
+ * initialized or not. It is completely up to the user.
+ *
+ * @return -1 -- failed
+ * @return  0 -- OK
+ */
+int icv196_write_channel(int h, int module, int grp, int dps, char *data)
 {
 	short *shd = (short*) data;
 	struct icv196T_Service arg = { 0 };
 
+	if (!WITHIN_RANGE(0, module, 7) ||
+	    !WITHIN_RANGE(0, grp, 11) ||
+	    !WITHIN_RANGE(1, dps, 2))
+		return -1;
+
+
 	arg.module  = module;
 	arg.line    = grp;
 	arg.data[0] = *data;
-	arg.data[1] = *&data[3];
+	arg.data[1] = dps;
 
 	if (arg.data[1] == 1)	/* size */
 		arg.data[0] = *data;
