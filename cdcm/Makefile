@@ -46,3 +46,9 @@ utils:
 	ROOTDIR=$(ROOTDIR) KVER=$(KVER) modules
 	@-rm -rf $(USRC)/.*.cmd $(USRC)/Module.symvers $(USRC)/.tmp_versions/
 	@-rm -rf $(USRC)/Module.markers $(USRC)/modules.order
+
+doxy_clean:
+	rm -rf man
+
+doxy: doxy_clean
+	../doxy/doxy.sh -n"Common Driver Code Manager (aka CDCM)" -o "man" ./
