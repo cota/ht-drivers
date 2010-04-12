@@ -3,4 +3,4 @@ all:
 	echo Make documentation for stub library
 	rm -f ,*.h
 	rm -rf doc
-	doxygen Doxyfile
+	../../../doxy/doxy.sh -n"Stub dynamic library loader" -o "doc" stub.doxygen
