@@ -143,6 +143,19 @@ endif # ifeq ($(SUBDIRS),)
 # Cleaning up
 clean clear:
 
+# doxygen docs generation
+DOXY_DIR ?= doxygen_output
+DOXY_FILES ?= .
+DOXY_TARGET ?= ../../doxy/doxy.sh -n"$(DRIVER_NAME)" -o"$(DOXY_DIR)" $(DOXY_FILES)
+
+doxy: doxy_clean
+	$(DOXY_TARGET)
+
+doxy_clean:
+	rm -rf $(DOXY_DIR)
+
+PHONY += doxy doxy_clean
+
 # For producing object files. Just an example of possible redefinition.
 #OUTPUT_OPTION +=; mv $*.$(CPU).o $(OBJDIR)/$@
 

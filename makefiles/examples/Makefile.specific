@@ -97,3 +97,16 @@ COMPILE_LIB_SHARED = n
 # $(TEST_PROG_NAME).c should present in test/ directory!
 # <driver-name>Test is used as a default one.
 # TEST_PROG_NAME =
+
+# doxygen docs
+# These variables are optional. Their default values are defined in Makefile.base.
+#
+# output directory of the generated docs
+# DOXY_DIR =
+#
+# files to be parsed by doxygen
+# DOXY_FILES = myfile.c ../include/myheader.h
+#
+# invocation of the doxy script (doxy.sh -h for help)
+# DOXY_TARGET = ../../doxy/doxy.sh -n"$(DRIVER_NAME)" $(DOXY_FILES)
+
