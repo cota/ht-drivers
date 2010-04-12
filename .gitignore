@@ -79,3 +79,6 @@ vd80/object_vd80/vd80.xml
 
 # Patches
 patch/
+
+# doxygen docs generated with doxy.sh
+doxygen_output
