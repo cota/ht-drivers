@@ -8,5 +8,11 @@ libvmod12e16.a: libvmod12e16.o
 libvmod12e16.o: libvmod12e16.h vmod12e16.h
 test12e16.o: libvmod12e16.h
 
-clean:
+clean: doxy_clean
 	rm -f *.o libvmod12e16.a test12e16
+
+doxy_clean:
+	rm -rf doxygen_output
+
+doxy:
+	../../../doxy/doxy.sh -n"VMOD 12e16 library"  . ../include
