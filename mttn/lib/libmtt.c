@@ -861,7 +861,7 @@ MttLibError MttLibContinueTask(char *name) {
 /* this hardware description file MtttDrvrTaskStatus is defined.    */
 /* The task status has values like Running, Stopped, Waiting etc    */
 
-MttDrvrTaskStatus MttLibGetTaskStatus(char *name) {
+uint32_t MttLibGetTaskStatus(char *name) {
 
 	int i;
 	MttDrvrTaskBuf tbuf;
@@ -921,7 +921,7 @@ MttLibError MttLibSendEventPrio(unsigned long frame, int priority)
 /* if it has a non zero value. Tmo is the timeout in 10ms units.    */
 /* A tmo value of zero means no timeout, hence wait indefinatley.   */
 
-MttDrvrInt MttLibWait(MttDrvrInt mask, int noqueue, int tmo) {
+uint32_t MttLibWait(uint32_t mask, int noqueue, int tmo) {
 
 	SkelDrvrConnection con;
 	SkelDrvrReadBuf rbf;
@@ -965,7 +965,7 @@ MttDrvrInt MttLibWait(MttDrvrInt mask, int noqueue, int tmo) {
 /* The Mtt module status can be read to check its functioning.      */
 /* MttDrvrStatus is defined in mtthard.h.                           */
 
-MttDrvrStatus MttLibGetStatus() {
+uint32_t MttLibGetStatus() {
 
 	uint32_t stat;
 
