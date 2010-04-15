@@ -22,7 +22,7 @@
 #include <stdint.h>
 
 #include <mttdrvr.h>
-#include "libmtt.h"
+#include <libmtt.h>
 
 /* ================================================================ */
 /* Globals                                                          */
