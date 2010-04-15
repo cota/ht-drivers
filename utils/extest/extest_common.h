@@ -35,7 +35,7 @@
 #include <skel.h>
 #endif /* __SKEL_EXTEST */
 
-#define MAX_ARG_COUNT   32	//!< maximum command line arguments
+#define MAX_ARG_COUNT   256	//!< maximum command line arguments
 #define MAX_ARG_LENGTH  128	//!< max characters per argument
 #define F_CLOSED        (-1)	//!< file closed
 
