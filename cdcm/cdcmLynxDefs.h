@@ -104,5 +104,11 @@ struct pci_geoprop {
 #define SEM_SIGRETRY	0
 #define SEM_SIGABORT	1
 #define SEM_SIGFADA 	17 /* Non-Posix constant for fast_ada support */
+
+/* tswait return values */
+#define TSWAIT_ABORTED -1
+#define TSWAIT_OK       0
+#define TSWAIT_TIMEDOUT 1
+#define TSWAIT_NOTOUTS  2
 /*------------------------ LynxOS kernel.h ends -----------------------------*/
 #endif /*  _CDCM_LYNX_DEFINITIONS_H_INCLUDE_ */

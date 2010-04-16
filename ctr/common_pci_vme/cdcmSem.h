@@ -8,6 +8,12 @@
 #define SEM_SIGIGNORE 1
 #define SEM_SIGABORT 2
 
+/* tswait return values */
+#define TSWAIT_ABORTED	-1
+#define TSWAIT_OK	0
+#define TSWAIT_TIMEDOUT	1
+#define TSWAIT_NOTOUTS	2
+
 #define SREAD 4
 
 int	swait(int *sem, int flag);

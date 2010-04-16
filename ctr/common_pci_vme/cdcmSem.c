@@ -228,10 +228,11 @@ int tswait(int *user_sem, int sig, int interval)
 {
 	struct cdcm_semaphore *sema;
 	unsigned long expires = msecs_to_jiffies(10 * interval);
+	int ret;
 
 	if (user_sem == NULL) {
 		msleep(10 * interval);
-		return OK;
+		return TSWAIT_TIMEDOUT;
 	}
 
 	sema = get_sema(user_sem);
@@ -243,7 +244,17 @@ int tswait(int *user_sem, int sig, int interval)
 	else if (interval < 0)
 		return swait(user_sem, sig);
 
-	return cdcm_down_timeout(&sema->sem, expires); /* non-interruptible */
+	ret = cdcm_down_timeout(&sema->sem, expires); /* non-interruptible */
+	switch (ret) {
+	case 0:
+		return OK;
+	case -ETIME:
+		return TSWAIT_TIMEDOUT;
+	case -EINTR:
+		return TSWAIT_ABORTED;
+	default:
+		return SYSERR;
+	}
 }
 
 int ssignal(int *sem)
