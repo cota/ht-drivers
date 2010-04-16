@@ -123,8 +123,10 @@ ifeq (,$(findstring $(notdir $(shell pwd)), $(SUBDIRS)))
 
 _all $(MAKECMDGOALS): build-subdirs
 
+CPU ?= ppc4
+
 FTARGETS = $(filter-out all linux lynx deliver, $(MAKECMDGOALS))
-COMPILE  = $(MAKE) -C $$dir $(MAKECMDGOALS)
+COMPILE  = $(MAKE) -C $$dir CPU=$(CPU) $(MAKECMDGOALS)
 
 endif # ifeq ($(SUBDIRS),)
 

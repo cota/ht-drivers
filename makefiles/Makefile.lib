@@ -56,17 +56,8 @@ _build: $(LIBRARIES) $(FINAL_DEST)
 	$(Q)mv $(LIBRARIES) ../$(FINAL_DEST)
 	$(Q)$(RM) $(OBJFILES)
 
-linux:
-	@echo -e "\nCompiling for Linux:"
-	$(Q)$(MAKE) _build CPU=L865
-
-lynx:
-	@echo -e "\nCompiling for Lynx:"
-	$(Q)$(MAKE) _build CPU=ppc4
-
 all:
-	$(Q)$(MAKE) linux
-	$(Q)$(MAKE) lynx
+	$(Q)$(MAKE) _build CPU=$(CPU)
 
 # CERN delivery
 include ../$(ROOTDIR)/makefiles/deliver.mk
