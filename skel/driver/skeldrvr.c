@@ -855,11 +855,11 @@ struct client_list *add_client(SkelDrvrClientContext *ccon,
 struct client_list *get_add_client(SkelDrvrClientContext *ccon,
 				   struct list_head *client_list)
 {
-	struct client_list *clp;
+	struct client_list *client;
 
-	if (!(clp = get_client(ccon, client_list)))
-		clp = add_client(ccon, client_list);
-	return clp;
+	if (!(client = get_client(ccon, client_list)))
+		client = add_client(ccon, client_list);
+	return client;
 }
 
 /* Remove a client context from the list of clients */
@@ -870,13 +870,13 @@ void remove_client(SkelDrvrClientContext *ccon, struct list_head *client_list)
 {
 
 	unsigned long flags;
-	struct client_list *clp;
+	struct client_list *client;
 
 	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
-	clp = get_client(ccon, client_list);
-	if (clp) {
-		list_del(&clp->list);
-		sysfree((void *) clp, sizeof(struct client_list));
+	client = get_client(ccon, client_list);
+	if (client) {
+		list_del(&client->list);
+		sysfree((void *) client, sizeof(struct client_list));
 	}
 	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
 }
