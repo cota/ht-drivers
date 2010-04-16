@@ -651,7 +651,7 @@ static inline void __fill_clients_queues(SkelDrvrModConn *connected,
 
 		interrupt = imask & (1 << i);
 		client_list = &connected->clients[i];
-		if (!interrupt || !client_list)
+		if (!interrupt || list_empty(client_list))
 			continue;
 
 		/* set one bit at a time on the clients' queues */
