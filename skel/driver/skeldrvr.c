@@ -1382,9 +1382,11 @@ int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 {
 	SkelDrvrClientContext *ccon = NULL;	/* Client context */
 
-	ccon =
-	    (SkelDrvrClientContext *)
-	    sysbrk(sizeof(SkelDrvrClientContext));
+	ccon = (SkelDrvrClientContext *)sysbrk(sizeof(SkelDrvrClientContext));
+	if (ccon == NULL) {
+		pseterr(ENOMEM);
+		return SYSERR;
+	}
 	if (client_init(ccon, flp)) {
 		pseterr(EBADF);
 		return SYSERR;
