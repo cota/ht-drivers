@@ -293,8 +293,8 @@ static S32 GetVersion(SkelDrvrModuleContext *mcon, SkelDrvrVersion *ver)
  *
  */
 
-static unsigned int RawIoBlock(SkelDrvrModuleContext * mcon,
-			       SkelDrvrRawIoTransferBlock * riob, int flag)
+static unsigned int RawIoBlock(SkelDrvrModuleContext *mcon,
+			       SkelDrvrRawIoTransferBlock *riob, int flag)
 {
 #define TRANSFERS 1024
 
@@ -348,9 +348,9 @@ static unsigned int RawIoBlock(SkelDrvrModuleContext * mcon,
 		tremg = 1;	/* At least one transfer */
 
 	if (tremg < TRANSFERS)
-		ksize = tremg * tszby;	/* One transfer from small buffer */
+		ksize = tremg *tszby;	/* One transfer from small buffer */
 	else
-		ksize = TRANSFERS * tszby;	/* Multiple transfers from kernel buffer */
+		ksize = TRANSFERS *tszby;	/* Multiple transfers from kernel buffer */
 	kbuf = sysbrk(ksize);	/* Allocate memory for TRANSFER items */
 	if (kbuf == NULL) {
 		pseterr(ENOMEM);
@@ -425,7 +425,7 @@ static unsigned int RawIoBlock(SkelDrvrModuleContext * mcon,
 		 * Deal wit indexes into buffers
 		 */
 
-		hskip += riob->AddrIncr * tszby;	/* Module hardware skip index */
+		hskip += riob->AddrIncr *tszby;	/* Module hardware skip index */
 		kindx += tszby;	/* Kernel buffer index */
 
 		/*
@@ -458,8 +458,8 @@ static unsigned int RawIoBlock(SkelDrvrModuleContext * mcon,
  * Single item transfer legacy routine
  */
 
-static unsigned int RawIo(SkelDrvrModuleContext * mcon,
-			  SkelDrvrRawIoBlock * riob, int flag)
+static unsigned int RawIo(SkelDrvrModuleContext *mcon,
+			  SkelDrvrRawIoBlock *riob, int flag)
 {
 	InsLibAnyAddressSpace	*anyas = NULL;
 	InsLibModlDesc		*modld = NULL;
@@ -625,7 +625,7 @@ static inline void q_put(const SkelDrvrReadBuf *rb, SkelDrvrClientContext *ccon)
  * @param rb - read buffer to be put in the queues
  * @param client_list - list of clients whos queues are to be appended
  */
-static inline void put_queues(const SkelDrvrReadBuf * rb,
+static inline void put_queues(const SkelDrvrReadBuf *rb,
 			      struct list_head *client_list)
 {
 	unsigned long flags;
@@ -640,8 +640,8 @@ static inline void put_queues(const SkelDrvrReadBuf * rb,
 }
 
 /* Note: call this function with @connected's lock held */
-static inline void __fill_clients_queues(SkelDrvrModConn * connected,
-					 const SkelDrvrReadBuf * rb,
+static inline void __fill_clients_queues(SkelDrvrModConn *connected,
+					 const SkelDrvrReadBuf *rb,
 					 const uint32_t imask)
 {
 	struct list_head *client_list;
@@ -789,8 +789,8 @@ SkelDrvrModuleContext *get_mcon(int modnr)
 /* pointer in the file pointer. Well it seem LynxOs overwrites the pointer, and even */
 /* worse it will not call close more than once per minor device !! */
 
-SkelDrvrClientContext *get_context(struct cdcm_file * flp,
-				   struct list_head * client_list)
+SkelDrvrClientContext *get_context(struct cdcm_file *flp,
+				   struct list_head *client_list)
 {
 
 	struct client_list *entry;
@@ -809,7 +809,7 @@ SkelDrvrClientContext *get_context(struct cdcm_file * flp,
 /* WARNING: Must be locked else where */
 /* Returns pointer to entry if found or null */
 
-struct client_list *get_client(SkelDrvrClientContext * ccon,
+struct client_list *get_client(SkelDrvrClientContext *ccon,
 			       struct list_head *client_list)
 {
 
@@ -829,7 +829,7 @@ struct client_list *get_client(SkelDrvrClientContext * ccon,
 /* The list is unaffected if no more memory available */
 /* Returns new client list entry or NULL */
 
-struct client_list *add_client(SkelDrvrClientContext * ccon,
+struct client_list *add_client(SkelDrvrClientContext *ccon,
 			       struct list_head *client_list)
 {
 
@@ -852,7 +852,7 @@ struct client_list *add_client(SkelDrvrClientContext * ccon,
 /* to connect again, just return OK already connected.                  */
 /* Returns new list entry or null if no memory */
 
-struct client_list *get_add_client(SkelDrvrClientContext * ccon,
+struct client_list *get_add_client(SkelDrvrClientContext *ccon,
 				   struct list_head *client_list)
 {
 	struct client_list *clp;
@@ -866,7 +866,7 @@ struct client_list *get_add_client(SkelDrvrClientContext * ccon,
 /* This can affect the list head obviously */
 /* Returns the next list entry, null is not an error */
 
-void remove_client(SkelDrvrClientContext * ccon, struct list_head *client_list)
+void remove_client(SkelDrvrClientContext *ccon, struct list_head *client_list)
 {
 
 	unsigned long flags;
@@ -1269,7 +1269,7 @@ out_err:
  * Close down a client context
  */
 
-void do_close(SkelDrvrClientContext * ccon)
+void do_close(SkelDrvrClientContext *ccon)
 {
 	DisConnectAll(ccon);
 	SkelUserClientRelease(ccon);
@@ -1350,7 +1350,7 @@ static void reset_queue(SkelDrvrClientContext *ccon)
  * @return 0 - on success
  * @return -1 - on failure
  */
-int client_init(SkelDrvrClientContext * ccon, struct cdcm_file *flp)
+int client_init(SkelDrvrClientContext *ccon, struct cdcm_file *flp)
 {
 	int client_ok;
 
