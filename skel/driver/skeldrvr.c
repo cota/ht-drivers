@@ -623,16 +623,16 @@ static inline void q_put(const SkelDrvrReadBuf *rb, SkelDrvrClientContext *ccon)
  * @brief put the 'read buffer' @rb on the queues of clients
  *
  * @param rb - read buffer to be put in the queues
- * @param hlp - list of clients whos queues are to be appended
+ * @param client_list - list of clients whos queues are to be appended
  */
 static inline void put_queues(const SkelDrvrReadBuf * rb,
-			      struct list_head *hlp)
+			      struct list_head *client_list)
 {
 	unsigned long flags;
 	struct client_list *entry;
 
 	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
-	list_for_each_entry(entry, hlp, list) {
+	list_for_each_entry(entry, client_list, list) {
 		if (entry)
 			q_put(rb, entry->context);
 	}
@@ -644,7 +644,7 @@ static inline void __fill_clients_queues(SkelDrvrModConn * connected,
 					 const SkelDrvrReadBuf * rb,
 					 const uint32_t imask)
 {
-	struct list_head *hlp;
+	struct list_head *client_list;
 	uint32_t interrupt;
 	SkelDrvrReadBuf rbuf = *rb; /* local copy of rb */
 	int i;
@@ -652,14 +652,14 @@ static inline void __fill_clients_queues(SkelDrvrModConn * connected,
 	for (i = 0; i < SkelDrvrINTERRUPTS; i++) {
 
 		interrupt = imask & (1 << i);
-		hlp = &connected->clients[i];
-		if (!interrupt || !hlp)
+		client_list = &connected->clients[i];
+		if (!interrupt || !client_list)
 			continue;
 
 		/* set one bit at a time on the clients' queues */
 
 		rbuf.Connection.ConMask = interrupt;
-		put_queues(&rbuf, hlp);
+		put_queues(&rbuf, client_list);
 	}
 }
 
@@ -790,13 +790,13 @@ SkelDrvrModuleContext *get_mcon(int modnr)
 /* worse it will not call close more than once per minor device !! */
 
 SkelDrvrClientContext *get_context(struct cdcm_file * flp,
-				   struct list_head * hlp)
+				   struct list_head * client_list)
 {
 
 	struct client_list *entry;
 	SkelDrvrClientContext *found = NULL;
 
-	list_for_each_entry(entry, hlp, list) {
+	list_for_each_entry(entry, client_list, list) {
 		if ((entry) && (entry->context->cdcmf == flp)) {
 			found = entry->context;
 			break;
@@ -810,13 +810,13 @@ SkelDrvrClientContext *get_context(struct cdcm_file * flp,
 /* Returns pointer to entry if found or null */
 
 struct client_list *get_client(SkelDrvrClientContext * ccon,
-			       struct list_head *hlp)
+			       struct list_head *client_list)
 {
 
 	struct client_list *found = NULL;
 	struct client_list *entry;
 
-	list_for_each_entry(entry, hlp, list) {
+	list_for_each_entry(entry, client_list, list) {
 		if (entry->context == ccon) {
 			found = entry;
 			break;
@@ -830,7 +830,7 @@ struct client_list *get_client(SkelDrvrClientContext * ccon,
 /* Returns new client list entry or NULL */
 
 struct client_list *add_client(SkelDrvrClientContext * ccon,
-			       struct list_head *hlp)
+			       struct list_head *client_list)
 {
 
 	unsigned long flags;
@@ -840,7 +840,7 @@ struct client_list *add_client(SkelDrvrClientContext * ccon,
 	entry = (struct client_list *) sysbrk(sizeof(struct client_list));
 	if (entry) {
 		entry->context = ccon;
-		list_add(&entry->list, hlp);
+		list_add(&entry->list, client_list);
 	}
 	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
 	return entry;
@@ -853,12 +853,12 @@ struct client_list *add_client(SkelDrvrClientContext * ccon,
 /* Returns new list entry or null if no memory */
 
 struct client_list *get_add_client(SkelDrvrClientContext * ccon,
-				   struct list_head *hlp)
+				   struct list_head *client_list)
 {
 	struct client_list *clp;
 
-	if (!(clp = get_client(ccon, hlp)))
-		clp = add_client(ccon, hlp);
+	if (!(clp = get_client(ccon, client_list)))
+		clp = add_client(ccon, client_list);
 	return clp;
 }
 
@@ -866,14 +866,14 @@ struct client_list *get_add_client(SkelDrvrClientContext * ccon,
 /* This can affect the list head obviously */
 /* Returns the next list entry, null is not an error */
 
-void remove_client(SkelDrvrClientContext * ccon, struct list_head *hlp)
+void remove_client(SkelDrvrClientContext * ccon, struct list_head *client_list)
 {
 
 	unsigned long flags;
 	struct client_list *clp;
 
 	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
-	clp = get_client(ccon, hlp);
+	clp = get_client(ccon, client_list);
 	if (clp) {
 		list_del(&clp->list);
 		sysfree((void *) clp, sizeof(struct client_list));
@@ -1740,7 +1740,7 @@ SkelDrvrDebug                *db;
 	SkelDrvrModConn *connected;
 
 	struct client_list *entry;
-	struct list_head *hlp;
+	struct list_head *client_list;
 
 S32 i, j;
 S32 lav, *lap;  /* Long Value pointed to by Arg */
@@ -1894,8 +1894,8 @@ unsigned long flags;
 		cls = (SkelDrvrClientList *) lap;
 		bzero((void *) cls, sizeof(SkelDrvrClientList));
 		do_cleanup();
-		hlp = &Wa->clients;
-		list_for_each_entry(entry, hlp, list) {
+		client_list = &Wa->clients;
+		list_for_each_entry(entry, client_list, list) {
 			ccon = entry->context;
 			cls->Pid[cls->Size++] = ccon->Pid;
 		}
@@ -1923,8 +1923,8 @@ unsigned long flags;
 
 				cdcm_spin_lock_irqsave(&connected->lock, flags);
 				for (j = 0; j < SkelDrvrINTERRUPTS; j++) {
-					hlp = &connected->clients[j];
-					list_for_each_entry(entry, hlp, list) {
+					client_list = &connected->clients[j];
+					list_for_each_entry(entry, client_list, list) {
 						ccon = entry->context;
 						if ((ccon) && (ccn->Pid == ccon->Pid)) {
 							ccn-> Connections [ccn->Size]. Module = i + 1;
