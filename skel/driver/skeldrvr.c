@@ -631,7 +631,7 @@ static inline void put_queues(const SkelDrvrReadBuf * rb,
 	unsigned long flags;
 	struct client_list *entry;
 
-	cdcm_spin_lock_irqsave(&(Wa->list_lock), flags);
+	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
 	list_for_each_entry(entry, hlp, list) {
 		if (entry)
 			q_put(rb, entry->context);
@@ -652,7 +652,7 @@ static inline void __fill_clients_queues(SkelDrvrModConn * connected,
 	for (i = 0; i < SkelDrvrINTERRUPTS; i++) {
 
 		interrupt = imask & (1 << i);
-		hlp = &(connected->clients[i]);
+		hlp = &connected->clients[i];
 		if (!interrupt || !hlp)
 			continue;
 
@@ -836,13 +836,13 @@ struct client_list *add_client(SkelDrvrClientContext * ccon,
 	unsigned long flags;
 	struct client_list *entry = NULL;
 
-	cdcm_spin_lock_irqsave(&(Wa->list_lock), flags);
+	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
 	entry = (struct client_list *) sysbrk(sizeof(struct client_list));
 	if (entry) {
 		entry->context = ccon;
 		list_add(&entry->list, hlp);
 	}
-	cdcm_spin_unlock_irqrestore(&(Wa->list_lock), flags);
+	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
 	return entry;
 }
 
@@ -872,13 +872,13 @@ void remove_client(SkelDrvrClientContext * ccon, struct list_head *hlp)
 	unsigned long flags;
 	struct client_list *clp;
 
-	cdcm_spin_lock_irqsave(&(Wa->list_lock), flags);
+	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
 	clp = get_client(ccon, hlp);
 	if (clp) {
 		list_del(&clp->list);
 		sysfree((void *) clp, sizeof(struct client_list));
 	}
-	cdcm_spin_unlock_irqrestore(&(Wa->list_lock), flags);
+	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
 }
 
 /**
@@ -909,7 +909,7 @@ static void Connect(SkelDrvrClientContext *ccon, SkelDrvrConnection *conx)
 	for (j = 0; j < SkelDrvrINTERRUPTS; j++) {
 		if (!(imsk & (1 << j)))
 			continue;
-		get_add_client(ccon, &(connected->clients[j]));
+		get_add_client(ccon, &connected->clients[j]);
 		connected->enabled_ints |= imsk;
 		SkelUserEnableInterrupts(mcon, connected->enabled_ints);
 	}
@@ -959,7 +959,7 @@ static void DisConnect(SkelDrvrClientContext *ccon, SkelDrvrConnection *conx)
 		    || (list_empty(&connected->clients[j])))
 			continue;
 
-		remove_client(ccon, &(connected->clients[j]));
+		remove_client(ccon, &connected->clients[j]);
 
 		if (list_empty(&connected->clients[j]))
 			continue;
@@ -1021,7 +1021,7 @@ static inline void set_mcon_defaults(SkelDrvrModuleContext *mcon)
 	ssignal(&mcon->Semaphore);
 
 	for (i = 0; i < SkelDrvrINTERRUPTS; i++)
-		INIT_LIST_HEAD(&(mcon->Connected.clients[i]));
+		INIT_LIST_HEAD(&mcon->Connected.clients[i]);
 
 	/*
 	 * Set the module status to NO_ISR as a default.
@@ -1273,7 +1273,7 @@ void do_close(SkelDrvrClientContext * ccon)
 {
 	DisConnectAll(ccon);
 	SkelUserClientRelease(ccon);
-	remove_client(ccon, &(Wa->clients));
+	remove_client(ccon, &Wa->clients);
 	sysfree((void *) ccon, sizeof(SkelDrvrClientContext));
 }
 
@@ -1395,7 +1395,7 @@ int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 	}
 
 	do_cleanup();
-	add_client(ccon, &(Wa->clients));
+	add_client(ccon, &Wa->clients);
 	ccon->cdcmf = flp;
 	return OK;
 }
@@ -1416,7 +1416,7 @@ int SkelDrvrClose(void *wa, struct cdcm_file *flp)
 {
 	SkelDrvrClientContext *ccon;	/* Client context */
 
-	ccon = get_context(flp, &(Wa->clients));
+	ccon = get_context(flp, &Wa->clients);
 	if (ccon == NULL) {
 		cprintf("Skel:Close:Bad File Descriptor\n");
 		pseterr(EBADF);
@@ -1498,7 +1498,7 @@ static int SkelDrvrRead(void *wa, struct cdcm_file *flp, char *u_buf, int len)
 	SkelDrvrReadBuf       *rb;
 	unsigned long          flags;
 
-	ccon = get_context(flp, &(Wa->clients));
+	ccon = get_context(flp, &Wa->clients);
 	if (ccon == NULL) {
 		cprintf("Skel:Read:Bad File Descriptor\n");
 		pseterr(EBADF);
@@ -1594,7 +1594,7 @@ int SkelDrvrSelect(void *wa, struct cdcm_file *flp, int wch, struct sel *ffs)
 {
 	SkelDrvrClientContext *ccon;
 
-	ccon = get_context(flp, &(Wa->clients));
+	ccon = get_context(flp, &Wa->clients);
 	if (ccon == NULL) {
 		cprintf("Skel:Select:Bad File Descriptor\n");
 		pseterr(EBADF);
@@ -1774,7 +1774,7 @@ unsigned long flags;
    }
    sav = (U16) lav;     /* Short argument value */
 
-	ccon = get_context(flp, &(Wa->clients));
+	ccon = get_context(flp, &Wa->clients);
 	if (ccon == NULL) {
 		cprintf("Skel:Ioctl:Bad File Descriptor\n");
 		pseterr(EBADF);
@@ -1911,7 +1911,7 @@ unsigned long flags;
 		for (i = 0; i < SkelDrvrMODULE_CONTEXTS; i++) {
 			mcon = &Wa->Modules[i];
 			if (mcon->InUse) {
-				connected = &(mcon->Connected);
+				connected = &mcon->Connected;
 
 				/* The same PID can be connected more than once, so the idea */
 				/* of a client is not the same as a PID. However we come in here */
