@@ -632,10 +632,8 @@ static inline void put_queues(const SkelDrvrReadBuf *rb,
 	struct client_list *entry;
 
 	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
-	list_for_each_entry(entry, client_list, list) {
-		if (entry)
-			q_put(rb, entry->context);
-	}
+	list_for_each_entry(entry, client_list, list)
+		q_put(rb, entry->context);
 	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
 }
 
@@ -797,7 +795,7 @@ SkelDrvrClientContext *get_context(struct cdcm_file *flp,
 	SkelDrvrClientContext *found = NULL;
 
 	list_for_each_entry(entry, client_list, list) {
-		if ((entry) && (entry->context->cdcmf == flp)) {
+		if (entry->context->cdcmf == flp) {
 			found = entry->context;
 			break;
 		}
