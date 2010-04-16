@@ -787,8 +787,8 @@ SkelDrvrModuleContext *get_mcon(int modnr)
 /* pointer in the file pointer. Well it seem LynxOs overwrites the pointer, and even */
 /* worse it will not call close more than once per minor device !! */
 
-SkelDrvrClientContext *get_context(struct cdcm_file *flp,
-				   struct list_head *client_list)
+static SkelDrvrClientContext *get_context(struct cdcm_file *flp,
+					struct list_head *client_list)
 {
 
 	struct client_list *entry;
@@ -807,8 +807,8 @@ SkelDrvrClientContext *get_context(struct cdcm_file *flp,
 /* WARNING: Must be locked else where */
 /* Returns pointer to entry if found or null */
 
-struct client_list *get_client(SkelDrvrClientContext *ccon,
-			       struct list_head *client_list)
+static struct client_list *get_client(SkelDrvrClientContext *ccon,
+				struct list_head *client_list)
 {
 
 	struct client_list *found = NULL;
@@ -827,8 +827,8 @@ struct client_list *get_client(SkelDrvrClientContext *ccon,
 /* The list is unaffected if no more memory available */
 /* Returns new client list entry or NULL */
 
-struct client_list *add_client(SkelDrvrClientContext *ccon,
-			       struct list_head *client_list)
+static struct client_list *add_client(SkelDrvrClientContext *ccon,
+				struct list_head *client_list)
 {
 	unsigned long flags;
 	struct client_list *entry = NULL;
@@ -863,7 +863,7 @@ struct client_list *get_add_client(SkelDrvrClientContext *ccon,
 /* This can affect the list head obviously */
 /* Returns the next list entry, null is not an error */
 
-void remove_client(SkelDrvrClientContext *ccon, struct list_head *client_list)
+static void remove_client(SkelDrvrClientContext *ccon, struct list_head *client_list)
 {
 	unsigned long flags;
 	struct client_list *client;
@@ -1265,7 +1265,7 @@ out_err:
  * Close down a client context
  */
 
-void do_close(SkelDrvrClientContext *ccon)
+static void do_close(SkelDrvrClientContext *ccon)
 {
 	DisConnectAll(ccon);
 	SkelUserClientRelease(ccon);
@@ -1279,7 +1279,8 @@ void do_close(SkelDrvrClientContext *ccon)
 
 #ifdef __linux__
 
-#define do_cleanup()
+static inline void do_cleanup(void)
+{}
 
 # else
 
@@ -1300,7 +1301,7 @@ void do_close(SkelDrvrClientContext *ccon)
  * front ends.
  */
 
-void do_cleanup()
+static void do_cleanup(void)
 {
 	struct client_list *entry;
 	struct client_list *tcl;
