@@ -212,12 +212,13 @@ int swait(int *sem, int flag)
 	case SEM_SIGABORT:
 	case SEM_SIGRETRY:
 	/* yes, I know SIGRETRY != SIGABORT, but we don't use SIGRETRY.. */
-		return cdcm_down_interruptible(&sema->sem);
+		result = cdcm_down_interruptible(&sema->sem);
+		break;
 	default:
 		result = SYSERR;
 	}
 
-	return result;
+	return result ? SYSERR : OK;
 }
 
 /*
