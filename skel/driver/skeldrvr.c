@@ -623,7 +623,7 @@ static inline void q_put(const SkelDrvrReadBuf *rb, SkelDrvrClientContext *ccon)
  * @brief put the 'read buffer' @rb on the queues of clients
  *
  * @param rb - read buffer to be put in the queues
- * @param clp - list of clients whos queues are to be appended
+ * @param hlp - list of clients whos queues are to be appended
  */
 static inline void put_queues(const SkelDrvrReadBuf * rb,
 			      struct list_head *hlp)
