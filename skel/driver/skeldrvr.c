@@ -832,7 +832,6 @@ struct client_list *get_client(SkelDrvrClientContext *ccon,
 struct client_list *add_client(SkelDrvrClientContext *ccon,
 			       struct list_head *client_list)
 {
-
 	unsigned long flags;
 	struct client_list *entry = NULL;
 
@@ -868,7 +867,6 @@ struct client_list *get_add_client(SkelDrvrClientContext *ccon,
 
 void remove_client(SkelDrvrClientContext *ccon, struct list_head *client_list)
 {
-
 	unsigned long flags;
 	struct client_list *client;
 
@@ -1306,7 +1304,6 @@ void do_close(SkelDrvrClientContext *ccon)
 
 void do_cleanup()
 {
-
 	struct client_list *entry;
 	struct client_list *tcl;
 	int err;
