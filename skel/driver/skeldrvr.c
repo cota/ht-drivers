@@ -1727,6 +1727,62 @@ static void set_queue_flag(SkelDrvrQueue *q, int value)
 	cdcm_spin_unlock_irqrestore(&q->lock, flags);
 }
 
+/*
+ * The same PID can be connected more than once, so the idea of a client is not
+ * the same as a PID. However we come in here with a PID list and I am not
+ * breaking the interface. The way this is used is first GET_CLIENT_LIST
+ * which returns a list of PIDs, then call this to see what thoes PIDs are
+ * connected to. That is the correct behaviour we want, we should just
+ * remove the _CLIENT_ part from the IOCTL names eventually.
+ */
+static int skel_fill_client_connections(SkelDrvrModuleContext *mcon,
+					SkelDrvrClientConnections *ccn)
+{
+	struct list_head *client_list;
+	struct client_list *entry;
+	int i;
+
+	for (i = 0; i < SkelDrvrINTERRUPTS; i++) {
+		client_list = &mcon->Connected.clients[i];
+		list_for_each_entry(entry, client_list, list) {
+			if (entry->context->Pid != ccn->Pid)
+				continue;
+			ccn->Connections[ccn->Size].Module = mcon->ModuleNumber;
+			ccn->Connections[ccn->Size].ConMask = 1 << i;
+			if (++ccn->Size >= SkelDrvrCONNECTIONS)
+				return 1;
+		}
+	}
+	return 0;
+}
+
+static int skel_get_client_connections(SkelDrvrClientContext *ccon,
+				SkelDrvrClientConnections *ccn)
+{
+	SkelDrvrModConn *connected;
+	SkelDrvrModuleContext *module;
+	unsigned long flags;
+	int ret;
+	int i;
+
+	if (ccn->Pid == 0)
+		ccn->Pid = ccon->Pid;
+	ccn->Size = 0;
+
+	for (i = 0; i < SkelDrvrMODULE_CONTEXTS; i++) {
+		module = &Wa->Modules[i];
+		if (!module->InUse)
+			continue;
+		connected = &module->Connected;
+		cdcm_spin_lock_irqsave(&connected->lock, flags);
+		ret = skel_fill_client_connections(module, ccn);
+		cdcm_spin_unlock_irqrestore(&connected->lock, flags);
+		if (ret)
+			break;
+	}
+	return OK;
+}
+
 int SkelDrvrIoctl(void             *wa,    /* Working area */
 		  struct cdcm_file *flp,        /* File pointer */
 		  int               cm,    /* IOCTL command */
@@ -1742,16 +1798,12 @@ SkelDrvrRawIoBlock           *riob;
 	SkelDrvrRawIoTransferBlock *riobt;
 SkelDrvrStatus               *ssts;
 SkelDrvrDebug                *db;
-	SkelDrvrModConn *connected;
-
 	struct client_list *entry;
 	struct list_head *client_list;
 
-S32 i, j;
 S32 lav, *lap;  /* Long Value pointed to by Arg */
 U16 sav;        /* Short argument and for Jtag IO */
 int rcnt, wcnt; /* Readable, Writable byte counts at arg address */
-unsigned long flags;
 
    /* Check argument contains a valid address for reading or writing. */
    /* We can not allow bus errors to occur inside the driver due to   */
@@ -1909,41 +1961,7 @@ unsigned long flags;
 
 	case SkelDrvrIoctlGET_CLIENT_CONNECTIONS:
 		ccn = (SkelDrvrClientConnections *) arg;
-		if (ccn->Pid == 0)
-			ccn->Pid = ccon->Pid;
-		ccn->Size = 0;
-
-		for (i = 0; i < SkelDrvrMODULE_CONTEXTS; i++) {
-			mcon = &Wa->Modules[i];
-			if (mcon->InUse) {
-				connected = &mcon->Connected;
-
-				/* The same PID can be connected more than once, so the idea */
-				/* of a client is not the same as a PID. However we come in here */
-				/* with a PID list and I am not breaking the interface. The way */
-				/* this is used is first GET_CLIENT_LIST which returns a list of */
-				/* PIDs, then call this to see what thoes PIDs are connected to. */
-				/* That is the correct behaviour we want, we should just remove */
-				/* the _CLIENT_ part from the IOCTL names eventually. */
-
-				cdcm_spin_lock_irqsave(&connected->lock, flags);
-				for (j = 0; j < SkelDrvrINTERRUPTS; j++) {
-					client_list = &connected->clients[j];
-					list_for_each_entry(entry, client_list, list) {
-						ccon = entry->context;
-						if ((ccon) && (ccn->Pid == ccon->Pid)) {
-							ccn-> Connections [ccn->Size]. Module = i + 1;
-							ccn-> Connections [ccn->Size]. ConMask = 1 << j;
-							if (++(ccn->Size) >= SkelDrvrCONNECTIONS)
-								goto brk_clp;
-						}
-					}
-				}
-			      brk_clp:cdcm_spin_unlock_irqrestore(&connected-> lock, flags);
-			}
-		}
-		return OK;
-		break;
+		return skel_get_client_connections(ccon, ccn);
 
       case SkelDrvrIoctlENABLE:
 	    if (SkelUserHardwareEnable(mcon,lav) == SkelUserReturnOK)
