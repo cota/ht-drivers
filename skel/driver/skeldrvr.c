@@ -905,9 +905,12 @@ static void Connect(SkelDrvrClientContext *ccon, SkelDrvrConnection *conx)
 	for (j = 0; j < SkelDrvrINTERRUPTS; j++) {
 		if (!(imsk & (1 << j)))
 			continue;
-		get_add_client(ccon, &connected->clients[j]);
-		connected->enabled_ints |= imsk;
-		SkelUserEnableInterrupts(mcon, connected->enabled_ints);
+		if (get_add_client(ccon, &connected->clients[j]) == NULL) {
+			SK_WARN("get/add client failed");
+		} else {
+			connected->enabled_ints |= imsk;
+			SkelUserEnableInterrupts(mcon, connected->enabled_ints);
+		}
 	}
 	cdcm_spin_unlock_irqrestore(&connected->lock, flags);
 }
@@ -1390,7 +1393,10 @@ int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 	}
 
 	do_cleanup();
-	add_client(ccon, &Wa->clients);
+	if (add_client(ccon, &Wa->clients) == NULL) {
+		pseterr(ENOMEM);
+		goto out_free;
+	}
 	ccon->cdcmf = flp;
 	return OK;
 
