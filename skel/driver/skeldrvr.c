@@ -1386,13 +1386,18 @@ int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 	}
 	if (client_init(ccon, flp)) {
 		pseterr(EBADF);
-		return SYSERR;
+		goto out_free;
 	}
 
 	do_cleanup();
 	add_client(ccon, &Wa->clients);
 	ccon->cdcmf = flp;
 	return OK;
+
+ out_free:
+	if (ccon)
+		sysfree((void *)ccon, sizeof(SkelDrvrClientContext));
+	return SYSERR;
 }
 
 /**
