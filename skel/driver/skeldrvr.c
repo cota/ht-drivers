@@ -1397,7 +1397,6 @@ int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 		pseterr(ENOMEM);
 		goto out_free;
 	}
-	ccon->cdcmf = flp;
 	return OK;
 
  out_free:
