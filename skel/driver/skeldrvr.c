@@ -951,14 +951,11 @@ static void DisConnect(SkelDrvrClientContext *ccon, SkelDrvrConnection *conx)
 
 		/* check interrupt mask and that there are clients connected */
 
-		if (!(imsk & (1 << j))
-		    || (list_empty(&connected->clients[j])))
+		if (!(imsk & (1 << j)) || list_empty(&connected->clients[j]))
 			continue;
 
 		remove_client(ccon, &connected->clients[j]);
 
-		if (list_empty(&connected->clients[j]))
-			continue;
 		/*
 		 * if there are no more clients connected to it, disable the
 		 * interrupt on the module
