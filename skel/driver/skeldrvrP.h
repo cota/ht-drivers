@@ -69,7 +69,7 @@ typedef struct {
  * Lists of clients are needed in various places in the driver
  */
 
-struct client_list {
+struct client_link {
 	struct list_head       list;
 	SkelDrvrClientContext *context; /* Clients context */
 };
