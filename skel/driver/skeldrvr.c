@@ -779,26 +779,28 @@ SkelDrvrModuleContext *get_mcon(int modnr)
 	return NULL;
 }
 
-/* Search the list for a file pointer and return the corresponding client context */
-/* WARNING: Must be locked else where */
+/* Search Wa->clients for a file pointer and return the corresponding client context */
 /* Returns pointer to client context if found or null */
 
 /* You might wonder why I am doing this when I could have just stored the context */
 /* pointer in the file pointer. Well it seem LynxOs overwrites the pointer, and even */
 /* worse it will not call close more than once per minor device !! */
 
-static SkelDrvrClientContext *get_context(struct cdcm_file *flp,
-					struct list_head *client_list)
+static SkelDrvrClientContext *skel_get_ccon(struct cdcm_file *flp)
 {
 	struct client_link *entry;
 	SkelDrvrClientContext *found = NULL;
+	unsigned long flags;
 
-	list_for_each_entry(entry, client_list, list) {
+	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
+	list_for_each_entry(entry, &Wa->clients, list) {
 		if (entry->context->cdcmf == flp) {
 			found = entry->context;
 			break;
 		}
 	}
+	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
+
 	return found;
 }
 
@@ -1437,7 +1439,7 @@ int SkelDrvrClose(void *wa, struct cdcm_file *flp)
 {
 	SkelDrvrClientContext *ccon;	/* Client context */
 
-	ccon = get_context(flp, &Wa->clients);
+	ccon = skel_get_ccon(flp);
 	if (ccon == NULL) {
 		cprintf("Skel:Close:Bad File Descriptor\n");
 		pseterr(EBADF);
@@ -1519,7 +1521,7 @@ static int SkelDrvrRead(void *wa, struct cdcm_file *flp, char *u_buf, int len)
 	SkelDrvrReadBuf       *rb;
 	unsigned long          flags;
 
-	ccon = get_context(flp, &Wa->clients);
+	ccon = skel_get_ccon(flp);
 	if (ccon == NULL) {
 		cprintf("Skel:Read:Bad File Descriptor\n");
 		pseterr(EBADF);
@@ -1615,7 +1617,7 @@ int SkelDrvrSelect(void *wa, struct cdcm_file *flp, int wch, struct sel *ffs)
 {
 	SkelDrvrClientContext *ccon;
 
-	ccon = get_context(flp, &Wa->clients);
+	ccon = skel_get_ccon(flp);
 	if (ccon == NULL) {
 		cprintf("Skel:Select:Bad File Descriptor\n");
 		pseterr(EBADF);
@@ -1847,7 +1849,7 @@ int rcnt, wcnt; /* Readable, Writable byte counts at arg address */
    }
    sav = (U16) lav;     /* Short argument value */
 
-	ccon = get_context(flp, &Wa->clients);
+	ccon = skel_get_ccon(flp);
 	if (ccon == NULL) {
 		cprintf("Skel:Ioctl:Bad File Descriptor\n");
 		pseterr(EBADF);
