@@ -79,6 +79,10 @@ struct client_link {
  * @lock - protects the struct
  * @clients      - connected clients kept in an array of linked lists, one list per interrupt
  * @enabled_ints - mask of enabled interrupts
+ *
+ * When a client_link is in the @clients list, that means the client exists --
+ * this is guaranteed by the fact that a client is always disconnected from
+ * ALL interrupts BEFORE being removed (see SkelDrvrClose()).
  */
 typedef struct {
 	cdcm_spinlock_t	lock;
@@ -110,6 +114,9 @@ typedef struct {
 /* =============================================== */
 /* Drivers working area                            */
 
+/*
+ * @list_lock protects the @clients list.
+ */
 typedef struct {
    InsLibDrvrDesc        *Drvrd;
    InsLibEndian           Endian;

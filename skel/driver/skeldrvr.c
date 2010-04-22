@@ -628,13 +628,10 @@ static inline void q_put(const SkelDrvrReadBuf *rb, SkelDrvrClientContext *ccon)
 static inline void put_queues(const SkelDrvrReadBuf *rb,
 			      struct list_head *client_list)
 {
-	unsigned long flags;
 	struct client_link *entry;
 
-	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
 	list_for_each_entry(entry, client_list, list)
 		q_put(rb, entry->context);
-	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
 }
 
 /* Note: call this function with @connected's lock held */
@@ -831,16 +828,13 @@ static struct client_link *__get_client(SkelDrvrClientContext *ccon,
 static struct client_link *add_client(SkelDrvrClientContext *ccon,
 				struct list_head *client_list)
 {
-	unsigned long flags;
 	struct client_link *entry = NULL;
 
-	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
 	entry = (struct client_link *) sysbrk(sizeof(struct client_link));
 	if (entry) {
 		entry->context = ccon;
 		list_add(&entry->list, client_list);
 	}
-	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
 	return entry;
 }
 
@@ -866,16 +860,13 @@ struct client_link *get_add_client(SkelDrvrClientContext *ccon,
 
 static void remove_client(SkelDrvrClientContext *ccon, struct list_head *client_list)
 {
-	unsigned long flags;
 	struct client_link *client;
 
-	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
 	client = __get_client(ccon, client_list);
 	if (client) {
 		list_del(&client->list);
 		sysfree((void *) client, sizeof(struct client_link));
 	}
-	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
 }
 
 /**
