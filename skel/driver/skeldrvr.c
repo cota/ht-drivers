@@ -821,39 +821,6 @@ static struct client_link *__get_client(SkelDrvrClientContext *ccon,
 	return found;
 }
 
-/* Add a client context to the client list head */
-/* The list is unaffected if no more memory available */
-/* Returns new client list entry or NULL */
-
-static struct client_link *add_client(SkelDrvrClientContext *ccon,
-				struct list_head *client_list)
-{
-	struct client_link *entry = NULL;
-
-	entry = (struct client_link *) sysbrk(sizeof(struct client_link));
-	if (entry) {
-		entry->context = ccon;
-		list_add(&entry->list, client_list);
-	}
-	return entry;
-}
-
-/* Try to find a client context and if its not there add it to the list */
-/* The reason for this logic is that a client should connect only once  */
-/* to an interrupt. If he is already connected its not an error to try  */
-/* to connect again, just return OK already connected.                  */
-/* Returns new list entry or null if no memory */
-
-struct client_link *get_add_client(SkelDrvrClientContext *ccon,
-				   struct list_head *client_list)
-{
-	struct client_link *client;
-
-	if (!(client = __get_client(ccon, client_list)))
-		client = add_client(ccon, client_list);
-	return client;
-}
-
 /* Remove a client context from the list of clients */
 /* This can affect the list head obviously */
 /* Returns the next list entry, null is not an error */
@@ -879,6 +846,8 @@ static void Connect(SkelDrvrClientContext *ccon, SkelDrvrConnection *conx)
 {
 	SkelDrvrModuleContext	*mcon;
 	SkelDrvrModConn		*connected;
+	struct client_link *alloc_link;
+	struct client_link *link;
 	unsigned int j, imsk;
 	unsigned long flags;
 
@@ -893,18 +862,43 @@ static void Connect(SkelDrvrClientContext *ccon, SkelDrvrConnection *conx)
 	connected = &mcon->Connected;
 	imsk = conx->ConMask;
 
-	cdcm_spin_lock_irqsave(&connected->lock, flags);
 	for (j = 0; j < SkelDrvrINTERRUPTS; j++) {
 		if (!(imsk & (1 << j)))
 			continue;
-		if (get_add_client(ccon, &connected->clients[j]) == NULL) {
-			SK_WARN("get/add client failed");
+		/*
+		 * We may not need this link, but we cannot allocate memory
+		 * (sleep) in an atomic section, so we pre-allocate it here.
+		 */
+		alloc_link = (struct client_link *)sysbrk(sizeof(*alloc_link));
+
+		cdcm_spin_lock_irqsave(&connected->lock, flags);
+		/*
+		 * Algorithm:
+		 * Check if the client is already in the list of connections
+		 * If it is, free the allocated link
+		 * If it isn't, add it to the list using the allocated link
+		 */
+		link = __get_client(ccon, &connected->clients[j]);
+		if (link) {
+			if (alloc_link) {
+				sysfree((void *)alloc_link, sizeof(*alloc_link));
+				alloc_link = NULL;
+			}
 		} else {
+			if (alloc_link == NULL) {
+				SK_WARN("ENOMEM adding a client link");
+			} else {
+				alloc_link->context = ccon;
+				list_add(&alloc_link->list, &connected->clients[j]);
+			}
+		}
+		/* if any of these is set, we succeeded in adding the connection */
+		if (link || alloc_link) {
 			connected->enabled_ints |= imsk;
 			SkelUserEnableInterrupts(mcon, connected->enabled_ints);
 		}
+		cdcm_spin_unlock_irqrestore(&connected->lock, flags);
 	}
-	cdcm_spin_unlock_irqrestore(&connected->lock, flags);
 }
 
 /**
