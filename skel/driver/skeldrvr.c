@@ -1791,6 +1791,9 @@ static int skel_get_client_list(SkelDrvrClientList *clients)
 	bzero((void *)clients, sizeof(*clients));
 
 	list_for_each_entry(link, &Wa->clients, list) {
+		/* avoid overflow */
+		if (clients->Size >= SkelDrvrCLIENT_CONTEXTS)
+			break;
 		ccon = link->context;
 		clients->Pid[clients->Size++] = ccon->Pid;
 	}
