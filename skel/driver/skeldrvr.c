@@ -1239,30 +1239,38 @@ out_err:
 	return (char *)SYSERR;
 }
 
-static void skel_remove_ccon(SkelDrvrClientContext *ccon)
+/* Wa->list_lock should be held upon calling this function */
+static void __skel_remove_ccon(SkelDrvrClientContext *ccon)
 {
 	struct client_link *client;
-	unsigned long flags;
 
-	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
 	client = __get_client(ccon, &Wa->clients);
 	if (client) {
 		list_del(&client->list);
 		sysfree((void *)client, sizeof(*client));
 	}
-	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
 }
 
 /*
  * Close down a client context
+ * Wa->list_lock should be called upon calling this function
  */
 
-static void do_close(SkelDrvrClientContext *ccon)
+static void __do_close(SkelDrvrClientContext *ccon)
 {
 	DisConnectAll(ccon);
 	SkelUserClientRelease(ccon);
-	skel_remove_ccon(ccon);
+	__skel_remove_ccon(ccon);
 	sysfree((void *) ccon, sizeof(SkelDrvrClientContext));
+}
+
+static void do_close(SkelDrvrClientContext *ccon)
+{
+	unsigned long flags;
+
+	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
+	__do_close(ccon);
+	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
 }
 
 /*
@@ -1297,17 +1305,20 @@ static void do_cleanup(void)
 {
 	struct client_link *entry;
 	struct client_link *tcl;
+	unsigned long flags;
 	int err;
 
 	/* Clean up dead processes */
 
+	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
 	list_for_each_entry_safe(entry, tcl, &Wa->clients, list) {
 		if (_kill(entry->context->Pid, SIGCONT) == SYSERR) {
 			err = geterr();
 			if (err == ESRCH)
-				do_close(entry->context);
+				__do_close(entry->context);
 		}
 	}
+	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
 }
 
 #endif

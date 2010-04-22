@@ -83,6 +83,8 @@ struct client_link {
  * When a client_link is in the @clients list, that means the client exists --
  * this is guaranteed by the fact that a client is always disconnected from
  * ALL interrupts BEFORE being removed (see SkelDrvrClose()).
+ * Note: @lock may be acquired with Wa->list_lock already held. But not the
+ * other way around!
  */
 typedef struct {
 	cdcm_spinlock_t	lock;
