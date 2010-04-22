@@ -1781,6 +1781,22 @@ static int skel_fill_client_connections(SkelDrvrModuleContext *mcon,
 	return 0;
 }
 
+static int skel_get_client_list(SkelDrvrClientList *clients)
+{
+	SkelDrvrClientContext *ccon;
+	struct client_link *link;
+
+	do_cleanup();
+
+	bzero((void *)clients, sizeof(*clients));
+
+	list_for_each_entry(link, &Wa->clients, list) {
+		ccon = link->context;
+		clients->Pid[clients->Size++] = ccon->Pid;
+	}
+	return OK;
+}
+
 static int skel_get_client_connections(SkelDrvrClientContext *ccon,
 				SkelDrvrClientConnections *ccn)
 {
@@ -1817,14 +1833,11 @@ SkelDrvrModuleContext        *mcon;   /* Module context */
 SkelDrvrClientContext        *ccon;   /* Client context */
 SkelDrvrConnection           *conx;
 SkelDrvrVersion              *ver;
-SkelDrvrClientList           *cls;
 SkelDrvrClientConnections    *ccn;
 SkelDrvrRawIoBlock           *riob;
 	SkelDrvrRawIoTransferBlock *riobt;
 SkelDrvrStatus               *ssts;
 SkelDrvrDebug                *db;
-	struct client_link *entry;
-	struct list_head *client_list;
 
 S32 lav, *lap;  /* Long Value pointed to by Arg */
 U16 sav;        /* Short argument and for Jtag IO */
@@ -1973,16 +1986,7 @@ int rcnt, wcnt; /* Readable, Writable byte counts at arg address */
       break;
 
 	case SkelDrvrIoctlGET_CLIENT_LIST:
-		cls = (SkelDrvrClientList *) lap;
-		bzero((void *) cls, sizeof(SkelDrvrClientList));
-		do_cleanup();
-		client_list = &Wa->clients;
-		list_for_each_entry(entry, client_list, list) {
-			ccon = entry->context;
-			cls->Pid[cls->Size++] = ccon->Pid;
-		}
-		return OK;
-		break;
+		return skel_get_client_list((void *)lap);
 
 	case SkelDrvrIoctlGET_CLIENT_CONNECTIONS:
 		ccn = (SkelDrvrClientConnections *) arg;
