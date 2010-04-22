@@ -821,21 +821,6 @@ static struct client_link *__get_client(SkelDrvrClientContext *ccon,
 	return found;
 }
 
-/* Remove a client context from the list of clients */
-/* This can affect the list head obviously */
-/* Returns the next list entry, null is not an error */
-
-static void remove_client(SkelDrvrClientContext *ccon, struct list_head *client_list)
-{
-	struct client_link *client;
-
-	client = __get_client(ccon, client_list);
-	if (client) {
-		list_del(&client->list);
-		sysfree((void *) client, sizeof(struct client_link));
-	}
-}
-
 /**
  * @brief connect a client to an interrupt
  *
@@ -915,6 +900,7 @@ static void DisConnect(SkelDrvrClientContext *ccon, SkelDrvrConnection *conx)
 {
 	SkelDrvrModuleContext	*mcon;
 	SkelDrvrModConn		*connected;
+	struct client_link *link;
 	unsigned int j, imsk;
 	unsigned long flags;
 
@@ -943,14 +929,20 @@ static void DisConnect(SkelDrvrClientContext *ccon, SkelDrvrConnection *conx)
 		if (!(imsk & (1 << j)) || list_empty(&connected->clients[j]))
 			continue;
 
-		remove_client(ccon, &connected->clients[j]);
+		link = __get_client(ccon, &connected->clients[j]);
+		if (!link)
+			continue;
+		list_del(&link->list);
+		sysfree((void *)link, sizeof(*link));
 
 		/*
 		 * if there are no more clients connected to it, disable the
 		 * interrupt on the module
 		 */
-		connected->enabled_ints &= ~imsk;
-		SkelUserEnableInterrupts(mcon, connected->enabled_ints);
+		if (list_empty(&connected->clients[j])) {
+			connected->enabled_ints &= ~imsk;
+			SkelUserEnableInterrupts(mcon, connected->enabled_ints);
+		}
 	}
 
 	cdcm_spin_unlock_irqrestore(&connected->lock, flags);
