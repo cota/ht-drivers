@@ -1785,11 +1785,13 @@ static int skel_get_client_list(SkelDrvrClientList *clients)
 {
 	SkelDrvrClientContext *ccon;
 	struct client_link *link;
+	unsigned long flags;
 
 	do_cleanup();
 
 	bzero((void *)clients, sizeof(*clients));
 
+	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
 	list_for_each_entry(link, &Wa->clients, list) {
 		/* avoid overflow */
 		if (clients->Size >= SkelDrvrCLIENT_CONTEXTS)
@@ -1797,6 +1799,7 @@ static int skel_get_client_list(SkelDrvrClientList *clients)
 		ccon = link->context;
 		clients->Pid[clients->Size++] = ccon->Pid;
 	}
+	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
 	return OK;
 }
 
