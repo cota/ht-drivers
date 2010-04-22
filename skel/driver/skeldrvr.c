@@ -1471,13 +1471,18 @@ static void modules_uninstall(void)
 
 int SkelDrvrUninstall(void *wa)
 {
+	unsigned long flags;
+
+	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
 	if (!list_empty(&Wa->clients)) {
 
 		/* A Non null client list means its still open */
-
 		pseterr(EBUSY);
+
+		cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
 		return SYSERR;
 	}
+	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
 
 	SK_INFO("Uninstalling driver...");
 
