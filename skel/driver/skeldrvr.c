@@ -806,8 +806,8 @@ static SkelDrvrClientContext *get_context(struct cdcm_file *flp,
 /* WARNING: Must be locked else where */
 /* Returns pointer to entry if found or null */
 
-static struct client_link *get_client(SkelDrvrClientContext *ccon,
-				struct list_head *client_list)
+static struct client_link *__get_client(SkelDrvrClientContext *ccon,
+					struct list_head *client_list)
 {
 
 	struct client_link *found = NULL;
@@ -853,7 +853,7 @@ struct client_link *get_add_client(SkelDrvrClientContext *ccon,
 {
 	struct client_link *client;
 
-	if (!(client = get_client(ccon, client_list)))
+	if (!(client = __get_client(ccon, client_list)))
 		client = add_client(ccon, client_list);
 	return client;
 }
@@ -868,7 +868,7 @@ static void remove_client(SkelDrvrClientContext *ccon, struct list_head *client_
 	struct client_link *client;
 
 	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
-	client = get_client(ccon, client_list);
+	client = __get_client(ccon, client_list);
 	if (client) {
 		list_del(&client->list);
 		sysfree((void *) client, sizeof(struct client_link));
