@@ -1262,6 +1262,20 @@ out_err:
 	return (char *)SYSERR;
 }
 
+static void skel_remove_ccon(SkelDrvrClientContext *ccon)
+{
+	struct client_link *client;
+	unsigned long flags;
+
+	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
+	client = __get_client(ccon, &Wa->clients);
+	if (client) {
+		list_del(&client->list);
+		sysfree((void *)client, sizeof(*client));
+	}
+	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
+}
+
 /*
  * Close down a client context
  */
@@ -1270,7 +1284,7 @@ static void do_close(SkelDrvrClientContext *ccon)
 {
 	DisConnectAll(ccon);
 	SkelUserClientRelease(ccon);
-	remove_client(ccon, &Wa->clients);
+	skel_remove_ccon(ccon);
 	sysfree((void *) ccon, sizeof(SkelDrvrClientContext));
 }
 
