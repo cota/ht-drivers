@@ -1372,6 +1372,23 @@ int client_init(SkelDrvrClientContext *ccon, struct cdcm_file *flp)
 	return 0;
 }
 
+static struct client_link *skel_add_ccon(SkelDrvrClientContext *ccon)
+{
+	struct client_link *entry;
+	unsigned long flags;
+
+	entry = (struct client_link *)sysbrk(sizeof(*entry));
+	if (entry == NULL)
+		return NULL;
+
+	entry->context = ccon;
+	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
+	list_add(&entry->list, &Wa->clients);
+	cdcm_spin_unlock_irqrestore(&Wa->list_lock, flags);
+
+	return entry;
+}
+
 /*
  * Open with clean up for dead processes according
  * to LynxOs close
@@ -1392,7 +1409,7 @@ int SkelDrvrOpen(void *wa, int dnm, struct cdcm_file *flp)
 	}
 
 	do_cleanup();
-	if (add_client(ccon, &Wa->clients) == NULL) {
+	if (skel_add_ccon(ccon) == NULL) {
 		pseterr(ENOMEM);
 		goto out_free;
 	}
