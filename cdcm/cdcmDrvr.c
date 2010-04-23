@@ -395,8 +395,10 @@ static long process_mod_spec_ioctl(struct inode *inode, struct file *file,
 		}
 
 		/* give data to the user */
-		if (__copy_to_user((char*)arg, iobuf, iosz))
+		if (__copy_to_user((char*)arg, iobuf, iosz)) {
+			cdcm_mem_free(iobuf);
 			return -EFAULT;
+		}
 	}
 
 	cdcm_mem_free(iobuf);
