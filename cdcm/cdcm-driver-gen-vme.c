@@ -416,7 +416,18 @@ int dg_cdv_uninstall(struct file *filp, unsigned long arg)
 	return 0;
 }
 
-ssize_t dg_fop_read(struct file *filp, char __user *buf, size_t size,
+/**
+ * @brief read EP
+ *
+ * @param filp -- file pointer
+ * @param buf  -- kernel buffer, already allocated by CDCM
+ * @param size -- buffer size
+ * @param off  -- file offset
+ *
+ * @return number of bytes actually copied, including zero - if succeed.
+ * @return SYSERR                                          - if fails.
+ */
+ssize_t dg_fop_read(struct file *filp, char *buf, size_t size,
 		    loff_t *off)
 {
 	char *priv; /* statics table */
@@ -428,8 +439,18 @@ ssize_t dg_fop_read(struct file *filp, char __user *buf, size_t size,
 				      buf, size);
 }
 
-
-ssize_t dg_fop_write(struct file *filp, const char __user *buf,
+/**
+ * @brief write EP
+ *
+ * @param filp -- file pointer
+ * @param buf  -- kernel buffer, already allocated by CDCM
+ * @param size -- buffer size
+ * @param off  -- file offset
+ *
+ * @return number of bytes actually copied, including zero - if succeed.
+ * @return SYSERR                                          - if fails.
+ */
+ssize_t dg_fop_write(struct file *filp, const char *buf,
 		     size_t size, loff_t *off)
 {
 	char *priv; /* statics table */

@@ -111,9 +111,6 @@ static ssize_t cdcm_fop_read(struct file *filp, char __user *buf,
 	}
 	lynx_file->position = *off;
 
-	if (cdcmStatT.cdcm_isdg)
-		return dg_fop_read(filp, buf, size, off);
-
 	PRNT_DBG(cdcmStatT.cdcm_ipl, "Read device with minor = %d",
 		 MINOR(lynx_file->dev));
 	cdcm_err = 0;	/* reset */
@@ -127,10 +124,12 @@ static ssize_t cdcm_fop_read(struct file *filp, char __user *buf,
 	     == ERR_PTR(-ENOMEM))
 		return -ENOMEM;
 
-
-	/* uza */
-	cdcm_err = entry_points.dldd_read(cdcmStatT.cdcm_st, lynx_file,
-					  iobuf, size);
+	/* call user */
+	if (cdcmStatT.cdcm_isdg)
+		cdcm_err = dg_fop_read(filp, iobuf, size, off);
+	else
+		cdcm_err = entry_points.dldd_read(cdcmStatT.cdcm_st, lynx_file,
+						  iobuf, size);
 	if (cdcm_err == SYSERR)
 		cdcm_err = -EAGAIN;
 	else {
@@ -169,9 +168,6 @@ static ssize_t cdcm_fop_write(struct file *filp, const char __user *buf,
 	}
 	lynx_file->position = *off;
 
-	if (cdcmStatT.cdcm_isdg)
-		return dg_fop_write(filp, buf, size, off);
-
 	PRNT_DBG(cdcmStatT.cdcm_ipl, "Write device with minor = %d",
 		 MINOR(lynx_file->dev));
 	cdcm_err = 0; /* reset */
@@ -187,9 +183,12 @@ static ssize_t cdcm_fop_write(struct file *filp, const char __user *buf,
 
 	__copy_from_user(iobuf, buf, size);
 
-	/* uza */
-	cdcm_err = entry_points.dldd_write(cdcmStatT.cdcm_st, lynx_file,
-					   iobuf, size);
+	/* call user */
+	if (cdcmStatT.cdcm_isdg)
+		cdcm_err = dg_fop_write(filp, iobuf, size, off);
+	else
+		cdcm_err = entry_points.dldd_write(cdcmStatT.cdcm_st, lynx_file,
+						   iobuf, size);
 	if (cdcm_err == SYSERR)
 		cdcm_err = -EAGAIN;
 	else
