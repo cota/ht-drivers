@@ -170,7 +170,6 @@ typedef struct _cdcmStatics {
 	cdcm_hdr_t *cdcm_hdr; //!< header passed from the user space
 	int cdcm_major; //!< driver major number
 
-	struct list_head cdcm_mem_list_head; //!< allocated memory list
 	dbgipl_t cdcm_ipl; //!< CDCM Information Printout Level
 	struct list_head cdcm_thr_list_head; /* thread list */
 	//struct list_head cdcm_proc_list_head;	/* process list */

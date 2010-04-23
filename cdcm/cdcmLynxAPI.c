@@ -92,15 +92,12 @@ int ksprintf(char *buf,char *format, ...)
  */
 long rbounds(unsigned long pntr)
 {
-	/* mem block pointer */
-	cdcmm_t *mbptr = cdcm_mem_find_block((char*)pntr);
+	struct cdcm_mem_header *buf = (struct cdcm_mem_header *)pntr;
 
-	if (mbptr && (mbptr->cmFlg & _IOC_WRITE))
-		return mbptr->cmSz;
+	buf--;
 
-	return 0;
+	return buf->flags & _IOC_WRITE ? buf->size : 0;
 }
-
 
 /**
  * @brief LynxOs service call wrapper.
@@ -112,13 +109,11 @@ long rbounds(unsigned long pntr)
  */
 long wbounds(unsigned long pntr)
 {
-	 /* mem block pointer */
-	cdcmm_t *mbptr = cdcm_mem_find_block((char*)pntr);
+	struct cdcm_mem_header *buf = (struct cdcm_mem_header *)pntr;
 
-	if (mbptr && (mbptr->cmFlg & _IOC_READ))
-		return mbptr->cmSz;
+	buf--;
 
-	return 0;
+	return buf->flags & _IOC_READ ? buf->size : 0;
 }
 
 /**

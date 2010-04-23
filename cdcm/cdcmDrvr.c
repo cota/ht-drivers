@@ -50,7 +50,6 @@ extern char* read_info_file(char*, int*);
    devices, threads, allocated mem, etc. managed by CDCM */
 cdcmStatics_t cdcmStatT = {
 	.cdcm_dev_list      = LIST_HEAD_INIT(cdcmStatT.cdcm_dev_list),
-	.cdcm_mem_list_head = LIST_HEAD_INIT(cdcmStatT.cdcm_mem_list_head),
 	.cdcm_ipl           = (IPL_ERROR | IPL_INFO), /* info printout level */
 	.cdcm_thr_list_head = LIST_HEAD_INIT(cdcmStatT.cdcm_thr_list_head),
 	.cdcm_sem_list_head = LIST_HEAD_INIT(cdcmStatT.cdcm_sem_list_head),
@@ -103,7 +102,7 @@ static void cdcm_cleanup_dev(void)
 static ssize_t cdcm_fop_read(struct file *filp, char __user *buf,
 			     size_t size, loff_t *off)
 {
-	char *iobuf  = NULL;
+	void *iobuf  = NULL;
 
 	struct cdcm_file *lynx_file = filp->private_data;
 	if (lynx_file == NULL) {
@@ -124,7 +123,7 @@ static ssize_t cdcm_fop_read(struct file *filp, char __user *buf,
 		return -EFAULT;
 	}
 
-	if ( (iobuf = cdcm_mem_alloc(size, _IOC_READ|CDCM_M_FLG_READ))
+	if ( (iobuf = cdcm_mem_alloc(size, _IOC_READ))
 	     == ERR_PTR(-ENOMEM))
 		return -ENOMEM;
 
@@ -159,7 +158,7 @@ static ssize_t cdcm_fop_read(struct file *filp, char __user *buf,
 static ssize_t cdcm_fop_write(struct file *filp, const char __user *buf,
 			      size_t size, loff_t *off)
 {
-	char *iobuf = NULL;
+	void *iobuf = NULL;
 
 	struct cdcm_file *lynx_file = filp->private_data;
 	if (lynx_file == NULL) {
@@ -180,7 +179,7 @@ static ssize_t cdcm_fop_write(struct file *filp, const char __user *buf,
 		return -EFAULT;
 	}
 
-	if ( (iobuf = cdcm_mem_alloc(size, _IOC_WRITE|CDCM_M_FLG_WRITE))
+	if ( (iobuf = cdcm_mem_alloc(size, _IOC_WRITE))
 	     == ERR_PTR(-ENOMEM))
 		return -ENOMEM;
 
@@ -349,7 +348,7 @@ static long process_mod_spec_ioctl(struct inode *inode, struct file *file,
 				  int cmd, long arg)
 {
 	int rc = 0;	/* ret code */
-	char *iobuf  = NULL;
+	void *iobuf  = NULL;
 	int iodir = _IOC_DIR(cmd);
 	int iosz  = _IOC_SIZE(cmd);
 
@@ -360,7 +359,7 @@ static long process_mod_spec_ioctl(struct inode *inode, struct file *file,
 	}
 
 	if (iodir != _IOC_NONE) { /* we should move user <-> driver data */
-		if ( (iobuf = cdcm_mem_alloc(iosz, iodir|CDCM_M_FLG_IOCTL))
+		if ( (iobuf = cdcm_mem_alloc(iosz, iodir))
 		     == ERR_PTR(-ENOMEM))
 			return -ENOMEM;
 	}
@@ -593,9 +592,6 @@ static void __exit cdcm_driver_cleanup(void)
 			PRNT_ABS_WARN("device driver did not"
 				      " uninstall cleanly");
 
-	/* cleanup all captured memory */
-	cdcm_mem_cleanup_all();
-
 	/* stop timers */
 	for (cntr = 0; cntr < MAX_CDCM_TIMERS; cntr++)
 		if (cdcmStatT.cdcm_timer[cntr].ct_on)
@@ -646,7 +642,6 @@ static int __init cdcm_driver_init(void)
 
 	cdcmStatT.cdcm_isdg = drivergen;
 
-	cdcm_mem_init(); /* init memory manager */
 	return 0;
 
  out_chrdev:
