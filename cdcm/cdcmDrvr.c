@@ -134,8 +134,10 @@ static ssize_t cdcm_fop_read(struct file *filp, char __user *buf,
 	if (cdcm_err == SYSERR)
 		cdcm_err = -EAGAIN;
 	else {
-		if (__copy_to_user(buf,  iobuf, size))
+		if (__copy_to_user(buf,  iobuf, size)) {
+			cdcm_mem_free(iobuf);
 			return -EFAULT;
+		}
 		*off = lynx_file->position;
 	}
 
