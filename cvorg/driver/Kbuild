@@ -1,0 +1,10 @@
+# ccflags-y =
+# EXTRA_CFLAGS =
+
+# XTRA_DSRC =
+
+# Space separated list of driver directories this driver depends on
+DEP_SYMVERS = $(ROOTDIR)/vmebridge
+
+# include standart general kbuild
+include $(ROOTDIR)/makefiles/Kbuild

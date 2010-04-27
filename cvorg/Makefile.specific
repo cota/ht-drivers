@@ -1,0 +1,23 @@
+# Driver name
+DRIVER_NAME = CVORG
+
+# Driver type
+CONFIG_BUS_VME = y
+
+# If this driver is using skeleton (y/n)
+IS_SKEL = y
+
+# Driver utils
+USE_UTILS = y
+
+# Driver needs xml parser
+USE_XML = y
+
+LOCAL_LIBS = -lad9516.$(CPU)
+
+ADDINCLUDES = -I../ad9516
+
+TEST_PROG_NAME = cvorgtest
+
+ROOTDIR = ..
+
