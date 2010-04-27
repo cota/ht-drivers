@@ -1,0 +1,20 @@
+#!/bin/bash
+
+echo 8 > /proc/sys/kernel/printk
+
+# install the vmebus driver if it's not there yet
+lsmod | grep 'vmebus' 1>/dev/null
+if [ "$?" -ne "0" ]; then
+	cd ../../vmebridge/driver/L865/`uname -r`; insmod vmebus.ko; cd -
+fi
+
+echo 1 > /sys/module/vmebus/parameters/vme_report_bus_errors
+
+# reinstall the cvorg driver--remove it first if necessary
+lsmod | grep 'cvorg' 1>/dev/null
+if [ "$?" -eq "0" ]; then
+	rmmod cvorg
+fi
+
+instprog cvorg.xml cvorg
+

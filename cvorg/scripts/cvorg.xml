@@ -1,0 +1,9 @@
+<install host="any" comment="CVORG test">
+	<driver name="cvorg" comment="CVORG waveform generator">
+		<module bus_type="VME" logical_module_number="1" comment="VD80 in slot 11">
+			<interrupt vector="0xB2" level="2"/>
+			<vme comment="address spaces"/>
+			<vme_space modifier="0x29" data_width="32" window_size="0x400" address="0x400" comment="mapped memory"/>
+		</module>
+	</driver>
+</install>

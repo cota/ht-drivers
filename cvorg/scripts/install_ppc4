@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# reinstall the cvorg driver--remove it first if necessary
+for cmd in devices
+do
+	$cmd | grep 'cvorg' 1>/dev/null
+	if [ "$?" -eq "0" ]; then
+		devinstall -u -c $($cmd | grep 'cvorg' | cut -c0-3)
+	fi
+done
+
+for cmd in drivers
+do
+	$cmd | grep 'cvorg' 1>/dev/null
+	if [ "$?" -eq "0" ]; then
+		drinstall -u $($cmd | grep 'cvorg' | cut -c0-3)
+	fi
+done
+
+instprog CVORG
