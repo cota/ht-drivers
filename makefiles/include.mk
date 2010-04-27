@@ -22,9 +22,6 @@ include ../Makefile
 
 # CERN delivery
 include ../$(ROOTDIR)/makefiles/deliver.mk
-deliver:
-	$(Q)$(MAKE) _deliver $(filter $(strip $(ACCS)),$(MAKECMDGOALS)) CPU=L865
-	$(Q)$(MAKE) _deliver $(filter $(strip $(ACCS)),$(MAKECMDGOALS)) CPU=ppc4
 
 # quet down all the rest
 linux lynx all:

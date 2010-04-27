@@ -61,6 +61,3 @@ all:
 
 # CERN delivery
 include ../$(ROOTDIR)/makefiles/deliver.mk
-deliver:
-	$(Q)$(MAKE) _deliver CPU=L865
-	$(Q)$(MAKE) _deliver CPU=ppc4

@@ -1,7 +1,7 @@
 ###############################################################################
 # @file deliver.mk
 #
-# @brief CERN delivery
+# @brief CERN-specific delivery
 #
 # @author Copyright (C) 2009-2010 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
 #
@@ -91,3 +91,6 @@ _deliver:
 	echo "Copying new header files to '$(INSTDIR)/$(DRIVER_NAME)' directory..."; \
 	dsc_install *.h $(INSTDIR)/$(DRIVER_NAME);
 endif
+
+deliver:
+	$(Q)$(MAKE) _deliver $(filter-out $@, $(MAKECMDGOALS)) CPU=$(CPU)

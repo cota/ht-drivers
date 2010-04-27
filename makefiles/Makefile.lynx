@@ -106,8 +106,6 @@ $(DRIVER): $(DRIVER_NAME)Drvr.$(CPU).import $(DRVROBJS)
 
 # CERN delivery
 include ../$(ROOTDIR)/makefiles/deliver.mk
-deliver:
-	$(Q)$(MAKE) _deliver $(filter $(strip $(ACCS)),$(MAKECMDGOALS)) CPU=ppc4
 
 # Local cleaning
 cleanloc clearloc:: abort

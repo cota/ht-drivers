@@ -49,8 +49,6 @@ all: $(OBJDIR) $(FINAL_DEST)
 
 # CERN delivery
 include ../$(ROOTDIR)/makefiles/deliver.mk
-deliver:
-	$(Q)$(MAKE) _deliver $(filter $(strip $(ACCS)),$(MAKECMDGOALS)) CPU=L865
 
 # Guess what
 clean clear:
