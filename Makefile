@@ -8,7 +8,8 @@ SUBDIRS += \
 	vd80 \
 	xmem \
 	mttn \
-	ctr
+	ctr \
+	cvorg \
 
 
 include ./makefiles/Makefile.base
