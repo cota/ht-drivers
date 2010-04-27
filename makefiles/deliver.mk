@@ -50,7 +50,7 @@ _deliver:
 		fi; \
 	done
 	@echo ""
-else ifeq ($(notdir $(shell pwd)), test)
+else ifeq ($(notdir $(CURDIR)), test)
 # Deliver test program
 _deliver:
 	$(if $(wrong-dest), \
@@ -66,7 +66,7 @@ _deliver:
 		fi; \
 	done
 	@echo ""
-else ifeq ($(notdir $(shell pwd)), lib)
+else ifeq ($(notdir $(CURDIR)), lib)
 # Deliver .a
 INSTDIR = $(UTILINSTDIR)
 _deliver:
@@ -77,7 +77,7 @@ _deliver:
 	fi; \
 	echo "Copying new $(LIBRARIES) libraries to '$(INSTDIR)/$(DRIVER_NAME)' directory..."; \
 	dsc_install $(addprefix ../$(FINAL_DEST)/, $(LIBRARIES)) $(INSTDIR)/$(DRIVER_NAME)
-else ifeq ($(notdir $(shell pwd)), include)
+else ifeq ($(notdir $(CURDIR)), include)
 # Deliver .h
 INSTDIR = $(UTILINSTDIR)
 _deliver:
