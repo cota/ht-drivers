@@ -19,16 +19,35 @@ endif
 # Major delivery pathes
 UTILINSTDIR = /acc/local/$(CPU)/drv
 EXECINSTDIR = /acc/dsc
+DOXYINSTDIR = /acc/doc/html/private/coht/doxy
 
-wrong-dest := $(filter-out $(strip $(ACCS)) _deliver all,$(MAKECMDGOALS))
-__destination = $(filter $(strip $(ACCS)),$(MAKECMDGOALS))
-destination := $(if $(__destination), $(__destination),)
+wrong-dest := $(filter-out $(strip $(ACCS)) _deliver all docs, $(MAKECMDGOALS))
+__destination = $(filter $(strip $(ACCS)) docs, $(MAKECMDGOALS))
+destination := $(strip $(if $(__destination), $(__destination),))
 
 # quiet down
 $(destination):
 	@:
 
-ifeq ($(notdir $(shell pwd)), driver)
+ifeq ($(destination), docs)
+# Deliver docs
+tmp_dir = $(DOXYINSTDIR)/$(DRIVER_NAME)/$(notdir $(CURDIR))
+_deliver:
+	@if [ -w $(tmp_dir) ]; then \
+		echo -e "\nDelivering docs in $(tmp_dir)"; \
+		cp -r $(DOXY_DIR)/html $(tmp_dir); \
+	elif [ ! -e $(tmp_dir) ]; then \
+		echo -e "\nCreating $(tmp_dir) directory..."; \
+		mkdir -p $(tmp_dir); \
+		echo -e "\nDelivering docs in $(tmp_dir)"; \
+		cp -r $(DOXY_DIR)/html $(tmp_dir); \
+	elif [ -e $(tmp_dir) ]; then \
+		echo -e "\nCan't deliver docs in $(tmp_dir)"; \
+		echo -e "You don't have write permissions!"; \
+	fi
+	@echo ""
+else ifeq ($(notdir $(CURDIR)), driver)
+# Deliver drivers
 _deliver:
 	$(if $(wrong-dest), \
 		$(error wrong delivery place(s) "$(wrong-dest)"),)
