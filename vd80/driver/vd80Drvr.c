@@ -502,7 +502,7 @@ int lvalue;                 /* For when arg is NULL */
 	 tval = (GetReg(regs,VD80_TCR1,mcon) & ~VD80_TRIGSOURCE_MASK);
 	 if (lval) bms = VD80_TRIGSOURCE_EXT;
 	 else      bms = VD80_TRIGSOURCE_INT;
-	 tval &= ~VD80_TRIGSOURCE_EXT;
+	 tval &= ~VD80_TRIGSOURCE_MASK;
 	 tval |= bms;
 	 SetReg(regs,VD80_TCR1,tval,mcon);
 	 return SkelUserReturnOK;
@@ -532,6 +532,7 @@ int lvalue;                 /* For when arg is NULL */
 	 tval  = (GetReg(regs,VD80_TCR1,mcon) & VD80_TRIGSOURCE_MASK);
 	 if      (tval == VD80_TRIGSOURCE_INT) *lap = Vd80DrvrTriggerINTERNAL;
 	 else if (tval == VD80_TRIGSOURCE_EXT) *lap = Vd80DrvrTriggerEXTERNAL;
+	 else if (tval == VD80_TRIGSOURCE_ANALOG) *lap = Vd80DrvrTriggerINTERNAL;
 	 else                                  *lap = Vd80DrvrTRIGGERS;
 	 return SkelUserReturnOK;
 
@@ -561,6 +562,11 @@ int lvalue;                 /* For when arg is NULL */
 	    return SkelUserReturnFAILED;
 	 }
 	 i--;
+
+	 tval = (GetReg(regs,VD80_TCR1,mcon) & ~VD80_TRIGSOURCE_MASK);
+	 tval &= ~VD80_TRIGSOURCE_MASK;
+	 tval |= VD80_TRIGSOURCE_ANALOG;
+	 SetReg(regs,VD80_TCR1,tval,mcon);
 
 	 tval = ( (atrg->Level   & 0xFFF) << VD80_ATRIG_LEVEL_ABOVE_SHIFT
 	      |   (atrg->Level   & 0xFFF) << VD80_ATRIG_LEVEL_BELOW_SHIFT
