@@ -1,4 +1,5 @@
 CFLAGS=-g -Wall
+DOXY_INSTPATH = /acc/doc/html/private/coht/vmod12e16/lib
 
 test12e16: test12e16.o libvmod12e16.a
 	gcc -o $@ $^
@@ -16,3 +17,8 @@ doxy_clean:
 
 doxy:
 	../../../doxy/doxy.sh -n"VMOD 12e16 library"  . ../include
+
+doxy_install: doxy
+	mkdir -p $(DOXY_INSTPATH)
+	cp -r doxygen_output/html/* $(DOXY_INSTPATH)/
+	
