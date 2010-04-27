@@ -70,6 +70,8 @@ else ifeq ($(notdir $(CURDIR)), lib)
 # Deliver .a
 INSTDIR = $(UTILINSTDIR)
 _deliver:
+	$(if $(wrong-dest), \
+		$(error wrong delivery place(s) "$(wrong-dest)"),)
 	@ umask 0002; \
 	if [ ! -d $(INSTDIR)/$(DRIVER_NAME) ]; then \
 		echo "Creating $(INSTDIR)/$(DRIVER_NAME) lib directory..."; \
