@@ -150,13 +150,26 @@ DOXY_DIR ?= doxygen_output
 DOXY_FILES ?= .
 DOXY_TARGET ?= ../../doxy/doxy.sh -n"$(DRIVER_NAME)" -o"$(DOXY_DIR)" $(DOXY_FILES)
 
+# default location where all the doxy-HTML files should go
+DOXY_HTMLPATH ?= /acc/doc/html/private/coht/doxy
+
+# within DOXY_HTMLPATH, we create a sub-directory for each set of doxy files
+DOXY_INSTDIR ?= $(DRIVER_NAME)
+
+# full path for installing the doxy files
+DOXY_INSTPATH ?= $(DOXY_HTMLPATH)/$(DOXY_INSTDIR)
+
 doxy: doxy_clean
 	$(DOXY_TARGET)
 
 doxy_clean:
 	rm -rf $(DOXY_DIR)
 
-PHONY += doxy doxy_clean
+doxy_install: doxy
+	mkdir -p $(DOXY_INSTPATH)
+	cp -r $(DOXY_DIR)/html/* $(DOXY_INSTPATH)/
+
+PHONY += doxy doxy_clean doxy_install
 
 # For producing object files. Just an example of possible redefinition.
 #OUTPUT_OPTION +=; mv $*.$(CPU).o $(OBJDIR)/$@
