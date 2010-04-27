@@ -530,10 +530,10 @@ int lvalue;                 /* For when arg is NULL */
       case Vd80NumGET_TRIGGER: /* Vd80Trigger 0 = Internal, 1 = External, 2 = Illegal */
 
 	 tval  = (GetReg(regs,VD80_TCR1,mcon) & VD80_TRIGSOURCE_MASK);
-	 if      (tval == VD80_TRIGSOURCE_INT) *lap = Vd80DrvrTriggerINTERNAL;
-	 else if (tval == VD80_TRIGSOURCE_EXT) *lap = Vd80DrvrTriggerEXTERNAL;
+	 if      (tval == VD80_TRIGSOURCE_INT)    *lap = Vd80DrvrTriggerINTERNAL;
+	 else if (tval == VD80_TRIGSOURCE_EXT)    *lap = Vd80DrvrTriggerEXTERNAL;
 	 else if (tval == VD80_TRIGSOURCE_ANALOG) *lap = Vd80DrvrTriggerINTERNAL;
-	 else                                  *lap = Vd80DrvrTRIGGERS;
+	 else                                     *lap = Vd80DrvrTRIGGERS;
 	 return SkelUserReturnOK;
 
       case Vd80NumGET_TRIGGER_EDGE: /* Vd80Edge 0 = Rising 1 = Falling */
