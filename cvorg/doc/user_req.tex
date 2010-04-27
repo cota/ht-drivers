@@ -1,0 +1,168 @@
+% Created 2009-04-03 Fri 12:34
+\documentclass[12pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{ae,aecompl}
+% The following is needed in order to make the code compatible
+% with both latex/dvips and pdflatex.
+\ifx\pdftexversion\undefined
+\usepackage[dvips]{graphicx}
+\else
+\usepackage{graphicx}
+\DeclareGraphicsRule{*}{mps}{*}{}
+\fi
+
+\title{CVORG Software Support}
+\author{Emilio G. Cota $<$\href{mailto:emilio.garcia.cota@cern.ch}{emilio.garcia.cota@cern.ch}$>$ \\ CERN BE/CO/HT}
+\date{03 April 2009}
+
+\begin{document}
+
+\maketitle
+
+
+\section*{User Requirements}
+\label{sec-1}
+
+  The CVORG is a VME-based arbitrary waveform generator, featuring:
+\begin{itemize}
+\item Configurable sampling frequency, up to 100 Msamples/s, 14 bits per sample
+\item Waveform sequencing: sets of waveforms can be configured to be played
+    consecutively with no switching delay.\footnote{There is a limitation,
+    though; in the case of external \emph{Event Stop} trigger configuration, the
+    clock frequency of the FPGA imposes a minimum time interval between
+    waveforms: 0.3us. }
+\item External TTL start/stop trigger pulses with configurable polarity
+    (board inputs \verb~START~, \verb~STOP~, \verb~EVSTART~, \verb~EVSTOP~)
+\item Two independent generators per card; each generator has memory for
+    1Msamples
+\item Configurable Unipolar (0/10V) or Bipolar (-10V/+10V) output
+\end{itemize}
+  Support from the CO/HT section comprises a Linux/LynxOS driver and a
+  user-space library to use the module. All our drivers implement
+  synchronisation mechanisms to deal with concurrent access to the module,
+  which is especially important when there is a problem with an operating
+  module. We also develop test routines that help debugging the module and
+  software; these programs serve as well as diagnose tools once a module has
+  been delivered.
+
+\section*{Library API}
+\label{sec-2}
+
+\subsection*{\emph{Note, Note, Note!}}
+\label{sec-2.1}
+
+   \emph{The following API description mustn't be understood as a contract;}
+   \emph{it is just meant to give a rough idea of the end result to make sure that}
+   \emph{we are suiting our users' needs. It should certainly evolve as the}
+   \emph{development progresses.}
+
+\subsection*{Why a library?}
+\label{sec-2.2}
+
+  By providing access to the hardware via a library (instead of making direct
+  calls to the driver) we can offer higher abstraction of the module taking
+  care of tedious tasks (such as endianness issues) along the way, making
+  the module easy to use and integrate with other higher-level libraries.
+
+\subsection*{Selecting a module}
+\label{sec-2.3}
+
+  The first thing to do is to select and configure a module to work on;
+  this is done by filling \verb~struct cvorg~ and passing it to \verb~cvorg_init()~.
+  \verb~struct cvorg~ has the following fields:
+\begin{itemize}
+\item \verb~int mod_nr~: hardware module (card) to work on.
+\item \verb~int gen_nr~: generator number (1 or 2).
+\item \verb~int trig_pl~: trigger polarity (\verb~CVORG_{RISING,FALLING}_EDGE~.)
+\item \verb~int func_pl~: waveform polarity (\verb~CVORG_{BI,UNI}POLAR~.)
+\item \verb~int sequence~: 0 for infinite loop; n > 0 for playing a sequence n times
+    (more on sequences later.)
+\item \verb~int sampclk~: sampling clock:
+
+\begin{itemize}
+\item \verb~CVORG_CLK_DEFAULT~: internal clock, 100MS/s
+\item \verb~CVORG_CLK_EXTERNAL~: external clock
+\item \verb~CVORG_CLK_GENERATE~: generate a certain sampling frequency
+\end{itemize}
+
+\item \verb~float clockfreq~: desired value for sampling frequency (in the case
+    \verb~sampclk~ equals \verb~CVORG_CLK_GENERATE~). Note that this value cannot be
+    bigger than 100MS/s. Also note that a maximum precision for this parameter
+    is yet to be decided.
+\end{itemize}
+  A module always has the output set to 0V unless it is playing a
+  function---this is valid for both polarity modes.
+
+\subsection*{Generating a waveform}
+\label{sec-2.4}
+
+   Once the module is configured, the user can request the generation of a
+   waveform. For this purpose a \verb~struct cvorg_wave~ has to be filled:
+\begin{itemize}
+\item \verb~void *form~: address of the array which contains the set of points that
+     define one period of the desired waveform. A point is an unsigned 16-bit
+     value (type \verb~uint16_t~ in C99 standard). Note that the amplitude at the
+     output depends as well on the configured polarity: in the unipolar case,
+     0xFFFF will output +10V and 0x0000 will output 0V, whereas in bipolar
+     mode 0xFFFF translates into +10V and 0x0000 corresponds to -10V.
+     Also note that a set of points must have an even number of members;
+     otherwise the last point will be discarded.\footnote{This limitation is likely
+     to go away in the final version; as of this writing we have a proposed
+     (though untested) solution. }
+\item \verb~size_t size~: size in bytes of the array pointed by \verb~form~.
+\item \verb~int recurse~: 0 for playing in an endless loop; n > 0 for playing
+     this waveform n times.
+\item \verb~struct cvorg_wave *next~: pointer to the next waveform in a sequence;
+     NULL to end a sequence.
+\end{itemize}
+\subsubsection*{More on Sequences}
+\label{sec-2.4.1}
+
+    A sequence is a set of consecutive waveforms. A sequence is started by
+    the \verb~START~ trigger and stopped by the \verb~STOP~ trigger. A sequence can
+    be played \emph{p} number of times or infinitely (by setting \verb~sequence~ on
+    \verb~struct cvorg~ accordingly). In both cases the \verb~STOP~ trigger will stop
+    the sequence.
+
+    A waveform can be played \emph{n} times or infinitely, depending on the value
+    of \verb~recurse~ on \verb~struct cvorg_wave~. In both cases the \verb~EVSTOP~ trigger
+    will stop the waveform, and the sequence will move on to playing the
+    following waveform (if any).
+    Describing a couple of examples might help to understand these concepts:
+\begin{itemize}
+\item Case 1. Play sequence \{A,B,C\} \emph{p} times, where \{A,B,C\} are waveforms
+      with \verb~recurse~ set to $n_a$, $n_b$, $n_c$ respectively.
+
+\begin{enumerate}
+\item \verb~START~ starts the sequence
+\item A is played $n_a$ times
+\item B is played $n_b$ times
+\item C is played $n_c$ times
+\item Check how many times the sequence has been played; go to (2)
+        if it hasn't been played \emph{p} times yet; end otherwise.
+\end{enumerate}
+
+\end{itemize}
+    Note that anytime \verb~EVSTOP~ or \verb~STOP~ can be triggered anytime; they will
+    do what they are expected to do irrespective of the state of the recursion.
+\begin{itemize}
+\item Case 2. Play sequence \{A,B\} forever, where \{A,B\} are waveforms with
+      \verb~recurse~ set to 0.
+
+\begin{enumerate}
+\item \verb~START~ starts the sequence
+\item A is played until \verb~EVSTOP~ triggers
+\item B is played until \verb~EVSTOP~ triggers
+\item Go to (2)
+\end{enumerate}
+
+\end{itemize}
+    In this case the loop will be executed until \verb~STOP~ triggers.
+
+
+
+
+\end{document}
