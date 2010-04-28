@@ -35,12 +35,12 @@ tmp_dir = $(DOXYINSTDIR)/$(DRIVER_NAME)/$(notdir $(CURDIR))
 _deliver:
 	@if [ -w $(tmp_dir) ]; then \
 		echo -e "\nDelivering docs in $(tmp_dir)"; \
-		cp -r $(DOXY_DIR)/html $(tmp_dir); \
+		cp -r $(DOXY_DIR)/html/* $(tmp_dir); \
 	elif [ ! -e $(tmp_dir) ]; then \
 		echo -e "\nCreating $(tmp_dir) directory..."; \
 		mkdir -p $(tmp_dir); \
 		echo -e "\nDelivering docs in $(tmp_dir)"; \
-		cp -r $(DOXY_DIR)/html $(tmp_dir); \
+		cp -r $(DOXY_DIR)/html/* $(tmp_dir); \
 	elif [ -e $(tmp_dir) ]; then \
 		echo -e "\nCan't deliver docs in $(tmp_dir)"; \
 		echo -e "You don't have write permissions!"; \
