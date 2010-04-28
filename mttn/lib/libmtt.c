@@ -651,9 +651,10 @@ MttLibError MttLibGetRunningTasks(MttLibName *names) {
 		tbuf.Task = tn;
 		if (ioctl(mtt, MTT_IOCGTCB, &tbuf) < 0)
 			return MttLibErrorIO;
-		if ((strlen(tbuf.Name))
-				&& (tcbp->TaskStatus & MttDrvrTaskStatusRUNNING))
+		if (strlen(tbuf.Name) && tcbp->TaskStatus & MttDrvrTaskStatusRUNNING)
 			strncpy(names[i], tbuf.Name, MttLibMAX_NAME_SIZE);
+		else
+			names[i][0] = '\0';
 	}
 	return MttLibErrorNONE;
 }
