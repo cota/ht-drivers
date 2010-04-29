@@ -13,7 +13,7 @@
 # CDCM for another kernel.
 # Examples: make CPU=L865 KVER=2.6.24.7-rt21
 #           make KVER=2.6.24.7-rt21
-CPU  = L865
+TARGET_CPU  = L865
 #KVER=2.6.24.7-rt21
 KVER = 2.6.24.7-rt27
 #KVER = 2.6.29.4-rt15

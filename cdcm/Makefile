@@ -9,19 +9,19 @@
 ###############################################################################
 
 # Where everything is nested
-ROOTDIR = $(shell pwd)/..
+ROOTDIR = $(CURDIR)/..
 
 include ./Makefile.specific
+include $(ROOTDIR)/makefiles/rules.mk
 
 # Include generic definitions
 include $(ROOTDIR)/makefiles/Kbuild.include
-
 
 # Quiet you...
 MAKEFLAGS += --no-print-directory
 
 # By default -- Rebuild all, including CDCM, XML library and driver utilities.
-_all: utils cdcm
+_build: utils cdcm
 
 #################################################
 # Verbose output. Can be used for debugging
