@@ -50,7 +50,7 @@ USE_EXTEST = n
 COMPILE_LIB_SHARED = n
 
 # You can change ROOTDIR to locate your own path with cdcm, skel, utils etc..
-# ROOTDIR =
+ROOTDIR = ..
 
 #  If you want to compile with CDCM that is _not_ in the ROOTDIR
 #+ (i.e. out-of-standart-tree) - you _SHOULD_ set CDCM_D in the COMMAND LINE!

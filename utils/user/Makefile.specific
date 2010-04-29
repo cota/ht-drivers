@@ -1,6 +1,8 @@
 # We need them
 ADDCFLAGS += -I. -I/acc/local/$(CPU)/include -I/usr/include/libxml2
 
+ROOTDIR = ..
+
 # Obfuscate library Makefile to keep archive locally
 FINAL_DEST = user/object
 

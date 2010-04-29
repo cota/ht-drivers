@@ -57,7 +57,7 @@ COMPILE_LIB_SHARED = n
 #  It *should* be a relative path, starting from driver framework directory
 #+ (one with driver/ test/ include/ lib/) up to the directory, where cdcm/,
 #+ skel/, utils/ etc... is nested.
-# ROOTDIR =
+ ROOTDIR = ..
 
 # TODO. To be removed.
 # As whole coht is under git -- CDCM is always in a standart tree.
@@ -81,8 +81,8 @@ COMPILE_LIB_SHARED = n
 # Compile for kernel other then default one
 # KVER =
 
-# Choose CPU
-# CPU =
+# One can limit compilation for desired CPUs only
+# TARGET_CPU =
 
 # Add extra include directories for the library
 # (Ex: -I/acc/src/dsc/drivers/ctr etc.)

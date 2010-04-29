@@ -16,6 +16,7 @@
 # Driver (Module) name. Comming from the DB. Will be converted to lowercase.
 DRIVER_NAME = MTTN
 
+ROOTDIR = ..
 # If this driver is using skeleton (y/n)
 IS_SKEL = y
 

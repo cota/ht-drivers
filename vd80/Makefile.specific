@@ -47,7 +47,7 @@ USE_EXTEST = y
 COMPILE_LIB_SHARED = y
 
 # You can change ROOTDIR to locate your own path with cdcm, skel, utils etc..
-# ROOTDIR =
+ROOTDIR = ..
 
 #  If you want to compile with CDCM that is _not_ in the ROOTDIR
 #+ (i.e. out-of-standart-tree) - you _SHOULD_ set CDCM_D in the COMMAND LINE!
@@ -69,6 +69,6 @@ COMPILE_LIB_SHARED = y
 # KVER =
 
 # Choose CPU
-# CPU = L865
+# TARGET_CPU =
 
 SUBDIRS = test-stub

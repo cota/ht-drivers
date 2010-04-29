@@ -1,6 +1,8 @@
 # Driver name
 DRIVER_NAME = CTRP
 
+ROOTDIR = ..
+
 # If driver is using skeleton
 IS_SKEL = n
 
@@ -23,4 +25,4 @@ USE_XML = y
 #+ name (standard is 'driver')
 DRVR_DIR = driver_pci
 
-CPU = L865
+TARGET_CPU = L865

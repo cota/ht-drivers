@@ -69,4 +69,4 @@ ROOTDIR = ../..
 # KVER =
 
 # Choose CPU
-CPU = L865
+TARGET_CPU = L865

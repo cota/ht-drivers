@@ -1,5 +1,7 @@
 DRIVER_NAME = vmebus
 
+ROOTDIR = ..
+
 # make sure that this is only compiled for L865
-CPU = L865
+TARGET_CPU = L865
 
