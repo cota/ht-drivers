@@ -85,7 +85,7 @@ struct cmd_desc user_cmds[] = {
    { 1, LibPLOT,   "plt",    "Plot sample file",         "",                 0, PlotSamp          },
    { 1, LibPRINT,  "prt",    "Print sample file",        "",                 0, PrintSamp         },
    { 1, LibREAD,   "rdb",    "Read sample buffer",       "",                 0, ReadSamp          },
-
+   { 1, LibMSLEEP, "ms",     "Millisecond sleep",        "milliseconds",     1, MsSleep           },
    { 0, }
 };
 //@}

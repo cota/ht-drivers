@@ -2,6 +2,7 @@
 /* Test program for SampLib library                           */
 /* ========================================================== */
 
+ #include <unistd.h>
 #include <sys/mman.h>
 
 char *defaultconfigpath = "testprog.config";
@@ -1754,3 +1755,24 @@ int chng;
 }
 
 /* ========================================================== */
+
+int MsSleep(struct cmd_desc *cmddint, struct atom *atoms) {
+
+unsigned int arg;
+unsigned int usec;
+
+   arg = cmddint->pa + 1;
+
+   if (atoms == (struct atom *) VERBOSE_HELP) {
+      printf("MsSleep:[<MilliSeconds>]\n");
+      printf("   Default is 1 ms\n");
+      return arg;
+   }
+
+   usec = 1000;
+   if ((++atoms)->type == Numeric) usec = atoms->val*1000;
+
+   usleep(usec);
+
+   return arg;
+}

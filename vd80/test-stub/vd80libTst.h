@@ -51,6 +51,7 @@ int ReadSamp(struct cmd_desc *cmddint, struct atom *atoms);
 int PrintSamp(struct cmd_desc *cmddint, struct atom *atoms);
 int GetSetAnalogTrg(struct cmd_desc *cmddint, struct atom *atoms);
 int GetSetTrgConfig(struct cmd_desc *cmddint, struct atom *atoms);
+int MsSleep(struct cmd_desc *cmddint, struct atom *atoms);
 
 /*! @name specific test commands
  */
@@ -95,6 +96,7 @@ typedef enum _tag_cmd_id {
 	LibPLOT,             /* PlotSamp          Plot sample file */
 	LibPRINT,            /* PrintSamp         Print sample file */
 	LibREAD,             /* ReadSamp          Read sample buffer */
+	LibMSLEEP,           /* Sleep             Milli Second sleep */
 
 	CmdLAST
 } cmd_id_t;
