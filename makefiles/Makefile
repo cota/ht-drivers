@@ -12,10 +12,6 @@
 
 -include Makefile.specific
 
-# Where everything is nested
-# User can provide it's own, otherwise default will be used
-ROOTDIR := $(if $(ROOTDIR),$(ROOTDIR),..)
-
 # Standard driver directory tree layout
 SUBDIRS += \
 	lib \
@@ -23,9 +19,4 @@ SUBDIRS += \
 	test \
 	driver
 
-# Check if we are in one of the $(SUBDIRS) and do proper include
-ifeq (,$(findstring $(notdir $(shell pwd)), $(SUBDIRS)))
-  include $(ROOTDIR)/makefiles/Makefile.base
-else
-  include ../$(ROOTDIR)/makefiles/Makefile.base
-endif
+include $(ROOTDIR)/makefiles/Makefile.base
