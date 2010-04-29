@@ -1,13 +1,11 @@
 ###############################################################################
 # @file Makefile.base
 #
-# @brief Generic rules used to compile driver-gen driver framework
+# @brief Generic rules used to compile driver framework
 #
-# Automatically generated for driver-gen Cvorb driver
+# @author Copyright (C) 2009-2010 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
 #
-# @author Copyright (C) 2003-2010 CERN. Yury GEORGIEVSKIY <ygeorgie@cern.ch>
-#
-# @date Created on 22/01/2010
+# @date Created on 13/01/2009
 #
 # @section license_sec License
 #          Released under the GPL
