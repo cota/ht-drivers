@@ -29,31 +29,29 @@ SRCFILES = \
 ############################################################################
 #      Rules to build .a library.                                          #
 ############################################################################
-lib$(DRIVER_NAME).$(CPU).a: lib$(DRIVER_NAME).$(CPU).a($(OBJFILES))
-	$(Q)$(AR) -rv  $@ $(XTRA_USR_LIBS) $^
+lib$(DRIVER_NAME)$(EXTLIB): lib$(DRIVER_NAME)$(EXTLIB)($(OBJFILES))
 	$(Q)$(RANLIB) $@
+	$(Q)mv $@ ../$(FINAL_DEST)/$(@:%.a=%.$(CPU).a)
 
-LIBRARIES += lib$(DRIVER_NAME).$(CPU).a
+LIBRARIES += lib$(DRIVER_NAME)$(EXTLIB)
 ############################################################################
 
 ############################################################################
 #      If we need to build a .so libraries.                                #
 ############################################################################
 ifeq ($(COMPILE_LIB_SHARED),y)
-# redefine implicit rule
-(%.$(CPU).o): %.c
-	$(Q)$(CCL) $(CFLAGS) $(CPPFLAGS) -fPIC -c $< -o $*.$(CPU).o
+ADDCFLAGS += -fPIC
 
 # Create .so object
-lib$(DRIVER_NAME).$(CPU).so: lib$(DRIVER_NAME).$(CPU).so($(OBJFILES))
-	$(Q)$(CC) -shared -Wl,-export-dynamic -Wl,-soname,$@ -o $@ $(OBJFILES)
+lib$(DRIVER_NAME)$(EXTSO): $(OBJFILES)
+	$(Q)$(CC) -shared -Wl,-export-dynamic -Wl,-soname,$(@:%.so=%.$(CPU).so) -o $@ $(OBJFILES)
+	$(Q)mv $@ ../$(FINAL_DEST)/$(@:%.so=%.$(CPU).so)
 
-LIBRARIES += lib$(DRIVER_NAME).$(CPU).so
+LIBRARIES += lib$(DRIVER_NAME)$(EXTSO)
 endif
 ############################################################################
 
-_build: $(LIBRARIES) $(FINAL_DEST)
-	$(Q)mv $(LIBRARIES) ../$(FINAL_DEST)
+_build: $(FINAL_DEST) $(LIBRARIES)
 	$(Q)$(RM) $(OBJFILES)
 
 all:
