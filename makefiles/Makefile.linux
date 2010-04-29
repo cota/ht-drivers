@@ -12,14 +12,13 @@
 # @date Created on 08/04/2009
 ###############################################################################
 
+include ../$(ROOTDIR)/makefiles/Makefile.base
+
 # Include generic definitions
 include ../$(ROOTDIR)/makefiles/Kbuild.include
 
 # Quiet you!
 MAKEFLAGS += --no-print-directory
-
-# Default target is the driver
-_all: all
 
 #  Driver source directory
 #+ This name is defined _only_ if user in not alredy define it
@@ -28,9 +27,12 @@ DRVR_DIR ?= driver
 # What will be finally created
 DRIVER  = $(OBJDIR)/$(DRIVER_NAME).ko
 
-# Let's roll
-all: $(OBJDIR) $(FINAL_DEST)
+_build:
 	@echo -e "\nCompiling driver for $(KVER) Linux kernel:\n"
+	@$(MAKE) CPU=$(CPU) __build
+
+# Let's roll
+__build: $(OBJDIR) $(FINAL_DEST)
 # 1. compile the driver
 	$(MAKE) -C $(KSRC) M=$(shell pwd) CPU=$(CPU) \
 	ROOTDIR=$(shell cd ../$(ROOTDIR) && pwd && echo) modules

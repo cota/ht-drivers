@@ -12,6 +12,7 @@
 # @date Created on 13/01/2009
 ###############################################################################
 
+include ../$(ROOTDIR)/makefiles/Makefile.base
 include ../$(ROOTDIR)/makefiles/Kbuild.lynx
 include ../$(ROOTDIR)/makefiles/Kbuild.include
 
@@ -76,10 +77,11 @@ INCDIRS += \
 	./ \
 	/acc/sys/ppc4/sys/lynx.os
 
-all:
+_build:
 	@echo -e "\nCompiling driver for $(KVER) Lynx kernel:\n"
+	@$(MAKE) CPU=$(CPU) __build
 
-_all:  $(OBJDIR) $(FINAL_DEST) $(DRIVER)
+__build: $(OBJDIR) $(FINAL_DEST) $(DRIVER)
 
 # 0x0.
 # This rule produce temporary driver archive file that contains unresolved
