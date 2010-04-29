@@ -5,7 +5,7 @@ SUBDIRS = \
 	install
 
 # Check if we are in one of the $(SUBDIRS) and do proper include
-ifeq (,$(findstring $(notdir $(shell pwd)), $(SUBDIRS)))
+ifeq (,$(findstring $(notdir $(CURDIR)), $(SUBDIRS)))
   include $(ROOTDIR)/makefiles/Makefile.base
 else
   include ../$(ROOTDIR)/makefiles/Makefile.base
