@@ -5,3 +5,4 @@ ROOTDIR = ..
 # make sure that this is only compiled for L865
 TARGET_CPU = L865
 
+SUBDIRS += drvrtest

@@ -2,13 +2,14 @@
 # Makefile for test drivers.
 #
 include ../common.mk
+include ../Makefile.specific
+include ../../makefiles/rules.mk
 
-all: vmedriver vmeheaders mymodules
+_build: vmedriver vmeheaders mymodules
 
 .PHONY : all vmedriver vmeheaders mymodules clean help
 
 vmedriver:
-	cd ../$(DRVDIR) && $(MAKE)
 	cp ../$(DRVDIR)/$(CPU)/$(KVER)/Module.symvers .
 
 vmeheaders:
