@@ -112,29 +112,30 @@ CFLAGS = $(BASECFLAGS) $(HOSTCFLAGS) $(DEFFLAGS) $(INCFLAGS) $(BLDTFLAGS) $(ADDC
 
 vpath %$(EXTOBJ) $(OBJDIR)
 
-# Our Primary target
-ifeq (,$(findstring $(notdir $(shell pwd)), $(SUBDIRS)))
-
-_all $(MAKECMDGOALS): build-subdirs
 # sort-out false targets
 FTARGETS = $(filter-out _build all linux lynx deliver clean clear, $(MAKECMDGOALS))
 
+# Our Primary target
+_all: subdirs
 
-COMPILE  = $(MAKE) -C $$dir CPU=$(CPU) $(MAKECMDGOALS)
+PHONY += subdirs $(SUBDIRS)
+subdirs: $(SUBDIRS)
 
-endif # ifeq ($(SUBDIRS),)
+ifeq ("$(origin CPU)", "command line")
+  COMPILE_SD = $(MAKE) -C $@ CPU=$(CPU) $(MAKECMDGOALS)
+else
+  COMPILE_SD = $(MAKE) -C $@ CPU=default $(MAKECMDGOALS)
+endif
 
 # Descend into subdirectories
-%-subdirs:
+$(SUBDIRS):
 	$(if $(FTARGETS), $(error wrong/unsupported target(s) "$(FTARGETS)"))
-	@for dir in $(SUBDIRS) _dummy_dir_ ; \
-	do \
-	  if [ $$dir != _dummy_dir_ -a -d $$dir ]; then \
-		echo -e "\n---------[ Processing '$$dir' directory ]--------------"; \
-		$(COMPILE); \
-		if [ $$? -eq 2 ]; then exit 1; fi; \
-	  fi; \
-	done
+		@if [ -d $@ ]; then \
+			echo -e "\n---------[ Processing '$@' directory ]--------------"; \
+			$(COMPILE_SD); \
+		fi
+
+-include $(CURDIR)/Makefile.depend
 
 # Cleaning up
 clean clear:

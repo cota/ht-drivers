@@ -18,7 +18,7 @@ include $(shell if [ -e ./Makefile.specific ]; then \
 		echo ../Makefile.specific; \
 	fi)
 
-include ../Makefile
+include ../$(ROOTDIR)/makefiles/Makefile.base
 
 # CERN delivery
 include ../$(ROOTDIR)/makefiles/deliver.mk

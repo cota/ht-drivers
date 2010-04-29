@@ -13,9 +13,10 @@ include $(shell if [ -e ./Makefile.specific ]; then \
 		echo ./Makefile.specific; \
 	else \
 		echo ../Makefile.specific; \
-fi)
+	fi)
 
-include ../Makefile
+include ../$(ROOTDIR)/makefiles/Makefile.base
+include ../$(ROOTDIR)/makefiles/rules.mk
 
 vpath %.c ./  ../../utils/user ../../utils/extest
 
@@ -78,9 +79,6 @@ endif
 $(EXEC_OBJS): $(OBJFILES)
 
 _build: $(EXEC_OBJS) $(OBJDIR) $(FINAL_DEST) move_objs
-
-all:
-	$(Q)$(MAKE) _build CPU=$(CPU)
 
 # Move compiled files to proper place
 move_objs:

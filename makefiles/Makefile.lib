@@ -15,7 +15,8 @@ include $(shell if [ -e ./Makefile.specific ]; then \
 		echo ../Makefile.specific; \
 	fi)
 
-include ../Makefile
+include ../$(ROOTDIR)/makefiles/Makefile.base
+include ../$(ROOTDIR)/makefiles/rules.mk
 
 ADDCFLAGS += $(STDFLAGS) -DDRIVER_NAME=\"$(DRIVER_NAME)\"
 
@@ -53,9 +54,6 @@ endif
 
 _build: $(FINAL_DEST) $(LIBRARIES)
 	$(Q)$(RM) $(OBJFILES)
-
-all:
-	$(Q)$(MAKE) _build CPU=$(CPU)
 
 # CERN delivery
 include ../$(ROOTDIR)/makefiles/deliver.mk
