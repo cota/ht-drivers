@@ -570,7 +570,7 @@ int lvalue;                 /* For when arg is NULL */
 
 	 tval = ( (atrg->Level   & 0xFFF) << VD80_ATRIG_LEVEL_ABOVE_SHIFT
 	      |   (atrg->Level   & 0xFFF) << VD80_ATRIG_LEVEL_BELOW_SHIFT
-	      |   (atrg->Control & 0x007)
+	      |   (atrg->Control & 0x007) |  VD80_ATRIG_CHANGE_EDGE
 	      );
 
 	 SetReg(regs,VD80_ATRIG_CHAN1+(i*4),tval,mcon);
