@@ -608,13 +608,7 @@ int lvalue;                 /* For when arg is NULL */
 	 tval = GetReg(regs,VD80_ATRIG_CHAN1+(i*4),mcon);
 
 	 atrg->Control = tval & 0x007;
-
-	 if      (atrg->Control == Vd80DrvrATrigABOVE)
-	    atrg->Level   = (tval >> VD80_ATRIG_LEVEL_ABOVE_SHIFT) & 0xFFF;
-	 else if (atrg->Control == Vd80DrvrATrigBELOW)
-	    atrg->Level   = (tval >> VD80_ATRIG_LEVEL_BELOW_SHIFT) & 0xFFF;
-	 else
-	    atrg->Level   = 0;
+	 atrg->Level   = (tval >> VD80_ATRIG_LEVEL_ABOVE_SHIFT) & 0xFFF;
 
 	 return SkelUserReturnOK;
 
