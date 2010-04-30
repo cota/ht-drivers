@@ -376,8 +376,8 @@ char *vd80ErrToStr(int fd, Vd80Err error);
 /* ==================================================================== */
 /* Get set trigger configuration params, delay and min pretrig samples  */
 
-Vd80Err Vd80SetTriggerConfig(int fd, unsigned int mods, unsigned int chns, Vd80TrigConfig *ctrg);
-Vd80Err Vd80GetTriggerConfig(int fd, int mod, int chn, Vd80TrigConfig *ctrg);
+Vd80Err vd80SetTriggerConfig(int fd, unsigned int mods, unsigned int chns, Vd80TrigConfig *ctrg);
+Vd80Err vd80GetTriggerConfig(int fd, int mod, int chn, Vd80TrigConfig *ctrg);
 
 /* ================ */
 
