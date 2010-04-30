@@ -16,4 +16,4 @@ typedef struct {   /* mcon->UserData */
 
  } UserData;
 
-
+#define VD80_KLUDGE_DELAY 100000	/* fixing the delay in vd80 module */

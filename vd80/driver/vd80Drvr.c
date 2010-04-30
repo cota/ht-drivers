@@ -315,6 +315,21 @@ SkelUserReturn SkelUserJtagWriteByte(SkelDrvrModuleContext *mcon,
 /* Then decide on howmany IOCTL calls you want, and fill their */
 /* debug name strings.                                         */
 
+/* sleep until IDLE is settled or things time out */
+void wait_for_idle(SkelDrvrModuleContext *mcon, int maxdelay)
+{
+	int state;
+	int delay;
+
+	for (delay = 0; delay < maxdelay; delay += 10) {
+		state = GetReg(GetRegs(mcon), VD80_GSR, mcon) & VD80_STATE_MASK;
+		if (state == VD80_STATE_IDLE)
+			return;
+		usec_sleep(10);
+	}
+	cprintf("vd80: wait_for_idle timed out after %d us\n", maxdelay);
+}
+
 /**
  * @brief ioctl vector
  *
@@ -611,6 +626,12 @@ int lvalue;                 /* For when arg is NULL */
 	 tval  = lval & VD80_COMMAND_MASK;
 	 if (tval == VD80_COMMAND_READ) tval |= lval & VD80_OPERANT_MASK;
 	 SetReg(regs,VD80_GCR1,tval,mcon);
+
+	 if (tval == VD80_COMMAND_STOP) {
+		wait_for_idle(mcon, VD80_KLUDGE_DELAY);
+		printk("vd80: waiting for idle\n");
+	 }
+
 	 return SkelUserReturnOK;
 
       case Vd80NumREAD_ADC: /* => Channel, <= 16 bit ADC value */
@@ -719,6 +740,7 @@ int lvalue;                 /* For when arg is NULL */
 	 SetReg(regs,VD80_GCR1,tval,mcon);
 	 tval = VD80_COMMAND_STOP;
 	 SetReg(regs,VD80_GCR1,tval,mcon);
+	 wait_for_idle(mcon, VD80_KLUDGE_DELAY);
 
 	 /* actpostrig is the number of actual post trigger samples */
 	 /* shotlength is the total number of pre and post trigger samples */
