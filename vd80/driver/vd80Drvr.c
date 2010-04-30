@@ -571,6 +571,10 @@ int lvalue;                 /* For when arg is NULL */
 
       case Vd80NumSET_ANALOGUE_TRIGGER:
 	 atrg = (Vd80DrvrAnalogTrig *) arg;
+
+	 for (i=0; i<VD80_CHANNELS; i++)
+	    SetReg(regs,VD80_ATRIG_CHAN1+(i*4),0,mcon);
+
 	 i = atrg->Channel;
 	 if ((i<1) || (i>VD80_CHANNELS)) {
 	    report_client(ccon, SkelDrvrDebugFlagWARNING, "Bad channel number");
