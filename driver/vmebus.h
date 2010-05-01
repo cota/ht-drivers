@@ -21,6 +21,8 @@
 #ifndef _VME_H
 #define _VME_H
 
+#include <linux/device.h>
+#include <linux/kernel.h>
 #include <linux/types.h>
 
 /*
@@ -360,9 +362,25 @@ struct pdparam_master
 /*
  * Those definitions are for drivers only and are not visible to userspace.
  */
+
+struct vme_driver {
+	int (*match)(struct device *, unsigned int);
+	int (*probe)(struct device *, unsigned int);
+	int (*remove)(struct device *, unsigned int);
+	void (*shutdown)(struct device *, unsigned int);
+	int (*suspend)(struct device *, unsigned int, pm_message_t);
+	int (*resume)(struct device *, unsigned int);
+	struct device_driver driver;
+	struct device *devices;
+};
+
+#define to_vme_driver(x) container_of((x), struct vme_driver, driver)
+
 typedef void (*vme_berr_handler_t)(struct vme_bus_error *);
 
 /* API for new drivers */
+extern int vme_register_driver(struct vme_driver *vme_driver, unsigned int ndev);
+extern void vme_unregister_driver(struct vme_driver *vme_driver);
 extern int vme_request_irq(unsigned int, int (*)(void *),
 			   void *, const char *);
 extern int vme_free_irq(unsigned int );
@@ -391,7 +409,6 @@ extern unsigned long find_controller(unsigned long, unsigned long,
 extern unsigned long return_controller(unsigned, unsigned);
 extern int vme_intset(int, int (*)(void *), void *, void *);
 extern int vme_intclr(int, void *);
-
 
 #endif /* __KERNEL__ */
 
