@@ -625,10 +625,8 @@ int lvalue;                 /* For when arg is NULL */
 	 if (tval == VD80_COMMAND_READ) tval |= lval & VD80_OPERANT_MASK;
 	 SetReg(regs,VD80_GCR1,tval,mcon);
 
-	 if (tval == VD80_COMMAND_STOP) {
+	 if (tval == VD80_COMMAND_STOP)
 		wait_for_idle(mcon, VD80_KLUDGE_DELAY);
-		printk("vd80: waiting for idle\n");
-	 }
 
 	 return SkelUserReturnOK;
 
