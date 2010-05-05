@@ -69,6 +69,7 @@ static struct pci_driver vme_bridge_driver = {
 	.remove = __devexit_p(vme_bridge_remove),
 };
 
+
 #ifdef CONFIG_PROC_FS
 struct proc_dir_entry *vme_root;
 
@@ -801,15 +802,225 @@ static void __devexit vme_bridge_remove(struct pci_dev *pdev)
 	kfree(vme_bridge);
 }
 
+/*
+ * VME Bus
+ *
+ * Since there's no auto-discovery in VME, vme_driver_register already receives
+ * the number (n) of devices that the calling driver may control. Usually this
+ * information is obtained from user-space by the caller via insmod parameters.
+ *
+ * These n devices are created with id's ranging from 0 to n-1. For each of the
+ * devices, the .match and possibly .probe methods are called.
+ *
+ * If .match fails for a particular device, the device is removed.
+ */
+
+/* device_unregister() complains if dev.release() is missing */
+static void vme_bus_release(struct device *dev)
+{
+}
+
+static struct device vme_bus = {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,29)
+	.bus_id		= "vme",
+#else
+	.init_name	= "vme",
+#endif
+	.release	= vme_bus_release,
+};
+
+struct vme_dev {
+	struct device dev;
+	struct device *next;
+	unsigned int id;
+};
+
+#define to_vme_dev(x) container_of((x), struct vme_dev, dev)
+
+static int vme_bus_match(struct device *dev, struct device_driver *driver)
+{
+	struct vme_driver *vme_driver = to_vme_driver(driver);
+
+	if (dev->platform_data == vme_driver) {
+		if (!vme_driver->match ||
+			vme_driver->match(dev, to_vme_dev(dev)->id))
+			return 1;
+		dev->platform_data = NULL;
+	}
+	return 0;
+}
+
+static int vme_bus_probe(struct device *dev)
+{
+	struct vme_driver *vme_driver = dev->platform_data;
+
+	if (vme_driver->probe)
+		return vme_driver->probe(dev, to_vme_dev(dev)->id);
+
+	return 0;
+}
+
+static int vme_bus_remove(struct device *dev)
+{
+	struct vme_driver *vme_driver = dev->platform_data;
+
+	if (vme_driver->remove)
+		return vme_driver->remove(dev, to_vme_dev(dev)->id);
+
+	return 0;
+}
+
+static void vme_bus_shutdown(struct device *dev)
+{
+	struct vme_driver *vme_driver = dev->platform_data;
+
+	if (vme_driver->shutdown)
+		vme_driver->shutdown(dev, to_vme_dev(dev)->id);
+}
+
+static int vme_bus_suspend(struct device *dev, pm_message_t state)
+{
+	struct vme_driver *vme_driver = dev->platform_data;
+
+	if (vme_driver->suspend)
+		return vme_driver->suspend(dev, to_vme_dev(dev)->id, state);
+
+	return 0;
+}
+
+static int vme_bus_resume(struct device *dev)
+{
+	struct vme_driver *vme_driver = dev->platform_data;
+
+	if (vme_driver->resume)
+		return vme_driver->resume(dev, to_vme_dev(dev)->id);
+
+	return 0;
+}
+
+static struct bus_type vme_bus_type = {
+	.name           = "vme",
+	.match          = vme_bus_match,
+	.probe          = vme_bus_probe,
+	.remove         = vme_bus_remove,
+	.shutdown       = vme_bus_shutdown,
+	.suspend        = vme_bus_suspend,
+	.resume         = vme_bus_resume
+};
+
+static void vme_dev_release(struct device *dev)
+{
+	kfree(to_vme_dev(dev));
+}
+
+void vme_unregister_driver(struct vme_driver *vme_driver)
+{
+	struct device *dev = vme_driver->devices;
+
+	while (dev) {
+		struct device *tmp = to_vme_dev(dev)->next;
+
+		device_unregister(dev);
+		dev = tmp;
+	}
+	driver_unregister(&vme_driver->driver);
+}
+EXPORT_SYMBOL_GPL(vme_unregister_driver);
+
+int vme_register_driver(struct vme_driver *vme_driver, unsigned int ndev)
+{
+	int error;
+	unsigned int id;
+
+	vme_driver->driver.bus	= &vme_bus_type;
+	vme_driver->devices	= NULL;
+
+	error = driver_register(&vme_driver->driver);
+	if (error)
+		return error;
+
+	for (id = 0; id < ndev; id++) {
+		struct vme_dev *vme_dev;
+
+		vme_dev = kzalloc(sizeof(*vme_dev), GFP_KERNEL);
+		if (!vme_dev) {
+			error = -ENOMEM;
+			break;
+		}
+
+		vme_dev->dev.parent	= &vme_bus;
+		vme_dev->dev.bus	= &vme_bus_type;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,29)
+		snprintf(vme_dev->dev.bus_id, BUS_ID_SIZE, "%s.%u",
+			vme_driver->driver.name, id);
+#else
+		dev_set_name(&vme_dev->dev, "%s.%u",
+			vme_driver->driver.name, id);
+#endif
+		vme_dev->dev.platform_data	= vme_driver;
+		vme_dev->dev.release		= vme_dev_release;
+		vme_dev->id			= id;
+
+		vme_dev->dev.coherent_dma_mask = DMA_BIT_MASK(32);
+		vme_dev->dev.dma_mask = &vme_dev->dev.coherent_dma_mask;
+
+		error = device_register(&vme_dev->dev);
+		if (error) {
+			put_device(&vme_dev->dev);
+			break;
+		}
+
+		if (vme_dev->dev.platform_data) {
+			vme_dev->next = vme_driver->devices;
+			vme_driver->devices = &vme_dev->dev;
+		} else {
+			device_unregister(&vme_dev->dev);
+		}
+	}
+
+	if (!error && !vme_driver->devices)
+		error = -ENODEV;
+
+	if (error)
+		vme_unregister_driver(vme_driver);
+
+	return error;
+}
+EXPORT_SYMBOL_GPL(vme_register_driver);
 
 static int __init vme_bridge_init_module(void)
 {
-	return pci_register_driver(&vme_bridge_driver);
+	int error;
+
+	error = device_register(&vme_bus);
+	if (error)
+		goto out;
+
+	error = bus_register(&vme_bus_type);
+	if (error)
+		goto bus_register_failed;
+
+	error = pci_register_driver(&vme_bridge_driver);
+	if (error)
+		goto pci_register_driver_failed;
+
+	if (!error)
+		goto out;
+
+ pci_register_driver_failed:
+	bus_unregister(&vme_bus_type);
+ bus_register_failed:
+	device_unregister(&vme_bus);
+ out:
+	return error;
 }
 
 static void __exit vme_bridge_exit_module(void)
 {
 	pci_unregister_driver(&vme_bridge_driver);
+	bus_unregister(&vme_bus_type);
+	device_unregister(&vme_bus);
 }
 
 module_init(vme_bridge_init_module);
