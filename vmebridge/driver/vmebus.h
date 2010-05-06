@@ -21,8 +21,11 @@
 #ifndef _VME_H
 #define _VME_H
 
+#ifdef __KERNEL__
 #include <linux/device.h>
 #include <linux/kernel.h>
+#endif /* __KERNEL__ */
+
 #include <linux/types.h>
 
 /*
