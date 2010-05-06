@@ -23,17 +23,10 @@
 #include <data_tables.h>
 #include <config_data.h>
 
-/* we just want to check if __SKEL_EXTEST is defined */
-#if IS_SKEL == y
-#define __SKEL_EXTEST
-#else
-#undef __SKEL_EXTEST
-#endif
-
-#ifdef __SKEL_EXTEST
+#ifdef __SKEL_EXTEST__
 #include <skeluser.h>
 #include <skel.h>
-#endif /* __SKEL_EXTEST */
+#endif /* __SKEL_EXTEST__ */
 
 #define MAX_ARG_COUNT   256	//!< maximum command line arguments
 #define MAX_ARG_LENGTH  128	//!< max characters per argument

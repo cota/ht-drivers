@@ -1225,7 +1225,7 @@ int is_last_atom(struct atom *atom)
 	return 0;
 }
 
-#ifdef __SKEL_EXTEST
+#ifdef __SKEL_EXTEST__
 static int extest_open_fd(void)
 {
 	if (_DNFD == F_CLOSED) {
@@ -1245,7 +1245,7 @@ static int extest_open_fd(void)
 {
 	return 0;
 }
-#endif /* __SKEL_EXTEST */
+#endif /* __SKEL_EXTEST__ */
 
 /* add a line to the history if it's not a duplicate of the previous */
 static void extest_add_history(char *line)

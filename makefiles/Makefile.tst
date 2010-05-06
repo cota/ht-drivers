@@ -46,6 +46,7 @@ SRCFILES += \
 # if the driver is skel, we'll compile in all the skel handlers
 ifeq ($(IS_SKEL), y)
 SRCFILES += cmd_skel.c
+ADDCFLAGS += -D__SKEL_EXTEST__
 else
 # if not, then the generic ones are taken to handle built-in commands
 SRCFILES += cmd_generic.c
