@@ -31,7 +31,7 @@ void cdcm_mem_free(void *addr)
 	buf--;
 	realsize = buf->size + sizeof(*buf);
 
-	if (B2KB(realsize) > MEM_BOUND)
+	if (realsize > MEM_BOUND)
 		vfree(buf);
 	else
 		kfree(buf);
@@ -56,7 +56,7 @@ void *cdcm_mem_alloc(ssize_t size, int flags)
 	 * For large buffers we use vmalloc, because kmalloc allocates
 	 * physically contiguous pages.
 	 */
-	if (B2KB(realsize > MEM_BOUND))
+	if (realsize > MEM_BOUND)
 		buf = vmalloc(realsize);
 	else
 		buf = kmalloc(realsize, GFP_KERNEL);

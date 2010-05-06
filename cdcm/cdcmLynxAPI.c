@@ -129,17 +129,9 @@ long wbounds(unsigned long pntr)
  * @return NULL                     - if fails.
  */
 
-#define MEM_BOUNDARY_128KB (128*1024)
-
 char* sysbrk(unsigned long size)
 {
-	char *mem;
-
-	if ( !(mem = (size > MEM_BOUNDARY_128KB)?
-	       vmalloc(size):kmalloc(size, GFP_KERNEL)) )
-		return NULL;
-
-	return mem;
+	return cdcm_mem_alloc(size, 0);
 }
 
 
@@ -153,8 +145,5 @@ char* sysbrk(unsigned long size)
  */
 void sysfree(char *cp, unsigned long size)
 {
-	if (size > MEM_BOUNDARY_128KB)
-		vfree(cp);
-	else
-		kfree(cp);
+	return cdcm_mem_free(cp);
 }

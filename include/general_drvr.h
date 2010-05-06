@@ -63,7 +63,7 @@
 //!< BAR bitmask (bits [5 4 3 2 1 0])
 #define PCI_BAR_BIT(_bar) (1<<PCI_BAR(_bar))
 
-#define MEM_BOUND 128*KB //!< what to use kmalloc or vmalloc
+#define MEM_BOUND (128*KB)  /**< in bytes! what to use kmalloc or vmalloc */
 
 /*! @name drvr_utils.c functions
  */
