@@ -1266,6 +1266,17 @@ static void extest_add_history(char *line)
 		add_history(line);
 }
 
+static void set_prompt(char *buf, size_t len, char *host, int cmd_index)
+{
+	if (tst_glob_d.mod)
+		snprintf(buf, len, WHITE_ON_BLACK "[module#%d] @%s [%02d] > "
+			DEFAULT_COLOR, tst_glob_d.mod, host, cmd_index);
+	else
+		snprintf(buf, len, WHITE_ON_BLACK "%s@%s [%02d] > "
+			DEFAULT_COLOR, __drivername, host, cmd_index);
+	buf[len - 1] = '\0';
+}
+
 /**
  * extest_init - Initialise extest
  *
@@ -1294,14 +1305,8 @@ int extest_init(int argc, char *argv[])
 		goto out_err;
 	while(1) {
 		bzero(prompt, sizeof(prompt));
-		if (tst_glob_d.mod)
-			snprintf(prompt, sizeof(prompt),
-				WHITE_ON_BLACK "[module#%d] @%s [%02d] > "
-				DEFAULT_COLOR, tst_glob_d.mod, host, cmdindx++);
-		else
-			snprintf(prompt, sizeof(prompt), WHITE_ON_BLACK
-				"%s@%s [%02d] > " DEFAULT_COLOR,
-				__drivername, host, cmdindx++);
+		if (isatty(fileno(stdin)))
+			set_prompt(prompt, sizeof(prompt), host, cmdindx++);
 		cmd = readline(prompt);
 		if (!cmd)
 			exit(1);
