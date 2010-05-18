@@ -1953,7 +1953,7 @@ int rcnt, wcnt; /* Readable, Writable byte counts at arg address */
 	      mcon = get_mcon(lav);
 	      if (mcon == NULL) {
 		      SK_WARN("SET_MODULE: Module %d doesn't exist", lav);
-		      pseterr(EINVAL);
+		      pseterr(ENODEV);
 		      return SYSERR;
 	      }
 	      ccon->ModuleNumber = lav;
