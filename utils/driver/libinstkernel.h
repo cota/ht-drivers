@@ -41,6 +41,7 @@ void InsLibFreeHost(InsLibHostDesc *);
 InsLibDrvrDesc *InsLibGetDriver(InsLibHostDesc *, char *);
 InsLibModlDesc *InsLibGetModule(InsLibDrvrDesc *, int);
 InsLibAnyAddressSpace *InsLibGetAddressSpace(InsLibModlDesc *, int);
+InsLibAnyAddressSpace *InsLibGetAddressSpaceWidth(InsLibModlDesc *, int, int);
 
 void InsLibPrintModule(InsLibModlDesc *);
 void InsLibPrintDriver(InsLibDrvrDesc *);

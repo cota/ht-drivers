@@ -544,27 +544,40 @@ InsLibModlDesc *InsLibGetModule(InsLibDrvrDesc *drvrd, int module_number)
 	return NULL;
 }
 
-/* ================================================ */
-/* Get an address space from a module               */
-InsLibAnyAddressSpace *InsLibGetAddressSpace(InsLibModlDesc *modld,
-					     int space_number)
+/*
+ * Retrieve the address space given in @modld by @space_number and @datawidth.
+ * If the datawidth is zero, it is ignored.
+ */
+static InsLibAnyAddressSpace
+*get_addr_space(InsLibModlDesc *modld, int space_number, int datawidth)
 {
 	InsLibAnyModuleAddress *anyma = NULL;
 	InsLibAnyAddressSpace  *anyas = NULL;
 
-	if (modld) {
-		anyma = modld->ModuleAddress;
-		if (anyma) {
-			anyas = anyma->AnyAddressSpace;
-			while (anyas) {
-				if (anyas->SpaceNumber == space_number)
-					return anyas;
-				anyas = anyas->Next;
-			}
-		}
-	}
+	if (!modld || !modld->ModuleAddress)
+		return NULL;
 
+	anyma = modld->ModuleAddress;
+	anyas = anyma->AnyAddressSpace;
+	while (anyas) {
+		if (anyas->SpaceNumber == space_number &&
+			(datawidth == 0 || anyas->DataWidth == datawidth))
+			return anyas;
+		anyas = anyas->Next;
+	}
 	return NULL;
+}
+
+InsLibAnyAddressSpace
+*InsLibGetAddressSpace(InsLibModlDesc *modld, int space_number)
+{
+	return get_addr_space(modld, space_number, 0);
+}
+
+InsLibAnyAddressSpace
+*InsLibGetAddressSpaceWidth(InsLibModlDesc *modld, int space_number, int datawidth)
+{
+	return get_addr_space(modld, space_number, datawidth);
 }
 
 /* for debugging only */
