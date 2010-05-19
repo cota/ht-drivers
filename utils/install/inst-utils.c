@@ -41,7 +41,7 @@ void display_version(char *name)
  */
 void display_usage(char *name)
 {
-	printf("Usage: %s <*.xml> [-v | -h] [ -fall | -fexclude ] \\\n"
+	printf("Usage: %s <*.xml> [-] [-v | -h] [ -fall | -fexclude ] \\\n"
 	       "       [-s]<name> -o\"option string\" -n<noden> ... \\\n"
 	       "       [-s]<name> -o\"option string\" -n<noden> ...\n\n"
 	       "Installing the driver based on it's xml description.\n"
@@ -49,6 +49,8 @@ void display_usage(char *name)
 	       "   <*.xml> %soptional%s\n"
 	       "          Where to take driver description from.\n"
 	       "          Default is %s/etc/drivers.xml%s\n\n"
+	       "   -      %soptional%s\n"
+	       "          Read the XML file from standard input\n\n"
 	       "   -v -- display version\n\n"
 	       "   -h -- show help\n\n"
 	       "   <name> %soptional%s\n"
@@ -114,7 +116,8 @@ void display_usage(char *name)
 	       basename(name), WHITE_CLR, END_CLR, WHITE_CLR, END_CLR,
 	       WHITE_CLR, END_CLR, WHITE_CLR, END_CLR, WHITE_CLR, END_CLR,
 	       WHITE_CLR, END_CLR, WHITE_CLR, END_CLR, WHITE_CLR, END_CLR,
-	       WHITE_CLR, END_CLR, WHITE_CLR, END_CLR, WHITE_CLR, END_CLR);
+	       WHITE_CLR, END_CLR, WHITE_CLR, END_CLR, WHITE_CLR, END_CLR,
+	       WHITE_CLR, END_CLR);
 }
 
 /**
@@ -198,6 +201,9 @@ int parse_prog_args(int argc, char* argv[], int *flg, char **cf,
 			if (strstr(optarg, ".xml")) {
 				if (!*cf)
 					asprintf(cf, "%s", optarg);
+				break;
+			} else if (!strcmp(optarg, "-")) {
+				asprintf(cf, "-");
 				break;
 			}
 			ddp = calloc(1, sizeof(*ddp));
