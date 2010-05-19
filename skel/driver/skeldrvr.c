@@ -1234,8 +1234,10 @@ char *SkelDrvrInstall(void *infofile)
 out_err:
 	if (drvrd)
 		InsLibFreeDriver(drvrd);
-	if (Wa)
+	if (Wa) {
 		sysfree((void *)Wa, sizeof(SkelDrvrWorkingArea));
+		Wa = NULL;
+	}
 	return (char *)SYSERR;
 }
 
@@ -1472,6 +1474,9 @@ static void modules_uninstall(void)
 int SkelDrvrUninstall(void *wa)
 {
 	unsigned long flags;
+
+	if (Wa == NULL)
+		return OK;
 
 	cdcm_spin_lock_irqsave(&Wa->list_lock, flags);
 	if (!list_empty(&Wa->clients)) {
