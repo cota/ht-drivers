@@ -138,9 +138,6 @@ out:
  *
  * @param modnr module number to select
  *
- * Note that we consider the operation successful even if the module
- * is out of range -- we just print it out and return success
- *
  * @return 0 - on success
  * @return (negative) error code - on failure
  */
@@ -148,10 +145,6 @@ int select_module(int modnr)
 {
 	if (modnr == tst_glob_d.mod)
 		return 0;
-	if (!WITHIN_RANGE(1, modnr, tst_glob_d.ma)) {
-		printf("Requested module out of range\n");
-		return 0;
-	}
 	if (ioctl(_DNFD, SkelDrvrIoctlSET_MODULE, &modnr) < 0) {
 		mperr("%s ioctl fails\n", "SET_MODULE");
 		return -TST_ERR_IOCTL;
