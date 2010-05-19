@@ -467,7 +467,7 @@ static unsigned int RawIo(SkelDrvrModuleContext *mcon,
 	char			*cp;
 
 	modld = mcon->Modld;
-	anyas = InsLibGetAddressSpace(modld,riob->SpaceNumber);
+	anyas = InsLibGetAddressSpaceWidth(modld, riob->SpaceNumber, riob->DataWidth);
 
 	if (!anyas) {
 		report_module(mcon, SkelDrvrDebugFlagMODULE,
