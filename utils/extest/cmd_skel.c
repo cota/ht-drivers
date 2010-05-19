@@ -297,7 +297,7 @@ int rawio_input(char ch, SkelDrvrRawIoBlock *rio, int *radix)
 			str[i++] = c;
 		}
 		input = strtoul(str, &endptr, *radix);
-		if (endptr != str) { /* catched something */
+		if (endptr != str) { /* caught something */
 			rio->Offset = input;
 			printf("\n");
 		}
@@ -323,7 +323,7 @@ int rawio_input(char ch, SkelDrvrRawIoBlock *rio, int *radix)
 		}
 		input = strtoul(str, &endptr, *radix);
 		if (endptr == str)
-			break; /* nothing catched */
+			break; /* nothing caught */
 		rio->Data = input;
 		if (ioctl(_DNFD, SkelDrvrIoctlRAW_WRITE, rio) < 0) {
 			mperr("RAW_WRITE ioctl fails");
