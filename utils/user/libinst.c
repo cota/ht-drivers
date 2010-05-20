@@ -1371,6 +1371,11 @@ static InsLibModlDesc* handle_module_node(xmlNode *cur_node, int pflag,
 			else
 				prnterr("Bad BUS_TYPE in MODULE clause");
 		} else if (pky == LOGICAL_MODULE_NUMBER) {
+			if (strlen(pvalu) == 0) {
+				prnterr("Fatal: Empty MODULE_NUMBER");
+				free(modld);
+				return NULL;
+			}
 			modld->ModuleNumber = GetNumber(pvalu);
 			if (modld->ModuleNumber < 1 || modld->ModuleNumber > InsLibMAX_MODULES) {
 				prnterr("Bad MODULE_NUMBER [ %d ] in MODULE"
