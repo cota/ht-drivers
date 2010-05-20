@@ -966,8 +966,7 @@ static InsLibPciModuleAddress *parse_pci_address_tag(xmlNode *cur_node,
 
 		if (pky == BUS_NUMBER) {
 			pcima->BusNumber = GetNumber(pvalu);
-			if ( (pcima->BusNumber > 16) &&
-			     (pcima->BusNumber != _NOT_DEF_) ) {
+			if (pcima->BusNumber > 16) {
 				prnterr("Bad PCI BUS number [%d]",
 					   pcima->BusNumber);
 				free(pcima);
@@ -975,8 +974,7 @@ static InsLibPciModuleAddress *parse_pci_address_tag(xmlNode *cur_node,
 			}
 		} else if (pky == SLOT_NUMBER) {
 			pcima->SlotNumber = GetNumber(pvalu);
-			if ( (pcima->SlotNumber > 16) &&
-			     (pcima->SlotNumber != _NOT_DEF_) ) {
+			if (pcima->SlotNumber > 16) {
 				prnterr("Bad PCI SLOT number [%d]",
 					   pcima->SlotNumber);
 				free(pcima);
@@ -1369,11 +1367,10 @@ static InsLibModlDesc* handle_module_node(xmlNode *cur_node, int pflag,
 				prnterr("Bad BUS_TYPE in MODULE clause");
 		} else if (pky == LOGICAL_MODULE_NUMBER) {
 			modld->ModuleNumber = GetNumber(pvalu);
-			if ( ((modld->ModuleNumber < 1) ||
-			      (modld->ModuleNumber > InsLibMAX_MODULES)) &&
-			     (modld->ModuleNumber != _NOT_DEF_) )
+			if (modld->ModuleNumber < 1 || modld->ModuleNumber > InsLibMAX_MODULES) {
 				prnterr("Bad MODULE_NUMBER [ %d ] in MODULE"
 					" clause", modld->ModuleNumber);
+			}
 
 		} else if (pky == EXTRA) {
 			modld->Extra = (char *) calloc(1, strlen(pvalu));
