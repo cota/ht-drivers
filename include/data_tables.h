@@ -15,7 +15,7 @@
 #define _DATA_TABLES_H_INCLUDE_
 
 #include <var_decl.h> /* to be able to declare variables in the header file */
-#include <general_both.h>	/* _NOT_DEF_ etc defined here */
+#include <general_both.h>
 
 #if !defined(__KERNEL__)
 

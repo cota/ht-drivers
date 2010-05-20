@@ -18,7 +18,6 @@
 				   (16) + 1 for service */
 #define MIN_DEV_SUPP 0	        /**< device bottom limit */
 #define MAX_DEV_SUPP 21	        /**< MAX supported devices */
-#define _NOT_DEF_    0xdeadface /**< something not defined */
 #define _MAGIC_      0x79757261	/**< can be used for smthng [yura] (-; */
 
 /**< get MIN */
