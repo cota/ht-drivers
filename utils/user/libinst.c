@@ -1377,7 +1377,7 @@ static InsLibModlDesc* handle_module_node(xmlNode *cur_node, int pflag,
 				return NULL;
 			}
 			modld->ModuleNumber = GetNumber(pvalu);
-			if (modld->ModuleNumber < 1 || modld->ModuleNumber > InsLibMAX_MODULES) {
+			if (modld->ModuleNumber < 0 || modld->ModuleNumber > InsLibMAX_MODULES) {
 				prnterr("Bad MODULE_NUMBER [ %d ] in MODULE"
 					" clause", modld->ModuleNumber);
 			}
@@ -1404,8 +1404,6 @@ static InsLibModlDesc* handle_module_node(xmlNode *cur_node, int pflag,
 
 	if (modld->BusType == InsLibBusTypeNOT_SET)
 		prnterr("BUS type missing from MODULE clause");
-	if (modld->ModuleNumber == 0)
-		prnterr("Logical Module Number is missing from MODULE clause");
 
 	if (pflag) printf("\n");
 
