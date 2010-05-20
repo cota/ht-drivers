@@ -537,7 +537,12 @@ static InsLibHostDesc *DoElement(xmlNode *a_node, int pflag)
 				prnterr("Symbol out of context in XML file");
 			}
 		}
-		DoElement(cur_node->children, pflag);
+		/*
+		 * Don't call FreeHost if DoElement fails; the inner iteration
+		 * that broke the recursion already called it.
+		 */
+		if (DoElement(cur_node->children, pflag) == NULL)
+			return NULL;
 	}
 	if (pflag)
 		indent(BACKWARDS);
