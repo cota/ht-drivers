@@ -1,0 +1,46 @@
+# Fictitious transfer.ref for testing purposes
+
+#****************************************************************************
+# $Id: transfer.ref,v 1.31 2010/05/23 12:39:24 egarciac Exp $
+#****************************************************************************
+# WARNING: File generated from database. Can be overwritten at any time !
+#
+
+# ***** IOCONFIG Information *****
+
+
+
+#   ln mln bus mtno module-type      lu W AM DPsz basaddr1   range1 W AM DPsz basaddr2   range2 testoff  sz sl ss
+#+#  1   0 VME 2279 MEN-A20           0 N -- DP16        0        0 N -- ----        0        0        0  0  1 -1
+#+#  2   0 VME 2302 CVORG             1 N SH DP16      800      410 N SH DP32     8100      110       10  4  0 -1
+#+#  3   0 VME 2302 CVORG             0 N SH DP32      400      400 N SH DP16     8000      100       10  4  0 -1
+#+#  4   0 VME   97 SIS3320           0 N EX DP32  8000000  8000000 N -- ----        0        0        4  4  3 -1
+#+#  5   0 VME   97 SIS3320           1 N EX DP32 10000000  8100000 N -- ----        0        0        4  4  4 -1
+#+#  6   0 VME   97 SIS3320           2 N EX DP32 18000000  8010000 N -- ----        0        0        4  4  5 -1
+#+#  7   0 VME   97 SIS3320           3 N EX DP32 20000000  8001000 N -- ----        0        0        4  4  6 -1
+
+#   ln sln bus mtno module-type      lu evno  subaddr    A1 F1     D1    A2 F2     D2
+#
+# ***** Program Startup before drivers *****
+#
+#
+#% cd /usr/local/drivers/sacvme; sacvmeinstall -R0 -M0 -V254 -L2
+#% cd /usr/local/drivers/cvorg; cvorginstall.sh  CVORG
+#% cd /usr/local/drivers/sis33; sis33install.pl  --type 20
+
+# all these should be ignored by vmedesc; they're not VME devices!
+#+#  2   0 CAM 2302 CVORG             1 N SH DP16      800      410 N SH DP32     8100      110       10  4  0 -1
+#+#  3   0 CAM 2302 CVORG             0 N SH DP32      400      400 N SH DP16     8000      100       10  4  0 -1
+#+#  3   0 CAM   97 SIS3320           0 N EX DP32  8000000  8000000 N -- ----        0        0        4  4  3 -1
+#+#  4   0 CAM   97 SIS3320           1 N EX DP32 10000000  8000000 N -- ----        0        0        4  4  4 -1
+#+#  5   0 CAM   97 SIS3320           2 N EX DP32 18000000  8000000 N -- ----        0        0        4  4  5 -1
+#+#  6   0 CAM   97 SIS3320           3 N EX DP32 20000000  8000000 N -- ----        0        0        4  4  6 -1
+#
+#% upfiles -all
+#% wreboot -all
+#% end
+#
+# ***** Program Startup after drivers *****
+#
+
+# End of file transfer.ref : all OK.

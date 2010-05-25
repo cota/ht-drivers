@@ -53,6 +53,9 @@ all:
 	$(Q)$(MAKE) linux
 	$(Q)$(MAKE) lynx
 
+test:
+	$(Q)$(MAKE) -C test
+
 # Move compiled files to proper place
 move_objs: $(FINAL_DEST)
 	$(Q)mv $(OBJFILES) $(OBJDIR)

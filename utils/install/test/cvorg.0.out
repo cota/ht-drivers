@@ -1,0 +1,11 @@
+# --transfer_ref=transfer.ref --hostname=test --irqv=111,110 --irql=2,2 --lun=0 CVORG
+<install host="test">
+	<driver name="CVORG">
+		<module name="CVORG" bus_type="VME" logical_module_number="0">
+			<interrupt vector="111" level="2"></interrupt>
+			<vme></vme>
+			<vme_space modifier="0x29" data_width="32" window_size="0x400" address="0x400"></vme_space>
+			<vme_space modifier="0x29" data_width="16" window_size="0x100" address="0x8000"></vme_space>
+		</module>
+	</driver>
+</install>
