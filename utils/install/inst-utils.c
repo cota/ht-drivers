@@ -193,6 +193,15 @@ int parse_prog_args(int argc, char* argv[], int *flg, char **cf,
 			display_usage(argv[0]);
 			return -ECANCELED; /* Operation canceled */
 #ifdef __Lynx__
+		case '-':
+			/*
+			 * Although not documented, in Lynx when we pass '-'
+			 * alone as an argument, getopt(3) returns '-' as the
+			 * option character instead of returning it as a
+			 * non-option argument, which is the sane thing.
+			 */
+			asprintf(cf, "-");
+			break;
 		case 0:
 #else /* __linux__ */
 		case 1:	/* Non-option argument.
