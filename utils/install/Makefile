@@ -38,6 +38,8 @@ EXEC_OBJS = instprog.$(CPU)
 
 $(EXEC_OBJS): $(OBJFILES)
 
+.PHONY: _build linux lynx all test move_objs clean clear
+
 _build: $(EXEC_OBJS) $(OBJDIR) move_objs
 
 
