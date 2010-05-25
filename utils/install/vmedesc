@@ -1,0 +1,340 @@
+#!/usr/bin/perl
+#
+# vmedesc - print to STDOUT a description of a group of devices
+#
+# documentation:
+# vmedesc --help or vmedesc --man
+#
+
+use strict;
+use warnings;
+use Getopt::Long;
+use Sys::Hostname;
+use Pod::Usage;
+
+my @cmd_line_luns;
+my @irq_vectors;
+my @irq_levels;
+my $driver;
+my $device;
+my $transfer_ref = '/etc/transfer.ref';
+my $man = 0;
+my $help = 0;
+my $format = 'xml';
+my $host;
+
+# allow single-character options
+Getopt::Long::Configure("bundling_override");
+
+GetOptions(
+    "device=s"		=> \$device,
+    "help|?|h"		=> \$help,
+    "hostname|H=s"	=> \$host,
+    "format|f=s" 	=> \$format,
+    "lun|l=s"		=> \@cmd_line_luns,
+    "irqv|V=s"		=> \@irq_vectors,
+    "irql|L=s"		=> \@irq_levels,
+    "man"		=> \$man,
+    "transfer_ref=s"	=> \$transfer_ref,
+    ) or pod2usage(2);
+pod2usage(1) if $help;
+pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+
+# allow comma-separated input
+@irq_vectors	= split(/,/, join(',', @irq_vectors));
+@irq_levels	= split(/,/, join(',', @irq_levels));
+@cmd_line_luns	= split(/,/, join(',', @cmd_line_luns));
+
+if (@ARGV == 0) {
+    print STDERR "Missing driver name\n";
+    pod2usage(2);
+} else {
+    $driver = $ARGV[0];
+}
+
+if (!defined $device) {
+    $device = $driver;
+}
+
+if ($format ne 'xml' and $format ne 'flat') {
+    print STDERR "Unknown format '$format', defaulting to XML\n";
+    $format = 'xml';
+}
+
+# put everything in an array of hashes, one hash per device
+my @AoH_transfer_ref;
+my @keys = qw(ln mln bus mtno module-type lu W1 AM1 DPsz1 basaddr1 range1
+		W2 AM2 DPsz2 basaddr2 range2 testoff sz sl ss);
+
+open(INPUT, "<$transfer_ref") or die ("$transfer_ref not found\n");
+
+TRANSFER_REF_LINE:
+    while (<INPUT>) {
+	next TRANSFER_REF_LINE if $_ !~ m|^\#\+\#|;
+
+	chomp;
+	my @values = split(/\s+/, $_);
+# remove the first '#+#'
+	shift @values;
+
+	my $href;
+	foreach (@keys) {
+	    $href->{$_} = shift @values;
+	}
+
+	next TRANSFER_REF_LINE if ($href->{'module-type'} ne $device or
+				   $href->{'bus'} ne 'VME');
+	my $entry = {};
+	$entry->{'lun'}		= $href->{'lu'};
+	$entry->{'base1'}	= '0x'.$href->{'basaddr1'};
+	$entry->{'base2'}	= '0x'.$href->{'basaddr2'};
+	$entry->{'size1'}	= '0x'.$href->{'range1'};
+	$entry->{'size2'}	= '0x'.$href->{'range2'};
+	$entry->{'am1'}		= get_am($href->{'AM1'});
+	$entry->{'am2'}		= get_am($href->{'AM2'});
+	$entry->{'dw1'}		= get_dw($href->{'DPsz1'});
+	$entry->{'dw2'}		= get_dw($href->{'DPsz2'});
+	push @AoH_transfer_ref, $entry;
+}
+close(INPUT);
+
+# The list of LUNs comes from either the command line or directly from
+# the transfer.ref
+# The one coming from the command line is preferred.
+my $AoH;
+if (@cmd_line_luns) {
+    my @AoH_cmd_line;
+
+    foreach (@cmd_line_luns) {
+	my $index = find_index_in_AoH(\@AoH_transfer_ref, 'lun', $_);
+	my $ref;
+
+	if ($index == -1) {
+	    die("lun $_ not found in the transfer.ref file\n")
+	}
+# by splicing we make sure we won't process the same LUN twice
+	$ref = splice(@AoH_transfer_ref, $index, 1);
+	push @AoH_cmd_line, $ref;
+    }
+    $AoH = \@AoH_cmd_line;
+} else {
+    $AoH = \@AoH_transfer_ref;
+}
+
+# add the interrupt vectors and levels
+foreach (@$AoH) {
+    $_->{'irqv'} = shift @irq_vectors;
+    $_->{'irql'} = shift @irq_levels;
+}
+
+if (!defined $host) {
+    $host = hostname;
+}
+if ($format eq 'xml') {
+    print_xml();
+} else {
+    print_flat();
+}
+
+sub print_flat {
+    my $flat = {};
+    my @attrs = qw(lun irqv irql base1 size1 am1 dw1 base2 size2 am2 dw2);
+
+    foreach (@attrs) {
+	$flat->{$_} = flatten_attribute($AoH, $_);
+    }
+
+    print "host=$host driver=$driver device=$device bus=VME";
+    foreach (@attrs) {
+	print " $_=$flat->{$_}";
+    }
+    print "\n";
+}
+
+sub flatten_attribute {
+    my ($AoHref, $key) = @_;
+    my @list;
+
+    foreach (@$AoHref) {
+	push @list, $_->{"$key"};
+    }
+    return join(',', map { defined $_ ? $_ : '' } @list);
+}
+
+sub print_xml {
+    print "<install host=\"$host\">\n";
+    print_xml_driver(1);
+    print "</install>\n";
+}
+
+sub print_xml_driver {
+    my $tabs = shift;
+    my $indent = "\t" x $tabs;
+
+    print "$indent<driver name=\"$driver\">\n";
+    print_xml_devices($tabs + 1);
+    print "$indent</driver>\n";
+}
+
+sub print_xml_devices {
+    my $tabs = shift;
+    my $indent = "\t" x $tabs;
+
+    foreach my $href (@$AoH) {
+print <<ENDXML;
+$indent<module name="$device" bus_type="VME" logical_module_number="$href->{'lun'}">
+ENDXML
+	print_xml_device_attrs($tabs + 1, $href);
+	print "$indent</module>\n";
+    }
+}
+
+sub print_xml_device_attrs {
+    my ($tabs, $href) = @_;
+    my $indent = "\t" x $tabs;
+
+    if (defined $href->{'irqv'} and defined $href->{'irql'}) {
+print <<ENDXML;
+$indent<interrupt vector="$href->{'irqv'}" level="$href->{'irql'}"></interrupt>
+ENDXML
+    }
+    print "$indent<vme></vme>\n";
+    print_xml_vme_space($tabs, $href, 1);
+    print_xml_vme_space($tabs, $href, 2);
+}
+
+sub print_xml_vme_space {
+    my ($tabs, $href, $n) = @_;
+    my $indent = "\t" x $tabs;
+    my $base = $href->{"base$n"};
+    my $size = $href->{"size$n"};
+    my $am = $href->{"am$n"};
+    my $dw = $href->{"dw$n"};
+
+    return if (!defined $am or !defined $dw);
+
+print <<ENDXML;
+$indent<vme_space modifier="$am" data_width="$dw" window_size="$size" address="$base"></vme_space>
+ENDXML
+}
+
+sub find_index_in_AoH {
+    my ($AoHref, $key, $value) = @_;
+    my $index = -1;
+
+    for(my $i = 0; $i < @$AoHref; $i++) {
+	if ($AoHref->[$i]{$key} == $value) {
+	    $index = $i;
+	    last;
+	}
+    }
+    return $index;
+}
+
+sub get_am {
+    my $value = shift;
+    my $am;
+
+    if ($value eq 'SH') {
+	$am = '0x29';
+    } elsif ($value eq 'ST') {
+	$am = '0x39';
+    } elsif ($value eq 'EX') {
+	$am = '0x9';
+    } elsif ($value eq '--') {
+	undef $am;
+    } else {
+	die "Unknown Adress Modifier $value\n";
+    }
+    return $am;
+}
+
+sub get_dw {
+    my $string = shift;
+    my $dw;
+
+    if ($string =~ m/DP(\d+)/) {
+	$dw = $1;
+    } else {
+	undef $dw;
+    }
+    return $dw;
+}
+
+__END__
+
+=head1 NAME
+
+vmedesc - Generate the description of a group of devices controlled by a given driver.
+
+=head1 SYNOPSIS
+
+vmedesc [options] driver
+
+vmedesc - Generate the description of a group of devices controlled by B<driver>.
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--device>
+
+Name of the device(s) controlled by B<driver>. The default value is that of B<driver>.
+
+=item B<--help -h -?>
+
+Print a brief help message and exits.
+
+=item B<--hostname -H>
+
+Hostname of the resulting description. By default the hostname of the machine
+on which the program is executed is taken.
+
+=item B<--format -f>
+
+Output format. Valid formats: xml (default) and flat.
+
+=item B<--irql -L>
+
+Interrupt Level for each device.
+Both multiple values and comma-separated lists of values are accepted.
+
+=item B<--irqv -V>
+
+Interrupt Vector for each device.
+Both multiple values and comma-separated lists of values are accepted.
+
+=item B<--lun -l>
+
+Devices to be installed given by their logical unit numbers.
+Both multiple values and comma-separated lists of values are accepted.
+When missing, all the logical unit numbers found in the transfer.ref
+file are installed.
+
+=item B<--man>
+
+Prints the manual page and exits.
+
+=item B<--transfer_ref>
+
+Filename of a transfer.ref alternative to the default '/etc/transfer.ref'.
+
+=back
+
+=head1 DESCRIPTION
+
+B<vmedesc> parses a transfer.ref file (taken by default from '/etc/transfer.ref')
+and prints to standard output a description of the group of devices controlled
+by a given driver. Interrupt vectors and levels, which are not available in the
+transfer.ref file, can be passed as command-line arguments.
+
+By default all of B<driver>'s devices in the transfer.ref are processed.
+Each irq provided through the command-line is assigned to each device in the
+same order as it appears in the transfer.ref file. Assignations of irq parameters
+can be provided explicitly by using the B<--lun> option.
+
+=head1 AUTHOR
+
+Written by Emilio G. Cota <cota@braap.org>
+
+=cut
