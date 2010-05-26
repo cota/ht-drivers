@@ -1,4 +1,4 @@
 #!/bin/sh
 
-vmedesc $* | instprog.0276b4d - CVORG
+vmedesc $* | /usr/local/instprog/instprog.0276b4d - CVORG
 
