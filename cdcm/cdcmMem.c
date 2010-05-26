@@ -28,6 +28,8 @@ void cdcm_mem_free(void *addr)
 	struct cdcm_mem_header *buf = addr;
 	ssize_t realsize;
 
+	if (addr == NULL)
+		return;
 	buf--;
 	realsize = buf->size + sizeof(*buf);
 
