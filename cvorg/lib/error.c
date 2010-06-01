@@ -54,7 +54,7 @@ int __cvorg_errno;
  * Error and debugging messages are printed to the stream stderr.
  *
  * The default loglevel can be set by using the environment variable
- * LICVORG_LOGLEVEL. The default loglevel is 1.
+ * LIBCVORG_LOGLEVEL. The default loglevel is 1.
  *
  * The meaning of the loglevels is as follows:
  * loglevel = 0 libcvorg prints nothing
