@@ -61,6 +61,8 @@ static char *cvorg_ioctl_names[] = {
 	[_IOC_NR(CVORG_IOCGTEMPERATURE)] = "Get On-Board Temperature (in C)",
 
 	[_IOC_NR(CVORG_IOCSOUT_ENABLE)]	= "Enable/Disable Channel's Output",
+
+	[_IOC_NR(CVORG_IOCGPCB_ID)]	= "Get PCB Serial Number",
 };
 
 static const int32_t cvorg_gains[] = {
@@ -1924,6 +1926,16 @@ cvorg_out_enable_ioctl(struct cvorg_channel *channel, void *arg)
 	return SkelUserReturnOK;
 }
 
+static SkelUserReturn cvorg_get_pcb_id(struct cvorg *cvorg, void *arg)
+{
+	uint64_t *id = arg;
+
+	*id = cvorg_readw(cvorg, CVORG_PCB_MSB);
+	*id <<= 32;
+	*id |= cvorg_readw(cvorg, CVORG_PCB_LSB);
+	return SkelUserReturnOK;
+}
+
 SkelUserReturn SkelUserIoctls(SkelDrvrClientContext *ccon,
 			SkelDrvrModuleContext *mcon, int cm, char *u_arg)
 {
@@ -2056,6 +2068,10 @@ SkelUserReturn SkelUserIoctls(SkelDrvrClientContext *ccon,
 
 	case CVORG_IOCSOUT_ENABLE:
 		ret = cvorg_out_enable_ioctl(channel, arg);
+		break;
+
+	case CVORG_IOCGPCB_ID:
+		ret = cvorg_get_pcb_id(cvorg, arg);
 		break;
 
 	default:
