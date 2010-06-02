@@ -43,6 +43,7 @@ enum _tag_cmd_id {
 	CmdDAC,
 	CmdOUTGAIN,
 	CmdOUTEN,
+	CmdPCB,
 	CmdLAST
 };
 

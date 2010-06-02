@@ -1543,6 +1543,25 @@ int h_outen(struct cmd_desc *cmdd, struct atom *atoms)
 	return 1;
 }
 
+int h_pcb(struct cmd_desc *cmdd, struct atom *atoms)
+{
+	uint64_t pcb_id;
+
+	if (atoms == (struct atom *)VERBOSE_HELP) {
+		printf("%s - Print the PCB Serial Number of the current device\n",
+			cmdd->name);
+		return 1;
+	}
+
+	if (ioctl(_DNFD, CVORG_IOCGPCB_ID, &pcb_id) < 0) {
+		mperr("get_pcb_id");
+		return -TST_ERR_IOCTL;
+	}
+	printf("0x%016llx\n", (unsigned long long)pcb_id);
+
+	return 1;
+}
+
 int main(int argc, char *argv[], char *envp[])
 {
 	return extest_init(argc, argv);
@@ -1607,6 +1626,9 @@ struct cmd_desc user_cmds[] = {
 
 	{19, CmdOUTEN,	"outen", "Enable Output", "", 0,
 			h_outen },
+
+	{20, CmdPCB,	"pcb", "Get the PCB Serial Number", "", 0,
+			h_pcb },
 
 	{ 0, }
 };
