@@ -647,6 +647,7 @@ int lvalue;                 /* For when arg is NULL */
 
 	 tval  = GetReg(regs,VD80_PTCR,mcon);
 	 tval |= VD80_PSCNTCLRONSTART;
+	 tval &= ~VD80_PSCNTCLKONSMPL;
 	 SetReg(regs,VD80_PTCR,tval,mcon);
 
 	 if (lval) tval = (lval-1) / 32;
@@ -696,7 +697,6 @@ int lvalue;                 /* For when arg is NULL */
 	    SetReg(regs,VD80_TCR3,0,mcon);
 	 }
 
-	 tval = tcon->MinPreTrig;
 	 tval = GetReg(regs,VD80_PTCR,mcon) & ~VD80_PRESAMPLESMIN_MASK;
 	 if (tcon->MinPreTrig) {
 	    tsmp   = tcon->MinPreTrig/32;
@@ -704,6 +704,8 @@ int lvalue;                 /* For when arg is NULL */
 	    tsmp  &= VD80_PRESAMPLESMIN_MASK;
 	    tval |= tsmp;
 	 }
+	 tval |= VD80_PSCNTCLRONSTART;
+	 tval &= ~VD80_PSCNTCLKONSMPL;
 	 SetReg(regs,VD80_PTCR,tval,mcon);
 
 	 return OK;
