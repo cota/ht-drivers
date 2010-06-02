@@ -647,7 +647,7 @@ int lvalue;                 /* For when arg is NULL */
 
 	 tval  = GetReg(regs,VD80_PTCR,mcon);
 	 tval |= VD80_PSCNTCLRONSTART;
-	 tval &= ~VD80_PSCNTCLKONSMPL;
+	 tval &= ~(VD80_PSCNTCLKONSMPL | VD80_PSREGCLRONREAD);
 	 SetReg(regs,VD80_PTCR,tval,mcon);
 
 	 if (lval) tval = (lval-1) / 32;
@@ -705,7 +705,7 @@ int lvalue;                 /* For when arg is NULL */
 	    tval |= tsmp;
 	 }
 	 tval |= VD80_PSCNTCLRONSTART;
-	 tval &= ~VD80_PSCNTCLKONSMPL;
+	 tval &= ~(VD80_PSCNTCLKONSMPL | VD80_PSREGCLRONREAD);
 	 SetReg(regs,VD80_PTCR,tval,mcon);
 
 	 return OK;
