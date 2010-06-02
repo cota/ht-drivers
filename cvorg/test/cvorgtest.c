@@ -1504,15 +1504,16 @@ int h_outgain(struct cmd_desc *cmdd, struct atom *atoms)
 	return 1;
 }
 
-int h_outen(struct cmd_desc *cmdd, struct atom *atoms)
+int h_starten(struct cmd_desc *cmdd, struct atom *atoms)
 {
 	int32_t enable;
 	uint32_t status;
 
 	if (atoms == (struct atom *)VERBOSE_HELP) {
-		printf("%s - enable outputn\n"
+		printf("%s - enable Start\n"
 			"%s - show the current output enable\n"
-			"%s 1/0 - enable/disable the current channel's output\n",
+			"%s 1/0 - enable/disable listening to start pulses on "
+			"the current channel\n",
 			cmdd->name, cmdd->name, cmdd->name);
 		return 1;
 	}
@@ -1624,8 +1625,8 @@ struct cmd_desc user_cmds[] = {
 	{18, CmdOUTGAIN, "outgain", "Output Gain (dB)", "", 0,
 			h_outgain },
 
-	{19, CmdOUTEN,	"outen", "Enable Output", "", 0,
-			h_outen },
+	{19, CmdSTARTEN, "starten", "Enable Start", "", 0,
+			h_starten },
 
 	{20, CmdPCB,	"pcb", "Get the PCB Serial Number", "", 0,
 			h_pcb },
