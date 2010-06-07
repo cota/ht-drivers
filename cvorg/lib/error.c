@@ -143,7 +143,7 @@ void __cvorg_libc_error(const char *string)
 	__cvorg_errno = errno;
 
 	if (__cvorg_loglevel >= 2) {
-		char pre[32];
+		char pre[64];
 
 		snprintf(pre, sizeof(pre), "%s: libc error", string);
 		pre[sizeof(pre) - 1] = '\0';
