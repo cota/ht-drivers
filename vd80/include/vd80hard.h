@@ -448,12 +448,7 @@
  * are the other way round as observed on the VD80 during tests
  */
 
-#if DOCCUMENTATION_CORRECT
 #define VD80_ATRIG_WIN_BELOW		(3 << VD80_ATRIG_WIN_SHIFT)
 #define VD80_ATRIG_WIN_ABOVE		(4 << VD80_ATRIG_WIN_SHIFT)
-#else
-#define VD80_ATRIG_WIN_BELOW            (4 << VD80_ATRIG_WIN_SHIFT)
-#define VD80_ATRIG_WIN_ABOVE            (3 << VD80_ATRIG_WIN_SHIFT)
-#endif
 
 #endif /* _VD80_H */
