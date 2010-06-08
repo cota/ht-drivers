@@ -198,7 +198,8 @@ int cvorg_unlock(cvorg_t *device)
  * clock can be used as well by setting freq to 0.
  *
  * This function puts the calling process to sleep until the configured
- * frequency is available at the output of the module.
+ * frequency is available at the output of the module. Note that this
+ * sleeping wait may last for a few hundreds of milliseconds.
  *
  * Changing the sampling frequency of a device with any of its channels
  * in 'busy' state might fail.
