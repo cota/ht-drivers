@@ -593,12 +593,14 @@ Vd80Err err;
 /* ==================================================================== */
 /* Need to know if bytes must be swapped                                */
 
+#if 0
 static int little_endian() {
 int   i = 1;
 char *p = (char *) &i;
 
    return *p;
 }
+#endif
 
 /* ==================================================================== */
 /* Transfer module data by DMA to users buffer                          */
