@@ -338,9 +338,10 @@ static int get_atoms(char *input, struct atom *atoms)
 			if (*buf == '-') {
 				char *c = buf + 1;
 
-				if (*c && isdigit(*c))
+				if (*c && isdigit(*c)) {
 					atype = Numeric;
-				goto reeval;
+					goto reeval;
+				}
 			}
 			atoms[cnt].pos = (unsigned int)(buf - input);
 			j = 0;
