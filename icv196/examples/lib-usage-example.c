@@ -30,6 +30,10 @@ int main(int argc, char *argv[], char *envp[])
 	int ret;
 	short wbuff, rbuff;
 
+//      Never cast a short to a char as below. Bad example. Do this instead ...
+//      char  wbuff, rbuff; If size is one byte do this to avoid endien problems
+
+
 	fd = icv196_get_handle();
 	if (fd < 0) {
 		printf("Can't get library handle...\n");
