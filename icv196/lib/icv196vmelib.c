@@ -64,7 +64,6 @@ int icv196_get_handle(void)
 		sprintf(pathname, "%s%d", path, i+1);
 		newhdl = open(pathname, O_RDWR);
 		if (newhdl == -1) {
-			perror("icv196_get_handle() Can't open driver node");
 			hdl[i] = _MAGIC_; /* mark as busy */
 			/* maybe some other application is using it
 			   Continue to scan through all possible driver nodes */
@@ -72,7 +71,6 @@ int icv196_get_handle(void)
 		}
 
 		hdl[i] = newhdl;
-		printf("%s driver handle opened\n", pathname);
 		break;
 	}
 
@@ -223,6 +221,7 @@ int icv196_read_channel(int h, int module, int grp, int dps, char *data)
 int icv196_write_channel(int h, int module, int grp, int dps, char *data)
 {
 	short *shd = (short*) data;
+
 	struct icv196T_Service arg = { 0 };
 
 	if (!WITHIN_RANGE(0, module, 7) ||
