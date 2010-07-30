@@ -174,7 +174,12 @@ int icv196_disconnect(int h, short module, short line)
 int icv196_read_channel(int h, int module, int grp, int dps, char *data)
 {
 	int rc;
+
+	char c;
+	short s;
+
 	short *shd = (short*) data;
+
 	struct icv196T_Service arg = { 0 };
 
 	if (!WITHIN_RANGE(0, module, 7) ||
@@ -192,11 +197,13 @@ int icv196_read_channel(int h, int module, int grp, int dps, char *data)
 		return -1;
 	}
 
-	if (rc == 1)
-		*data = (char)arg.data[0];
-	else
-		*shd = (short)arg.data[0];
-
+	if (dps == 1) {
+		c = arg.data[0];
+		*data = c;
+	} else {
+		s = (short)arg.data[0];
+		*shd = s;
+	}
 	return rc;
 }
 
