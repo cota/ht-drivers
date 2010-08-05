@@ -1,0 +1,51 @@
+\documentclass{article}
+\usepackage[T1]{fontenc}
+\usepackage{times,mathptmx}
+\usepackage{amsmath}
+
+\title{A fast way to check whether a sine wave is actually sinusoidal}
+\author{Juan David Gonz\'{a}lez Cobas}
+
+\begin{document}
+
+\maketitle
+Let us assume a true sine wave $f(t) = A \sin(\omega t + \phi)$
+of known frequency $\omega = 2\pi f = 2\pi/T$ is sampled at
+$N_s$ samples-per-second rate, which amounts to a sampling period of
+$T_s = 1/N_s$.
+Thus, a complete sine period contains a number of samples
+\begin{equation}
+	N = T N_s = \frac{2\pi}{\omega} \, N_s =
+	 \frac{2\pi}{\omega T_s}
+\end{equation}
+which is not necessarily an integer. To make more precise computations,
+and getting a sampling as coherent as possible,
+let us take a number~$p$  of sine periods
+such that $pN$, the total amount of samples taken into account,
+be as close to an integer as possible. This is not needed if the
+sampling is coherent, i.e., the sampling period divides exactly the sine
+wave period.
+
+Now, let us suppose we got a vector of $pN$ samples of the (apparently)
+sinusoidal wave~$f$. If it is actually sinusoidal, it must happen that
+\begin{equation}
+	\frac{1}{pN} \sum_0^{pN-1} f_k^2 = A^2/2
+\end{equation}
+(why? A hint: $\sin^2 + \cos^2 = 1$). This is nothing more than a
+restatement of the fact that the RMS crest factor for sine waves
+is $C_\text{rms} = 1/\sqrt 2$.
+
+Let us now compute the normalized Fourier coefficients
+\begin{align}
+	C &= \frac{\sqrt 2}{pN} \sum_0^{pN-1} f_k \,\cos \frac{2\pi k}{N} \\
+	S &= \frac{\sqrt 2}{pN} \sum_0^{pN-1} f_k \,\sin \frac{2\pi k}{N}
+\end{align}
+(the $\sqrt 2$ factors are precisely the reciprocal of $C_\text{rms}$
+that normalize the vector of $\cos$ and $\sin$ we are correlating to).
+Then, our set of samples corresponds exactly to a true sine wave if and
+only if
+\begin{equation}
+	C^2 + S^2 = A^2/2
+\end{equation}
+\end{document}
+
