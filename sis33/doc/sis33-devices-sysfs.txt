@@ -1,0 +1,133 @@
+sis33 devices' sysfs files
+==========================
+
+This file describes the contents of each sis33 device's sysfs file.
+sis33 devices are found under the 'sis33' subsystem (class).
+
+Files denoted with RO are read-only. Conversely, WO files are write-only and
+RW can be read and written.
+
+Note on locking: while a module is acquiring, the attempt to change a
+parameter that may affect an ongoing acquisition will fail with errno set
+to EBUSY.
+
+acq_cancel (WO)
+---------------
+Cancel an ongoing acquisition.
+
+available_clock_frequencies (RO)
+--------------------------------
+Whitespace-separated list of available internal clock frequencies, in Hz.
+
+available_event_lengths (RO)
+--------------------------------
+Whitespace-separated list of available event lengths.
+Note that the maximum value in this list occupies the whole segment when
+the number of segments is equal to n_segments_min.
+
+channels/channelX (directories)
+-------------------------------
+One directory per channel, where X ranges from 0 to n-1.
+
+channels/channelX/offset (RW)
+-----------------------------
+Offset value of the channel's DAC, in hex.
+Channels that don't support programmable offset don't export this file.
+
+clock_frequency (RW)
+--------------------
+Current internal clock frequency, in Hz.
+Only values shown in available_clock_frequencies are accepted.
+
+clock_source (RW)
+-----------------
+Current clock source, e.g. internal or external.
+Integer value coming from enum sis33_clksrc.
+
+description (RO)
+----------------
+Brief text description of the device.
+
+event_timestamping_divider (RW)
+-------------------------------
+The timestamping unit is clocked with the clock resulting from dividing the
+sampling clock. The value of the divider is set and queried through this file.
+
+event_timestamping_divider_max (RO)
+-----------------------------------
+Maximum value allowed for the timestamping divider.
+
+event_timestamping_max_ticks_log2 (RO)
+--------------------------------------
+Log to base 2 of the number of ticks at which the timestamping counter
+overflows.
+Example: max_ticks_log2 = 18 -> the clock overflows after 2**18 ticks.
+
+event_timestamping_support (RO)
+-------------------------------
+Set to 1 if the module supports event timestamping. Set to 0 otherwise.
+
+n_bits (RO)
+-----------
+Number of bits of the on-board Digital-to-Analog Converter.
+Note that the sampled values range from 0 to 2**n_bits.
+
+n_events_max (RO)
+-----------------
+Maximum number of events supported by the device.
+
+n_segments (RW)
+---------------
+Number of segments.
+The on-board memory can be split into segments to allow for simultaneous
+acquisition and fetch operations (as long as they happen on different
+segments).
+
+n_segments_max (RO)
+-------------------
+Maximum number of segments supported by the device.
+
+n_segments_min (RO)
+-------------------
+Minimum number of segments supported by the device.
+
+start_auto (RW)
+---------------
+Set to 1 if autostart mode enabled, 0 otherwise.
+In autostart mode, the device starts storing samples immediately after
+the previous event has been acquired--or, if in case of the first event,
+immediately after issuing the acquisition start IOCTL.
+If disabled, a start trigger must arrive to signal the start of each
+event's acquisition.
+
+start_delay (RW)
+----------------
+The start trigger is effectively delayed by this number of samples.
+
+stop_auto (RW)
+--------------
+Set to 1 if autostop mode enabled, 0 otherwise.
+In autostop mode, the device stops storing samples of a given event when
+the event's (circular) buffer has been filled up for the first time.
+If disabled, a stop trigger must arrive to signal the stop of each
+event's acquisition.
+The position of the stop trigger within the event's (circular) buffer
+is always returned to user-space through the data fetch IOCTL.
+
+stop_delay (RW)
+---------------
+The stop trigger is effectively delayed by this number of samples.
+
+trigger (WO)
+------------
+Send a trigger to the device.
+Valid values are given by enum sis33_trigger.
+
+trigger_external_enable (RW)
+----------------------------
+Devices have external trigger inputs. This parameter enables or disables
+these inputs.
+
+
+
+Emilio G. Cota <cota@braap.org>, August 2010
