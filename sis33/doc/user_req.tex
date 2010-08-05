@@ -1,0 +1,332 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{ae,aecompl}
+% The following is needed in order to make the code compatible
+% with both latex/dvips and pdflatex.
+\ifx\pdftexversion\undefined
+\usepackage[dvips]{graphicx}
+\else
+\usepackage{graphicx}
+\DeclareGraphicsRule{*}{mps}{*}{}
+\fi
+
+\title{SIS33xx Software Support}
+\author{Emilio G. Cota $<$\href{mailto:emilio.garcia.cota@cern.ch}
+  {emilio.garcia.cota@cern.ch}$>$ \\ CERN BE/CO/HT}
+\date{13 August 2009}
+
+\begin{document}
+
+\maketitle
+
+
+\section*{User Requirements}
+\label{sec-1}
+
+The purpose of this document is to make sure the work we intend to do, which
+is to provide software support for the SIS33xx\footnote{SIS33xx is the name of
+  a family of high-speed ADCs from Struck Innovative Systeme GmbH --
+  \href{http://www.struck.de/}{http://www.struck.de/} } family, matches our
+user's demands.
+
+In the HT section we have defined a standard procedure for providing software
+support for the cards under our responsibility. We intend to follow it
+entirely to carry out this work.
+
+\subsection*{Deliverables}
+\label{sec-1.1}
+
+\begin{itemize}
+\item Linux/LynxOS kernel Driver
+\item User-space Library to access the module. Documentation in doxygen.
+\item Driver and Library test programs (not usually given to the users)
+\item Code examples
+\end{itemize}
+An outline of the library API can be found at the end of this document. Please
+spend some time on it to give us feedback.
+
+\subsection*{SIS33xx Family}
+\label{sec-1.2}
+
+In the CO group we currently support 3 SIS33xx modules:
+\href{http://wikis/display/HT/SIS3300+-+65-100+MHz+VME+FADCs}{SIS3300},
+\href{http://wikis/display/HT/SIS3320+-+210+MHz+12-bit+VME+Digitizer}{SIS3320},
+\href{http://wikis/display/HT/SIS3320+v250+-+250+MHz+12-bit+VME+Digitizer}
+     {SIS3320-250},
+whose features are outlined below. I have seen in the wiki another module,
+the \href{http://wikis/display/HT/SIS3302+-+100+MHz+16-bit+VME+Digitizer}
+{SIS3302},
+but I haven't been able to find any spares (nor users of it) in the group.
+If you need support for it, please get in touch.
+
+\subsubsection*{SIS33xx Features}
+\label{sec-1.2.1}
+
+
+\begin{center}
+  \begin{tabular}{lrrr}
+    \hline
+    &    3300  &    3320  &  3320-250  \\
+    \hline
+    Channels                            &       8  &       8  &         8  \\
+    Bits per Sample                     &      12  &      12  &        12  \\
+    Max. Samples per Channel            &  128 Ks  &   32 Ms  &     32 Ms  \\
+    Internal Clock Speeds (MHz)         &     100  &     200  &       250  \\
+    &      50  &     100  &       200  \\
+    &      25  &      50  &       100  \\
+    &    12.5  &          &        50  \\
+    &    6.25  &          &            \\
+    &   3.125  &          &            \\
+    Min/Max External Clock Speed (MHz)  &   1/105  &  40/210  &    40/250  \\
+    VME Address Space (MB)              &      16  &     128  &       128  \\
+    Multi-Event                         &     Yes  &     Yes  &       Yes  \\
+    \hline
+  \end{tabular}
+\end{center}
+
+
+
+\emph{NB.} The SIS3320-250 is almost identical to the SIS3320; the only change
+is the available sampling frequency range.
+
+\section*{SIS33 Library API proposal}
+\label{sec-2}
+
+This will be a static library to control the three SIS modules mentioned
+above. They're similar enough that we think this approach is plausible.
+
+\subsection*{Initialisation}
+\label{sec-2.1}
+
+
+\subsubsection*{int sis33\_t *sis33\_open(sis33\_t *handle,
+  enum sis33\_device dev, int lun)}
+\label{sec-2.1.1}
+
+Open a handle for a device of type \emph{dev}, and associate the
+handle to a device given by its logical unit number (\emph{lun}). \\
+return 0 on success; < 0 on failure. (e.g. lun not found.) \\
+Note: \verb~sis33_t *handle~ shouldn't be dereferenced by the user.
+
+\subsubsection*{int sis33\_close(sis33\_t *handle)}
+\label{sec-2.1.2}
+
+return 0 on success, < 0 otherwise.
+
+\subsubsection*{int sis33\_get\_nr\_devices(enum sis33\_device dev)}
+\label{sec-2.1.3}
+
+return how many devices of type \emph{dev} are installed.
+
+\subsubsection*{int sis33\_get\_nr\_channels(enum sis33\_device dev)}
+\label{sec-2.1.4}
+
+return the number of channels on \emph{dev} devices.
+
+\subsubsection*{void sis33\_device\_reset(sis33\_t *handle)}
+\label{sec-2.1.5}
+
+reset the current module.
+
+\subsection*{Error messages / Diagnostics}
+\label{sec-2.2}
+
+\subsubsection*{sis33\_errno, sis33\_strerror}
+\label{sec-2.2.1}
+
+Convert sis33lib error codes into strings.
+
+\subsubsection*{Environment variable: SIS33LIB\_LOGLEVEL}
+\label{sec-2.2.2}
+
+Set different log levels for the library: \\
+0 - print library's fatal errors \\
+1 - print invalid parameters passed \\
+2 - print run-time errors (e.g. ENOMEM) \\
+3 - print debugging info: trace every sis33lib call \\
+The debugging information is printed to stderr.
+
+\subsubsection*{sis33\_loglevel(sis33\_t *handle, int level)}
+\label{sec-2.2.3}
+
+Set the log level to \verb~level~. \\
+return previous loglevel value. \\
+(See \textbf{SIS33LIB\_LOGLEVEL} above)
+
+\subsubsection*{int sis33\_get\_version(sis33\_t *handle, char *driver,
+  char *board)}
+\label{sec-2.2.4}
+
+return < 0 if there's an error; 0 otherwise.
+
+\subsection*{Sampling Configuration}
+\label{sec-2.3}
+
+Note: per-channel configuration is very limited in these devices. If
+you just are interested in a few channels, simply read data from those
+and ignore the rest. \\
+
+\subsubsection*{int sis33\_set\_trigger(sis33\_t *handle,
+  enum sis33\_trigger trig)}
+\label{sec-2.3.1}
+
+Set the trigger type for all the channels on the current device. \\
+The external trigger can be enabled/disabled. The Software trigger always
+works.
+
+\subsubsection*{int sis33\_set\_stop(sis33\_t *handle, enum sis33\_stop stop)}
+\label{sec-2.3.2}
+
+Set the stop type for all the channels on the current device. \\
+The external stop can be enabled/disabled. Software stop always
+works.
+
+\subsubsection*{int sis33\_set\_event(sis33\_t *handle, int events,
+  enum sis33\_samples samples)}
+\label{sec-2.3.3}
+
+Configure number of events and samples per event. \\
+return 0 on success; < 0 if there's an error (such as wrong size). \\
+Note: Each device family has a fixed set of available samples per event,
+hence the \emph{enum}.
+
+\subsubsection*{int sis33\_set\_clock(sis33\_t *handle, enum sis33\_clock clock)}
+\label{sec-2.3.4}
+
+Set the sampling clock of the device. It can be external or internal. \\
+Note: the internal sampling clock range differs among SIS33xx families.
+The range of allowed frequencies for the external clock also varies.
+
+\subsubsection*{int sis33\_set\_post\_trigger(sis33\_t *handle, int postsamples,
+  int post\_trig\_delay, int post\_stop\_delay)}
+\label{sec-2.3.5}
+
+Set the number of desired post samples, post-trigger delay and post-stop
+delay (both in samples too). \\
+The SIS33xx devices can start sampling a certain number of samples \textbf{after}
+the trigger is received. The stop can also be delayed a certain number
+of samples. \\
+\begin{itemize}
+\item Why not passing the delays in units of time? When sampling with an
+  external clock, library and driver have no clue of what the sampling
+  frequency is; without this frequency it's impossible to work out
+  the translation from time into samples.
+\end{itemize}
+Note: the functions above have also mirror functions to \verb~get~ the current
+values of the parameters described.
+
+\subsection*{Acquisition}
+\label{sec-2.4}
+
+
+\subsubsection*{int sis33\_acq\_start(sis33\_t *handle)}
+\label{sec-2.4.1}
+
+Start the acquisition of data.
+
+\subsubsection*{int sis33\_acq\_wait(sis33\_t *handle)}
+\label{sec-2.4.2}
+
+Start the acquisition of data and sleep until the acquisition finishes.
+
+\subsubsection*{int sis33\_acq\_timeout(sis33\_t *handle)}
+\label{sec-2.4.3}
+
+Start the acquisition of data and sleep until the acquisition finishes
+or the timeout expires. \\
+Note that when the timeout has expired, the acquisition is still ongoing.
+(i.e. it hasn't been cancelled.)
+
+\subsubsection*{int sis33\_acq\_poll(sis33\_t *handle)}
+\label{sec-2.4.4}
+
+return 0 if the module is not acquiring data, < 0 otherwise.
+
+\subsubsection*{int sis33\_force\_trigger(sis33\_t *handle)}
+\label{sec-2.4.5}
+
+Force trigger via software.
+
+\subsubsection*{int sis33\_force\_stop(sis33\_t *handle)}
+\label{sec-2.4.6}
+
+Force stop via software.
+
+\subsection*{Reading the Samples}
+\label{sec-2.5}
+
+\subsubsection*{int sis33\_read\_data(sis33\_t *handle, int channel,
+  uint16\_t *buf, int elems)}
+\label{sec-2.5.1}
+
+Transfer the data read from \verb~channel~ to the previously-allocated
+buffer \verb~buf~. \\
+return number of samples transferred; < 0 on failure.
+
+\subsection*{SIS33\{20,20-250\} only}
+\label{sec-2.6}
+
+\subsubsection*{int sis33\_set\_offset(sis33\_t *handle, int channel, int offset)}
+\label{sec-2.6.1}
+
+Set the offset of the ADC of a channel to a certain level.
+return 0 on success; < 0 otherwise.
+Pass channel==0 to set all the channels.
+\emph{offset} is a 16-bit value which represents the desired offset to be added
+by the DAC to the input stage. The default value is 0x8000, i.e. the middle
+of the range. See section 4.12 of the manual for further information.
+
+\subsubsection*{int sis33\_set\_gain(sis33\_t *handle, enum sis3320\_scale gain)}
+\label{sec-2.6.2}
+
+The gain can be set to full-scale (default) or half-scale.
+
+\section*{Stuff I don't intend to implement}
+\label{sec-3}
+
+Please let me know if you'd like to see any of the following implemented.
+
+\subsection*{SIS3300}
+\label{sec-3.1}
+
+\begin{itemize}
+\item Gate mode: the leading edge of the trigger input initiates the trigger,
+  and the trailing edge of the trigger input defines the stop. See Section
+  5.2 of the SIS3300 manual.
+\item Multi-event timestamps: The module has a counter to keep track of the
+  time interval between stop signals received in multi-event mode.
+  See Section 4.17 of the manual.
+\item Averaging mode: groups of consecutive samples are averaged in the FPGAs
+  before being transferred to memory. For low-speed input signals only. See
+  Section 4.19.2 of the manual.
+\item Multiplexer mode: used to synchronise data acquisition with slow
+  external multiplexing hardware. See Section 10.1.1 of the manual.
+\end{itemize}
+\subsection*{Both modules}
+\label{sec-3.2}
+
+\begin{itemize}
+\item Output trigger generation: an output trigger signal is generated when
+  the acquired signal on a particular channel has a certain shape. (e.g.
+  the signal crosses a certain threshold). Further info: \\
+
+  \begin{itemize}
+  \item SIS3300: Section 4.20 of the manual
+  \item SIS3320: Section 4.27 of the manual
+  \end{itemize}
+
+\item External random clock mode: A trigger occurs after each falling
+  edge of the external input clock. This falling edge is detected with
+  an internal clock. The external clock doesn't need to be symmetric.
+
+  \begin{itemize}
+  \item SIS3300: Section 4.19.4 of the manual
+  \item SIS3320: Section 4.5 of the manual
+  \end{itemize}
+
+\end{itemize}
+
+\end{document}
