@@ -23,7 +23,9 @@
 #include <ctype.h>
 
 /* shut up Lynx gcc */
+#ifdef __Lynx__
 extern int vsnprintf(char *, unsigned, const char*, va_list);
+#endif
 
 #define streq(a,b) (strcmp((a),(b)) == 0)
 
