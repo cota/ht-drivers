@@ -1,0 +1,11 @@
+#ifndef _SIS33_ERRNO_H_
+#define _SIS33_ERRNO_H_
+
+#include <errno.h>
+
+#define LIBSIS33_ERROR_BASE	0x3000
+#define LIBSIS33_EINVAL		((LIBSIS33_ERROR_BASE)+1)
+#define LIBSIS33_ENODEV		((LIBSIS33_ERROR_BASE)+2)
+#define LIBSIS33_ENOTSUPP	((LIBSIS33_ERROR_BASE)+3)
+
+#endif /* _SIS33_ERRNO_H_ */
