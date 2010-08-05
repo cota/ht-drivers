@@ -10,6 +10,7 @@ SUBDIRS += \
 	mttn \
 	ctr \
 	cvorg \
+	sis33 \
 
 
 include ./makefiles/Makefile.base
