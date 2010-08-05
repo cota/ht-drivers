@@ -1,0 +1,8 @@
+EXTRA_CFLAGS += \
+	     -I$(M) \
+	     -I$(M)/../include \
+	     -I$(M)/../../include
+
+obj-m := sis33.o sis3320.o sis3300.o
+
+sis33-objs := sis33_core.o sis33_dma.o sis33_sysfs.o sis33_compat_ioctl.o
