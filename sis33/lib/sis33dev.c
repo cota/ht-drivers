@@ -331,12 +331,12 @@ int sis33dev_get_nr_items(int index, const char *name)
 	return n;
 }
 
-static int cmp_uints(const void *a, const void *b)
+static int cmp_uints_desc(const void *a, const void *b)
 {
 	const unsigned int *n1 = a;
 	const unsigned int *n2 = b;
 
-	return *n1 - *n2;
+	return *n2 - *n1;
 }
 
 /* Note: the returned values are sorted in descending order by magnitude */
@@ -360,7 +360,7 @@ int sis33dev_get_items_uint(int index, const char *name, unsigned int *array, un
 		array[i] = strtoul(init, NULL, 0);
 		init = end + 1;
 	}
-	qsort(array, i, sizeof(*array), cmp_uints);
+	qsort(array, i, sizeof(*array), cmp_uints_desc);
 	return i < n ? -1 : 0;
 }
 
