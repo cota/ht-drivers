@@ -904,11 +904,11 @@ UserData *u;
 	    revis_id[i] = '\0';
 	    cprintf("VD80: Board Revision ID:%s ",revis_id);
 	    if (strcmp("C1A9",revis_id) == 0)
-		cprintf("OK - Supported by this driver\n");
+	       cprintf("OK - Supported by this driver\n");
 	    else if (strcmp("C2Aa",revis_id) == 0)
-		cprintf("OK - Supported by this driver\n");
+	       cprintf("OK - Supported by this driver\n");
 	    else {
-	       cprintf("ERROR - NOT SUPPORTED BY THIS DRIVER\n");
+	       cprintf("ERROR - %s NOT SUPPORTED BY THIS DRIVER\n",revis_id);
 	       return SkelUserReturnFAILED;
 	    }
 	    u = (UserData *) sysbrk(sizeof(UserData));  /* TODO: Leaks on uninstall */
