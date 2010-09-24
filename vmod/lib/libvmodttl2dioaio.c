@@ -14,7 +14,7 @@ int vmodttl_open(int lun)
 		fprintf(stderr, "libvmodttl2dioaio : Invalid lun %d\n", lun);
 		return -1;
 	}
-	return lun;
+	return 0;
 }
 
 int vmodttl_close(int lun)
