@@ -4,6 +4,7 @@ SUBDIRS += \
 	cdcm \
 	lib \
 	icv196 \
+	vmod \
 	vd80 \
 	xmem \
 	mttn \
