@@ -1,0 +1,50 @@
+*****************************************************************************
+			libvmodttl2diaio 
+			  User Manual
+*****************************************************************************
+
+ INTRODUCTION
+ ------------
+
+ This library is an adapter to translate the calls from the new library 
+to the old library in PPC environment. 
+
+
+ API
+ ---
+
+ The API is, of course, the same of the new one for GNU/Linux. It is
+described and there are some tips about how to use it, in the following 
+lines:
+
+ --> int vmodttl_open(int lun)
+     Originally, this function open the corresponding file and translates 
+     from logical unit number to file descriptor. 
+     It's unnecessary with dioaiolib, so only checks that the lun is 
+     between the right values.
+
+ --> int vmodttl_close(int lun)
+     Originally, this function closes the file corresponding of the given lun.
+     With dioaiolib, it's unnecessary and it returns 0 always.
+
+ --> int vmodttl_ioconfig(int lun, struct vmodttl_config conf)
+     It configures the direction of each channel and the desired mode (inverted or
+     normal TTL-level). 
+     The delay value is not working here (it is a 1 us pulse).
+     *Remember* to call this function before to do any read/write operation.
+
+ --> int vmodttl_write(int lun, enum vmodttl_channel chan, int val)
+     It writes to the desired channel (A, B or A and B togethera) the value of 'val'.
+     It generates a data strobe in port C in each write operation.
+
+ --> int vmodttl_read(int lun, enum vmodttl_channel chan, int *val)
+     It reads the desired channel and write its value to 'val'. It also generates a
+     data strobe in the port C in each read operation.
+
+ REFERENCES
+ ----------
+
+ More information is available in the libvmodttl documentation. Realize that the 
+differences between it and this library are detailed here.
+
+http://cs-ccr-www3/private/coht/doxy/vmodttl/

@@ -1,0 +1,35 @@
+*****************************************************************************
+			libvmod12e162diaio 
+			  User Manual
+*****************************************************************************
+
+ INTRODUCTION
+ ------------
+
+ This library is an adapter to translate the calls from the new library 
+to the old library in PPC environment. 
+
+
+ API
+ ---
+
+ The API is, of course, the same of the new one for GNU/Linux. It is
+described and there are some tips about how to use it, in the following 
+lines:
+
+ --> int vmod12e16_get_handle(int lun)
+     Originally, this function open the corresponding file and translates 
+     from logical unit number to file descriptor. 
+     It's unnecessary with dioaiolib, so only checks that the lun is 
+     between the right values.
+
+ --> int vmod12e16_close(int fd)
+     Originally, this function closes the file corresponding of the given 
+     file descriptor. With dioaiolib, it's unnecessary and it returns 0 always.
+
+ --> int vmod12e16_convert(int fd, int channel,
+        enum vmod12e16_amplification factor, int *value);
+     It reads a value to the desired channel. The amplification factor is not used 
+     in dioaio - it is always 1.
+
+
