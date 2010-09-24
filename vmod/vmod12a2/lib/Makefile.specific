@@ -1,3 +1,0 @@
-include ../Makefile.specific
-
-DOXY_TARGET = ../../../doxy/doxy.sh -n"VMOD 12a2" . ../include

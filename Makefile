@@ -3,7 +3,6 @@ SUBDIRS += \
 	utils \
 	cdcm \
 	lib \
-	vmod \
 	icv196 \
 	vd80 \
 	xmem \

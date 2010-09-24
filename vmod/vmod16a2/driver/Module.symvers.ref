@@ -1,3 +1,0 @@
-0x00000000	carrier_register	/acc/src/dsc/drivers/coht/vmod/vmod16a2/driver/carrier	EXPORT_SYMBOL
-0x00000000	carrier_as_entry	/acc/src/dsc/drivers/coht/vmod/vmod16a2/driver/carrier	EXPORT_SYMBOL
-0x00000000	carrier_isr_entry	/acc/src/dsc/drivers/coht/vmod/vmod16a2/driver/carrier	EXPORT_SYMBOL

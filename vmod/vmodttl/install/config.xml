@@ -1,9 +1,0 @@
-<install host="cfv-864-cdv28" comment="Test XML installer">
-	<driver name="null" comment="Controls Timing Receiver driver name">
-                <module bus_type="VME" logical_module_number="1" comment="First module">
-                        <interrupt vector="0xB8" level="2"/>
-                        <vme comment="Now define address spaces"/>
-                        <vme_space modifier="0x39" data_width="32" window_size="0x10000" address="0x0C00000" comment="main FPGA logic"/>
-                </module>
-        </driver>
-</install>
