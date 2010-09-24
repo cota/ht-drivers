@@ -75,21 +75,14 @@ int vmodttl_io_chan_config(int lun, enum vmodttl_channel chan, struct vmodttl_co
 
 int vmodttl_write(int lun, enum vmodttl_channel chan, int val)
 {
-	int ret;
-	
 	if (chan != VMOD_TTL_CHANNELS_AB){
-		ret = DioChannelWrite(IocVMODTTL, lun, chan, 1, val);
+		DioChannelWrite(IocVMODTTL, lun, chan, 1, val);
 	} else {
-		ret = DioChannelWrite(IocVMODTTL, lun, 0, 1, val & 0xff);
-		ret = DioChannelWrite(IocVMODTTL, lun, 1, 1, (val >> 8) & 0xff);
+		DioChannelWrite(IocVMODTTL, lun, 0, 1, val & 0xff);
+		DioChannelWrite(IocVMODTTL, lun, 1, 1, (val >> 8) & 0xff);
 	}
 
-	if (ret < 0)
-	{
-		print_error(ret);
-	}	
-
-	return ret;
+	return 0;
 }
 
 int vmodttl_read(int lun, enum vmodttl_channel chan, int *val)
