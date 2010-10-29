@@ -385,11 +385,6 @@ static void sis3320_acq_complete(struct sis33_card *card)
 	struct sis33_segment *segment;
 
 	segment = &card->segments[card->curr_segment];
-	if (!atomic_read(&segment->acquiring))
-		return;
-	do_gettimeofday(&segment->endtime);
-	sis3320_read_segment(card, card->curr_segment);
-	sis3320_read_prevticks(card, card->curr_segment);
 	atomic_set(&segment->acquiring, 0);
 	complete_all(&priv->completion);
 }
@@ -398,6 +393,7 @@ static void sis3320_irq_work(struct work_struct *work)
 {
 	struct sis33_card *card = container_of(work, struct sis33_card, irq_work);
 	struct sis3320 *priv = card->private_data;
+	struct sis33_segment *segment;
 	unsigned int status;
 
 	status = sis3320_readw(priv, SIS3320_INTCTL);
@@ -408,6 +404,11 @@ static void sis3320_irq_work(struct work_struct *work)
 	 */
 	if (status & INTCTL_ST_LEV) {
 		sis3320_writew(priv, SIS3320_INTCTL, INTCTL_DICL_LEV);
+		segment = &card->segments[card->curr_segment];
+		BUG_ON(!atomic_read(&segment->acquiring));
+		do_gettimeofday(&segment->endtime);
+		sis3320_read_segment(card, card->curr_segment);
+		sis3320_read_prevticks(card, card->curr_segment);
 		sis3320_acq_complete(card);
 		sis3320_writew(priv, SIS3320_INTCTL, INTCTL_EN_LEV);
 	}
