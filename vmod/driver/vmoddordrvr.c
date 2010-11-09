@@ -84,13 +84,6 @@ static int vmoddor_ioctl(struct inode *inode, struct file *fp, unsigned op,
 
 		data = val;
 		vmoddor_write_word(pd, 0, data);
-
-#if 0
-		val = -1;
-		val = vmoddor_read_word(pd, 0);
-
-		printk(KERN_INFO "VMODDOR: the written value is %d\n", val);
-#endif 
 	}
 		break;
 
