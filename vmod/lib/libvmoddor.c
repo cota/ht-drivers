@@ -24,7 +24,6 @@ int vmoddor_open(int lun)
 
 	ret = open(device, O_RDWR, 0);
 	if (ret < 0){
-		fprintf(stderr, "Failed to open the file: %s\n", strerror(errno));
 		return -1;
 	}
 	
@@ -55,14 +54,8 @@ int vmoddor_write(int lun , struct vmoddor_warg val)
 	ret = ioctl(fd, VMODDOR_WRITE, (char *)&argument);
 	
 	if(ret < 0){
-		fprintf(stderr, "Failed to write data to the channel: %s\n", strerror(errno));
 		return ret;
 	}
 
 	return 0;
 }
-
-
-
-
-

@@ -27,6 +27,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/*! \file */
+/*!
+ *  \mainpage VMOD-DOR Device Driver
+ *  \author Samuel Iglesias Gonsalvez BE/CO/HT
+ *  \version 27 May 2010
+ *
+ * The VMOD-DOR hardware module is an opto-isolated digital output
+ * with 16 bit TTL-level.
+ *
+ * In this version of the driver the following capabilities are provided.
+ *
+ * 1) Open/Close the device.
+ * 
+ * 2) Write to the channel.
+ */
 
 /*! 
  * This struct is used as argument in vmoddor_write 
@@ -36,8 +55,36 @@ struct vmoddor_warg{
         unsigned short  size; /*!< Data size (4, 8, 16 bits) */
         unsigned short  offset; /*!< Offset to the corresponding channel [0-5]:<br>
 				*	16 bits: this value is not used.<br>
-				*	8 bits: use 0 or 1.<br>	
-				*	4 bits: use from 2 to 5 (both included). */
+				*	8 bits: use 0 (D8...D15) or 1 (D0...D7).<br>	
+				*	4 bits: use from 2 to 5 (both included). 
+ * <table align="center" cellspacing="2" cellpadding="2" border="1">
+ * <tr>
+ *   <td colspan="4" align="left"><strong>Data Offset</strong></td>
+ * </tr>
+
+ * <tr>
+ *      <td align="center">Channel</td>
+ *      <td align="center">Offset</td>
+ * </tr>
+ * <tr>
+ *      <td align="center">D0...D3</td>
+ *      <td align="center">3</td>
+ * </tr>
+ * <tr>
+ *      <td align="center">D4...D7</td>
+ *      <td align="center">5</td>
+ * </tr>
+ * <tr>
+ *      <td align="center">D8...D11</td>
+ *      <td align="center">2</td>
+ * </tr>
+ * <tr>
+ *      <td align="center">D12...D15</td>
+ *      <td align="center">4</td>
+ * </tr> </table>
+ */
+
+
 };
 
 //! Open the device.
@@ -59,3 +106,7 @@ int vmoddor_close(int lun);
   \return returns 0 on success. On error, negative number is returned, and errno is set appropriately.
  */
 int vmoddor_write(int lun, struct vmoddor_warg val);
+
+#ifdef __cplusplus
+}
+#endif

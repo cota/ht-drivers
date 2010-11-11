@@ -37,7 +37,7 @@ extern "C" {
  *  \author Samuel Iglesias Gonsalvez BE/CO/HT
  *  \version 27 May 2010
  *
- * The VMOD-TTL hardware module is an opto-isolated digital output
+ * The VMOD-DOR hardware module is an opto-isolated digital output
  * with 16 bit TTL-level.
  *
  * In this version of the driver the following capabilities are provided.

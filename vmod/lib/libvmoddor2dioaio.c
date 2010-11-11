@@ -42,9 +42,8 @@ int vmoddor_write(int lun , struct vmoddor_warg val)
 	/* The size in dioaiolib means 4 bits in VMODDOR case. */
 	ret = DioStrobeWrite(IocVMODDOR, group_no, size, 0, 20, 80, val.data);	
 	
-	if (ret < 0){
+	if (ret < 0)
 		print_error(ret);
-	}	
 
 	return ret;
 }

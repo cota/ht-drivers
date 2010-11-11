@@ -45,8 +45,8 @@ int main (int argc, char *argv[])
 	ret = vmoddor_write(lun, val);
 	if (ret <0){
 		perror("Error on put data to channel");
-		exit(-1);
+		return -1;
 	}
-
+	
 	return 0;
 }

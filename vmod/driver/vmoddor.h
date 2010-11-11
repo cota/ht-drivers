@@ -30,6 +30,5 @@ struct vmoddor_dev
  *	IOctl Operations
  */
 #define VMODDOR_WRITE	_IOW('d', 0, struct vmoddor_arg)
-#define VMODDOR_READ	_IOR('d', 1, struct vmoddor_arg)
 
 #endif /* __VMODDOR_H__ */

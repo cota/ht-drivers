@@ -55,7 +55,7 @@ libvmoddor2dioaio.so: libvmoddor2dioaio.o
 else
 
 
-LIBS=libvmod.a libvmod.so libvmodttl.a libvmodttl.so libvmoddor.a libvmoddor.so
+LIBS=libvmod.a libvmod.so libvmodttl.a libvmoddor.a 
 lib: $(LIBS)
 OBJS=libvmod12a2.o libvmod16a2.o libvmod12e16.o
 
