@@ -511,7 +511,7 @@ int h_inpol(struct cmd_desc *cmdd, struct atom *atoms)
 			mperr("get input polarity");
 			return -TST_ERR_IOCTL;
 		}
-		printf("%s%s", polarity ? "Posi" : "Nega", "tive pulses\n");
+		printf("%s%s", polarity ? "Nega" : "Posi", "tive pulses\n");
 		goto out;
 	}
 
