@@ -543,3 +543,161 @@ int cvorg_channel_enable_output(cvorg_t *device)
 	LIBCVORG_DEBUG(4, "fd %d\n", device->fd);
 	return __cvorg_channel_enable_output(device, 1);
 }
+
+static int dac_set_val(cvorg_t *device, int val)
+{
+	uint32_t value = val;
+
+	if (ioctl(device->fd, CVORG_IOCSDAC_VAL, &value) < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
+	}
+	return 0;
+}
+
+static int dac_set_gain(cvorg_t *device, int val)
+{
+	uint16_t value = (uint16_t)val;
+
+	if (ioctl(device->fd, CVORG_IOCSDAC_GAIN, &value) < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
+	}
+	return 0;
+}
+
+static int dac_set_offset(cvorg_t *device, int val)
+{
+	int16_t value = (uint16_t)val;
+
+	if (ioctl(device->fd, CVORG_IOCSDAC_OFFSET, &value) < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
+	}
+	return 0;
+}
+
+
+static int __dac(cvorg_t *device, struct cvorg_dac conf)
+{
+	int ret;
+
+	ret = dac_set_val(device, conf.value);
+	if (ret)
+		return ret;
+
+	ret = dac_set_gain(device, conf.gain);
+	if (ret)
+		return ret;
+
+	ret = dac_set_offset(device, conf.offset);
+	if (ret)
+		return ret;
+
+	return 0;
+
+}
+
+static int __cvorg_dac_set_conf(cvorg_t *device, struct cvorg_dac conf)
+{	
+	uint32_t mode;
+	int ret;
+
+	mode = CVORG_MODE_DAC;
+	if (ioctl(device->fd, CVORG_IOCSMODE, &mode) < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
+	}
+
+	ret = __dac(device, conf);
+
+	mode = CVORG_MODE_OFF;
+	if (ioctl(device->fd, CVORG_IOCSMODE, &mode) < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
+	}
+
+	return ret;
+}
+
+/**
+ * @brief Set a new configuration for the internal DAC.
+ * @param device	- CVORG device handle
+ * @param conf 		- Configuration
+ *
+ * @return 0 on success, -1 on failure
+ *
+ * This function allows calibrate the current channel's DAC of the device.
+ */
+int cvorg_dac_set_conf(cvorg_t *device, struct cvorg_dac conf)
+{
+	unsigned int status;
+	int ret;
+	LIBCVORG_DEBUG(4, "fd %d\n", device->fd);
+
+	/* Check if the current channel is busy or not */
+	ret = cvorg_channel_get_status(device, &status);
+	if(ret)
+		return ret;
+
+	if (status & CVORG_CHANSTAT_BUSY ||
+		status & CVORG_CHANSTAT_SRAM_BUSY) {
+		fprintf(stderr, "current channel is busy. Cannot set DAC configuration.\n");
+		return -1; /* XXX SIG: this return value or another? */
+	}
+
+	/* Setup the configuration */
+	return __cvorg_dac_set_conf(device, conf);
+}
+
+static int __cvorg_dac_get_conf(cvorg_t *device, struct cvorg_dac *conf)
+{	
+	uint32_t mode;
+	uint32_t val;
+	uint16_t gain;
+	int16_t offset;
+
+	mode = CVORG_MODE_DAC;
+	if (ioctl(device->fd, CVORG_IOCSMODE, &mode) < 0)
+		goto error;
+
+	if (ioctl(device->fd, CVORG_IOCGDAC_VAL, &val) < 0)
+		goto error;
+
+	if (ioctl(device->fd, CVORG_IOCGDAC_GAIN, &gain) < 0)
+		goto error;
+
+	if (ioctl(device->fd, CVORG_IOCGDAC_OFFSET, &offset) < 0)
+		goto error;
+
+	mode = CVORG_MODE_OFF;
+	if (ioctl(device->fd, CVORG_IOCSMODE, &mode) < 0)
+		goto error;
+
+	conf->value = val;
+	conf->gain = gain;
+	conf->offset = offset;
+
+	return 0;
+error:
+	__cvorg_libc_error(__func__);
+	return -1;
+	
+}
+
+/**
+ * @brief Retrieve the configuration for the internal DAC.
+ * @param device	- CVORG device handle
+ * @param conf 		- Configuration
+ *
+ * @return 0 on success, -1 on failure
+ *
+ * This function reads the configuration of the current channel's DAC of the device.
+ */
+int cvorg_dac_get_conf(cvorg_t *device, struct cvorg_dac *conf)
+{
+	LIBCVORG_DEBUG(4, "fd %d\n", device->fd);
+	return __cvorg_dac_get_conf(device, conf);
+}
+
+
