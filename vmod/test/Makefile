@@ -5,7 +5,7 @@ CFLAGS=-g -Wall
 
 ifeq ($(CPU), ppc4)
 include /acc/src/dsc/co/Make.auto	
-all: test_vmodttl.$(CPU) test_vmoddor.$(CPU) tstlib12a2.$(CPU) tstlib16a2.$(CPU) tstlib12e16.$(CPU) 
+all: tstlibttl.$(CPU) tstlibdor.$(CPU) tstlib12a2.$(CPU) tstlib16a2.$(CPU) tstlib12e16.$(CPU) 
 HEADERS=./ \
         -I../include/ \
         -I/acc/src/dsc/drivers/dioaiofclty/include \
@@ -15,15 +15,15 @@ LOADLIBES+=-L/ps/local/ppc4/lib/ -L../lib/
 
 LDLIBS=-ldrvrutil -lerr -luio -lvme -lbus
 
-test_vmodttl.$(CPU): 
+tstlibttl.$(CPU): 
 	mkdir -p obj/
-	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) $^ test_vmodttl.c -o ./obj/test_vmodttl.o 
-	$(LINK.c) -o./obj/$@ ./obj/test_vmodttl.o $(LDFLAGS) $^ -lvmodttl2dioaio $(LOADLIBES) $(LDLIBS)
+	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) $^ tstlibttl.c -o ./obj/tstlibttl.o 
+	$(LINK.c) -o./obj/$@ ./obj/tstlibttl.o $(LDFLAGS) $^ -lvmodttl2dioaio $(LOADLIBES) $(LDLIBS)
 
-test_vmoddor.$(CPU): 
+tstlibdor.$(CPU): 
 	mkdir -p obj/
-	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) $^ test_vmoddor.c -o ./obj/test_vmoddor.o 
-	$(LINK.c) -o./obj/$@ ./obj/test_vmoddor.o $(LDFLAGS) $^ -lvmoddor2dioaio $(LOADLIBES) $(LDLIBS)
+	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) $^ tstlibdor.c -o ./obj/tstlibdor.o 
+	$(LINK.c) -o./obj/$@ ./obj/tstlibdor.o $(LDFLAGS) $^ -lvmoddor2dioaio $(LOADLIBES) $(LDLIBS)
 
 tstlib12a2.$(CPU): 
 	mkdir -p obj/
@@ -49,28 +49,28 @@ HEADERS := ../include/ \
 
 LOADLIBES := -L../lib/
 LDLIBS=-lvmodttl 
-all: test_vmodttl.$(CPU) test_vmoddor.$(CPU) load_test.$(CPU) test_quick_write.$(CPU) test_quick_read.$(CPU) \
+all: tstlibttl.$(CPU) tstlibdor.$(CPU) load_test.$(CPU) tstlibttl_quick_write.$(CPU) tstlibttl_quick_read.$(CPU) \
 	tstlib12a2.$(CPU) tstlib16a2.$(CPU) tstlib12e16.$(CPU)
 
-test_vmodttl.$(CPU): 
+tstlibttl.$(CPU): 
 	mkdir -p obj
-	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) test_vmodttl.c -o ./obj/test_vmodttl.o
-	$(CC) $(CFLAGS) -o ./obj/$@ ./obj/test_vmodttl.o $(LOADLIBES) $(LDLIBS)
+	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) tstlibttl.c -o ./obj/tstlibttl.o
+	$(CC) $(CFLAGS) -o ./obj/$@ ./obj/tstlibttl.o $(LOADLIBES) $(LDLIBS)
 
-test_vmoddor.$(CPU): 
+tstlibdor.$(CPU): 
 	mkdir -p obj
-	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) test_vmoddor.c -o ./obj/test_vmoddor.o
-	$(CC) $(CFLAGS) -o ./obj/$@ ./obj/test_vmoddor.o $(LOADLIBES) -lvmoddor 
+	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) tstlibdor.c -o ./obj/tstlibdor.o
+	$(CC) $(CFLAGS) -o ./obj/$@ ./obj/tstlibdor.o $(LOADLIBES) -lvmoddor 
 
-test_quick_write.$(CPU): 
+tstlibttl_quick_write.$(CPU): 
 	mkdir -p obj
-	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) test_quick_write.c -o ./obj/test_quick_write.o
-	$(CC) $(CFLAGS) -o ./obj/$@ ./obj/test_quick_write.o $(LOADLIBES) $(LDLIBS) -lpthread
+	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) tstlibttl_quick_write.c -o ./obj/tstlibttl_quick_write.o
+	$(CC) $(CFLAGS) -o ./obj/$@ ./obj/tstlibttl_quick_write.o $(LOADLIBES) $(LDLIBS) -lpthread
 
-test_quick_read.$(CPU): 
+tstlibttl_quick_read.$(CPU): 
 	mkdir -p obj
-	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) test_quick_read.c -o ./obj/test_quick_read.o
-	$(CC) $(CFLAGS) -o ./obj/$@ ./obj/test_quick_read.o $(LOADLIBES) $(LDLIBS) -lpthread
+	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) tstlibttl_quick_read.c -o ./obj/tstlibttl_quick_read.o
+	$(CC) $(CFLAGS) -o ./obj/$@ ./obj/tstlibttl_quick_read.o $(LOADLIBES) $(LDLIBS) -lpthread
 
 load_test.$(CPU):
 	mkdir -p obj

@@ -20,7 +20,7 @@ int main (int argc, char *argv[])
 	struct vmoddor_warg val;
 
 	if(argc != 5){
-		printf("test_vmoddor <lun> <offset> <size> <value>\n");
+		printf("tstlibdor <lun> <offset> <size> <value>\n");
 		printf("<lun> Logical Unit Number. \n"
 			"<offset> value of the offset applied. \n"
 			"<size> size of the data (4, 8, 16). \n"

@@ -31,7 +31,7 @@
 #include 	<stdio.h>
 #include	<unistd.h>
 #include	<fcntl.h>
-#include  <sys/stat.h>
+#include  	<sys/stat.h>
 #include	<sys/types.h>
 #include	<stdlib.h>
 #include 	<unistd.h>
@@ -96,7 +96,7 @@ int main (int argc, char *argv[])
 	}
 	else
 	{
-		printf("\n Please use: test_read_write <lun_of_the_device>.\n");
+		printf("\n Please use: tstlibttl <lun_of_the_device>.\n");
 		exit(-1);
 	}
 
@@ -109,30 +109,14 @@ int main (int argc, char *argv[])
 	printf("\n Channel A [ (0) Input - (1) Output]: \n");
 	scanf("%d", &val);
 	conf.dir_a = val;
-	if (!conf.dir_a){
-		conf.mode_a = 0;
-	}else{
-		printf("\n Channel A [ (0) Open Drain - (1) Open Collector ]\n");
-		scanf("%d", &val);
-		conf.mode_a = val;
-	}
+	conf.mode_a = 0; 	/* It's not open collector */
 
 	printf("\n Channel B [ (0) Input - (1) Output]: \n");
 	scanf("%d", &val);
 	conf.dir_b = val;
+	conf.mode_b = 0;	/* It's not open collector */
 
-	if (!conf.dir_b){
-		conf.mode_b = 0;
-
-	}else{
-		printf("\n Channel B [ (0) Open Drain - (1) Open Collector ]\n");
-		scanf("%d", &val);
-		conf.mode_b = val;
-	}
-
-	printf("\n Channel C [ (0) Open Drain - (1) Open Collector ]\n");
-	scanf("%d", &val);
-	conf.mode_c = val;
+	conf.mode_c = 0; 	/* It's not open collector */
 
 	printf("\n Up time of the pulse in the data strobe (useg): \n");
 	scanf("%d", &val);
