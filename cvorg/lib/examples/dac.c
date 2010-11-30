@@ -20,7 +20,6 @@
 static int	module_nr = MODULE_NR;
 static int	channel = CVORG_CHANNEL_A;
 static int	offset = -1;
-static int	value = -1;
 static int	gain = -1;
 static cvorg_t *device;
 
@@ -49,7 +48,7 @@ static void parse_args(int argc, char *argv[])
 	int c;
 
 	for (;;) {
-		c = getopt(argc, argv, "c:hg:m:o:v:");
+		c = getopt(argc, argv, "c:hg:m:o:");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -68,8 +67,6 @@ static void parse_args(int argc, char *argv[])
 		case 'o':
 			offset = atoi(optarg);
 			break;
-		case 'v':
-			value = atoi(optarg);
 		}
 	}
 }
@@ -93,9 +90,8 @@ int main(int argc, char *argv[])
 		cvorg_perror("cvorg_dac_get_conf");
 		exit(EXIT_FAILURE);
 	}
-	printf("CVORG DAC channel %d, value 0x%x, gain 0x%x, offset 0x%x \n",
+	printf("CVORG DAC channel %d, gain 0x%x, offset 0x%x \n",
 			channel,
-			conf.value,
 			conf.gain,
 			conf.offset);
 
@@ -104,8 +100,6 @@ int main(int argc, char *argv[])
 
 	if(gain >= 0)
 		conf.gain = gain;
-	if(value >= 0)
-		conf.value = value;
 
 	ret = cvorg_dac_set_conf(device, conf);
 	if (ret) {
@@ -118,9 +112,8 @@ int main(int argc, char *argv[])
 		cvorg_perror("cvorg_dac_get_conf");
 		exit(EXIT_FAILURE);
 	}
-	printf("CVORG DAC channel %d, value 0x%x, gain 0x%x, offset 0x%x \n",
+	printf("CVORG DAC channel %d, gain 0x%x, offset 0x%x \n",
 			channel,
-			conf.value,
 			conf.gain,
 			conf.offset);
 

@@ -544,17 +544,6 @@ int cvorg_channel_enable_output(cvorg_t *device)
 	return __cvorg_channel_enable_output(device, 1);
 }
 
-static int dac_set_val(cvorg_t *device, int val)
-{
-	uint32_t value = val;
-
-	if (ioctl(device->fd, CVORG_IOCSDAC_VAL, &value) < 0) {
-		__cvorg_libc_error(__func__);
-		return -1;
-	}
-	return 0;
-}
-
 static int dac_set_gain(cvorg_t *device, int val)
 {
 	uint16_t value = (uint16_t)val;
@@ -581,10 +570,6 @@ static int dac_set_offset(cvorg_t *device, int val)
 static int __dac(cvorg_t *device, struct cvorg_dac conf)
 {
 	int ret;
-
-	ret = dac_set_val(device, conf.value);
-	if (ret)
-		return ret;
 
 	ret = dac_set_gain(device, conf.gain);
 	if (ret)
@@ -653,15 +638,11 @@ int cvorg_dac_set_conf(cvorg_t *device, struct cvorg_dac conf)
 static int __cvorg_dac_get_conf(cvorg_t *device, struct cvorg_dac *conf)
 {	
 	uint32_t mode;
-	uint32_t val;
 	uint16_t gain;
 	int16_t offset;
 
 	mode = CVORG_MODE_DAC;
 	if (ioctl(device->fd, CVORG_IOCSMODE, &mode) < 0)
-		goto error;
-
-	if (ioctl(device->fd, CVORG_IOCGDAC_VAL, &val) < 0)
 		goto error;
 
 	if (ioctl(device->fd, CVORG_IOCGDAC_GAIN, &gain) < 0)
@@ -674,7 +655,6 @@ static int __cvorg_dac_get_conf(cvorg_t *device, struct cvorg_dac *conf)
 	if (ioctl(device->fd, CVORG_IOCSMODE, &mode) < 0)
 		goto error;
 
-	conf->value = val;
 	conf->gain = gain;
 	conf->offset = offset;
 

@@ -136,12 +136,10 @@ struct cvorg_adc {
 
 /**
  * @brief DAC configuration struct
- * @param value - ADC channel. See enum cvorg_adc_channel.
  * @param gain - Gain value used by the DAC.
  * @param offset - Offset value used by the DAC.
  */
 struct cvorg_dac {
-	uint32_t	value;
 	uint32_t	gain;
 	uint32_t	offset;
 };
