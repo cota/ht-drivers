@@ -139,7 +139,7 @@ enum vmodttl_channel{
  * This enum is used to select the mode of the channel.
  */
 enum vmodttl_chan_mode{
-	OPEN_DRAIN = 0, /*!< Indicates if the channel is defined as ttl (only for output) */
+	TTL = 0, /*!< Indicates if the channel is defined as ttl (only for output) */
 	OPEN_COLLECTOR /*!< Indicates if the channel is defined as open collector (only for output) */
 };
 	
