@@ -1,7 +1,7 @@
 /*
  * pcb.c
  *
- * Retrieve the pcb id of a CORG module 
+ * Retrieve the pcb id of a CORG module
  */
 
 #include <stdlib.h>

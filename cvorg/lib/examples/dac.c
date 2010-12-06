@@ -1,7 +1,7 @@
 /*
- * version.c
+ * dac.c
  *
- * Retrieve the version of a CVORG module and library
+ * Retrieve and set the DAC's configuration of a CVORG module
  */
 
 #include <stdlib.h>
