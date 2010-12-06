@@ -52,6 +52,7 @@ int cvorg_channel_set_sequence(cvorg_t *device, struct cvorg_seq *sequence);
 int cvorg_channel_set_waveform(cvorg_t *device, struct cvorg_wv *waveform);
 
 char *cvorg_get_hw_version(cvorg_t *device);
+int cvorg_get_pcb_id(cvorg_t *device, uint64_t *pcb_id);
 
 int cvorg_channel_disable_output(cvorg_t *device);
 int cvorg_channel_enable_output(cvorg_t *device);

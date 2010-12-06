@@ -680,4 +680,21 @@ int cvorg_dac_get_conf(cvorg_t *device, struct cvorg_dac *conf)
 	return __cvorg_dac_get_conf(device, conf);
 }
 
+/**
+ * @brief Retrieve the PCB id of the CVORG device.
+ * @param device	- CVORG device handle
+ * @param pcb_id 	- Pointer to a variable to receive the data
+ *
+ * @return 0 on success, -1 on failure
+ *
+ * This function reads the pcb id of the device.
+ */
+int cvorg_get_pcb_id(cvorg_t *device, uint64_t *pcb_id)
+{
+	if (ioctl(device->fd, CVORG_IOCGPCB_ID, pcb_id) < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
+	}
+	return 0;
+}
 
