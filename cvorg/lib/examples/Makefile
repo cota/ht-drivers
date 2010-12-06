@@ -14,6 +14,7 @@ SRCS :=	waveform.c \
 	lock.c \
 	version.c \
 	dac.c \
+	pcb.c \
 
 
 OBJS := $(SRCS:.c=.$(CPU))
@@ -31,6 +32,7 @@ sequence.$(CPU):	$(@:.$(CPU)=.$c) $(LIBCVORG)
 lock.$(CPU):		$(@:.$(CPU)=.$c) $(LIBCVORG)
 version.$(CPU):		$(@:.$(CPU)=.$c) $(LIBCVORG)
 dac.$(CPU):		$(@:.$(CPU)=.$c) $(LIBCVORG)
+pcb.$(CPU):		$(@:.$(CPU)=.$c) $(LIBCVORG)
 
 clean:
 	$(RM) *.$(CPU) *.o $(BAKS)
