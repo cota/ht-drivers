@@ -405,7 +405,7 @@ static void sis3320_irq_work(struct work_struct *work)
 	if (status & INTCTL_ST_LEV) {
 		sis3320_writew(priv, SIS3320_INTCTL, INTCTL_DICL_LEV);
 		segment = &card->segments[card->curr_segment];
-		BUG_ON(!atomic_read(&segment->acquiring));
+		/* BUG_ON(!atomic_read(&segment->acquiring)); */
 		do_gettimeofday(&segment->endtime);
 		sis3320_read_segment(card, card->curr_segment);
 		sis3320_read_prevticks(card, card->curr_segment);
