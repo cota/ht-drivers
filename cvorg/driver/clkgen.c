@@ -94,6 +94,37 @@ static void debug_clkgen_wr(struct cvorg *cvorg, unsigned int addr, uint8_t data
 #endif /* DEBUG_CVORG_SPI */
 
 /**
+ * clkgen_check_write - check if the write operation is finished properly.
+ *
+ * @cvorg:	CVORG module
+ *
+ * return 0 - if OK
+ * return -1 - if not OK (data not up to date)
+ */
+int clkgen_check_write(struct cvorg *cvorg)
+{
+	int val;
+	int times = 10;
+
+	do {
+		val = cvorg_readw(cvorg, CVORG_CLKCTL);
+		if (val & CVORG_CLKCTL_UP2DATE) {
+			goto check_ok;
+		}
+		times--;
+		usec_sleep(1);
+
+	} while(times);
+
+	/* Fail waiting for the flag */
+	return -1;
+
+check_ok:
+	return 0;
+
+}
+
+/**
  * clkgen_wr - write to the CVORG's clock generator
  *
  * @cvorg:	CVORG module
@@ -106,6 +137,10 @@ static void clkgen_wr(struct cvorg *cvorg, unsigned int addr, uint8_t data)
 
 	cvorg_writew(cvorg, CVORG_CLKCTL, cmd);
 	usec_sleep(CVORG_AD9516_SPI_SLEEP_US);
+	if (clkgen_check_write(cvorg)) {
+		SK_INFO("clkgen_wr : error writing on 0x%x, data 0x%x", addr, data);
+		return;
+	}
 
 	debug_clkgen_wr(cvorg, addr, data);
 }
