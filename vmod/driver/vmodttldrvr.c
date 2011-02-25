@@ -573,9 +573,9 @@ static int __init vmodttl_init(void)
 		if (pd == 0)
 			goto fail_pd;
 
-		pvmodttlDv[i] = (void *)pd;
+		pvmodttlDv[mod->lun] = (void *)pd;
 		pd->config = mod;
-		pd->dev = lun_to_index(dev_table, i);
+		pd->dev = lun_to_index(dev_table, mod->lun);
 		pd->OpenCount = 0;
 		pd->io_flag = 0; /* All channels are inputs by default */
 		pd->open_collector = 0; /* All channels are TTL by default */
